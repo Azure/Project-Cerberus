@@ -7,6 +7,7 @@
 #include "testing.h"
 #include "cmd_interface/device_manager.h"
 #include "common/array_size.h"
+#include "common/buffer_util.h"
 #include "flash/flash.h"
 #include "manifest/pcd/pcd_flash.h"
 #include "manifest/pcd/pcd_flash_static.h"
@@ -3914,9 +3915,10 @@ static void pcd_flash_test_buffer_supported_components (CuTest *test)
 		(uint8_t*) components);
 
 	CuAssertIntEquals (test, sizeof (supported_component), status);
-	CuAssertIntEquals (test, supported_component[0].component_id, *(uint32_t*) components);
+	CuAssertIntEquals (test, supported_component[0].component_id,
+		buffer_unaligned_read32 ((uint32_t*) components));
 	CuAssertIntEquals (test, supported_component[1].component_id,
-		*(uint32_t*) (components + component_len));
+		buffer_unaligned_read32 ((uint32_t*) (components + component_len)));
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -4153,9 +4155,10 @@ static void pcd_flash_test_buffer_supported_components_static_init (CuTest *test
 		(uint8_t*) components);
 
 	CuAssertIntEquals (test, sizeof (supported_component), status);
-	CuAssertIntEquals (test, supported_component[0].component_id, *(uint32_t*) components);
+	CuAssertIntEquals (test, supported_component[0].component_id,
+		buffer_unaligned_read32 ((uint32_t*) components));
 	CuAssertIntEquals (test, supported_component[1].component_id,
-		*(uint32_t*) (components + component_len));
+		buffer_unaligned_read32 ((uint32_t*) (components + component_len)));
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }

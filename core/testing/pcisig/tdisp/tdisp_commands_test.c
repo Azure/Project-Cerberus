@@ -5,6 +5,7 @@
 #include "testing.h"
 #include "cmd_interface/cmd_interface.h"
 #include "common/array_size.h"
+#include "common/buffer_util.h"
 #include "pcisig/doe/doe_base_protocol.h"
 #include "pcisig/tdisp/cmd_interface_tdisp_responder_static.h"
 #include "pcisig/tdisp/tdisp_commands.h"
@@ -245,9 +246,10 @@ static void tdisp_commands_test_get_capabilities_response_format (CuTest *test)
 		capabilities_response->header.interface_id.reserved);
 	CuAssertIntEquals (test, 0x4D204954, capabilities_response->rsp_caps.dsm_caps);
 	CuAssertInt64Equals (test, 0x7369764552544148,
-		*((uint64_t*) capabilities_response->rsp_caps.req_msg_supported));
+		buffer_unaligned_read64 ((uint64_t*) capabilities_response->rsp_caps.req_msg_supported));
 	CuAssertInt64Equals (test, 0x6F687361206C6168,
-		*((uint64_t*) (&capabilities_response->rsp_caps.req_msg_supported[8])));
+		buffer_unaligned_read64 (
+		(uint64_t*) (&capabilities_response->rsp_caps.req_msg_supported[8])));
 	CuAssertIntEquals (test, 0x206B,
 		capabilities_response->rsp_caps.lock_interface_flags_supported);
 	CuAssertIntEquals (test, 0x61, capabilities_response->rsp_caps.reserved[0]);
@@ -352,16 +354,18 @@ static void tdisp_commands_test_tdisp_lock_interface_response_format (CuTest *te
 		lock_interface_response->header.interface_id.reserved);
 
 	CuAssertInt64Equals (test, 0x3837363534333231,
-		*((uint64_t*) lock_interface_response->start_interface_nonce));
+		buffer_unaligned_read64 ((uint64_t*) lock_interface_response->start_interface_nonce));
 
 	CuAssertInt64Equals (test, 0x3132313131303139,
-		*((uint64_t*) (&lock_interface_response->start_interface_nonce[8])));
+		buffer_unaligned_read64 ((uint64_t*) (&lock_interface_response->start_interface_nonce[8])));
 
 	CuAssertInt64Equals (test, 0x3136313531343133,
-		*((uint64_t*) (&lock_interface_response->start_interface_nonce[16])));
+		buffer_unaligned_read64 (
+		(uint64_t*) (&lock_interface_response->start_interface_nonce[16])));
 
 	CuAssertInt64Equals (test, 0x3230323931383137,
-		*((uint64_t*) (&lock_interface_response->start_interface_nonce[24])));
+		buffer_unaligned_read64 (
+		(uint64_t*) (&lock_interface_response->start_interface_nonce[24])));
 }
 
 static void tdisp_commands_test_get_device_interface_report_request_format (CuTest *test)
@@ -599,16 +603,18 @@ static void tdisp_commands_test_tdisp_start_interface_request_format (CuTest *te
 		start_interface_request->header.interface_id.reserved);
 
 	CuAssertInt64Equals (test, 0x3837363534333231,
-		*((uint64_t*) start_interface_request->start_interface_nonce));
+		buffer_unaligned_read64 ((uint64_t*) start_interface_request->start_interface_nonce));
 
 	CuAssertInt64Equals (test, 0x3132313131303139,
-		*((uint64_t*) (&start_interface_request->start_interface_nonce[8])));
+		buffer_unaligned_read64 ((uint64_t*) (&start_interface_request->start_interface_nonce[8])));
 
 	CuAssertInt64Equals (test, 0x3136313531343133,
-		*((uint64_t*) (&start_interface_request->start_interface_nonce[16])));
+		buffer_unaligned_read64 (
+		(uint64_t*) (&start_interface_request->start_interface_nonce[16])));
 
 	CuAssertInt64Equals (test, 0x3230323931383137,
-		*((uint64_t*) (&start_interface_request->start_interface_nonce[24])));
+		buffer_unaligned_read64 (
+		(uint64_t*) (&start_interface_request->start_interface_nonce[24])));
 }
 
 static void tdisp_commands_test_tdisp_start_interface_response_format (CuTest *test)

@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "common/buffer_util.h"
 #include "firmware/firmware_logging.h"
 #include "firmware/firmware_update.h"
 #include "firmware/firmware_update_static.h"
@@ -73,8 +74,8 @@ void firmware_update_testing_init_firmware_header (CuTest *test, struct firmware
 	int status;
 
 	memcpy (data, FIRMWARE_HEADER_FORMAT_2, sizeof (data));
-	*((uint16_t*) &data[8]) = (uint16_t) id;
-	*((uint16_t*) &data[11]) = (uint16_t) id;
+	buffer_unaligned_write16 ((uint16_t*) &data[8], id);
+	buffer_unaligned_write16 ((uint16_t*) &data[11], id);
 
 	status = mock_expect (&flash->mock, flash->base.read, flash, 0, MOCK_ARG (0x10000),
 		MOCK_ARG_NOT_NULL, MOCK_ARG (IMAGE_HEADER_BASE_LEN));

@@ -6,6 +6,7 @@
 #include "testing.h"
 #include "cmd_interface/device_manager.h"
 #include "common/array_size.h"
+#include "common/buffer_util.h"
 #include "logging/debug_log.h"
 #include "pcisig/doe/doe_base_protocol.h"
 #include "riot/riot_key_manager.h"
@@ -31489,8 +31490,7 @@ static void spdm_test_process_get_measurements_response (CuTest *test)
 	resp->measurement_record_len[0] = 3;
 
 	opaque_len = (uint16_t*) (spdm_get_measurements_resp_nonce (resp) + SPDM_NONCE_LEN);
-
-	*opaque_len = 2;
+	buffer_unaligned_write16 (opaque_len, 2);
 
 	status = spdm_process_get_measurements_response (&msg);
 	CuAssertIntEquals (test, 0, status);
@@ -31542,7 +31542,7 @@ static void spdm_test_process_get_measurements_response_bad_length (CuTest *test
 		spdm_get_measurements_resp_measurement_record_len (resp) + SPDM_NONCE_LEN;
 
 	opaque_len = (uint16_t*) (spdm_get_measurements_resp_nonce (resp) + SPDM_NONCE_LEN);
-	*opaque_len = 2;
+	buffer_unaligned_write16 (opaque_len, 2);
 
 	status = spdm_process_get_measurements_response (&msg);
 	CuAssertIntEquals (test, CMD_HANDLER_SPDM_BAD_LENGTH, status);

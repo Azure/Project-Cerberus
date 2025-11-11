@@ -15,6 +15,7 @@
 #include "cmd_interface/cmd_interface_system.h"
 #include "cmd_interface/device_manager.h"
 #include "common/array_size.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/checksum.h"
 #include "mctp/cmd_interface_protocol_mctp.h"
@@ -2838,7 +2839,7 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
-			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA;
+			buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA);
 			payload_len += 2;
 
 			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
@@ -2850,7 +2851,7 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
-			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB;
+			buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB);
 			payload_len += 2;
 
 			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
@@ -2862,7 +2863,7 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
-			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC;
+			buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC);
 			payload_len += 2;
 
 			if (!testing->device_id_block_short) {
@@ -2876,7 +2877,7 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 				id = (uint16_t*) &msg[payload_len];
-				*id = (testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD;
+				buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD);
 				payload_len += 2;
 			}
 		}
@@ -2887,11 +2888,11 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 	}
 
 	opaque_length = (uint16_t*) &msg[payload_len];
-	*opaque_length = testing->spdm_discovery ? 0 : 5;
+	buffer_unaligned_write16(opaque_length, testing->spdm_discovery ? 0 : 5);
 	payload_len += 2;
 
 	if (!testing->spdm_discovery) {
-		for (i = 0; i < *opaque_length; ++i, ++payload_len) {
+		for (i = 0; i < buffer_unaligned_read16(opaque_length); ++i, ++payload_len) {
 			msg[payload_len] = 5 + i;
 		}
 
@@ -4752,10 +4753,10 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	}
 
 	opaque_length = (uint16_t*) &rsp_buf[offset];
-	*opaque_length = 5;
+	buffer_unaligned_write16(opaque_length, 5);
 	offset += 2;
 
-	for (i = 0; i < *opaque_length; ++i, ++offset) {
+	for (i = 0; i < buffer_unaligned_read16(opaque_length); ++i, ++offset) {
 		rsp_buf[offset] = 5 + i;
 	}
 
