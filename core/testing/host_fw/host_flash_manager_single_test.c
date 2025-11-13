@@ -383,6 +383,7 @@ static void host_flash_manager_single_test_init (CuTest *test)
 		&manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -448,6 +449,7 @@ static void host_flash_manager_single_test_init_with_managed_flash_initializatio
 		&manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -513,6 +515,7 @@ static void host_flash_manager_single_test_static_init (CuTest *test)
 
 	TEST_START;
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -546,6 +549,7 @@ static void host_flash_manager_single_test_static_init_with_managed_flash_initia
 
 	TEST_START;
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -571,6 +575,54 @@ static void host_flash_manager_single_test_release_null (CuTest *test)
 	TEST_START;
 
 	host_flash_manager_single_release (NULL);
+}
+
+static void host_flash_manager_single_test_has_two_flash_devices (CuTest *test)
+{
+	struct host_flash_manager_single_testing manager;
+	bool two_flashes;
+
+	TEST_START;
+
+	host_flash_manager_single_testing_init (test, &manager);
+
+	two_flashes = manager.test.base.has_two_flash_devices (&manager.test.base);
+	CuAssertIntEquals (test, false, two_flashes);
+
+	host_flash_manager_single_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_test_has_two_flash_devices_static_init (CuTest *test)
+{
+	struct host_flash_manager_single_testing manager = {
+		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
+			&manager.filter.base, &manager.handler.base)
+	};
+	bool two_flashes;
+
+	TEST_START;
+
+	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+
+	two_flashes = manager.test.base.has_two_flash_devices (&manager.test.base);
+	CuAssertIntEquals (test, false, two_flashes);
+
+	host_flash_manager_single_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_test_has_two_flash_devices_null (CuTest *test)
+{
+	struct host_flash_manager_single_testing manager;
+	bool two_flashes;
+
+	TEST_START;
+
+	host_flash_manager_single_testing_init (test, &manager);
+
+	two_flashes = manager.test.base.has_two_flash_devices (NULL);
+	CuAssertIntEquals (test, false, two_flashes);
+
+	host_flash_manager_single_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_single_test_get_read_only_flash (CuTest *test)
@@ -11040,6 +11092,9 @@ TEST (host_flash_manager_single_test_init_with_managed_flash_initialization_null
 TEST (host_flash_manager_single_test_static_init);
 TEST (host_flash_manager_single_test_static_init_with_managed_flash_initialization);
 TEST (host_flash_manager_single_test_release_null);
+TEST (host_flash_manager_single_test_has_two_flash_devices);
+TEST (host_flash_manager_single_test_has_two_flash_devices_static_init);
+TEST (host_flash_manager_single_test_has_two_flash_devices_null);
 TEST (host_flash_manager_single_test_get_read_only_flash);
 TEST (host_flash_manager_single_test_get_read_only_flash_static_init);
 TEST (host_flash_manager_single_test_get_read_only_flash_null);

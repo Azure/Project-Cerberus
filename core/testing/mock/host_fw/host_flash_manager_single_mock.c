@@ -7,6 +7,19 @@
 #include "host_flash_manager_single_mock.h"
 
 
+static bool host_flash_manager_single_mock_has_two_flash_devices (
+	const struct host_flash_manager *manager)
+{
+	struct host_flash_manager_single_mock *mock = (struct host_flash_manager_single_mock*) manager;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN_NO_ARGS (&mock->mock, host_flash_manager_single_mock_has_two_flash_devices,
+		manager);
+}
+
 static const struct spi_flash* host_flash_manager_single_mock_get_read_only_flash (
 	const struct host_flash_manager *manager)
 {
@@ -236,7 +249,10 @@ static int host_flash_manager_single_mock_func_arg_count (void *func)
 
 static const char* host_flash_manager_single_mock_func_name_map (void *func)
 {
-	if (func == host_flash_manager_single_mock_get_read_only_flash) {
+	if (func == host_flash_manager_single_mock_has_two_flash_devices) {
+		return "hash_two_flash_devices";
+	}
+	else if (func == host_flash_manager_single_mock_get_read_only_flash) {
 		return "get_read_only_flash";
 	}
 	else if (func == host_flash_manager_single_mock_get_read_write_flash) {
@@ -409,6 +425,7 @@ int host_flash_manager_single_mock_init (struct host_flash_manager_single_mock *
 
 	mock_set_name (&mock->mock, "host_processor_single");
 
+	mock->base.base.has_two_flash_devices = host_flash_manager_single_mock_has_two_flash_devices;
 	mock->base.base.get_read_only_flash = host_flash_manager_single_mock_get_read_only_flash;
 	mock->base.base.get_read_write_flash = host_flash_manager_single_mock_get_read_write_flash;
 	mock->base.base.validate_read_only_flash =

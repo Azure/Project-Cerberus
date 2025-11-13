@@ -8,6 +8,13 @@
 #include "common/unused.h"
 
 
+bool host_flash_manager_single_has_two_flash_devices (const struct host_flash_manager *manager)
+{
+	UNUSED (manager);
+
+	return false;
+}
+
 const struct spi_flash* host_flash_manager_single_get_read_only_flash (
 	const struct host_flash_manager *manager)
 {
@@ -291,6 +298,7 @@ int host_flash_manager_single_init (struct host_flash_manager_single *manager,
 
 	memset (manager, 0, sizeof (struct host_flash_manager_single));
 
+	manager->base.has_two_flash_devices = host_flash_manager_single_has_two_flash_devices;
 	manager->base.get_read_only_flash = host_flash_manager_single_get_read_only_flash;
 	manager->base.get_read_write_flash = host_flash_manager_single_get_read_write_flash;
 	manager->base.validate_read_only_flash = host_flash_manager_single_validate_read_only_flash;

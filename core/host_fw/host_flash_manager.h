@@ -40,6 +40,15 @@ struct host_flash_manager_images {
  */
 struct host_flash_manager {
 	/**
+	 * Indicate if there are two physical flash devices present for use with the host processor.
+	 *
+	 * @param manager The flash manager to query.
+	 *
+	 * @return true if the manager has access to two flash devices or false otherwise.
+	 */
+	bool (*has_two_flash_devices) (const struct host_flash_manager *manager);
+
+	/**
 	 * Get the flash device that is currently configured as the flash device for reading static
 	 * regions.
 	 *

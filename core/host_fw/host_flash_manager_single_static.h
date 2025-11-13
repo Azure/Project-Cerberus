@@ -14,6 +14,7 @@ const struct spi_flash* host_flash_manager_single_get_read_write_flash (
 	const struct host_flash_manager *manager);
 
 
+bool host_flash_manager_single_has_two_flash_devices (const struct host_flash_manager *manager);
 int host_flash_manager_single_validate_read_only_flash (const struct host_flash_manager *manager,
 	const struct pfm *pfm, const struct pfm *good_pfm, const struct hash_engine *hash,
 	const struct rsa_engine *rsa, bool full_validation,
@@ -47,6 +48,7 @@ int host_flash_manager_single_reset_flash (const struct host_flash_manager *mana
  * Constant initializer for the flash manager API.
  */
 #define	HOST_FLASH_MANAGER_SINGLE_API_INIT  { \
+		.has_two_flash_devices = host_flash_manager_single_has_two_flash_devices, \
 		.get_read_only_flash = host_flash_manager_single_get_read_only_flash, \
 		.get_read_write_flash = host_flash_manager_single_get_read_write_flash, \
 		.validate_read_only_flash = host_flash_manager_single_validate_read_only_flash, \

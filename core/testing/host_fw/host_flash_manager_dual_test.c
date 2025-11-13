@@ -407,6 +407,7 @@ static void host_flash_manager_dual_test_init (CuTest *test)
 		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -476,6 +477,7 @@ static void host_flash_manager_dual_test_init_with_managed_flash_initialization 
 		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -550,6 +552,7 @@ static void host_flash_manager_dual_test_static_init (CuTest *test)
 
 	TEST_START;
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -583,6 +586,7 @@ static void host_flash_manager_dual_test_static_init_with_managed_flash_initiali
 
 	TEST_START;
 
+	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
 	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
 	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
@@ -608,6 +612,54 @@ static void host_flash_manager_dual_test_release_null (CuTest *test)
 	TEST_START;
 
 	host_flash_manager_dual_release (NULL);
+}
+
+static void host_flash_manager_dual_test_has_two_flash_devices (CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager;
+	bool two_flashes;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_init (test, &manager, false);
+
+	two_flashes = manager.test.base.has_two_flash_devices (&manager.test.base);
+	CuAssertIntEquals (test, true, two_flashes);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_dual_test_has_two_flash_devices_static_init (CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager = {
+		.test = host_flash_manager_dual_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
+	};
+	bool two_flashes;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_initialize_dependencies (test, &manager);
+
+	two_flashes = manager.test.base.has_two_flash_devices (&manager.test.base);
+	CuAssertIntEquals (test, true, two_flashes);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_dual_test_has_two_flash_devices_null (CuTest *test)
+{
+	struct host_flash_manager_dual_testing manager;
+	bool two_flashes;
+
+	TEST_START;
+
+	host_flash_manager_dual_testing_init (test, &manager, false);
+
+	two_flashes = manager.test.base.has_two_flash_devices (NULL);
+	CuAssertIntEquals (test, true, two_flashes);
+
+	host_flash_manager_dual_testing_validate_and_release (test, &manager);
 }
 
 static void host_flash_manager_dual_test_get_read_only_flash_cs0 (CuTest *test)
@@ -13923,6 +13975,9 @@ TEST (host_flash_manager_dual_test_init_with_managed_flash_initialization_null);
 TEST (host_flash_manager_dual_test_static_init);
 TEST (host_flash_manager_dual_test_static_init_with_managed_flash_initialization);
 TEST (host_flash_manager_dual_test_release_null);
+TEST (host_flash_manager_dual_test_has_two_flash_devices);
+TEST (host_flash_manager_dual_test_has_two_flash_devices_static_init);
+TEST (host_flash_manager_dual_test_has_two_flash_devices_null);
 TEST (host_flash_manager_dual_test_get_read_only_flash_cs0);
 TEST (host_flash_manager_dual_test_get_read_only_flash_cs1);
 TEST (host_flash_manager_dual_test_get_read_only_flash_static_init);
