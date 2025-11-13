@@ -33,9 +33,10 @@ void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *hand
  * @param recovery_ptr The recovery manager for BMC watchdog failover.
  * @param host_control_ptr The interface for host control signals.
  * @param irq_control_ptr Interface for enabling host interrupts.
+ * @param host_state_ptr Manager for host state information.
  */
 #define	host_irq_handler_auth_check_static_init(host_ptr, hash_ptr, rsa_ptr, recovery_ptr, \
-	host_control_ptr, irq_control_ptr)	{ \
+	host_control_ptr, irq_control_ptr, host_state_ptr)	{ \
 		.base = HOST_IRQ_HANDLER_AUTH_CHECK_INTERNAL_API_INIT, \
 		.base.host = host_ptr, \
 		.base.hash = hash_ptr, \
@@ -43,7 +44,8 @@ void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *hand
 		.base.recovery = recovery_ptr, \
 		.base.control = irq_control_ptr, \
 		.base.notify_exit_reset = true, \
-		.control = host_control_ptr \
+		.control = host_control_ptr, \
+		.host_state = host_state_ptr, \
 	}
 
 

@@ -76,6 +76,7 @@ enum {
 	HOST_LOGGING_ACTIVATION_FAILURE,			/**< Failed to activate Host firmware Image */
 	HOST_LOGGING_UPDATE_NOTIFICATION_ERROR,		/**< Notification status for host firmware update. */
 	HOST_LOGGING_ACTIVATION_SUCCESSFUL,			/**< Host firmware activation successful. */
+	HOST_LOGGING_DIRTY_RESET_ERROR,				/**< Failed to notify the host of dirty flash. */
 };
 
 

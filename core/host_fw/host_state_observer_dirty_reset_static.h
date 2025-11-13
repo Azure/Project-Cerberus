@@ -8,6 +8,8 @@
 
 
 /* Internal functions declared to allow for static initialization. */
+void host_state_observer_dirty_reset_on_read_only_flash (const struct host_state_observer *observer,
+	const struct host_state_manager *manager);
 void host_state_observer_dirty_reset_on_inactive_dirty (const struct host_state_observer *observer,
 	const struct host_state_manager *manager);
 
@@ -17,8 +19,9 @@ void host_state_observer_dirty_reset_on_inactive_dirty (const struct host_state_
  */
 #define	HOST_STATE_OBSERVER_DIRTY_RESET_API_INIT	{ \
 		.on_active_pfm = NULL, \
-		.on_read_only_flash = NULL, \
+		.on_read_only_flash = host_state_observer_dirty_reset_on_read_only_flash, \
 		.on_inactive_dirty = host_state_observer_dirty_reset_on_inactive_dirty, \
+		.on_read_only_activation_events = NULL, \
 		.on_active_recovery_image = NULL, \
 		.on_pfm_dirty = NULL, \
 		.on_run_time_validation = NULL, \

@@ -33,6 +33,7 @@ void host_processor_observer_pcr_on_inactive_dirty (const struct host_state_obse
 		.on_active_pfm = NULL, \
 		.on_read_only_flash = NULL, \
 		.on_inactive_dirty = host_processor_observer_pcr_on_inactive_dirty, \
+		.on_read_only_activation_events = NULL, \
 		.on_active_recovery_image = NULL, \
 		.on_pfm_dirty = NULL, \
 		.on_run_time_validation = NULL, \

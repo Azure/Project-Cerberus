@@ -11,7 +11,17 @@
 
 
 /* Bitmasks for settings in non-volatile memory. */
+
+/**
+ * Bit indicating which CFM region contains the active CFM, region 0 or 1.  This value is inverted,
+ * since blank flash is 1.
+ */
 #define	ACTIVE_CFM_MASK			(1U << 0)
+
+/**
+ * Bit indicating which PCD region contains the active PCD, region 0 or 1.  This value is inverted,
+ * since blank flash is 1.
+ */
 #define	ACTIVE_PCD_MASK			(1U << 1)
 
 

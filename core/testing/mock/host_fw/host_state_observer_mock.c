@@ -47,6 +47,19 @@ static void host_state_observer_mock_on_inactive_dirty (const struct host_state_
 		MOCK_ARG_PTR_CALL (manager));
 }
 
+static void host_state_observer_mock_on_read_only_activation_events (
+	const struct host_state_observer *observer, const struct host_state_manager *manager)
+{
+	struct host_state_observer_mock *mock = (struct host_state_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN (&mock->mock, host_state_observer_mock_on_read_only_activation_events,
+		observer, MOCK_ARG_PTR_CALL (manager));
+}
+
 static void host_state_observer_mock_on_active_recovery_image (
 	const struct host_state_observer *observer, const struct host_state_manager *manager)
 {
@@ -117,6 +130,7 @@ static int host_state_observer_mock_func_arg_count (void *func)
 	if ((func == host_state_observer_mock_on_active_pfm) ||
 		(func == host_state_observer_mock_on_read_only_flash) ||
 		(func == host_state_observer_mock_on_inactive_dirty) ||
+		(func == host_state_observer_mock_on_read_only_activation_events) ||
 		(func == host_state_observer_mock_on_active_recovery_image) ||
 		(func == host_state_observer_mock_on_pfm_dirty) ||
 		(func == host_state_observer_mock_on_run_time_validation) ||
@@ -138,6 +152,9 @@ static const char* host_state_observer_mock_func_name_map (void *func)
 	}
 	else if (func == host_state_observer_mock_on_inactive_dirty) {
 		return "on_inactive_dirty";
+	}
+	else if (func == host_state_observer_mock_on_read_only_activation_events) {
+		return "on_read_only_activation_events";
 	}
 	else if (func == host_state_observer_mock_on_active_recovery_image) {
 		return "on_active_recovery_image";
@@ -174,6 +191,12 @@ static const char* host_state_observer_mock_arg_name_map (void *func, int arg)
 		}
 	}
 	else if (func == host_state_observer_mock_on_inactive_dirty) {
+		switch (arg) {
+			case 0:
+				return "manager";
+		}
+	}
+	else if (func == host_state_observer_mock_on_read_only_activation_events) {
 		switch (arg) {
 			case 0:
 				return "manager";
@@ -240,6 +263,8 @@ int host_state_observer_mock_init (struct host_state_observer_mock *mock)
 	mock->base.on_active_pfm = host_state_observer_mock_on_active_pfm;
 	mock->base.on_read_only_flash = host_state_observer_mock_on_read_only_flash;
 	mock->base.on_inactive_dirty = host_state_observer_mock_on_inactive_dirty;
+	mock->base.on_read_only_activation_events =
+		host_state_observer_mock_on_read_only_activation_events;
 	mock->base.on_active_recovery_image = host_state_observer_mock_on_active_recovery_image;
 	mock->base.on_pfm_dirty = host_state_observer_mock_on_pfm_dirty;
 	mock->base.on_run_time_validation = host_state_observer_mock_on_run_time_validation;

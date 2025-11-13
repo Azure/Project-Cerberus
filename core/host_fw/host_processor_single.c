@@ -79,7 +79,7 @@ int host_processor_single_bypass_mode (const struct host_processor *host, bool s
 	}
 
 	platform_mutex_lock (&single->state->lock);
-	host_state_manager_save_read_only_flash (single->host_state, SPI_FILTER_CS_0);
+	host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_0);
 	host_processor_filtered_config_bypass (single);
 	host_processor_filtered_set_host_flash_access (single);
 	platform_mutex_unlock (&single->state->lock);

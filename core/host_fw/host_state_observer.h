@@ -46,6 +46,17 @@ struct host_state_observer {
 		const struct host_state_manager *manager);
 
 	/**
+	 * Notification that the host events that can trigger switching the read-only flash has changed.
+	 *
+	 * Arguments passed with the notification will never be null.
+	 *
+	 * @param observer The observer instance being notified.
+	 * @param manager The manager generating the event.
+	 */
+	void (*on_read_only_activation_events) (const struct host_state_observer *observer,
+		const struct host_state_manager *manager);
+
+	/**
 	 * Notification that the active recovery image has changed.
 	 *
 	 * Arguments passed with the notification will never be null.

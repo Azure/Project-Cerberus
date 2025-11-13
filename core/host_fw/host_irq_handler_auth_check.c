@@ -12,12 +12,19 @@ void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *hand
 	const struct host_irq_handler_auth_check *check =
 		(const struct host_irq_handler_auth_check*) handler;
 	int auth_action;
+	bool override;
 
 	if (check) {
 		host_irq_handler_exit_reset (handler);
 
+		/* If there is a temporary override of the read-only flash setting, provide an opportunity
+		 * for host reset handling. */
+		override = host_state_manager_has_read_only_flash_override (check->host_state);
+
 		auth_action = check->base.host->get_next_reset_verification_actions (check->base.host);
-		if (auth_action != HOST_PROCESSOR_ACTION_NONE) {
+		if (override || (auth_action != HOST_PROCESSOR_ACTION_NONE)) {
+			/* If there is a failure determining the authentication action, assert the reset in case
+			 * it's needed. */
 			check->control->hold_processor_in_reset (check->control, true);
 		}
 	}
@@ -34,17 +41,18 @@ void host_irq_handler_auth_check_exit_reset (const struct host_irq_handler *hand
  * @param recovery An optional recovery manager for detecting BMC watchdog recovery boots.
  * @param control The interface for host control signals.
  * @param irq Interface to enable host interrupts.
+ * @param host_state Manager for host state information.
  *
  * @return 0 if the IRQ handler was successfully initialized or an error code.
  */
 int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handler,
 	const struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_control *control,
-	const struct host_irq_control *irq)
+	const struct host_irq_control *irq, const struct host_state_manager *host_state)
 {
 	int status;
 
-	if ((handler == NULL) || (control == NULL) || (irq == NULL)) {
+	if ((handler == NULL) || (control == NULL) || (irq == NULL) || (host_state == NULL)) {
 		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
 	}
 
@@ -59,6 +67,7 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
 	handler->base.exit_reset = host_irq_handler_auth_check_exit_reset;
 
 	handler->control = control;
+	handler->host_state = host_state;
 
 	return 0;
 }
@@ -73,7 +82,7 @@ int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handle
 int host_irq_handler_auth_check_config_interrupts (
 	const struct host_irq_handler_auth_check *handler)
 {
-	if ((handler == NULL) || (handler->control == NULL)) {
+	if ((handler == NULL) || (handler->control == NULL) || (handler->host_state == NULL)) {
 		return HOST_IRQ_HANDLER_INVALID_ARGUMENT;
 	}
 

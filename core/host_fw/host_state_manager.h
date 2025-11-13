@@ -42,12 +42,49 @@ int host_state_manager_remove_observer (const struct host_state_manager *manager
 
 /* Non-volatile state. */
 
-int host_state_manager_save_read_only_flash (const struct host_state_manager *manager,
-	spi_filter_cs ro);
 spi_filter_cs host_state_manager_get_read_only_flash (const struct host_state_manager *manager);
+
+int host_state_manager_save_read_only_flash_nv_config (const struct host_state_manager *manager,
+	spi_filter_cs ro);
+spi_filter_cs host_state_manager_get_read_only_flash_nv_config (
+	const struct host_state_manager *manager);
+
+int host_state_manager_override_read_only_flash (const struct host_state_manager *manager,
+	spi_filter_cs ro);
+void host_state_manager_clear_read_only_flash_override (const struct host_state_manager *manager);
+bool host_state_manager_has_read_only_flash_override (const struct host_state_manager *manager);
 
 int host_state_manager_save_inactive_dirty (const struct host_state_manager *manager, bool dirty);
 bool host_state_manager_is_inactive_dirty (const struct host_state_manager *manager);
+
+/**
+ * Definitions to indicate which host events can trigger a switch of read-only flash.  This switch
+ * can be due to dirty flash or removal of a temporary override.
+ */
+enum host_read_only_activation {
+	/**
+	 * Read-only flash is only switched during power-on reset flows.
+	 */
+	HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY = 0,
+	/**
+	 * Read-only flash can be switched during host resets.
+	 */
+	HOST_READ_ONLY_ACTIVATE_ON_POR_AND_RESET = 1,
+	/**
+	 * Read-only flash can be switched during run-time verification.
+	 */
+	HOST_READ_ONLY_ACTIVATE_ON_POR_AND_AT_RUN_TIME = 2,
+	/**
+	 * Read-only flash can be switched on any host event.
+	 */
+	HOST_READ_ONLY_ACTIVATE_ON_ALL = 3,
+};
+
+
+int host_state_manager_save_read_only_activation_events (struct host_state_manager *manager,
+	enum host_read_only_activation events);
+enum host_read_only_activation host_state_manager_get_read_only_activation_events (
+	struct host_state_manager *manager);
 
 /**
  * Definitions to indicate which region of flash holds the active recovery image.

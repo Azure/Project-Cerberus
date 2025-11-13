@@ -11,11 +11,27 @@
 
 
 /* Bitmasks for settings in non-volatile memory. */
+
+/**
+ * Bits used to indicate a valid state entry in flash.  One bit will always be set an the other will
+ * be cleared.
+ *
+ * All entries use MULTI_BYTE_STATE.  SINGLE_BYTE_STATE is for backwards compatibility with older
+ * implementations.
+ */
 #define	MULTI_BYTE_STATE		(1U << 7)
 #define	SINGLE_BYTE_STATE		(1U << 6)
 
 /* Bitmasks for settings in volatile memory. */
+
+/**
+ * Bit indicating that the second flash sector used for storage is blank.
+ */
 #define	SECTOR_2_BLANK			(1U << 7)
+
+/**
+ * Bit indicating that the first flash sector used for storage is blank.
+ */
 #define	SECTOR_1_BLANK			(1U << 6)
 
 

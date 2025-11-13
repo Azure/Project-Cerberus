@@ -25,10 +25,10 @@ static void host_processor_dual_force_bypass_mode (const struct host_processor_f
 {
 	if (swap_flash) {
 		if (host_state_manager_get_read_only_flash (host->host_state) == SPI_FILTER_CS_0) {
-			host_state_manager_save_read_only_flash (host->host_state, SPI_FILTER_CS_1);
+			host_state_manager_save_read_only_flash_nv_config (host->host_state, SPI_FILTER_CS_1);
 		}
 		else {
-			host_state_manager_save_read_only_flash (host->host_state, SPI_FILTER_CS_0);
+			host_state_manager_save_read_only_flash_nv_config (host->host_state, SPI_FILTER_CS_0);
 		}
 	}
 

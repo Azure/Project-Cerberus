@@ -270,6 +270,7 @@ static void host_processor_observer_pcr_test_init (CuTest *test)
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_active_pfm);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_read_only_flash);
 	CuAssertPtrNotNull (test, observer.test.base_state.on_inactive_dirty);
+	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_read_only_activation_events);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_active_recovery_image);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_pfm_dirty);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_run_time_validation);
@@ -377,6 +378,7 @@ static void host_processor_observer_pcr_test_static_init (CuTest *test)
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_active_pfm);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_read_only_flash);
 	CuAssertPtrNotNull (test, observer.test.base_state.on_inactive_dirty);
+	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_read_only_activation_events);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_active_recovery_image);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_pfm_dirty);
 	CuAssertPtrEquals (test, NULL, observer.test.base_state.on_run_time_validation);

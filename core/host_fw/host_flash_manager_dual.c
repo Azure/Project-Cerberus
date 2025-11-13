@@ -179,7 +179,7 @@ int host_flash_manager_dual_swap_flash_devices (const struct host_flash_manager 
 	if (status == 0) {
 		state_manager_block_non_volatile_state_storage (&dual->host_state->base, true);
 
-		host_state_manager_save_read_only_flash (dual->host_state, rw);
+		host_state_manager_save_read_only_flash_nv_config (dual->host_state, rw);
 		host_state_manager_save_inactive_dirty (dual->host_state, false);
 
 		if (used_pending) {

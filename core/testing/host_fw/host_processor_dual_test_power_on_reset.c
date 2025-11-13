@@ -84,7 +84,7 @@ static void host_processor_dual_test_power_on_reset_no_pfm_cs1 (CuTest *test)
 
 	host_processor_dual_testing_init (test, &host);
 
-	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
+	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,

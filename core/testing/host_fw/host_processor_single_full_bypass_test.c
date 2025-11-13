@@ -835,7 +835,7 @@ static void host_processor_single_full_bypass_test_power_on_reset_no_pfm_cs1 (Cu
 
 	host_processor_single_full_bypass_testing_init (test, &host);
 
-	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
+	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
@@ -3127,7 +3127,7 @@ static void host_processor_single_full_bypass_test_bypass_mode_ro_flash_cs1 (CuT
 
 	host_processor_single_full_bypass_testing_init (test, &host);
 
-	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
+	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
@@ -3200,7 +3200,7 @@ static void host_processor_single_full_bypass_test_bypass_mode_rw_flash_cs0 (CuT
 
 	host_processor_single_full_bypass_testing_init (test, &host);
 
-	status = host_state_manager_save_read_only_flash (&host.host_state, SPI_FILTER_CS_1);
+	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,

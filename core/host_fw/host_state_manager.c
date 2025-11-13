@@ -12,15 +12,74 @@
 
 
 /* Bitmasks for settings in non-volatile memory. */
+
+/**
+ * Bit indicating which flash is designated as the read-only flash, CS0 or CS1.  This value is
+ * inverted, since blank flash is 1.
+ */
 #define	READ_ONLY_FLASH_MASK		(1U << 0)
+
+/**
+ * Bit indicating a protected region of the host flash has been modified.  This value is inverted,
+ * since blank flash is 1.
+ */
 #define	INACTIVE_DIRTY_MASK			(1U << 1)
+
+/**
+ * Bit indicating which PFM region contains the active PFM, region 0 or 1.  This value is inverted,
+ * since blank flash is 1.
+ */
 #define	ACTIVE_PFM_MASK				(1U << 2)
+
+/**
+ * Bit indicating which recovery image region contains the active recovery image, region 0 or 1.
+ * This value is inverted, since blank flash is 1.
+ */
 #define	ACTIVE_RECOVERY_IMAGE_MASK	(1U << 3)
 
+/**
+ * Bits indicating which host events can trigger a switch of read-only flash.  This will store an
+ * enum host_read_only_activation value.
+ */
+#define	RO_FLASH_SWITCH_OFFSET		4
+#define	RO_FLASH_SWITCH_MASK		(3U << RO_FLASH_SWITCH_OFFSET)
+
+/* Bits 6 and 7 are used by the base state manager. */
+
+/**
+ * Bit indicating a flash device to temporarily use as the read-only flash, overriding the setting
+ * stored at READ_ONLY_FLASH_MASK.  This value is inverted, since blank flash is 1.
+ */
+#define	OVERRIDE_RO_FLASH_MASK		(1U << 8)
+
+/**
+ * Bit indicating the read-only override is valid and should be used instead of the normal read-only
+ * flash setting.  This value is inverted, since blank flash is 1.
+ */
+#define	OVERRIDE_RO_VALID_MASK		(1U << 9)
+
+
 /* Bitmasks for settings in volatile memory. */
+
+/**
+ * Bit indicating the current pending PFM has not been checked against the current flash image.
+ */
 #define	PFM_DIRTY_MASK				(1U << 0)
+
+/**
+ * Bits indicating the results of any flash prevalidation that has been run.  This will store an
+ * enum host_state_prevalidated value.
+ */
 #define	RUN_TIME_MASK				(3U << 1)
+
+/**
+ * Bit indicating the SPI filter is currently operating in bypass mode.
+ */
 #define	BYPASS_MASK					(1U << 3)
+
+/**
+ * Bit indicating the host flash configuration is unsupported.
+ */
 #define	BAD_FLASH_MASK				(1U << 4)
 
 
@@ -73,6 +132,8 @@ int host_state_manager_restore_default_state (const struct state_manager *manage
 		offsetof (struct host_state_observer, on_read_only_flash), (void*) host_state);
 	observable_notify_observers_with_ptr (&host_state->state->observable,
 		offsetof (struct host_state_observer, on_inactive_dirty), (void*) host_state);
+	observable_notify_observers_with_ptr (&host_state->state->observable,
+		offsetof (struct host_state_observer, on_read_only_activation_events), (void*) host_state);
 	observable_notify_observers_with_ptr (&host_state->state->observable,
 		offsetof (struct host_state_observer, on_active_recovery_image), (void*) host_state);
 	observable_notify_observers_with_ptr (&host_state->state->observable,
@@ -211,16 +272,36 @@ int host_state_manager_remove_observer (const struct host_state_manager *manager
 }
 
 /**
- * Save the setting for the flash device that will be the flash device accessed by the host for
- * read-only data.  This setting will be stored in non-volatile memory on the next call to store
- * state.
+ * Get the current setting for the host's read-only flash device, taking into account any active
+ * override of the non-volatile setting.
+ *
+ * @param manager The host state to query.
+ *
+ * @return The read-only flash device.
+ */
+spi_filter_cs host_state_manager_get_read_only_flash (const struct host_state_manager *manager)
+{
+	if (host_state_manager_has_read_only_flash_override (manager)) {
+		return (manager->state->base.nv_state & OVERRIDE_RO_FLASH_MASK) ?
+				   SPI_FILTER_CS_0 : SPI_FILTER_CS_1;
+	}
+	else {
+		return host_state_manager_get_read_only_flash_nv_config (manager);
+	}
+}
+
+/**
+ * Save the non-volatile setting for the flash device that will be the flash device accessed by the
+ * host for read-only data.  This value will only get used when there is no active override of the
+ * read-only flash device.  This setting will be stored in non-volatile memory on the next call to
+ * store state.
  *
  * @param manager The host state to update.
  * @param ro The flash device to save as the read-only flash.
  *
- * @return 0 if the setting was saved or an error code if the setting was invalid.
+ * @return 0 if the setting was saved or an error code.
  */
-int host_state_manager_save_read_only_flash (const struct host_state_manager *manager,
+int host_state_manager_save_read_only_flash_nv_config (const struct host_state_manager *manager,
 	spi_filter_cs ro)
 {
 	int status = 0;
@@ -233,11 +314,11 @@ int host_state_manager_save_read_only_flash (const struct host_state_manager *ma
 
 	switch (ro) {
 		case SPI_FILTER_CS_0:
-			manager->state->base.nv_state = manager->state->base.nv_state | READ_ONLY_FLASH_MASK;
+			manager->state->base.nv_state |= READ_ONLY_FLASH_MASK;
 			break;
 
 		case SPI_FILTER_CS_1:
-			manager->state->base.nv_state = manager->state->base.nv_state & ~READ_ONLY_FLASH_MASK;
+			manager->state->base.nv_state &= ~READ_ONLY_FLASH_MASK;
 			break;
 
 		default:
@@ -256,20 +337,108 @@ int host_state_manager_save_read_only_flash (const struct host_state_manager *ma
 }
 
 /**
- * Get the current setting for the host's read-only flash device.
+ * Get the current non-volatile setting for the host's read-only flash device.  Any override of the
+ * read-only flash setting will be ignored.
  *
  * @param manager The host state to query.
  *
- * @return The read-only flash device.
+ * @return The non-volatile value for the read-only flash device.
  */
-spi_filter_cs host_state_manager_get_read_only_flash (const struct host_state_manager *manager)
+spi_filter_cs host_state_manager_get_read_only_flash_nv_config (
+	const struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return SPI_FILTER_CS_0;
 	}
 
-	return (manager->state->base.nv_state &
-		READ_ONLY_FLASH_MASK) ? SPI_FILTER_CS_0 : SPI_FILTER_CS_1;
+	return (manager->state->base.nv_state & READ_ONLY_FLASH_MASK) ?
+			   SPI_FILTER_CS_0 : SPI_FILTER_CS_1;
+}
+
+/**
+ * Override the non-volatile configuration for the host's read-only flash device.  While this
+ * override is in place, the non-volatile state will not be considered when reporting the current
+ * read-only flash being used.  This setting will be stored in non-volatile memory on the next call
+ * to store state.
+ *
+ * @param manager The host state to update.
+ * @param ro The flash device to use as the read-only flash.
+ *
+ * @return 0 if the override was applied successfully or an error code.
+ */
+int host_state_manager_override_read_only_flash (const struct host_state_manager *manager,
+	spi_filter_cs ro)
+{
+	int status = 0;
+
+	if (manager == NULL) {
+		return STATE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&manager->state->base.state_lock);
+
+	switch (ro) {
+		case SPI_FILTER_CS_0:
+			manager->state->base.nv_state |= OVERRIDE_RO_FLASH_MASK;
+			manager->state->base.nv_state &= ~OVERRIDE_RO_VALID_MASK;
+			break;
+
+		case SPI_FILTER_CS_1:
+			manager->state->base.nv_state &= ~(OVERRIDE_RO_FLASH_MASK | OVERRIDE_RO_VALID_MASK);
+			break;
+
+		default:
+			status = STATE_MANAGER_INVALID_ARGUMENT;
+			break;
+	}
+
+	platform_mutex_unlock (&manager->state->base.state_lock);
+
+	if (status == 0) {
+		observable_notify_observers_with_ptr (&manager->state->observable,
+			offsetof (struct host_state_observer, on_read_only_flash), (void*) manager);
+	}
+
+	return status;
+}
+
+/**
+ * Remove any override of the non-volatile read-only flash setting.  Once this is removed, future
+ * calls to determine the read-only flash device will report the non-volatile setting.
+ *
+ * @param manager The host state to update.
+ */
+void host_state_manager_clear_read_only_flash_override (const struct host_state_manager *manager)
+{
+	if (manager == NULL) {
+		return;
+	}
+
+	platform_mutex_lock (&manager->state->base.state_lock);
+
+	manager->state->base.nv_state |= (OVERRIDE_RO_FLASH_MASK | OVERRIDE_RO_VALID_MASK);
+
+	platform_mutex_unlock (&manager->state->base.state_lock);
+
+	observable_notify_observers_with_ptr (&manager->state->observable,
+		offsetof (struct host_state_observer, on_read_only_flash), (void*) manager);
+}
+
+/**
+ * Indicate if there is currently an override being applied to the host's read-only flash device
+ * setting.
+ *
+ * @param manager The host state to query.
+ *
+ * @return true if there is an override being applied or false if not.
+ */
+bool host_state_manager_has_read_only_flash_override (const struct host_state_manager *manager)
+{
+	if (manager == NULL) {
+		return false;
+	}
+
+	return !(manager->state->base.nv_state & OVERRIDE_RO_VALID_MASK);
 }
 
 /**
@@ -328,6 +497,68 @@ bool host_state_manager_is_inactive_dirty (const struct host_state_manager *mana
 	}
 
 	return !(manager->state->base.nv_state & INACTIVE_DIRTY_MASK);
+}
+
+/**
+ * Save the setting that indicates what host events could trigger a swap of the read-only flash
+ * device.  This setting will be stored in non-volatile memory on the next call to store state.
+ *
+ * @param manager The host state to update.
+ * @param events The host events that can trigger the read-only flash to switch.
+ *
+ * @return 0 if the setting was saved or an error code.
+ */
+int host_state_manager_save_read_only_activation_events (struct host_state_manager *manager,
+	enum host_read_only_activation events)
+{
+	int status = 0;
+
+	if (manager == NULL) {
+		return STATE_MANAGER_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&manager->state->base.state_lock);
+
+	switch (events) {
+		case HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY:
+		case HOST_READ_ONLY_ACTIVATE_ON_POR_AND_RESET:
+		case HOST_READ_ONLY_ACTIVATE_ON_POR_AND_AT_RUN_TIME:
+		case HOST_READ_ONLY_ACTIVATE_ON_ALL:
+			manager->state->base.nv_state &= ~RO_FLASH_SWITCH_MASK;
+			manager->state->base.nv_state |= (events << RO_FLASH_SWITCH_OFFSET);
+			break;
+
+		default:
+			status = STATE_MANAGER_INVALID_ARGUMENT;
+			break;
+	}
+
+	platform_mutex_unlock (&manager->state->base.state_lock);
+
+	if (status == 0) {
+		observable_notify_observers_with_ptr (&manager->state->observable,
+			offsetof (struct host_state_observer, on_read_only_activation_events), (void*) manager);
+	}
+
+	return status;
+}
+
+/**
+ * Get the current setting for the host events that can trigger a swap of the read-only flash
+ * device.
+ *
+ * @param manager The host state to query.
+ *
+ * @return The host events that can trigger the read-only flash to switch.
+ */
+enum host_read_only_activation host_state_manager_get_read_only_activation_events (
+	struct host_state_manager *manager)
+{
+	if (manager == NULL) {
+		return HOST_READ_ONLY_ACTIVATE_ON_ALL;
+	}
+
+	return ((manager->state->base.nv_state & RO_FLASH_SWITCH_MASK) >> RO_FLASH_SWITCH_OFFSET);
 }
 
 /**

@@ -260,7 +260,8 @@ static void host_flash_manager_dual_testing_init (CuTest *test,
 	host_flash_manager_dual_testing_initialize_dependencies (test, manager);
 
 	if (ro_cs1) {
-		status = host_state_manager_save_read_only_flash (&manager->host_state, SPI_FILTER_CS_1);
+		status = host_state_manager_save_read_only_flash_nv_config (&manager->host_state,
+			SPI_FILTER_CS_1);
 		CuAssertIntEquals (test, 0, status);
 	}
 
