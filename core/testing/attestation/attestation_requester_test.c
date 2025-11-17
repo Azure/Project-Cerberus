@@ -13873,6 +13873,15 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	uint8_t sig_der2[ECC_DER_P256_ECDSA_MAX_LENGTH];
 	int status;
 	size_t i;
+	struct logging_mock logger;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED,
+		.arg1 = 0xaa0002,
+		.arg2 = 0x012c13
+	};
 
 	container.measurement.digest.allowable_digests = &allowable_digests;
 	container2.measurement.digest.allowable_digests = &allowable_digests2;
@@ -13923,6 +13932,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
 	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
 		strlen (spdm_context));
+
+	status = logging_mock_init (&logger);
+	CuAssertIntEquals (test, 0, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
 		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
@@ -13994,6 +14006,11 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
 		false, &testing, 2);
 
+	status = mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
@@ -14042,7 +14059,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
+	debug_log = &logger.base;
+
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
+
+	debug_log = NULL;
+
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
@@ -14059,6 +14081,10 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
+
+	status = logging_mock_validate_and_release (&logger);
+	CuAssertIntEquals (test, 0, status);
+
 }
 
 static void attestation_requester_test_attest_device_spdm_only_measurement_data_equal (CuTest *test)
@@ -20356,7 +20382,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
+	CuAssertIntEquals (test, ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
@@ -20509,7 +20535,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
+	CuAssertIntEquals (test, ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
@@ -20662,7 +20688,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
+	CuAssertIntEquals (test, ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
@@ -20815,7 +20841,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
+	CuAssertIntEquals (test, ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);

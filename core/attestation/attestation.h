@@ -133,6 +133,7 @@ enum {
 	ATTESTATION_CERT_TOO_LARGE = ATTESTATION_ERROR (0x28),						/**< A single device cert cannot fit into the message buffer. */
 	ATTESTATION_BUFFER_OVERRUN = ATTESTATION_ERROR (0x29),						/**< Buffer overrun occurs when a program accesses memory beyond the allocated buffer size. */
 	ATTESTATION_BITMASK_TOO_SMALL = ATTESTATION_ERROR (0x2A),					/**< CFM defined bitmask is too small for the runtime measurement. */
+	ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET = ATTESTATION_ERROR (0x2B),	/**< CFM has multiple allowable data entries for a single version set where only one is permitted. */
 };
 
 

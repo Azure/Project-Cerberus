@@ -50,8 +50,13 @@ enum {
 	ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR,				/**< Failed to get attestation status. */
 	ATTESTATION_LOGGING_GET_MCTP_ROUTING_TABLE_ERROR,				/**< Failed to get MCTP routing table. */
 	ATTESTATION_LOGGING_GET_MEASUREMENT_CAP_MISMATCH_ERROR,			/**< Target device support mismatched measurement response capabilities. */
-	ATTESTATION_LOGGING_CHALLENGE_CAP_MISMATCH_ERROR,				/**< Target device support mismatched challenege response capabilities. */
+	ATTESTATION_LOGGING_CHALLENGE_CAP_MISMATCH_ERROR,				/**< Target device support mismatched challenge response capabilities. */
 	ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION,					/**< Target device EID is attested for the first time. */
+	ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED,			/**< Target device measurement verification failed. */
+	ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED,			/**< Target device measurement hash type is not allowed for attestation. */
+	ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED,					/**< Target device measurement failed attestation rule check. */
+	ATTESTATION_LOGGING_MEASUREMENT_BITMASK_TOO_SMALL,				/**< CFM defined bitmask is too small for the runtime measurement. */
+	ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET,			/**< CFM has multiple allowable data entries for a single version set where only one is permitted. */
 };
 
 

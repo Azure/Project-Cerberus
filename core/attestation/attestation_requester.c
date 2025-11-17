@@ -2534,6 +2534,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 	uint8_t eid, int device_addr)
 {
 	size_t i_allowable_digests;
+	uint32_t log_event;
 	int status = 0;
 
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
@@ -2590,6 +2591,28 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 
 		if (status == 0) {
 			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_INVALID_ATTESTATION:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED;
+					break;
+
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				log_event,
+				((eid << 16) | (measurement->pmr_id << 8) | (measurement->measurement_id)),
+				((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
 		}
 	}
 
@@ -2721,7 +2744,7 @@ static int attestation_requester_verify_data_in_allowable_list (
 			 * "equal" or "not equal" check. */
 			if ((i_checks_in_version_set != 0) && (check->check != CFM_CHECK_EQUAL) &&
 				(check->check != CFM_CHECK_NOT_EQUAL)) {
-				return ATTESTATION_CFM_INVALID_ATTESTATION;
+				return ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET;
 			}
 
 			++i_checks_in_version_set;
@@ -2783,6 +2806,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
 	const struct attestation_requester *attestation, struct cfm_measurement_data *data, uint8_t eid,
 	int device_addr)
 {
+	uint32_t log_event;
 	int status;
 
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
@@ -2802,6 +2826,38 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
 
 		if (status == 0) {
 			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				case ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET:
+					log_event = ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET;
+					break;
+
+				case ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID:
+					/* no action required since this is handled elsewhere */
+					log_event = 0;
+					break;
+
+				case ATTESTATION_BITMASK_TOO_SMALL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_BITMASK_TOO_SMALL;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			if (log_event > 0) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					log_event, ((eid << 16) | (data->pmr_id << 8) | (data->measurement_id)),
+					((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
+			}
 		}
 	}
 
