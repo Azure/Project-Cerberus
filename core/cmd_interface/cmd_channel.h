@@ -132,6 +132,7 @@ enum {
 	CMD_CHANNEL_PKT_EXPIRED = CMD_CHANNEL_ERROR (0x08),			/**< The timeout on a received packet has expired. */
 	CMD_CHANNEL_INVALID_PKT_SIZE = CMD_CHANNEL_ERROR (0x09),	/**< The packet size is larger than the buffer. */
 	CMD_CHANNEL_TX_ABORTED = CMD_CHANNEL_ERROR (0x0a),			/**< Packet transmission was aborted. */
+	CMD_CHANNEL_UNKNOWN_TARGET = CMD_CHANNEL_ERROR (0x0b),		/**< The target device is not available. */
 };
 
 
