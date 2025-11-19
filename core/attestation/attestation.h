@@ -134,6 +134,7 @@ enum {
 	ATTESTATION_BUFFER_OVERRUN = ATTESTATION_ERROR (0x29),						/**< Buffer overrun occurs when a program accesses memory beyond the allocated buffer size. */
 	ATTESTATION_BITMASK_TOO_SMALL = ATTESTATION_ERROR (0x2A),					/**< CFM defined bitmask is too small for the runtime measurement. */
 	ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET = ATTESTATION_ERROR (0x2B),	/**< CFM has multiple allowable data entries for a single version set where only one is permitted. */
+	ATTESTATION_DEVICE_NOT_PRESENT = ATTESTATION_ERROR (0x2C),					/**< EID details are not present for specific device */
 };
 
 
