@@ -3635,11 +3635,15 @@ static int attestation_requester_discover_device_spdm_protocol (
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
-static int attestation_requester_get_message_type (const struct attestation_requester *attestation,
+int attestation_requester_get_message_type (const struct attestation_requester *attestation,
 	uint8_t eid, struct cmd_interface_msg *request, struct cmd_interface_msg *response)
 {
 	int request_len;
 	int status;
+
+	if ((attestation == NULL) || (request == NULL) || (response == NULL)) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
 
 	status = msg_transport_create_empty_request (attestation->mctp_control,
 		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,

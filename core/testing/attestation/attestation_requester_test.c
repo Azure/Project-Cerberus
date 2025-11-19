@@ -38255,6 +38255,272 @@ static void attestation_requester_test_discover_device_get_msg_type_cc_fail (
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_get_message_type (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_invalid_arg (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	status = attestation_requester_get_message_type (NULL, 0xAA, &request, &response);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, NULL, &response);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, NULL);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_create_request_fail (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control,
+		MSG_TRANSPORT_OVERHEAD_FAILED, MOCK_ARG (0xAA), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, MSG_TRANSPORT_OVERHEAD_FAILED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_generate_request_fail (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control, 0,
+		MOCK_ARG (0xAA), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_max_message_payload_length, &testing.mctp_control, 0,
+		MOCK_ARG (0xAA));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertTrue (test, ROT_IS_ERROR (status));
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_send_request_fail (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	struct cmd_interface_msg *req_expected = NULL;
+	struct mctp_control_get_message_type *mctp_request;
+	uint8_t *tx_message = NULL;
+	uint32_t timeout;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	timeout = device_manager_get_mctp_ctrl_timeout (&testing.device_mgr);
+
+	/* Request construction */
+	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type));
+	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected->data = tx_message;
+	req_expected->length = sizeof (struct mctp_control_get_message_type);
+	req_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+	req_expected->payload = tx_message;
+	req_expected->payload_length = sizeof (struct mctp_control_get_message_type);
+	req_expected->target_eid = 0xAA;
+
+	mctp_request = (struct mctp_control_get_message_type*) req_expected->payload;
+	mctp_request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	mctp_request->header.rq = 1;
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control, 0,
+		MOCK_ARG (0xAA), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_max_message_payload_length, &testing.mctp_control,
+		MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN, MOCK_ARG (0xAA));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.send_request_message, &testing.mctp_control.base,
+		MSG_TRANSPORT_SEND_REQUEST_FAILED,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, MSG_TRANSPORT_SEND_REQUEST_FAILED, status);
+
+	cmd_interface_mock_free_request (req_expected);
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_unexpected_rsp (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, true, &testing);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_no_rsp (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, false, false, &testing);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_rsp_fail (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	testing.rsp_fail = true;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_process_response_fail (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type_req_failed (test, true,
+		&testing);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_completion_code_fail (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type_req_failed (test, false,
+		&testing);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_get_message_type_no_attestation_protocols_supported (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, false);
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
+
+	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_discover_device_spdm_setup_device_fail (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -40678,6 +40944,17 @@ TEST (attestation_requester_test_discover_device_get_msg_type_unexpected_rsp);
 TEST (attestation_requester_test_discover_device_get_msg_type_no_rsp);
 TEST (attestation_requester_test_discover_device_get_msg_type_rsp_fail);
 TEST (attestation_requester_test_discover_device_get_msg_type_no_attestation_protocols_supported);
+TEST (attestation_requester_test_get_message_type);
+TEST (attestation_requester_test_get_message_type_invalid_arg);
+TEST (attestation_requester_test_get_message_type_create_request_fail);
+TEST (attestation_requester_test_get_message_type_generate_request_fail);
+TEST (attestation_requester_test_get_message_type_send_request_fail);
+TEST (attestation_requester_test_get_message_type_unexpected_rsp);
+TEST (attestation_requester_test_get_message_type_no_rsp);
+TEST (attestation_requester_test_get_message_type_rsp_fail);
+TEST (attestation_requester_test_get_message_type_process_response_fail);
+TEST (attestation_requester_test_get_message_type_completion_code_fail);
+TEST (attestation_requester_test_get_message_type_no_attestation_protocols_supported);
 TEST (attestation_requester_test_discover_device_spdm_setup_device_fail);
 TEST (attestation_requester_test_discover_device_spdm_get_measurement_fail);
 TEST (attestation_requester_test_discover_device_spdm_1_1_get_measurement_num_indices_fail);

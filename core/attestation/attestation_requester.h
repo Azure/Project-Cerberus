@@ -124,6 +124,9 @@ int attestation_requester_discover_device (const struct attestation_requester *a
 	uint8_t eid);
 
 int attestation_requester_get_mctp_routing_table (const struct attestation_requester *attestation);
+
+int attestation_requester_get_message_type (const struct attestation_requester *attestation,
+	uint8_t eid, struct cmd_interface_msg *request, struct cmd_interface_msg *response);
 #endif
 
 void attestation_requester_discovery_and_attestation_loop (
