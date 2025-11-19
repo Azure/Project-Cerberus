@@ -6,9 +6,12 @@
 #include <string.h>
 #include "testing.h"
 #include "flash/flash_common.h"
+#include "state_manager/state_logging.h"
 #include "state_manager/state_manager.h"
 #include "state_manager/state_manager_static.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/flash/flash_mock.h"
+#include "testing/mock/logging/logging_mock.h"
 
 
 TEST_SUITE_LABEL ("state_manager");
@@ -19,6 +22,7 @@ TEST_SUITE_LABEL ("state_manager");
  */
 struct state_manager_testing {
 	struct flash_mock flash;			/**< Mock for the state flash. */
+	struct logging_mock log;			/**< Mock for the debug log. */
 	struct state_manager_state state;	/**< Variable context for the state manager. */
 	struct state_manager test;			/**< State manager being tested. */
 };
@@ -37,6 +41,11 @@ static void state_manager_testing_init_dependencies (CuTest *test,
 
 	status = flash_mock_init (&manager->flash);
 	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_init (&manager->log);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &manager->log.base;
 }
 
 /**
@@ -50,7 +59,11 @@ static void state_manager_testing_release_dependencies (CuTest *test,
 {
 	int status;
 
+	debug_log = NULL;
+
 	status = flash_mock_validate_and_release (&manager->flash);
+	status |= logging_mock_validate_and_release (&manager->log);
+
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -6146,6 +6159,14 @@ static void state_manager_test_store_non_volatile_state_sector1_erase_error (CuT
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	uint16_t expected[4] = {0xff81, 0xff81, 0xff81, 0};
 	uint32_t bytes = FLASH_SECTOR_SIZE;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_STATE_MGR,
+		.msg_index = STATE_LOGGING_ERASE_FAIL,
+		.arg1 = 0x10000,
+		.arg2 = FLASH_SECTOR_ERASE_FAILED
+	};
 
 	TEST_START;
 
@@ -6198,6 +6219,10 @@ static void state_manager_test_store_non_volatile_state_sector1_erase_error (CuT
 	status |= mock_expect (&manager.flash.mock, manager.flash.base.sector_erase, &manager.flash,
 		FLASH_SECTOR_ERASE_FAILED, MOCK_ARG (0x10000));
 
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
 	CuAssertIntEquals (test, 0, status);
 
 	manager.state.nv_state = 0xffc1;
@@ -6237,6 +6262,14 @@ static void state_manager_test_store_non_volatile_state_sector2_erase_error (CuT
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
 	uint16_t expected[4] = {0xff83, 0xff83, 0xff83, 0};
 	uint32_t bytes = FLASH_SECTOR_SIZE;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_WARNING,
+		.component = DEBUG_LOG_COMPONENT_STATE_MGR,
+		.msg_index = STATE_LOGGING_ERASE_FAIL,
+		.arg1 = 0x11000,
+		.arg2 = FLASH_SECTOR_ERASE_FAILED
+	};
 
 	TEST_START;
 
@@ -6292,6 +6325,10 @@ static void state_manager_test_store_non_volatile_state_sector2_erase_error (CuT
 
 	status |= mock_expect (&manager.flash.mock, manager.flash.base.sector_erase, &manager.flash,
 		FLASH_SECTOR_ERASE_FAILED, MOCK_ARG (0x11000));
+
+	status |= mock_expect (&manager.log.mock, manager.log.base.create_entry, &manager.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
 
 	CuAssertIntEquals (test, 0, status);
 

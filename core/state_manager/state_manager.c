@@ -519,7 +519,7 @@ int state_manager_store_non_volatile_state (const struct state_manager *manager)
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_STATE_MGR,
-					STATE_LOGGING_ERASE_FAIL, manager->base_addr + sector_size, status);
+					STATE_LOGGING_ERASE_FAIL, manager->base_addr + sector_size, erase_status);
 			}
 		}
 	}
@@ -536,7 +536,7 @@ int state_manager_store_non_volatile_state (const struct state_manager *manager)
 			}
 			else {
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_WARNING, DEBUG_LOG_COMPONENT_STATE_MGR,
-					STATE_LOGGING_ERASE_FAIL, manager->base_addr, status);
+					STATE_LOGGING_ERASE_FAIL, manager->base_addr, erase_status);
 			}
 		}
 	}
