@@ -186,6 +186,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_RSA_SUITE
 	TESTING_RUN_SUITE (signature_verification_rsa);
 #endif
+#if (defined TESTING_RUN_SIGNATURE_VERIFICATION_NULL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_NULL_SUITE
+	TESTING_RUN_SUITE(signature_verification_null);
+#endif
 
 	add_all_crypto_kat_tests (suite);
 }
