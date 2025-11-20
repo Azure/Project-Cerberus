@@ -31,7 +31,7 @@ struct manifest_cmd_handler_state {
  */
 struct manifest_cmd_handler {
 	struct manifest_cmd_interface base_cmd;		/**< The base interface for command handling. */
-	struct event_task_handler base_event;		/**< THe base interface for task integration. */
+	struct event_task_handler base_event;		/**< The base interface for task integration. */
 	struct manifest_cmd_handler_state *state;	/**< Variable context for the handler. */
 	const struct manifest_manager *manifest;	/**< The manager for the manifest. */
 	const struct event_task *task;				/**< The task context executing the handler. */

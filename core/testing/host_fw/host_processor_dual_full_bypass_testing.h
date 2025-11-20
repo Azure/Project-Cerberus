@@ -62,5 +62,8 @@ void host_processor_dual_full_bypass_testing_init_static (CuTest *test,
 void host_processor_dual_full_bypass_testing_validate_and_release (CuTest *test,
 	struct host_processor_dual_full_bypass_testing *host);
 
+void host_processor_dual_full_bypass_testing_log_filter_config (CuTest *test,
+	struct host_processor_dual_full_bypass_testing *host);
+
 
 #endif	/* HOST_PROCESSOR_DUAL_FULL_BYPASS_TESTING_H_ */

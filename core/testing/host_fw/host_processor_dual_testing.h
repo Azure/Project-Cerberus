@@ -90,6 +90,8 @@ void host_processor_dual_testing_init_host_state (CuTest *test, struct host_stat
 
 int host_processor_dual_testing_expect_filtered_bypass_mode (
 	struct host_processor_dual_testing *host, spi_filter_cs ro_cs);
+void host_processor_dual_testing_log_filter_config (CuTest *test,
+	struct host_processor_dual_testing *host);
 
 int64_t host_processor_dual_testing_validate_read_only_flash (const struct mock_call *expected,
 	const struct mock_call *called);

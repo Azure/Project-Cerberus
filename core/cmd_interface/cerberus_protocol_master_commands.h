@@ -12,7 +12,7 @@
 #include "cmd_interface/device_manager.h"
 #include "crypto/rng.h"
 #include "firmware/firmware_update_control.h"
-#include "host_fw/host_processor.h"
+#include "host_fw/host_cmd_interface.h"
 #include "manifest/cfm/cfm_manager.h"
 #include "manifest/manifest_cmd_interface.h"
 #include "manifest/pcd/pcd_manager.h"
@@ -31,6 +31,7 @@ enum {
 	CERBERUS_PROTOCOL_HOST_FW_NEXT_RESET,			/**< Host FW reset verification */
 	CERBERUS_PROTOCOL_RECOVERY_IMAGE_UPDATE_STATUS,	/**< Recovery image update */
 	CERBERUS_PROTOCOL_CONFIG_RESET_STATUS,			/**< Configuration reset */
+	CERBERUS_PROTOCOL_HOST_FLASH_CONFIG_STATUS,		/**< Host flash configuration */
 };
 
 /**
@@ -431,17 +432,20 @@ int cerberus_protocol_get_cfm_update_status (const struct manifest_cmd_interface
 	struct cmd_interface_msg *request);
 int cerberus_protocol_get_pcd_update_status (const struct manifest_cmd_interface *pcd_interface,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_host_next_verification_status (const struct host_processor *const host[],
-	uint8_t num_ports, struct cmd_interface_msg *request);
+int cerberus_protocol_get_host_next_verification_status (
+	const struct host_cmd_interface *const host[], uint8_t num_ports,
+	struct cmd_interface_msg *request);
 int cerberus_protocol_get_recovery_image_update_status (
 	const struct recovery_image_cmd_interface *recovery_0,
 	const struct recovery_image_cmd_interface *recovery_1, struct cmd_interface_msg *request);
 int cerberus_protocol_get_reset_config_status (const struct cmd_background *background,
 	struct cerberus_protocol_update_status_response *rsp);
+int cerberus_protocol_get_host_flash_config_status (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
 int cerberus_protocol_get_update_status (const struct firmware_update_control *control,
 	uint8_t num_ports, const struct manifest_cmd_interface *const pfm_cmd[],
 	const struct manifest_cmd_interface *cfm, const struct manifest_cmd_interface *pcd,
-	const struct host_processor *const host[],
+	const struct host_cmd_interface *const host[],
 	const struct recovery_image_cmd_interface *recovery_0,
 	const struct recovery_image_cmd_interface *recovery_1, const struct cmd_background *background,
 	struct cmd_interface_msg *request);

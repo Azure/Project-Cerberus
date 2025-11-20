@@ -27,6 +27,12 @@ static void add_all_host_fw_tests (CuSuite *suite)
 	!defined TESTING_SKIP_BMC_RECOVERY_SUITE
 	TESTING_RUN_SUITE (bmc_recovery);
 #endif
+#if (defined TESTING_RUN_HOST_CMD_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_HOST_CMD_HANDLER_SUITE
+	TESTING_RUN_SUITE (host_cmd_handler);
+#endif
 #if (defined TESTING_RUN_HOST_FLASH_INITIALIZATION_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

@@ -967,13 +967,15 @@ int cerberus_protocol_get_pcd_update_status (const struct manifest_cmd_interface
  *
  * @return Response length if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_host_next_verification_status (const struct host_processor *const host[],
-	uint8_t num_ports, struct cmd_interface_msg *request)
+int cerberus_protocol_get_host_next_verification_status (
+	const struct host_cmd_interface *const host[], uint8_t num_ports,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_update_status *rq =
 		(struct cerberus_protocol_update_status*) request->data;
 	struct cerberus_protocol_update_status_response *rsp =
 		(struct cerberus_protocol_update_status_response*) request->data;
+	enum host_processor_reset_actions action;
 	int status;
 
 	if (rq->port_id >= num_ports) {
@@ -984,12 +986,12 @@ int cerberus_protocol_get_host_next_verification_status (const struct host_proce
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = host[rq->port_id]->get_next_reset_verification_actions (host[rq->port_id]);
-	if (ROT_IS_ERROR (status)) {
+	status = host[rq->port_id]->get_next_host_verification (host[rq->port_id], &action);
+	if (status != 0) {
 		return status;
 	}
 
-	rsp->update_status = (uint32_t) status;
+	rsp->update_status = (uint32_t) action;
 
 	return 0;
 }
@@ -1056,6 +1058,36 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
 }
 
 /**
+ * Process a request for host verification actions on reset.
+ *
+ * @param host List of host processors for all available ports
+ * @param num_ports Number of available ports
+ * @param request Host verification actions request to process
+ *
+ * @return Response length if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_host_flash_config_status (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_update_status *rq =
+		(struct cerberus_protocol_update_status*) request->data;
+	struct cerberus_protocol_update_status_response *rsp =
+		(struct cerberus_protocol_update_status_response*) request->data;
+
+	if (rq->port_id >= num_ports) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((host == NULL) || (host[rq->port_id] == NULL)) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	rsp->update_status = host[rq->port_id]->get_status (host[rq->port_id]);
+
+	return 0;
+}
+
+/**
  * Process update status request
  *
  * @param control Firmware update control instance to query
@@ -1074,7 +1106,7 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
 int cerberus_protocol_get_update_status (const struct firmware_update_control *control,
 	uint8_t num_ports, const struct manifest_cmd_interface *const pfm_cmd[],
 	const struct manifest_cmd_interface *cfm, const struct manifest_cmd_interface *pcd,
-	const struct host_processor *const host[],
+	const struct host_cmd_interface *const host[],
 	const struct recovery_image_cmd_interface *recovery_0,
 	const struct recovery_image_cmd_interface *recovery_1, const struct cmd_background *background,
 	struct cmd_interface_msg *request)
@@ -1117,6 +1149,10 @@ int cerberus_protocol_get_update_status (const struct firmware_update_control *c
 
 		case CERBERUS_PROTOCOL_CONFIG_RESET_STATUS:
 			status = cerberus_protocol_get_reset_config_status (background, rsp);
+			break;
+
+		case CERBERUS_PROTOCOL_HOST_FLASH_CONFIG_STATUS:
+			status = cerberus_protocol_get_host_flash_config_status (host, num_ports, request);
 			break;
 
 		default:

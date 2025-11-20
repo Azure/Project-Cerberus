@@ -16,6 +16,7 @@
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/flash/flash_mock.h"
+#include "testing/mock/host_fw/host_cmd_interface_mock.h"
 #include "testing/mock/host_fw/host_control_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/manifest_cmd_interface_mock.h"
@@ -183,41 +184,33 @@ void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_po
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port1_region1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_with_firmware_id_port0
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
 void
 cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_zero_length_firmware_id_port0
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_nonzero_offset_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_limited_response_port0
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_port0 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
 void
 cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_nonzero_offset_port0
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_with_firmware_id_port1
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
 void
 cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_zero_length_firmware_id_port1
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_nonzero_offset_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_limited_response_port1
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_port1 (
 	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
 void
 cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_empty_list_nonzero_offset_port1
-(
-	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+	(CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region0_null (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_get_pfm_supported_fw_port0_region1_null (
@@ -379,8 +372,7 @@ void cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_i
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
 cerberus_protocol_optional_commands_testing_process_reset_bypass_no_nonce_invalid_challenge_limited_response
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_bypass_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
@@ -398,18 +390,15 @@ void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_n
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_with_nonce_not_authorized
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_authorized_no_operation (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_invalid_challenge
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
 cerberus_protocol_optional_commands_testing_process_restore_defaults_no_nonce_invalid_challenge_limited_response
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_restore_defaults_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
@@ -426,25 +415,21 @@ void
 cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_not_authorized (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_authorized
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
 void
 cerberus_protocol_optional_commands_testing_process_clear_platform_config_with_nonce_not_authorized
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
 cerberus_protocol_optional_commands_testing_process_clear_platform_config_authorized_no_operation (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background);
 void
 cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
 cerberus_protocol_optional_commands_testing_process_clear_platform_config_no_nonce_invalid_challenge_limited_response
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_clear_platform_config_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
@@ -470,8 +455,7 @@ void cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_inv
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
 cerberus_protocol_optional_commands_testing_process_clear_cfms_no_nonce_invalid_challenge_limited_response
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_clear_cfms_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
@@ -494,12 +478,10 @@ void cerberus_protocol_optional_commands_testing_process_reset_intrusion_authori
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct cmd_background_mock *background);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void
 cerberus_protocol_optional_commands_testing_process_reset_intrusion_no_nonce_invalid_challenge_limited_response
-(
-	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
+	(CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth);
 void cerberus_protocol_optional_commands_testing_process_reset_intrusion_error (
 	CuTest *test, struct cmd_interface *cmd, struct cmd_authorization_mock *auth,
 	struct authorized_execution_mock *execution, struct cmd_background_mock *background);
@@ -630,6 +612,63 @@ void cerberus_protocol_optional_commands_testing_process_session_sync_unencrypte
 	struct cmd_interface *cmd);
 void cerberus_protocol_optional_commands_testing_process_session_sync_invalid_len (CuTest *test,
 	struct cmd_interface *cmd, struct session_manager_mock *session);
+
+void cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port0 (
+	CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_0);
+void cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port0_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port1 (
+	CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_1);
+void cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port1_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_invalid_len (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_invalid_port (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_error (
+	CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_0);
+
+void cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0 (
+	CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_0);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_no_current_flash
+	(CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_0);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_no_next_flash
+	(CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_0);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_no_apply_next_flash
+	(CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_0);
+void cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1 (
+	CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_1);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_no_current_flash
+	(CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_1);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_no_next_flash
+	(CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_1);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_no_apply_next_flash
+	(CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_1);
+void cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_null (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_len (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_port (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_error (
+	CuTest *test, struct cmd_interface *cmd, struct host_cmd_interface_mock *host_0);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_current_flash
+	(CuTest *test, struct cmd_interface *cmd);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_next_flash
+	(CuTest *test, struct cmd_interface *cmd);
+void
+cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_apply_next_flash
+	(CuTest *test, struct cmd_interface *cmd);
 
 
 #endif	/* CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_TESTING_H_ */

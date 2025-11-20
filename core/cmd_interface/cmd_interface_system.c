@@ -172,7 +172,7 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			const struct manifest_cmd_interface *const pfm_cmd[2] = {
 				interface->pfm_0, interface->pfm_1
 			};
-			const struct host_processor *const host[2] = {
+			const struct host_cmd_interface *const host[2] = {
 				interface->host_0, interface->host_1
 			};
 
@@ -246,6 +246,24 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_host_reset_status (interface->host_0_ctrl,
 				interface->host_1_ctrl, request);
 			break;
+
+		case CERBERUS_PROTOCOL_GET_HOST_FLASH_CONFIGURATION: {
+			const struct host_cmd_interface *const host[2] = {
+				interface->host_0, interface->host_1
+			};
+
+			status = cerberus_protocol_get_host_flash_configuration (host, 2, request);
+			break;
+		}
+
+		case CERBERUS_PROTOCOL_SET_HOST_FLASH_CONFIGURATION: {
+			const struct host_cmd_interface *const host[2] = {
+				interface->host_0, interface->host_1
+			};
+
+			status = cerberus_protocol_set_host_flash_configuration (host, 2, request);
+			break;
+		}
 
 		case CERBERUS_PROTOCOL_GET_DEVICE_INFO:
 			status = cerberus_protocol_get_device_info (interface->cmd_device, request);
@@ -422,8 +440,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
 	const struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
 	struct device_manager *device_manager, struct pcr_store *store, const struct hash_engine *hash,
-	const struct cmd_background *background, const struct host_processor *host_0,
-	const struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
+	const struct cmd_background *background, const struct host_cmd_interface *host_0,
+	const struct host_cmd_interface *host_1, const struct cmd_interface_fw_version *fw_version,
 	const struct riot_key_manager *riot, const struct cmd_authorization *auth,
 	const struct host_control *host_ctrl_0, const struct host_control *host_ctrl_1,
 	const struct recovery_image_cmd_interface *recovery_cmd_0,

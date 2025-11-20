@@ -268,6 +268,9 @@ enum {
 	HOST_PROCESSOR_GET_CONFIG_FAILED = HOST_PROCESSOR_ERROR (0x14),			/**< Failed to retrieve the current host flash configuration. */
 	HOST_PROCESSOR_CONFIG_RO_FAILED = HOST_PROCESSOR_ERROR (0x15),			/**< Failed to configure the host read-only flash. */
 	HOST_PROCESSOR_FLASH_CONFIG_UNSUPPORTED = HOST_PROCESSOR_ERROR (0x16),	/**< Changing the flash configuration is not supported.  */
+	HOST_PROCESSOR_NO_TASK = HOST_PROCESSOR_ERROR (0x17),					/**< No host command task is running. */
+	HOST_PROCESSOR_TASK_BUSY = HOST_PROCESSOR_ERROR (0x18),					/**< The command task is busy performing an operation. */
+	HOST_PROCESSOR_UNSUPPORTED_CMD = HOST_PROCESSOR_ERROR (0x19),			/**< The requested command is not supported by the host. */
 };
 
 

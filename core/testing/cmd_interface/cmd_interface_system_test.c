@@ -43,8 +43,8 @@
 #include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/flash/flash_mock.h"
+#include "testing/mock/host_fw/host_cmd_interface_mock.h"
 #include "testing/mock/host_fw/host_control_mock.h"
-#include "testing/mock/host_fw/host_processor_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/cfm/cfm_manager_mock.h"
@@ -121,8 +121,8 @@ struct cmd_interface_system_testing {
 	struct recovery_image_manager_mock recovery_manager_0;	/**< The recovery image manager mock for port 0. */
 	struct recovery_image_manager_mock recovery_manager_1;	/**< The recovery image manager mock for port 1. */
 	struct hash_engine_mock hash;							/**< Hashing engine mock. */
-	struct host_processor_mock host_0;						/**< The host interface mock for port 0. */
-	struct host_processor_mock host_1;						/**< The host interface mock for port 1. */
+	struct host_cmd_interface_mock host_0;					/**< The host interface mock for port 0. */
+	struct host_cmd_interface_mock host_1;					/**< The host interface mock for port 1. */
 	struct keystore_mock keystore;							/**< RIoT keystore. */
 	struct x509_engine_mock x509_mock;						/**< The X.509 engine mock for the RIoT keys. */
 	X509_TESTING_ENGINE (x509);								/**< X.509 engine for the RIoT keys. */
@@ -227,10 +227,10 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	status = pcd_manager_mock_init (&cmd->pcd_manager);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_init (&cmd->host_0);
+	status = host_cmd_interface_mock_init (&cmd->host_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_init (&cmd->host_1);
+	status = host_cmd_interface_mock_init (&cmd->host_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging_mock_init (&cmd->debug);
@@ -357,8 +357,8 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 	struct pfm_manager *pfm_manager_1_ptr = NULL;
 	struct cfm_manager *cfm_manager_ptr = NULL;
 	struct pcd_manager *pcd_manager_ptr = NULL;
-	struct host_processor *host_0_ptr = NULL;
-	struct host_processor *host_1_ptr = NULL;
+	struct host_cmd_interface *host_0_ptr = NULL;
+	struct host_cmd_interface *host_1_ptr = NULL;
 	struct recovery_image_cmd_interface *recovery_0_ptr = NULL;
 	struct recovery_image_cmd_interface *recovery_1_ptr = NULL;
 	struct recovery_image_manager *recovery_manager_0_ptr = NULL;
@@ -422,7 +422,7 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 		&cmd->attestation.base, &cmd->device_manager, &cmd->store, &cmd->hash.base,
 		&cmd->background.base, host_0_ptr, host_1_ptr, &cmd->fw_version, &cmd->riot,
 		&cmd->auth.base, host_ctrl_0_ptr, host_ctrl_1_ptr, recovery_0_ptr, recovery_1_ptr,
-		recovery_manager_0_ptr, recovery_manager_1_ptr,	&cmd->cmd_device.base,
+		recovery_manager_0_ptr, recovery_manager_1_ptr, &cmd->cmd_device.base,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4, session_mgr_ptr);
 	CuAssertIntEquals (test, 0, status);
 
@@ -456,8 +456,8 @@ static void complete_cmd_interface_system_mock_test (CuTest *test,
 	status |= pfm_manager_mock_validate_and_release (&cmd->pfm_manager_1);
 	status |= cfm_manager_mock_validate_and_release (&cmd->cfm_manager);
 	status |= pcd_manager_mock_validate_and_release (&cmd->pcd_manager);
-	status |= host_processor_mock_validate_and_release (&cmd->host_0);
-	status |= host_processor_mock_validate_and_release (&cmd->host_1);
+	status |= host_cmd_interface_mock_validate_and_release (&cmd->host_0);
+	status |= host_cmd_interface_mock_validate_and_release (&cmd->host_1);
 	status |= logging_mock_validate_and_release (&cmd->debug);
 	status |= attestation_responder_mock_validate_and_release (&cmd->attestation);
 	status |= hash_mock_validate_and_release (&cmd->hash);
@@ -519,8 +519,8 @@ static void cmd_interface_system_test_init (CuTest *test)
 	struct pfm_manager_mock pfm_mgr_1;
 	struct cfm_manager_mock cfm_mgr;
 	struct pcd_manager_mock pcd_mgr;
-	struct host_processor_mock host_0;
-	struct host_processor_mock host_1;
+	struct host_cmd_interface_mock host_0;
+	struct host_cmd_interface_mock host_1;
 	struct logging_mock debug;
 	struct attestation_responder_mock attestation;
 	struct pcr_store store;
@@ -585,10 +585,10 @@ static void cmd_interface_system_test_init (CuTest *test)
 	status = pcd_manager_mock_init (&pcd_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_init (&host_0);
+	status = host_cmd_interface_mock_init (&host_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_init (&host_1);
+	status = host_cmd_interface_mock_init (&host_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging_mock_init (&debug);
@@ -685,10 +685,10 @@ static void cmd_interface_system_test_init (CuTest *test)
 	status = pcd_manager_mock_validate_and_release (&pcd_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_validate_and_release (&host_0);
+	status = host_cmd_interface_mock_validate_and_release (&host_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_validate_and_release (&host_1);
+	status = host_cmd_interface_mock_validate_and_release (&host_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging_mock_validate_and_release (&debug);
@@ -740,8 +740,8 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	struct pfm_manager_mock pfm_mgr_1;
 	struct cfm_manager_mock cfm_mgr;
 	struct pcd_manager_mock pcd_mgr;
-	struct host_processor_mock host_0;
-	struct host_processor_mock host_1;
+	struct host_cmd_interface_mock host_0;
+	struct host_cmd_interface_mock host_1;
 	struct logging_mock debug;
 	struct attestation_responder_mock attestation;
 	struct pcr_store store;
@@ -806,10 +806,10 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	status = pcd_manager_mock_init (&pcd_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_init (&host_0);
+	status = host_cmd_interface_mock_init (&host_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_init (&host_1);
+	status = host_cmd_interface_mock_init (&host_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging_mock_init (&debug);
@@ -873,7 +873,7 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_system_init (&interface, NULL, &pfm_0.base, &pfm_1.base,	&cfm.base,
+	status = cmd_interface_system_init (&interface, NULL, &pfm_0.base, &pfm_1.base, &cfm.base,
 		&pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
 		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
@@ -884,35 +884,35 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base, NULL,
 		&device_manager, &store, &hash.base, &background.base, &host_0.base, &host_1.base,
 		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL,
-		NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
+		NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&attestation.base, NULL, &store, &hash.base, &background.base, &host_0.base, &host_1.base,
-		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,	NULL, NULL,
-		NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
+		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL,
+		NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&attestation.base, &device_manager, NULL, &hash.base, &background.base, &host_0.base,
 		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
-		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
+		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&attestation.base, &device_manager, &store, NULL, &background.base, &host_0.base,
 		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
-		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
+		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, NULL, &host_0.base,	&host_1.base,
-		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,	NULL, NULL,
-		NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
+		&attestation.base, &device_manager, &store, &hash.base, NULL, &host_0.base, &host_1.base,
+		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL,
+		NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
@@ -925,7 +925,7 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
 		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
-		&host_1.base, &fw_version, NULL, &auth.base, &host_ctrl_0.base,	&host_ctrl_1.base, NULL,
+		&host_1.base, &fw_version, NULL, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
 		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
@@ -973,10 +973,10 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 	status = pcd_manager_mock_validate_and_release (&pcd_mgr);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_validate_and_release (&host_0);
+	status = host_cmd_interface_mock_validate_and_release (&host_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_processor_mock_validate_and_release (&host_1);
+	status = host_cmd_interface_mock_validate_and_release (&host_1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = logging_mock_validate_and_release (&debug);
@@ -1306,7 +1306,7 @@ static void cmd_interface_system_test_process_encrypted_message (CuTest *test)
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.encrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-		sizeof (response), cmd_interface_mock_save_request,	cmd_interface_mock_free_request,
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request));
 	status |= mock_expect_output_deep_copy (&cmd.session.mock, 0, &encrypted_response,
 		sizeof (encrypted_response), cmd_interface_mock_copy_request);
@@ -1672,7 +1672,7 @@ static void cmd_interface_system_test_process_encrypted_message_only_header (CuT
 
 	status = mock_expect (&cmd.session.mock, cmd.session.base.encrypt_message, &cmd.session, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, &response,
-		sizeof (response), cmd_interface_mock_save_request,	cmd_interface_mock_free_request,
+		sizeof (response), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request));
 	CuAssertIntEquals (test, 0, status);
 
@@ -2133,6 +2133,72 @@ static void cmd_interface_system_test_process_get_reset_config_status (CuTest *t
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_get_host_flash_config_status_port0 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_host_flash_config_status_port0 (test,
+		&cmd.handler.base, &cmd.host_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_config_status_port1 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_host_flash_config_status_port1 (test,
+		&cmd.handler.base, &cmd.host_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_config_status_port0_null (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_host_flash_config_status_port0_null (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_config_status_port1_null (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_host_flash_config_status_port1_null (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_config_status_invalid_port (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_host_flash_config_status_invalid_port (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_get_update_status_invalid_len (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -2313,8 +2379,8 @@ cmd_interface_system_test_process_get_recovery_image_ext_update_status_port0_cmd
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
 		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
 		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
-		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, NULL,	&cmd.recovery_1.base,
-		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,	&cmd.cmd_device.base, 0, 0, 0,
+		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, NULL, &cmd.recovery_1.base,
+		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base, &cmd.cmd_device.base, 0, 0, 0,
 		0, &cmd.session.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2358,7 +2424,7 @@ cmd_interface_system_test_process_get_recovery_image_ext_update_status_port1_cmd
 		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
 		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
 		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base, NULL,
-		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,	&cmd.cmd_device.base, 0, 0, 0,
+		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base, &cmd.cmd_device.base, 0, 0, 0,
 		0, &cmd.session.base);
 	CuAssertIntEquals (test, 0, status);
 
@@ -2391,6 +2457,32 @@ static void cmd_interface_system_test_process_get_reset_config_ext_update_status
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 	cerberus_protocol_master_commands_testing_process_get_reset_config_ext_update_status (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_config_ext_status_port0 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_host_flash_config_ext_status_port0 (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_config_ext_status_port1 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_host_flash_config_ext_status_port1 (test,
 		&cmd.handler.base);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -2665,7 +2757,7 @@ static void cmd_interface_system_test_process_pfm_update_port0 (CuTest *test)
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
-	cerberus_protocol_optional_commands_testing_process_pfm_update_port0 (test,	&cmd.handler.base,
+	cerberus_protocol_optional_commands_testing_process_pfm_update_port0 (test, &cmd.handler.base,
 		&cmd.pfm_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -2678,7 +2770,7 @@ static void cmd_interface_system_test_process_pfm_update_port1 (CuTest *test)
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
-	cerberus_protocol_optional_commands_testing_process_pfm_update_port1 (test,	&cmd.handler.base,
+	cerberus_protocol_optional_commands_testing_process_pfm_update_port1 (test, &cmd.handler.base,
 		&cmd.pfm_1);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -6726,7 +6818,7 @@ static void cmd_interface_system_test_process_clear_cfms_error (CuTest *test)
 
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
-	cerberus_protocol_optional_commands_testing_process_clear_cfms_error (test,	&cmd.handler.base,
+	cerberus_protocol_optional_commands_testing_process_clear_cfms_error (test, &cmd.handler.base,
 		&cmd.auth, &cmd.execution, &cmd.background);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -7710,7 +7802,7 @@ static void cmd_interface_system_test_process_session_sync (CuTest *test)
 	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
 		true, true, true);
 
-	cerberus_protocol_optional_commands_testing_process_session_sync (test,	&cmd.handler.base,
+	cerberus_protocol_optional_commands_testing_process_session_sync (test, &cmd.handler.base,
 		&cmd.session);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -7867,6 +7959,323 @@ static void cmd_interface_system_test_process_stack_stats_fail (CuTest *test)
 	cerberus_protocol_diagnostic_commands_testing_process_stack_stats_fail (test, &cmd.handler.base,
 		&cmd.cmd_device);
 
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_configuration_port0 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port0 (test,
+		&cmd.handler.base, &cmd.host_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_configuration_port0_null (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port0_null (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_configuration_port1 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port1 (test,
+		&cmd.handler.base, &cmd.host_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_configuration_port1_null (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_port1_null (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_configuration_invalid_len (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_invalid_len (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_configuration_invalid_port (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_invalid_port (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_host_flash_configuration_error (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_get_host_flash_configuration_error (test,
+		&cmd.handler.base, &cmd.host_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port0 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0 (test,
+		&cmd.handler.base, &cmd.host_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port0_no_current_flash (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_no_current_flash
+		(test, &cmd.handler.base, &cmd.host_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port0_no_next_flash (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_no_next_flash
+		(test, &cmd.handler.base, &cmd.host_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port0_no_apply_next_flash
+	(CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_no_apply_next_flash
+		(test, &cmd.handler.base, &cmd.host_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port0_null (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port0_null (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port1 (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1 (test,
+		&cmd.handler.base, &cmd.host_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port1_no_current_flash (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_no_current_flash
+		(test, &cmd.handler.base, &cmd.host_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port1_no_next_flash (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_no_next_flash
+		(test, &cmd.handler.base, &cmd.host_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port1_no_apply_next_flash
+	(CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_no_apply_next_flash
+		(test, &cmd.handler.base, &cmd.host_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_port1_null (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, false, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_port1_null (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_invalid_len (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_len (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_invalid_port (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_port (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_invalid_current_flash (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_current_flash
+		(test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_invalid_next_flash (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_next_flash
+		(test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_invalid_apply_next_flash
+(
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_invalid_apply_next_flash
+		(test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_set_host_flash_configuration_error (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_optional_commands_testing_process_set_host_flash_configuration_error (test,
+		&cmd.handler.base, &cmd.host_0);
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -8269,7 +8678,7 @@ static void cmd_interface_system_test_process_response_get_certificate_digest (C
 
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_get_digest_response,
 		&cmd.observer, 0,
-		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,	sizeof (response)));
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response, sizeof (response)));
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_master_commands_testing_process_response_get_certificate_digest (test,
@@ -8330,7 +8739,7 @@ static void cmd_interface_system_test_process_response_get_certificate (CuTest *
 
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_get_certificate_response,
 		&cmd.observer, 0,
-		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,	sizeof (response)));
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response, sizeof (response)));
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_master_commands_testing_process_response_get_certificate (test,
@@ -8404,7 +8813,7 @@ static void cmd_interface_system_test_process_response_challenge_response (CuTes
 
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_challenge_response,
 		&cmd.observer, 0,
-		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,	sizeof (response)));
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response, sizeof (response)));
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_master_commands_testing_process_response_challenge_response (test,
@@ -8492,7 +8901,7 @@ static void cmd_interface_system_test_process_response_device_capabilities (CuTe
 
 	status = mock_expect (&cmd.observer.mock, cmd.observer.base.on_device_capabilities,
 		&cmd.observer, 0,
-		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response,	sizeof (response)));
+		MOCK_ARG_VALIDATOR (cmd_interface_mock_validate_request, &response, sizeof (response)));
 	CuAssertIntEquals (test, 0, status);
 
 	cerberus_protocol_master_commands_testing_process_response_device_capabilities (test,
@@ -8664,6 +9073,11 @@ TEST (cmd_interface_system_test_process_get_recovery_image_update_status_port0_n
 TEST (cmd_interface_system_test_process_get_recovery_image_update_status_port1_null);
 TEST (cmd_interface_system_test_process_get_recovery_image_update_status_bad_port_index);
 TEST (cmd_interface_system_test_process_get_reset_config_status);
+TEST (cmd_interface_system_test_process_get_host_flash_config_status_port0);
+TEST (cmd_interface_system_test_process_get_host_flash_config_status_port1);
+TEST (cmd_interface_system_test_process_get_host_flash_config_status_port0_null);
+TEST (cmd_interface_system_test_process_get_host_flash_config_status_port1_null);
+TEST (cmd_interface_system_test_process_get_host_flash_config_status_invalid_port);
 TEST (cmd_interface_system_test_process_get_update_status_invalid_len);
 TEST (cmd_interface_system_test_process_get_update_status_invalid_type);
 TEST (cmd_interface_system_test_process_get_fw_ext_update_status);
@@ -8681,6 +9095,8 @@ TEST (cmd_interface_system_test_process_get_recovery_image_ext_update_status_por
 TEST (cmd_interface_system_test_process_get_recovery_image_ext_update_status_port1_cmd_intf_null);
 TEST (cmd_interface_system_test_process_get_recovery_image_ext_update_status_bad_port_index);
 TEST (cmd_interface_system_test_process_get_reset_config_ext_update_status);
+TEST (cmd_interface_system_test_process_get_host_flash_config_ext_status_port0);
+TEST (cmd_interface_system_test_process_get_host_flash_config_ext_status_port1);
 TEST (cmd_interface_system_test_process_get_ext_update_status_invalid_len);
 TEST (cmd_interface_system_test_process_get_ext_update_status_invalid_type);
 TEST (cmd_interface_system_test_process_get_fw_version);
@@ -9090,6 +9506,29 @@ TEST (cmd_interface_system_test_process_stack_stats);
 TEST (cmd_interface_system_test_process_stack_stats_non_zero_offset);
 TEST (cmd_interface_system_test_process_stack_stats_invalid_len);
 TEST (cmd_interface_system_test_process_stack_stats_fail);
+TEST (cmd_interface_system_test_process_get_host_flash_configuration_port0);
+TEST (cmd_interface_system_test_process_get_host_flash_configuration_port0_null);
+TEST (cmd_interface_system_test_process_get_host_flash_configuration_port1);
+TEST (cmd_interface_system_test_process_get_host_flash_configuration_port1_null);
+TEST (cmd_interface_system_test_process_get_host_flash_configuration_invalid_len);
+TEST (cmd_interface_system_test_process_get_host_flash_configuration_invalid_port);
+TEST (cmd_interface_system_test_process_get_host_flash_configuration_error);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port0);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port0_no_current_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port0_no_next_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port0_no_apply_next_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port0_null);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port1);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port1_no_current_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port1_no_next_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port1_no_apply_next_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_port1_null);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_invalid_len);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_invalid_port);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_invalid_current_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_invalid_next_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_invalid_apply_next_flash);
+TEST (cmd_interface_system_test_process_set_host_flash_configuration_error);
 TEST (cmd_interface_system_test_supports_all_required_commands);
 TEST (cmd_interface_system_test_process_response_null);
 TEST (cmd_interface_system_test_process_response_payload_too_short);

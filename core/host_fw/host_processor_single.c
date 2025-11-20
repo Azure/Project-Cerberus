@@ -184,6 +184,8 @@ int host_processor_single_config_read_only_flash (const struct host_processor *h
 			if (status != 0) {
 				goto exit;
 			}
+
+			spi_filter_log_configuration (single->filter);
 		}
 	}
 

@@ -274,7 +274,6 @@ static void manifest_cmd_handler_test_static_init_null (CuTest *test)
 	CuAssertIntEquals (test, MANIFEST_MANAGER_INVALID_ARGUMENT, status);
 
 	manifest_cmd_handler_testing_release_dependencies (test, &handler);
-	manifest_cmd_handler_release (&test_static);
 }
 
 static void manifest_cmd_handler_test_release_null (CuTest *test)

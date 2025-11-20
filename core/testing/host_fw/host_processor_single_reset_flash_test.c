@@ -3043,6 +3043,8 @@ static void host_processor_single_test_config_read_only_flash_static_init_reset_
 
 	CuAssertIntEquals (test, 0, status);
 
+	host_processor_single_testing_log_filter_config (test, &host);
+
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro,
 		&apply_next_cs);
 	CuAssertIntEquals (test, 0, status);
@@ -3101,6 +3103,8 @@ static void host_processor_single_test_config_read_only_flash_static_init_reset_
 		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
+
+	host_processor_single_testing_log_filter_config (test, &host);
 
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro,
 		&apply_next_cs);

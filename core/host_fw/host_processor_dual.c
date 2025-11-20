@@ -353,6 +353,8 @@ int host_processor_dual_config_read_only_flash (const struct host_processor *hos
 			if (status != 0) {
 				goto exit;
 			}
+
+			spi_filter_log_configuration (dual->filter);
 		}
 	}
 
@@ -371,6 +373,9 @@ int host_processor_dual_config_read_only_flash (const struct host_processor *hos
 		else {
 			if (nv_ro != *next_ro) {
 				host_state_manager_save_inactive_dirty (dual->host_state, true);
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
+					HOST_LOGGING_FORCE_DIRTY, host_processor_get_port (&dual->base), 0);
 			}
 		}
 	}

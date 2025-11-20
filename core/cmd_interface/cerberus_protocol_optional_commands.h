@@ -17,8 +17,8 @@
 #include "common/buffer_util.h"
 #include "crypto/hash.h"
 #include "firmware/firmware_update_control.h"
+#include "host_fw/host_cmd_interface.h"
 #include "host_fw/host_control.h"
-#include "host_fw/host_processor.h"
 #include "manifest/manifest_cmd_interface.h"
 #include "manifest/pfm/pfm_manager.h"
 #include "mctp/mctp_base_protocol.h"
@@ -999,6 +999,37 @@ struct cerberus_protocol_session_sync_response {
  */
 #define	CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN(req)    \
 	((req->max_response - sizeof (struct cerberus_protocol_session_sync_response)))
+
+/**
+ * Cerberus protocol get host flash configuration request format
+ */
+struct cerberus_protocol_get_host_flash_configuration {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t port_id;						/**< Host port ID */
+};
+
+/**
+ * Cerberus protocol get host flash configuration response format
+ */
+struct cerberus_protocol_get_host_flash_configuration_response {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t filter_mode;					/**< Current configured mode of any SPI filter. */
+	uint8_t current_flash;					/**< Flash CS currently being used for read-only data. */
+	uint8_t next_flash;						/**< Flash CS that will next be used for read-only data. */
+	uint8_t apply_next_flash;				/**< Host events that will change to the next flash CS. */
+};
+
+/**
+ * Cerberus protocol set host flash configuration request format
+ */
+struct cerberus_protocol_set_host_flash_configuration {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t port_id;						/**< Host port ID */
+	uint8_t current_flash;					/**< Flash CS to use for read-only data. */
+	uint8_t next_flash;						/**< Flash CS to use next for read-only data. */
+	uint8_t apply_next_flash;				/**< Host events that will change to the next flash CS. */
+};
+
 #pragma pack(pop)
 
 
@@ -1065,6 +1096,11 @@ int cerberus_protocol_key_exchange (struct session_manager *session,
 	struct cmd_interface_msg *request, uint8_t encrypted);
 int cerberus_protocol_session_sync (struct session_manager *session,
 	struct cmd_interface_msg *request, uint8_t encrypted);
+
+int cerberus_protocol_get_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
+int cerberus_protocol_set_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
 
 
 #endif	/* CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_H_ */

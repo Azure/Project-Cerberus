@@ -47,8 +47,8 @@ enum {
 	CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT,					/**< Import CA signed certificate */
 	CERBERUS_PROTOCOL_GET_SIGNED_CERT_STATE,					/**< Get state of the signed certificates */
 	CERBERUS_PROTOCOL_GET_HOST_STATE = 0x40,					/**< Get Host reset state */
-	CERBERUS_PROTOCOL_GET_CS_SWITCH,							/**< Command to get the CS selection */
-	CERBERUS_PROTOCOL_SET_CS_SWITCH,							/**< Command to set the CS selection */
+	CERBERUS_PROTOCOL_GET_HOST_FLASH_CONFIGURATION,				/**< Get the configuration of host flash */
+	CERBERUS_PROTOCOL_SET_HOST_FLASH_CONFIGURATION,				/**< Set the configuration of host flash */
 	CERBERUS_PROTOCOL_GET_LOG_INFO = 0x4F,						/**< Get log info */
 	CERBERUS_PROTOCOL_READ_LOG,									/**< Read back log */
 	CERBERUS_PROTOCOL_CLEAR_LOG,								/**< Clear log */

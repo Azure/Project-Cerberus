@@ -1188,3 +1188,109 @@ int cerberus_protocol_session_sync (struct session_manager *session,
 
 	return 0;
 }
+
+/**
+ * Process a get host flash configuration request.
+ *
+ * @param host The list of host handlers.
+ * @param num_ports The number of hosts in the list.
+ * @param request Get host flash configuration request to process.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_host_flash_configuration *rq =
+		(struct cerberus_protocol_get_host_flash_configuration*) request->data;
+	struct cerberus_protocol_get_host_flash_configuration_response *rsp =
+		(struct cerberus_protocol_get_host_flash_configuration_response*) request->data;
+	const struct host_cmd_interface *host_cmd;
+	spi_filter_flash_mode mode;
+	spi_filter_cs current_ro;
+	spi_filter_cs next_ro;
+	enum host_read_only_activation apply_next_ro;
+	int status;
+
+	if (request->length != sizeof (struct cerberus_protocol_get_host_flash_configuration)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if (rq->port_id >= num_ports) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	host_cmd = host[rq->port_id];
+	if (host_cmd == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	status = host_cmd->get_flash_configuration (host_cmd, &mode, &current_ro, &next_ro,
+		&apply_next_ro);
+	if (status != 0) {
+		return status;
+	}
+
+	rsp->filter_mode = mode;
+	rsp->current_flash = current_ro;
+	rsp->next_flash = next_ro;
+	rsp->apply_next_flash = apply_next_ro;
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_get_host_flash_configuration_response));
+
+	return 0;
+}
+
+/**
+ * Process a set host flash configuration request.
+ *
+ * @param host The list of host handlers.
+ * @param num_ports The number of hosts in the list.
+ * @param request Set host flash configuration request to process.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_set_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_set_host_flash_configuration *rq =
+		(struct cerberus_protocol_set_host_flash_configuration*) request->data;
+	const struct host_cmd_interface *host_cmd;
+	int status;
+
+	if (request->length != sizeof (struct cerberus_protocol_set_host_flash_configuration)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if (rq->port_id >= num_ports) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->current_flash > SPI_FILTER_CS_1) && (rq->current_flash != 0xff)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->next_flash > SPI_FILTER_CS_1) && (rq->next_flash != 0xff)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->apply_next_flash > HOST_READ_ONLY_ACTIVATE_ON_ALL) && (rq->apply_next_flash != 0xff)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	host_cmd = host[rq->port_id];
+	if (host_cmd == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	status = host_cmd->set_flash_configuration (host_cmd, rq->current_flash, rq->next_flash,
+		rq->apply_next_flash);
+	if (status != 0) {
+		return status;
+	}
+
+	request->length = 0;
+
+	return 0;
+}

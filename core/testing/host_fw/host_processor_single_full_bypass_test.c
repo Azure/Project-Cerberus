@@ -215,6 +215,137 @@ void host_processor_single_full_bypass_testing_validate_and_release (CuTest *tes
 	host_processor_single_full_bypass_testing_release_dependencies (test, host);
 }
 
+/**
+ * Set up expectations for logging the SPI filter configuration.  The actual values are not
+ * important in this context.
+ *
+ * @param test The testing framework.
+ * @param host The testing components.
+ */
+void host_processor_single_full_bypass_testing_log_filter_config (CuTest *test,
+	struct host_processor_single_full_bypass_testing *host)
+{
+	int status;
+	int port = 0;
+	uint8_t mfg = 0;
+	bool flag = false;
+	spi_filter_cs ro = SPI_FILTER_CS_1;
+	spi_filter_address_mode addr = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_fixed = false;
+	spi_filter_address_mode addr_reset = SPI_FILTER_ADDRESS_MODE_3;
+	bool addr_write_en = false;
+	spi_filter_flash_state dirty = SPI_FILTER_FLASH_STATE_DIRTY;
+	spi_filter_flash_mode mode = SPI_FILTER_FLASH_DUAL;
+	bool allow_write = false;
+	uint32_t region1_start = 0x10000;
+	uint32_t region1_end = 0x20000;
+	uint32_t region2_start = 0x300000;
+	uint32_t region2_end = 0x400000;
+	uint32_t region3_start = 0x600000;
+	uint32_t region3_end = 0x1000000;
+	uint32_t region4_start = 0x1010000;
+	uint32_t region4_end = 0x1020000;
+	uint32_t region5_start = 0x1300000;
+	uint32_t region5_end = 0x1400000;
+	uint32_t region6_start = 0x1600000;
+	uint32_t region6_end = 0x1700000;
+	uint32_t device_size = 0x2000000;
+
+	status = mock_expect (&host->filter.mock, host->filter.base.get_port, &host->filter, port);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_mfg_id, &host->filter,	0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &mfg, sizeof (mfg), -1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_flash_size, &host->filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &device_size, sizeof (device_size),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_mode, &host->filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &mode, sizeof (mode), -1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_enabled, &host->filter,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &flag, sizeof (flag), -1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_ro_cs, &host->filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &ro, sizeof (ro), -1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_addr_byte_mode, &host->filter,
+		0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &addr, sizeof (addr), -1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_fixed_addr_byte_mode,
+		&host->filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &addr_fixed, sizeof (addr_fixed), -1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_reset_addr_byte_mode,
+		&host->filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &addr_reset, sizeof (addr_reset), -1);
+
+	status |= mock_expect (&host->filter.mock,
+		host->filter.base.get_addr_byte_mode_write_enable_required, &host->filter, 0,
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &addr_write_en, sizeof (addr_write_en),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_flash_dirty_state,
+		&host->filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &dirty, sizeof (dirty), -1);
+
+	status |= mock_expect (&host->filter.mock,
+		host->filter.base.are_all_single_flash_writes_allowed, &host->filter, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 0, &allow_write, sizeof (allow_write),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_rw_region,
+		&host->filter, 0, MOCK_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 1, &region1_start, sizeof (region1_start),
+		-1);
+	status |= mock_expect_output_tmp (&host->filter.mock, 2, &region1_end, sizeof (region1_end),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_rw_region,
+		&host->filter, 0, MOCK_ARG (2), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 1, &region2_start, sizeof (region2_start),
+		-1);
+	status |= mock_expect_output_tmp (&host->filter.mock, 2, &region2_end, sizeof (region2_end),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_rw_region,
+		&host->filter, 0, MOCK_ARG (3), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 1, &region3_start, sizeof (region3_start),
+		-1);
+	status |= mock_expect_output_tmp (&host->filter.mock, 2, &region3_end, sizeof (region3_end),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_rw_region,
+		&host->filter, 0, MOCK_ARG (4), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 1, &region4_start, sizeof (region4_start),
+		-1);
+	status |= mock_expect_output_tmp (&host->filter.mock, 2, &region4_end, sizeof (region4_end),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_rw_region,
+		&host->filter, 0, MOCK_ARG (5), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 1, &region5_start, sizeof (region5_start),
+		-1);
+	status |= mock_expect_output_tmp (&host->filter.mock, 2, &region5_end, sizeof (region5_end),
+		-1);
+
+	status |= mock_expect (&host->filter.mock, host->filter.base.get_filter_rw_region,
+		&host->filter, 0, MOCK_ARG (6), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&host->filter.mock, 1, &region6_start, sizeof (region6_start),
+		-1);
+	status |= mock_expect_output_tmp (&host->filter.mock, 2, &region6_end, sizeof (region6_end),
+		-1);
+
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 /*******************
  * Test cases
@@ -5746,6 +5877,8 @@ host_processor_single_full_bypass_test_config_read_only_flash_active_nv_cs0_no_o
 
 	CuAssertIntEquals (test, 0, status);
 
+	host_processor_single_full_bypass_testing_log_filter_config (test, &host);
+
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5806,6 +5939,8 @@ host_processor_single_full_bypass_test_config_read_only_flash_active_nv_cs0_no_o
 		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
+
+	host_processor_single_full_bypass_testing_log_filter_config (test, &host);
 
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -5868,6 +6003,8 @@ host_processor_single_full_bypass_test_config_read_only_flash_active_nv_cs1_no_o
 
 	CuAssertIntEquals (test, 0, status);
 
+	host_processor_single_full_bypass_testing_log_filter_config (test, &host);
+
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro, NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -5928,6 +6065,8 @@ host_processor_single_full_bypass_test_config_read_only_flash_active_nv_cs1_no_o
 		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
+
+	host_processor_single_full_bypass_testing_log_filter_config (test, &host);
 
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro, NULL);
 	CuAssertIntEquals (test, 0, status);
@@ -6081,6 +6220,8 @@ static void host_processor_single_full_bypass_test_config_read_only_flash_static
 
 	CuAssertIntEquals (test, 0, status);
 
+	host_processor_single_full_bypass_testing_log_filter_config (test, &host);
+
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro,
 		&apply_next_cs);
 	CuAssertIntEquals (test, 0, status);
@@ -6146,6 +6287,8 @@ static void host_processor_single_full_bypass_test_config_read_only_flash_static
 		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
 
 	CuAssertIntEquals (test, 0, status);
+
+	host_processor_single_full_bypass_testing_log_filter_config (test, &host);
 
 	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro,
 		&apply_next_cs);
