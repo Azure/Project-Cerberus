@@ -48,6 +48,18 @@ struct host_processor_single_testing {
 	struct logging_mock logger;								/**< Mock for debug logging. */
 };
 
+/**
+ * Container for the calling context of flash_manager actions.
+ */
+struct host_processor_single_testing_flash_mgr_action {
+	bool override;								/**< Expected state of the RO flash override flag. */
+	spi_filter_cs ro;							/**< Expected state of the RO flash device. */
+	spi_filter_cs nv_ro;						/**< Expected state of the non-volatile RO flash device. */
+	bool used_pending;							/**< Indicate if a pending PFM is activated. */
+	struct host_processor_single_testing *host;	/**< Testing dependencies. */
+	CuTest *test;								/**< Test case instance. */
+};
+
 
 void host_processor_single_testing_init_dependencies (CuTest *test,
 	struct host_processor_single_testing *host);
@@ -75,6 +87,22 @@ void host_processor_single_testing_validate_and_release (CuTest *test,
 void host_processor_single_testing_init_host_state (CuTest *test, struct host_state_manager *state,
 	struct host_state_manager_state *state_ctx, struct flash_master_mock *flash_mock,
 	struct spi_flash *flash, struct spi_flash_state *flash_state);
+
+int host_processor_single_testing_expect_filtered_bypass_mode (
+	struct host_processor_single_testing *host, spi_filter_cs ro_cs);
+
+int64_t host_processor_single_testing_validate_read_only_flash (const struct mock_call *expected,
+	const struct mock_call *called);
+int64_t host_processor_single_testing_validate_read_write_flash (const struct mock_call *expected,
+	const struct mock_call *called);
+int64_t host_processor_single_testing_get_flash_read_write_regions (
+	const struct mock_call *expected, const struct mock_call *called);
+int64_t host_processor_single_testing_initialize_flash_protection (const struct mock_call *expected,
+	const struct mock_call *called);
+int64_t host_processor_single_testing_swap_flash_devices (const struct mock_call *expected,
+	const struct mock_call *called);
+int64_t host_processor_single_testing_activate_pending_manifest (const struct mock_call *expected,
+	const struct mock_call *called);
 
 
 #endif	/* HOST_PROCESSOR_SINGLE_TESTING_H_ */

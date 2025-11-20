@@ -29,7 +29,8 @@ int host_processor_single_soft_reset (const struct host_processor *host,
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return host_processor_filtered_update_verification (single, hash, rsa, true, true, 0);
+	return host_processor_filtered_update_verification (single, hash, rsa, true, true,
+		HOST_READ_ONLY_ACTIVATE_ON_POR_AND_AT_RUN_TIME, 0);
 }
 
 int host_processor_single_run_time_verification (const struct host_processor *host,
@@ -42,7 +43,7 @@ int host_processor_single_run_time_verification (const struct host_processor *ho
 	}
 
 	return host_processor_filtered_update_verification (single, hash, rsa, true, false,
-		HOST_PROCESSOR_NOTHING_TO_VERIFY);
+		HOST_READ_ONLY_ACTIVATE_ON_POR_AND_RESET, HOST_PROCESSOR_NOTHING_TO_VERIFY);
 }
 
 int host_processor_single_flash_rollback (const struct host_processor *host,
@@ -79,12 +80,133 @@ int host_processor_single_bypass_mode (const struct host_processor *host, bool s
 	}
 
 	platform_mutex_lock (&single->state->lock);
-	host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_0);
+
+	if (!single->flash->has_two_flash_devices (single->flash)) {
+		host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_0);
+	}
+	else if (swap_flash) {
+		/* TODO:  This doesn't take any RO override into consideration. */
+		if (host_state_manager_get_read_only_flash (single->host_state) == SPI_FILTER_CS_0) {
+			host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_1);
+		}
+		else {
+			host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_0);
+		}
+	}
+
 	host_processor_filtered_config_bypass (single);
 	host_processor_filtered_set_host_flash_access (single);
+
 	platform_mutex_unlock (&single->state->lock);
 
 	return 0;
+}
+
+int host_processor_single_get_flash_config (const struct host_processor *host,
+	spi_filter_flash_mode *mode, spi_filter_cs *current_ro, spi_filter_cs *next_ro,
+	enum host_read_only_activation *apply_next_ro)
+{
+	const struct host_processor_filtered *single = (const struct host_processor_filtered*) host;
+	int status = 0;
+
+	if ((host == NULL) || (mode == NULL) || (current_ro == NULL) || (next_ro == NULL) ||
+		(apply_next_ro == NULL)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	*current_ro = host_state_manager_get_read_only_flash (single->host_state);
+	*next_ro = host_state_manager_get_read_only_flash_nv_config (single->host_state);
+	*apply_next_ro = host_state_manager_get_read_only_activation_events (single->host_state);
+
+	if (host_state_manager_is_bypass_mode (single->host_state)) {
+		/* Use the host state rather than the filter state in bypass mode to cover both full and
+		 * filtered bypass modes. */
+		if (*current_ro == SPI_FILTER_CS_0) {
+			*mode = SPI_FILTER_FLASH_BYPASS_CS0;
+		}
+		else {
+			*mode = SPI_FILTER_FLASH_BYPASS_CS1;
+		}
+	}
+	else {
+		/* In this state, the filter should only be in single flash mode to the current RO device,
+		 * but just return the raw configuration. */
+		status = single->filter->get_filter_mode (single->filter, mode);
+	}
+
+	return status;
+}
+
+int host_processor_single_config_read_only_flash (const struct host_processor *host,
+	const spi_filter_cs *current_ro, const spi_filter_cs *next_ro,
+	const enum host_read_only_activation *apply_next_ro)
+{
+	const struct host_processor_filtered *single = (const struct host_processor_filtered*) host;
+	spi_filter_cs ro;
+	int status = 0;
+
+	if (single == NULL) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if ((current_ro != NULL) && (*current_ro > SPI_FILTER_CS_1)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if ((next_ro != NULL) && (*next_ro > SPI_FILTER_CS_1)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if ((apply_next_ro != NULL) && (*apply_next_ro > HOST_READ_ONLY_ACTIVATE_ON_ALL)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	/* Changing any flash configuration is only possible with two physical flash devices. */
+	if (!single->flash->has_two_flash_devices (single->flash)) {
+		return HOST_PROCESSOR_FLASH_CONFIG_UNSUPPORTED;
+	}
+
+	platform_mutex_lock (&single->state->lock);
+
+	ro = host_state_manager_get_read_only_flash (single->host_state);
+
+	if (current_ro != NULL) {
+		if (ro != *current_ro) {
+			host_state_manager_override_read_only_flash (single->host_state, *current_ro);
+
+			status = single->flash->set_flash_for_rot_access (single->flash, single->control);
+
+			if (status == 0) {
+				host_processor_filtered_config_bypass (single);
+			}
+
+			host_processor_filtered_set_host_flash_access (single);
+			if (status != 0) {
+				goto exit;
+			}
+		}
+	}
+
+	if (next_ro != NULL) {
+		if (ro != *next_ro) {
+			if (!host_state_manager_has_read_only_flash_override (single->host_state)) {
+				/* Before changing the non-volatile RO device, override the setting so the current
+				 * RO doesn't change. */
+				host_state_manager_override_read_only_flash (single->host_state, ro);
+			}
+		}
+
+		host_state_manager_save_read_only_flash_nv_config (single->host_state, *next_ro);
+	}
+
+	if (apply_next_ro != NULL) {
+		host_state_manager_save_read_only_activation_events (single->host_state, *apply_next_ro);
+	}
+
+exit:
+	platform_mutex_unlock (&single->state->lock);
+
+	return status;
 }
 
 /**
@@ -100,6 +222,21 @@ int host_processor_single_full_read_write_flash (const struct host_processor_fil
 	struct flash_region rw;
 	struct pfm_read_write_regions writable;
 	int status;
+	spi_filter_flash_mode mode = SPI_FILTER_FLASH_SINGLE_CS0;
+
+	if (host->flash->has_two_flash_devices (host->flash)) {
+		/* If there are two physical flash devices, use the current setting to determine which
+		 * should be accessible. */
+		if (host_state_manager_get_read_only_flash (host->host_state) == SPI_FILTER_CS_1) {
+			mode = SPI_FILTER_FLASH_SINGLE_CS1;
+		}
+	}
+	else {
+		/* If there is only a single flash device, ensure the state represents a valid
+		 * configuration. */
+		host_state_manager_save_read_only_flash_nv_config (host->host_state, SPI_FILTER_CS_0);
+		host_state_manager_clear_read_only_flash_override (host->host_state);
+	}
 
 	rw.start_addr = 0;
 	rw.length = 0xffff0000;
@@ -111,7 +248,47 @@ int host_processor_single_full_read_write_flash (const struct host_processor_fil
 		return status;
 	}
 
-	return host->filter->set_filter_mode (host->filter, SPI_FILTER_FLASH_SINGLE_CS0);
+	return host->filter->set_filter_mode (host->filter, mode);
+}
+
+enum host_processor_filtered_dirty host_processor_single_prepare_verification (
+	const struct host_processor_filtered *host, enum host_read_only_activation ro_ignore,
+	const struct pfm *active_pfm, const struct pfm *pending_pfm)
+{
+	enum host_processor_filtered_dirty dirty_flash = HOST_PROCESSOR_FILTERED_DIRTY_NORMAL;
+	spi_filter_cs ro = host_state_manager_get_read_only_flash (host->host_state);
+	spi_filter_cs nv_ro = host_state_manager_get_read_only_flash_nv_config (host->host_state);
+	enum host_read_only_activation ro_events =
+		host_state_manager_get_read_only_activation_events (host->host_state);
+
+	UNUSED (active_pfm);
+	UNUSED (pending_pfm);
+
+	if ((ro_events != HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY) && (ro_events != ro_ignore)) {
+		/* Clear any override and apply the flash change. */
+		if (ro != nv_ro) {
+			host_state_manager_save_inactive_dirty (host->host_state, true);
+			dirty_flash = HOST_PROCESSOR_FILTERED_DIRTY_FORCE;
+		}
+
+		host_state_manager_clear_read_only_flash_override (host->host_state);
+	}
+
+	return dirty_flash;
+}
+
+void host_processor_single_finalize_verification (const struct host_processor_filtered *host,
+	int result)
+{
+	spi_filter_cs ro = host_state_manager_get_read_only_flash (host->host_state);
+	spi_filter_cs nv_ro = host_state_manager_get_read_only_flash_nv_config (host->host_state);
+
+	UNUSED (result);
+
+	/* Clear any unnecessary RO override. */
+	if (ro == nv_ro) {
+		host_state_manager_clear_read_only_flash_override (host->host_state);
+	}
 }
 
 /**
@@ -162,8 +339,12 @@ int host_processor_single_init_internal (struct host_processor_filtered *host,
 	host->base.needs_config_recovery = host_processor_filtered_needs_config_recovery;
 	host->base.apply_recovery_image = host_processor_filtered_apply_recovery_image;
 	host->base.bypass_mode = host_processor_single_bypass_mode;
+	host->base.get_flash_config = host_processor_single_get_flash_config;
+	host->base.config_read_only_flash = host_processor_single_config_read_only_flash;
 
 	host->internal.enable_bypass_mode = host_processor_single_full_read_write_flash;
+	host->internal.prepare_verification = host_processor_single_prepare_verification;
+	host->internal.finalize_verification = host_processor_single_finalize_verification;
 
 	return 0;
 }

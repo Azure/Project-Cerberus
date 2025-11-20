@@ -18,6 +18,8 @@ int host_processor_single_full_bypass_enable_bypass_mode (
  */
 #define	HOST_PROCESSOR_SINGLE_FULL_BYPASS_INTERNAL_API_INIT	{ \
 		.enable_bypass_mode = host_processor_single_full_bypass_enable_bypass_mode, \
+		.prepare_verification = host_processor_single_prepare_verification, \
+		.finalize_verification = host_processor_single_finalize_verification, \
 	}
 
 

@@ -492,6 +492,7 @@ int host_processor_filtered_restore_read_write_data (const struct host_processor
  * @param is_pending Flag indicating if the validation PFM is pending activation.
  * @param is_bypass Flag indicating if the processor is running in bypass mode or only has a pending
  * PFM available.
+ * @param skip_rw Flag indicating the read/write validation should be skipped.
  * @param skip_ro Flag indicating the read-only validation should be skipped.
  * @param skip_ro_confg Flag indicating the SPI filter configuration for read-only validation should
  * be skipped.
@@ -507,8 +508,8 @@ int host_processor_filtered_restore_read_write_data (const struct host_processor
  */
 static int host_processor_filtered_validate_flash (const struct host_processor_filtered *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, const struct pfm *pfm,
-	const struct pfm *active, bool is_pending, bool is_bypass, bool skip_ro, bool skip_ro_config,
-	bool apply_filter_cfg, bool is_validated, bool single, bool *config_fail)
+	const struct pfm *active, bool is_pending, bool is_bypass, bool skip_rw, bool skip_ro,
+	bool skip_ro_config, bool apply_filter_cfg, bool is_validated, bool single, bool *config_fail)
 {
 	struct host_flash_manager_rw_regions rw_list;
 	int status = HOST_PROCESSOR_RW_SKIPPED;
@@ -517,7 +518,7 @@ static int host_processor_filtered_validate_flash (const struct host_processor_f
 	bool failed_rw = false;
 	bool pfm_dirty = host_state_manager_is_pfm_dirty (host->host_state);
 
-	if (!is_bypass && host_state_manager_is_inactive_dirty (host->host_state)) {
+	if (!skip_rw && !is_bypass && host_state_manager_is_inactive_dirty (host->host_state)) {
 		if (!is_validated) {
 			host_state_manager_set_run_time_validation (host->host_state,
 				HOST_STATE_PREVALIDATED_NONE);
@@ -751,6 +752,7 @@ int host_processor_filtered_power_on_reset (const struct host_processor_filtered
 
 	host_state_manager_set_pfm_dirty (host->host_state, true);
 	host_state_manager_set_bypass_mode (host->host_state, false);
+	host_state_manager_clear_read_only_flash_override (host->host_state);
 
 	status = host_processor_filtered_initial_rot_flash_access (host);
 	if (status != 0) {
@@ -783,7 +785,7 @@ int host_processor_filtered_power_on_reset (const struct host_processor_filtered
 		 * the flash and the PFM don't match. */
 		if (pending_pfm) {
 			status = host_processor_filtered_validate_flash (host, hash, rsa, pending_pfm, NULL,
-				true, false, false, false, true, false, single, NULL);
+				true, false, false, false, false, true, false, single, NULL);
 		}
 		else if (status == 0) {
 			host_state_manager_set_pfm_dirty (host->host_state, false);
@@ -791,7 +793,7 @@ int host_processor_filtered_power_on_reset (const struct host_processor_filtered
 
 		if (!pending_pfm || (status != 0)) {
 			status = host_processor_filtered_validate_flash (host, hash, rsa, active_pfm, NULL,
-				false, false, false, false, true, false, single, NULL);
+				false, false, false, false, false, true, false, single, NULL);
 			if (status != 0) {
 				goto exit;
 			}
@@ -802,7 +804,7 @@ int host_processor_filtered_power_on_reset (const struct host_processor_filtered
 		 * before it becomes the active PFM.  If validation fails with no active PFM available,
 		 * revert to bypass mode.  Without an active PFM, dirty flash is meaningless. */
 		status = host_processor_filtered_validate_flash (host, hash, rsa, pending_pfm, NULL, true,
-			true, false, false, true, false, single, NULL);
+			true, false, false, false, true, false, single, NULL);
 		if (status != 0) {
 			if (!IS_VALIDATION_FAILURE (status)) {
 				goto exit;
@@ -893,6 +895,7 @@ static void host_processor_filtered_clear_host_dirty_state (
  * @param rsa RSA engine for firmware signature verification.
  * @param single True to enable only a single validation against flash per PFM.
  * @param reset Flag indicating if the verification is being run in reset context.
+ * @param ro_ignore A verification context where read-only flash switching is ignored.
  * @param bypass_status Status code to return when there are no PFMs available, which means no
  * validation is executed.
  *
@@ -900,15 +903,19 @@ static void host_processor_filtered_clear_host_dirty_state (
  */
 int host_processor_filtered_update_verification (const struct host_processor_filtered *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single, bool reset,
-	int bypass_status)
+	enum host_read_only_activation ro_ignore, int bypass_status)
 {
 	const struct pfm *active_pfm;
 	const struct pfm *pending_pfm;
 	int status = 0;
+	int empty_status = 0;
 	enum host_state_prevalidated flash_checked = HOST_STATE_PREVALIDATED_NONE;
 	bool prevalidated;
 	bool bypass;
+	enum host_processor_filtered_dirty dirty_handling;
 	bool dirty;
+	bool ignore_dirty = false;
+	bool force = false;
 	bool only_validated = false;
 	bool notified = !reset;
 	bool validate_flash;
@@ -926,17 +933,48 @@ int host_processor_filtered_update_verification (const struct host_processor_fil
 
 	platform_mutex_lock (&host->state->lock);
 
+	/* Always hold the processor in reset while determining what verification actions to take.  If
+	 * nothing is needed to be done, the time this is held will be very short. */
+	if (reset && !host->reset_pulse) {
+		host->control->hold_processor_in_reset (host->control, true);
+	}
+
 	active_pfm = host->pfm->get_active_pfm (host->pfm);
 	pending_pfm = host->pfm->get_pending_pfm (host->pfm);
 	if (!active_pfm && !pending_pfm) {
 		status = bypass_status;
 	}
 
+	if (pending_pfm) {
+		status = host_processor_filtered_check_force_bypass_mode (host, &active_pfm, &pending_pfm,
+			&empty_status);
+		if (status != 0) {
+			goto exit;
+		}
+	}
+
+	dirty_handling = host->internal.prepare_verification (host, ro_ignore, active_pfm, pending_pfm);
+
 	bypass = host_state_manager_is_bypass_mode (host->host_state);
 	dirty = host_state_manager_is_inactive_dirty (host->host_state);
 
+	switch (dirty_handling) {
+		case HOST_PROCESSOR_FILTERED_DIRTY_IGNORE:
+			ignore_dirty = true;
+			dirty = false;
+			break;
+
+		case HOST_PROCESSOR_FILTERED_DIRTY_FORCE:
+			force = true;
+			break;
+
+		default:
+			break;
+	}
+
 	no_pfm = !active_pfm && !pending_pfm;
-	validate_flash = pending_pfm || (no_pfm && !bypass) || (active_pfm && (dirty || bypass));
+	validate_flash = force || pending_pfm || (empty_status != 0) || (no_pfm && !bypass) ||
+		(active_pfm && (dirty || bypass));
 	no_state_change = !dirty && !bypass && !host_state_manager_is_pfm_dirty (host->host_state) &&
 		(active_pfm || (pending_pfm && !active_pfm));
 
@@ -944,10 +982,6 @@ int host_processor_filtered_update_verification (const struct host_processor_fil
 		/* If nothing has changed since the last validation, just exit. */
 		if (!reset_flash && no_state_change) {
 			goto exit;
-		}
-
-		if (reset && !host->reset_pulse) {
-			host->control->hold_processor_in_reset (host->control, true);
 		}
 
 		status = host->flash->set_flash_for_rot_access (host->flash, host->control);
@@ -963,19 +997,10 @@ int host_processor_filtered_update_verification (const struct host_processor_fil
 			goto return_flash;
 		}
 
-		if (pending_pfm) {
-			int empty_status;
-
-			status = host_processor_filtered_check_force_bypass_mode (host, &active_pfm,
-				&pending_pfm, &empty_status);
-			if (status != 0) {
-				goto return_flash;
-			}
-
-			status = empty_status;
-			if ((status != 0) && (!active_pfm || (active_pfm && !dirty))) {
-				goto return_flash;
-			}
+		/* Handle any errors when forcing bypass mode via an empty PFM. */
+		status = empty_status;
+		if ((status != 0) && (!active_pfm || (active_pfm && !dirty))) {
+			goto return_flash;
 		}
 
 		if (!bypass) {
@@ -1008,8 +1033,8 @@ int host_processor_filtered_update_verification (const struct host_processor_fil
 			if (status == 0) {
 				only_validated = prevalidated;
 				status = host_processor_filtered_validate_flash (host, hash, rsa, pending_pfm,
-					bypass ? NULL : active_pfm, true, bypass, only_validated, true, true,
-					prevalidated, single, NULL);
+					bypass ? NULL : active_pfm, true, bypass, ignore_dirty, only_validated, true,
+					true, prevalidated, single, NULL);
 			}
 		}
 		else if (status == 0) {
@@ -1026,7 +1051,7 @@ int host_processor_filtered_update_verification (const struct host_processor_fil
 			}
 
 			status = host_processor_filtered_validate_flash (host, hash, rsa, active_pfm, NULL,
-				false, bypass, !bypass, true, true, prevalidated, single, NULL);
+				false, bypass, ignore_dirty, !bypass, true, true, prevalidated, single, NULL);
 		}
 		else if (!pending_pfm && !active_pfm) {
 			/* When there is no PFM available, ensure the system is running in bypass mode.  PFMs
@@ -1035,7 +1060,7 @@ int host_processor_filtered_update_verification (const struct host_processor_fil
 			host_state_manager_save_inactive_dirty (host->host_state, false);
 			host_state_manager_set_pfm_dirty (host->host_state, false);
 
-			if (!bypass) {
+			if (!bypass || force) {
 				host_processor_filtered_config_bypass (host);
 			}
 		}
@@ -1059,6 +1084,8 @@ return_flash:
 	}
 
 exit:
+	host->internal.finalize_verification (host, status);
+
 	if (!notified) {
 		observable_notify_observers (&host->base.state->observable,
 			offsetof (struct host_processor_observer, on_soft_reset));

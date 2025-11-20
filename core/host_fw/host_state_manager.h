@@ -81,10 +81,10 @@ enum host_read_only_activation {
 };
 
 
-int host_state_manager_save_read_only_activation_events (struct host_state_manager *manager,
+int host_state_manager_save_read_only_activation_events (const struct host_state_manager *manager,
 	enum host_read_only_activation events);
 enum host_read_only_activation host_state_manager_get_read_only_activation_events (
-	struct host_state_manager *manager);
+	const struct host_state_manager *manager);
 
 /**
  * Definitions to indicate which region of flash holds the active recovery image.

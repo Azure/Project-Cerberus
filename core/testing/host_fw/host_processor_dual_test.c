@@ -300,6 +300,188 @@ void host_processor_dual_testing_init_host_state (CuTest *test, struct host_stat
 	CuAssertIntEquals (test, 0, status);
 }
 
+/**
+ * Expectation action for managing host state during a call to validate_read_only_flash.
+ *
+ * @param expected Unused, except the context is expected to contain the action handler context.
+ * @param called Unused.
+ *
+ * @return Always returns 0, if there are no test assertion failures.
+ */
+int64_t host_processor_dual_testing_validate_read_only_flash (const struct mock_call *expected,
+	const struct mock_call *called)
+{
+	struct host_processor_dual_testing_flash_mgr_action *action =
+		(struct host_processor_dual_testing_flash_mgr_action*) expected->context;
+	int status;
+
+	status = host_state_manager_has_read_only_flash_override (&action->host->host_state);
+	CuAssertIntEquals (action->test, action->override, status);
+
+	CuAssertIntEquals (action->test, action->ro,
+		host_state_manager_get_read_only_flash (&action->host->host_state));
+
+	CuAssertIntEquals (action->test, action->nv_ro,
+		host_state_manager_get_read_only_flash_nv_config (&action->host->host_state));
+
+	/* No host state changes. */
+
+	return 0;
+}
+
+/**
+ * Expectation action for managing host state during a call to validate_read_write_flash.
+ *
+ * @param expected Unused, except the context is expected to contain the action handler context.
+ * @param called Unused.
+ *
+ * @return Always returns 0, if there are no test assertion failures.
+ */
+int64_t host_processor_dual_testing_validate_read_write_flash (const struct mock_call *expected,
+	const struct mock_call *called)
+{
+	struct host_processor_dual_testing_flash_mgr_action *action =
+		(struct host_processor_dual_testing_flash_mgr_action*) expected->context;
+	int status;
+
+	status = host_state_manager_has_read_only_flash_override (&action->host->host_state);
+	CuAssertIntEquals (action->test, action->override, status);
+
+	CuAssertIntEquals (action->test, action->ro,
+		host_state_manager_get_read_only_flash (&action->host->host_state));
+
+	CuAssertIntEquals (action->test, action->nv_ro,
+		host_state_manager_get_read_only_flash_nv_config (&action->host->host_state));
+
+	/* No host state changes. */
+
+	return 0;
+}
+
+/**
+ * Expectation action for managing host state during a call to get_flash_read_write_regions.
+ *
+ * @param expected Unused, except the context is expected to contain the action handler context.
+ * @param called Unused.
+ *
+ * @return Always returns 0, if there are no test assertion failures.
+ */
+int64_t host_processor_dual_testing_get_flash_read_write_regions (const struct mock_call *expected,
+	const struct mock_call *called)
+{
+	struct host_processor_dual_testing_flash_mgr_action *action =
+		(struct host_processor_dual_testing_flash_mgr_action*) expected->context;
+	int status;
+
+	status = host_state_manager_has_read_only_flash_override (&action->host->host_state);
+	CuAssertIntEquals (action->test, action->override, status);
+
+	CuAssertIntEquals (action->test, action->ro,
+		host_state_manager_get_read_only_flash (&action->host->host_state));
+
+	CuAssertIntEquals (action->test, action->nv_ro,
+		host_state_manager_get_read_only_flash_nv_config (&action->host->host_state));
+
+	/* No host state changes. */
+
+	return 0;
+}
+
+/**
+ * Expectation action for managing host state during a call to initialize_flash_protection.
+ *
+ * The flash dirty flash is set to false.
+ *
+ * @param expected Unused, except the context is expected to contain the action handler context.
+ * @param called Unused.
+ *
+ * @return Always returns 0, if there are no test assertion failures.
+ */
+int64_t host_processor_dual_testing_initialize_flash_protection (const struct mock_call *expected,
+	const struct mock_call *called)
+{
+	struct host_processor_dual_testing_flash_mgr_action *action =
+		(struct host_processor_dual_testing_flash_mgr_action*) expected->context;
+	int status;
+
+	status = host_state_manager_has_read_only_flash_override (&action->host->host_state);
+	CuAssertIntEquals (action->test, action->override, status);
+
+	CuAssertIntEquals (action->test, action->ro,
+		host_state_manager_get_read_only_flash (&action->host->host_state));
+
+	CuAssertIntEquals (action->test, action->nv_ro,
+		host_state_manager_get_read_only_flash_nv_config (&action->host->host_state));
+
+	/* Dirty state is cleared after initializing protection. */
+	status = host_state_manager_save_inactive_dirty (&action->host->host_state, false);
+	CuAssertIntEquals (action->test, 0, status);
+
+	return 0;
+}
+
+/**
+ * Expectation action for managing host state during a call to swap_flash_devices.
+ *
+ * The flash dirty flash is set to false.
+ *
+ * @param expected Unused, except the context is expected to contain the action handler context.
+ * @param called Unused.
+ *
+ * @return Always returns 0, if there are no test assertion failures.
+ */
+int64_t host_processor_dual_testing_swap_flash_devices (const struct mock_call *expected,
+	const struct mock_call *called)
+{
+	struct host_processor_dual_testing_flash_mgr_action *action =
+		(struct host_processor_dual_testing_flash_mgr_action*) expected->context;
+	int status;
+
+	status = host_state_manager_has_read_only_flash_override (&action->host->host_state);
+	CuAssertIntEquals (action->test, action->override, status);
+
+	CuAssertIntEquals (action->test, action->ro,
+		host_state_manager_get_read_only_flash (&action->host->host_state));
+
+	CuAssertIntEquals (action->test, action->nv_ro,
+		host_state_manager_get_read_only_flash_nv_config (&action->host->host_state));
+
+	/* Dirty state is cleared after swapping device roles. */
+	status = host_state_manager_save_inactive_dirty (&action->host->host_state, false);
+	CuAssertIntEquals (action->test, 0, status);
+
+	/* Change the non-volatile RO flash. */
+	status = host_state_manager_save_read_only_flash_nv_config (&action->host->host_state,
+		(action->ro == SPI_FILTER_CS_0) ? SPI_FILTER_CS_1 : SPI_FILTER_CS_0);
+	CuAssertIntEquals (action->test, 0, status);
+
+	/* Mark pending PFMs as used. */
+	if (action->used_pending) {
+		host_state_manager_set_pfm_dirty (&action->host->host_state, false);
+	}
+
+	return 0;
+}
+
+/**
+ * Expectation action for managing host state during a call to activate_pending_manifest.
+ *
+ * @param expected Unused, except the context is expected to contain the action handler context.
+ * @param called Unused.
+ *
+ * @return Always returns 0, if there are no test assertion failures.
+ */
+int64_t host_processor_dual_testing_activate_pending_manifest (const struct mock_call *expected,
+	const struct mock_call *called)
+{
+	struct host_processor_dual_testing_flash_mgr_action *action =
+		(struct host_processor_dual_testing_flash_mgr_action*) expected->context;
+
+	host_state_manager_set_pfm_dirty (&action->host->host_state, false);
+
+	return 0;
+}
+
 
 /*******************
  * Test cases
@@ -351,6 +533,8 @@ static void host_processor_dual_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, host.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.base.config_read_only_flash);
 
 	status = flash_master_mock_validate_and_release (&flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
@@ -498,6 +682,8 @@ static void host_processor_dual_test_init_pulse_reset (CuTest *test)
 	CuAssertPtrNotNull (test, host.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.base.config_read_only_flash);
 
 	status = flash_master_mock_validate_and_release (&flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
@@ -677,6 +863,8 @@ static void host_processor_dual_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, host.test.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.test.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.test.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.test.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.test.base.config_read_only_flash);
 
 	host_processor_dual_testing_init_dependencies (test, &host);
 
@@ -762,6 +950,8 @@ static void host_processor_dual_test_static_init_pulse_reset (CuTest *test)
 	CuAssertPtrNotNull (test, host.test.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.test.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.test.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.test.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.test.base.config_read_only_flash);
 
 	host_processor_dual_testing_init_dependencies (test, &host);
 

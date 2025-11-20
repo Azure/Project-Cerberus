@@ -19,8 +19,19 @@ int host_processor_dual_flash_rollback (const struct host_processor *host,
 	bool no_reset);
 int host_processor_dual_recover_active_read_write_data (const struct host_processor *host);
 int host_processor_dual_bypass_mode (const struct host_processor *host, bool swap_flash);
+int host_processor_dual_get_flash_config (const struct host_processor *host,
+	spi_filter_flash_mode *mode, spi_filter_cs *current_ro, spi_filter_cs *next_ro,
+	enum host_read_only_activation *apply_next_ro);
+int host_processor_dual_config_read_only_flash (const struct host_processor *host,
+	const spi_filter_cs *current_ro, const spi_filter_cs *next_ro,
+	const enum host_read_only_activation *apply_next_ro);
 
 int host_processor_dual_full_read_write_flash (const struct host_processor_filtered *host);
+void host_processor_dual_finalize_verification (const struct host_processor_filtered *host,
+	int result);
+enum host_processor_filtered_dirty host_processor_dual_prepare_verification (
+	const struct host_processor_filtered *host, enum host_read_only_activation ro_ignore,
+	const struct pfm *active_pfm, const struct pfm *pending_pfm);
 
 
 /**
@@ -36,13 +47,17 @@ int host_processor_dual_full_read_write_flash (const struct host_processor_filte
 		host_processor_filtered_get_next_reset_verification_actions, \
 	.needs_config_recovery = host_processor_filtered_needs_config_recovery, \
 	.apply_recovery_image = host_processor_filtered_apply_recovery_image, \
-	.bypass_mode = host_processor_dual_bypass_mode,
+	.bypass_mode = host_processor_dual_bypass_mode, \
+	.get_flash_config = host_processor_dual_get_flash_config, \
+	.config_read_only_flash = host_processor_dual_config_read_only_flash,
 
 /**
  * Constant initializer for internal APIs.
  */
 #define	HOST_PROCESSOR_DUAL_INTERNAL_API_INIT	{ \
 		.enable_bypass_mode = host_processor_dual_full_read_write_flash, \
+		.prepare_verification = host_processor_dual_prepare_verification, \
+		.finalize_verification = host_processor_dual_finalize_verification, \
 	}
 
 /**

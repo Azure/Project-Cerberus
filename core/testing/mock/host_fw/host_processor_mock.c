@@ -119,10 +119,44 @@ static int host_processor_mock_bypass_mode (const struct host_processor *host, b
 	MOCK_RETURN (&mock->mock, host_processor_mock_bypass_mode, host, MOCK_ARG_CALL (swap_flash));
 }
 
+static int host_processor_mock_get_flash_config (const struct host_processor *host,
+	spi_filter_flash_mode *mode, spi_filter_cs *current_ro, spi_filter_cs *next_ro,
+	enum host_read_only_activation *apply_next_ro)
+{
+	struct host_processor_mock *mock = (struct host_processor_mock*) host;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, host_processor_mock_get_flash_config, host, MOCK_ARG_PTR_CALL (mode),
+		MOCK_ARG_PTR_CALL (current_ro), MOCK_ARG_PTR_CALL (next_ro),
+		MOCK_ARG_PTR_CALL (apply_next_ro));
+}
+
+static int host_processor_mock_config_read_only_flash (const struct host_processor *host,
+	const spi_filter_cs *current_ro, const spi_filter_cs *next_ro,
+	const enum host_read_only_activation *apply_next_ro)
+{
+	struct host_processor_mock *mock = (struct host_processor_mock*) host;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, host_processor_mock_config_read_only_flash, host,
+		MOCK_ARG_PTR_CALL (current_ro), MOCK_ARG_PTR_CALL (next_ro),
+		MOCK_ARG_PTR_CALL (apply_next_ro));
+}
+
 static int host_processor_mock_func_arg_count (void *func)
 {
-	if (func == host_processor_mock_flash_rollback) {
+	if ((func == host_processor_mock_flash_rollback) ||
+		(func == host_processor_mock_get_flash_config)) {
 		return 4;
+	}
+	else if (func == host_processor_mock_config_read_only_flash) {
+		return 3;
 	}
 	else if ((func == host_processor_mock_power_on_reset) ||
 		(func == host_processor_mock_soft_reset) ||
@@ -167,6 +201,12 @@ static const char* host_processor_mock_func_name_map (void *func)
 	else if (func == host_processor_mock_bypass_mode) {
 		return "bypass_mode";
 	}
+	else if (func == host_processor_mock_get_flash_config) {
+		return "get_flash_config";
+	}
+	else if (func == host_processor_mock_config_read_only_flash) {
+		return "config_read_only_flash";
+	}
 	else {
 		return "unknown";
 	}
@@ -209,6 +249,33 @@ static const char* host_processor_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "swap_flash";
+		}
+	}
+	else if (func == host_processor_mock_get_flash_config) {
+		switch (arg) {
+			case 0:
+				return "mode";
+
+			case 1:
+				return "current_ro";
+
+			case 2:
+				return "next_ro";
+
+			case 3:
+				return "apply_next_ro";
+		}
+	}
+	else if (func == host_processor_mock_config_read_only_flash) {
+		switch (arg) {
+			case 0:
+				return "current_ro";
+
+			case 1:
+				return "next_ro";
+
+			case 2:
+				return "apply_next_ro";
 		}
 	}
 
@@ -256,6 +323,8 @@ int host_processor_mock_init (struct host_processor_mock *mock)
 	mock->base.needs_config_recovery = host_processor_mock_needs_config_recovery;
 	mock->base.apply_recovery_image = host_processor_mock_apply_recovery_image;
 	mock->base.bypass_mode = host_processor_mock_bypass_mode;
+	mock->base.get_flash_config = host_processor_mock_get_flash_config;
+	mock->base.config_read_only_flash = host_processor_mock_config_read_only_flash;
 
 	mock->mock.func_arg_count = host_processor_mock_func_arg_count;
 	mock->mock.func_name_map = host_processor_mock_func_name_map;

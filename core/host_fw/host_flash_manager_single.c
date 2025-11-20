@@ -161,6 +161,10 @@ int host_flash_manager_single_swap_flash_devices (const struct host_flash_manage
 
 		host_state_manager_save_inactive_dirty (single->host_state, false);
 
+		/* There is only a single flash, so any other RO flash configuration is not valid. */
+		host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_0);
+		host_state_manager_clear_read_only_flash_override (single->host_state);
+
 		if (used_pending) {
 			used_pending->base.activate_pending_manifest (&used_pending->base);
 		}
@@ -190,6 +194,10 @@ int host_flash_manager_single_initialize_flash_protection (
 	}
 
 	host_state_manager_save_inactive_dirty (single->host_state, false);
+
+	/* There is only a single flash, so any other RO flash configuration is not valid. */
+	host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_0);
+	host_state_manager_clear_read_only_flash_override (single->host_state);
 
 	/* Make sure the SPI filter address mode matches the mode of the physical devices.
 	 *

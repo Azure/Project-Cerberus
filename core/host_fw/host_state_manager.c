@@ -508,7 +508,7 @@ bool host_state_manager_is_inactive_dirty (const struct host_state_manager *mana
  *
  * @return 0 if the setting was saved or an error code.
  */
-int host_state_manager_save_read_only_activation_events (struct host_state_manager *manager,
+int host_state_manager_save_read_only_activation_events (const struct host_state_manager *manager,
 	enum host_read_only_activation events)
 {
 	int status = 0;
@@ -552,7 +552,7 @@ int host_state_manager_save_read_only_activation_events (struct host_state_manag
  * @return The host events that can trigger the read-only flash to switch.
  */
 enum host_read_only_activation host_state_manager_get_read_only_activation_events (
-	struct host_state_manager *manager)
+	const struct host_state_manager *manager)
 {
 	if (manager == NULL) {
 		return HOST_READ_ONLY_ACTIVATE_ON_ALL;

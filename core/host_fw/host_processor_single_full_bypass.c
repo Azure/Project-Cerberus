@@ -11,7 +11,23 @@
 int host_processor_single_full_bypass_enable_bypass_mode (
 	const struct host_processor_filtered *host)
 {
-	return host->filter->set_filter_mode (host->filter, SPI_FILTER_FLASH_BYPASS_CS0);
+	spi_filter_flash_mode mode = SPI_FILTER_FLASH_BYPASS_CS0;
+
+	if (host->flash->has_two_flash_devices (host->flash)) {
+		/* If there are two physical flash devices, use the current setting to determine which
+		 * should be accessible. */
+		if (host_state_manager_get_read_only_flash (host->host_state) == SPI_FILTER_CS_1) {
+			mode = SPI_FILTER_FLASH_BYPASS_CS1;
+		}
+	}
+	else {
+		/* If there is only a single flash device, ensure the state represents a valid
+		 * configuration. */
+		host_state_manager_save_read_only_flash_nv_config (host->host_state, SPI_FILTER_CS_0);
+		host_state_manager_clear_read_only_flash_override (host->host_state);
+	}
+
+	return host->filter->set_filter_mode (host->filter, mode);
 }
 
 /**

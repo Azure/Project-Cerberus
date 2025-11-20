@@ -7,10 +7,12 @@
 #include <stdbool.h>
 #include "host_fw_util.h"
 #include "host_processor_observer.h"
+#include "host_state_manager.h"
 #include "common/observable.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
 #include "flash/flash_util.h"
+#include "spi_filter/spi_filter_interface.h"
 #include "status/rot_status.h"
 
 
@@ -169,6 +171,56 @@ struct host_processor {
 	 */
 	int (*bypass_mode) (const struct host_processor *host, bool swap_flash);
 
+	/**
+	 * Retrieve the current configuration of the flash protection for the host processor.
+	 *
+	 * Since host processor workflows can be very time consuming, this function will return the
+	 * flash protection state without synchronizing with other host processor operations.  If this
+	 * called during host verification flows, which causes the configuration to change, it is
+	 * possible for some the reported configuration to not accurately represent the current state.
+	 *
+	 * @param host The host processor instance to query.
+	 * @param mode Output for the current flash management mode.
+	 * @param current_ro Output for the flash that is currently designated as the read-only flash
+	 * for the host.
+	 * @param next_ro Output for the flash that will be designated as the read-only flash during the
+	 * next host verification event.
+	 * @param apply_next_ro Output for the host events that will trigger the next read-only flash to
+	 * be get used.
+	 *
+	 * @return 0 if the host flash configuration was retrieved successfully or an error code.
+	 */
+	int (*get_flash_config) (const struct host_processor *host, spi_filter_flash_mode *mode,
+		spi_filter_cs *current_ro, spi_filter_cs *next_ro,
+		enum host_read_only_activation *apply_next_ro);
+
+	/**
+	 * Specify which physical flash device should be used as the read-only flash for host processor
+	 * accesses.  Depending on the flash configuration, this request may get rejected if the
+	 * requested configuration violates firmware protection guarantees.
+	 *
+	 * This call will be synchronized with other host processor workflows, so it could take a long
+	 * time before completeing.
+	 *
+	 * @param host The instance for the host processor to configure.
+	 * @param current_ro The flash device that should be used immediately as the read-only flash.
+	 * If the specified flash is already the read-only flash, this option will not have any effect.
+	 * If this is null, the current read-only flash will not be changed.  If the current read-only
+	 * flash is being changed, the host will be disconnected from flash during the transition.
+	 * @param next_ro The flash device that should be used as the new read-only flash while
+	 * processing the next host verification event.  If the specified flash is already the read-only
+	 * flash that will be used next, this option will not have any effect.  If this is null, the
+	 * next read-only flash will not be changed.
+	 * @param apply_next_ro The host events that will trigger the next read-only flash to be used by
+	 * the host.  If this is null, the host events will not be changed.
+	 *
+	 * @return 0 if all the requested configuration was applied successfully or an error code.  A
+	 * failure could result in a partial change to the flash configuration.
+	 */
+	int (*config_read_only_flash) (const struct host_processor *host,
+		const spi_filter_cs *current_ro, const spi_filter_cs *next_ro,
+		const enum host_read_only_activation *apply_next_ro);
+
 	struct host_processor_state *state;	/**< Variable context the host processor handling. */
 };
 
@@ -213,6 +265,9 @@ enum {
 	HOST_PROCESSOR_RW_RECOVERY_FAILED = HOST_PROCESSOR_ERROR (0x11),		/**< Failed to recover active read/write data. */
 	HOST_PROCESSOR_RW_RECOVERY_UNSUPPORTED = HOST_PROCESSOR_ERROR (0x12),	/**< Recovery of active read/write data is not supported. */
 	HOST_PROCESSOR_NO_ACTIVE_RW_DATA = HOST_PROCESSOR_ERROR (0x13),			/**< There is no active image for read/write recovery. */
+	HOST_PROCESSOR_GET_CONFIG_FAILED = HOST_PROCESSOR_ERROR (0x14),			/**< Failed to retrieve the current host flash configuration. */
+	HOST_PROCESSOR_CONFIG_RO_FAILED = HOST_PROCESSOR_ERROR (0x15),			/**< Failed to configure the host read-only flash. */
+	HOST_PROCESSOR_FLASH_CONFIG_UNSUPPORTED = HOST_PROCESSOR_ERROR (0x16),	/**< Changing the flash configuration is not supported.  */
 };
 
 

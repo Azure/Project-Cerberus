@@ -9,6 +9,7 @@
 #include "host_logging.h"
 #include "host_processor_dual.h"
 #include "host_state_manager.h"
+#include "common/unused.h"
 #include "flash/flash_util.h"
 #include "recovery/recovery_image.h"
 
@@ -23,6 +24,7 @@
 static void host_processor_dual_force_bypass_mode (const struct host_processor_filtered *host,
 	bool swap_flash)
 {
+	/* TODO:  This doesn't take any RO override into consideration. */
 	if (swap_flash) {
 		if (host_state_manager_get_read_only_flash (host->host_state) == SPI_FILTER_CS_0) {
 			host_state_manager_save_read_only_flash_nv_config (host->host_state, SPI_FILTER_CS_1);
@@ -56,7 +58,8 @@ int host_processor_dual_soft_reset (const struct host_processor *host,
 		return HOST_PROCESSOR_INVALID_ARGUMENT;
 	}
 
-	return host_processor_filtered_update_verification (dual, hash, rsa, false, true, 0);
+	return host_processor_filtered_update_verification (dual, hash, rsa, false, true,
+		HOST_READ_ONLY_ACTIVATE_ON_POR_AND_AT_RUN_TIME, 0);
 }
 
 int host_processor_dual_run_time_verification (const struct host_processor *host,
@@ -69,7 +72,7 @@ int host_processor_dual_run_time_verification (const struct host_processor *host
 	}
 
 	return host_processor_filtered_update_verification (dual, hash, rsa, false, false,
-		HOST_PROCESSOR_NOTHING_TO_VERIFY);
+		HOST_READ_ONLY_ACTIVATE_ON_POR_AND_RESET, HOST_PROCESSOR_NOTHING_TO_VERIFY);
 }
 
 int host_processor_dual_flash_rollback (const struct host_processor *host,
@@ -242,6 +245,206 @@ int host_processor_dual_bypass_mode (const struct host_processor *host, bool swa
 	return 0;
 }
 
+int host_processor_dual_get_flash_config (const struct host_processor *host,
+	spi_filter_flash_mode *mode, spi_filter_cs *current_ro, spi_filter_cs *next_ro,
+	enum host_read_only_activation *apply_next_ro)
+{
+	const struct host_processor_filtered *dual = (const struct host_processor_filtered*) host;
+	bool bypass;
+	bool dirty;
+	spi_filter_cs nv_ro;
+	int status;
+
+	if ((dual == NULL) || (mode == NULL) || (current_ro == NULL) || (next_ro == NULL) ||
+		(apply_next_ro == NULL)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	bypass = host_state_manager_is_bypass_mode (dual->host_state);
+	dirty = host_state_manager_is_inactive_dirty (dual->host_state);
+	nv_ro = host_state_manager_get_read_only_flash_nv_config (dual->host_state);
+
+	*current_ro = host_state_manager_get_read_only_flash (dual->host_state);
+	*apply_next_ro = host_state_manager_get_read_only_activation_events (dual->host_state);
+
+	if (bypass) {
+		/* Use the host state rather than the filter state in bypass mode to cover both full and
+		 * filtered bypass modes. */
+		if (*current_ro == SPI_FILTER_CS_0) {
+			*mode = SPI_FILTER_FLASH_BYPASS_CS0;
+		}
+		else {
+			*mode = SPI_FILTER_FLASH_BYPASS_CS1;
+		}
+
+		*next_ro = nv_ro;
+	}
+	else {
+		/* In this state, the filter should always be in dual mode, but just report the raw filter
+		 * configuration. */
+		status = dual->filter->get_filter_mode (dual->filter, mode);
+		if (status != 0) {
+			return status;
+		}
+
+		if (dirty) {
+			/* When the flash in dirty, the next host event will swap flash devices after running
+			 * verification. */
+			*next_ro = (nv_ro == SPI_FILTER_CS_0) ? SPI_FILTER_CS_1 : SPI_FILTER_CS_0;
+		}
+		else {
+			*next_ro = nv_ro;
+		}
+	}
+
+	return 0;
+}
+
+int host_processor_dual_config_read_only_flash (const struct host_processor *host,
+	const spi_filter_cs *current_ro, const spi_filter_cs *next_ro,
+	const enum host_read_only_activation *apply_next_ro)
+{
+	const struct host_processor_filtered *dual = (const struct host_processor_filtered*) host;
+	bool bypass;
+	spi_filter_cs ro;
+	spi_filter_cs nv_ro;
+	int status = 0;
+
+	if (dual == NULL) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if ((current_ro != NULL) && (*current_ro > SPI_FILTER_CS_1)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if ((next_ro != NULL) && (*next_ro > SPI_FILTER_CS_1)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	if ((apply_next_ro != NULL) && (*apply_next_ro > HOST_READ_ONLY_ACTIVATE_ON_ALL)) {
+		return HOST_PROCESSOR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&dual->state->lock);
+
+	bypass = host_state_manager_is_bypass_mode (dual->host_state);
+	ro = host_state_manager_get_read_only_flash (dual->host_state);
+	nv_ro = host_state_manager_get_read_only_flash_nv_config (dual->host_state);
+
+	if (current_ro != NULL) {
+		if (!bypass) {
+			/* In active mode, the current RO flash device cannot be changed by this call.  The
+			 * RO flash device needs to be swapped via some kind of verification. */
+			status = HOST_PROCESSOR_FLASH_CONFIG_UNSUPPORTED;
+			goto exit;
+		}
+
+		if (ro != *current_ro) {
+			host_state_manager_override_read_only_flash (dual->host_state, *current_ro);
+
+			status = dual->flash->set_flash_for_rot_access (dual->flash, dual->control);
+
+			if (status == 0) {
+				host_processor_filtered_config_bypass (dual);
+			}
+
+			host_processor_filtered_set_host_flash_access (dual);
+			if (status != 0) {
+				goto exit;
+			}
+		}
+	}
+
+	if (next_ro != NULL) {
+		if (bypass) {
+			if (ro != *next_ro) {
+				if (!host_state_manager_has_read_only_flash_override (dual->host_state)) {
+					/* Before changing the non-volatile RO device, override the setting so the
+					 * current RO doesn't change. */
+					host_state_manager_override_read_only_flash (dual->host_state, ro);
+				}
+			}
+
+			host_state_manager_save_read_only_flash_nv_config (dual->host_state, *next_ro);
+		}
+		else {
+			if (nv_ro != *next_ro) {
+				host_state_manager_save_inactive_dirty (dual->host_state, true);
+			}
+		}
+	}
+
+	if (apply_next_ro != NULL) {
+		host_state_manager_save_read_only_activation_events (dual->host_state, *apply_next_ro);
+	}
+
+exit:
+	platform_mutex_unlock (&dual->state->lock);
+
+	return status;
+}
+
+enum host_processor_filtered_dirty host_processor_dual_prepare_verification (
+	const struct host_processor_filtered *host, enum host_read_only_activation ro_ignore,
+	const struct pfm *active_pfm, const struct pfm *pending_pfm)
+{
+	enum host_processor_filtered_dirty dirty_flash = HOST_PROCESSOR_FILTERED_DIRTY_NORMAL;
+	bool bypass = host_state_manager_is_bypass_mode (host->host_state);
+	spi_filter_cs ro = host_state_manager_get_read_only_flash (host->host_state);
+	spi_filter_cs nv_ro = host_state_manager_get_read_only_flash_nv_config (host->host_state);
+	enum host_read_only_activation ro_events =
+		host_state_manager_get_read_only_activation_events (host->host_state);
+
+	if ((ro_events == HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY) || (ro_events == ro_ignore)) {
+		/* Ignore dirty flash if flash switching is not enabled during this verification. */
+		dirty_flash = HOST_PROCESSOR_FILTERED_DIRTY_IGNORE;
+	}
+	else {
+		/* Clear any override and apply the flash change. */
+		if (ro != nv_ro) {
+			if (!bypass && (active_pfm || pending_pfm)) {
+				/* An override in active mode is not a valid configuration.  Update the non-volatile
+				 * state to match override and set a dirty flash. */
+				host_state_manager_save_read_only_flash_nv_config (host->host_state, ro);
+			}
+
+			host_state_manager_save_inactive_dirty (host->host_state, true);
+			dirty_flash = HOST_PROCESSOR_FILTERED_DIRTY_FORCE;
+		}
+
+		host_state_manager_clear_read_only_flash_override (host->host_state);
+	}
+
+	return dirty_flash;
+}
+
+void host_processor_dual_finalize_verification (const struct host_processor_filtered *host,
+	int result)
+{
+	spi_filter_cs ro = host_state_manager_get_read_only_flash (host->host_state);
+	spi_filter_cs nv_ro = host_state_manager_get_read_only_flash_nv_config (host->host_state);
+
+	UNUSED (result);
+
+	if (host_state_manager_is_bypass_mode (host->host_state)) {
+		/* Clear any unnecessary RO override. */
+		if (ro == nv_ro) {
+			host_state_manager_clear_read_only_flash_override (host->host_state);
+		}
+	}
+	else if (host_state_manager_has_read_only_flash_override (host->host_state)) {
+		/* When not in bypass mode, flash overrides are not valid.  Update the configuration to be
+		 * valid. */
+		host_state_manager_save_read_only_flash_nv_config (host->host_state, ro);
+		host_state_manager_clear_read_only_flash_override (host->host_state);
+
+		if (ro != nv_ro) {
+			host_state_manager_save_inactive_dirty (host->host_state, true);
+		}
+	}
+}
+
 /**
  * Configure the SPI filter to allow full read/write access to the host flash.  This is effectively
  * a bypass mode, but while blocking undesirable flash commands.
@@ -317,8 +520,12 @@ int host_processor_dual_init_internal (struct host_processor_filtered *host,
 	host->base.needs_config_recovery = host_processor_filtered_needs_config_recovery;
 	host->base.apply_recovery_image = host_processor_filtered_apply_recovery_image;
 	host->base.bypass_mode = host_processor_dual_bypass_mode;
+	host->base.get_flash_config = host_processor_dual_get_flash_config;
+	host->base.config_read_only_flash = host_processor_dual_config_read_only_flash;
 
 	host->internal.enable_bypass_mode = host_processor_dual_full_read_write_flash;
+	host->internal.prepare_verification = host_processor_dual_prepare_verification;
+	host->internal.finalize_verification = host_processor_dual_finalize_verification;
 
 	return 0;
 }

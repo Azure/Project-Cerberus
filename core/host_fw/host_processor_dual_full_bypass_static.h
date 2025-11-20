@@ -17,6 +17,8 @@ int host_processor_dual_full_bypass_enable_bypass_mode (const struct host_proces
  */
 #define	HOST_PROCESSOR_DUAL_FULL_BYPASS_INTERNAL_API_INIT	{ \
 		.enable_bypass_mode = host_processor_dual_full_bypass_enable_bypass_mode, \
+		.prepare_verification = host_processor_dual_prepare_verification, \
+		.finalize_verification = host_processor_dual_finalize_verification, \
 	}
 
 

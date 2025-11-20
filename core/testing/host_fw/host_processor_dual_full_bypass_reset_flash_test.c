@@ -67,6 +67,8 @@ static void host_processor_dual_full_bypass_test_init_reset_flash (CuTest *test)
 	CuAssertPtrNotNull (test, host.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.base.config_read_only_flash);
 
 	status = flash_master_mock_validate_and_release (&flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
@@ -214,6 +216,8 @@ static void host_processor_dual_full_bypass_test_init_reset_flash_pulse_reset (C
 	CuAssertPtrNotNull (test, host.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.base.config_read_only_flash);
 
 	status = flash_master_mock_validate_and_release (&flash_mock_state);
 	CuAssertIntEquals (test, 0, status);
@@ -395,6 +399,8 @@ static void host_processor_dual_full_bypass_test_static_init_reset_flash (CuTest
 	CuAssertPtrNotNull (test, host.test.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.test.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.test.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.test.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.test.base.config_read_only_flash);
 
 	host_processor_dual_full_bypass_testing_init_dependencies (test, &host);
 
@@ -484,6 +490,8 @@ static void host_processor_dual_full_bypass_test_static_init_reset_flash_pulse_r
 	CuAssertPtrNotNull (test, host.test.base.needs_config_recovery);
 	CuAssertPtrNotNull (test, host.test.base.apply_recovery_image);
 	CuAssertPtrNotNull (test, host.test.base.bypass_mode);
+	CuAssertPtrNotNull (test, host.test.base.get_flash_config);
+	CuAssertPtrNotNull (test, host.test.base.config_read_only_flash);
 
 	host_processor_dual_full_bypass_testing_init_dependencies (test, &host);
 
@@ -646,6 +654,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_no_pfm_reset_flash (
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
@@ -718,6 +729,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_no_pfm_bypass_reset_
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
@@ -793,6 +807,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_static_init_reset_fl
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
@@ -867,6 +884,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_static_init_reset_fl
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
@@ -963,6 +983,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_no_pfm_reset_not_sup
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
@@ -1044,6 +1067,9 @@ static void host_processor_dual_full_bypass_test_soft_reset_no_pfm_reset_error_r
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
@@ -1130,12 +1156,14 @@ host_processor_dual_full_bypass_test_soft_reset_no_pfm_reset_error_succeed_on_re
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
 static void host_processor_dual_full_bypass_test_soft_reset_rot_access_error_pulse_reset_reset_flash
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
 	int status;
@@ -1286,13 +1314,15 @@ static void host_processor_dual_full_bypass_test_soft_reset_no_pfm_filter_error_
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
 static void
 host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_empty_manifest_reset_flash
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
 	struct debug_log_entry_info entry = {
@@ -1325,15 +1355,6 @@ host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
-
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.reset_flash,
-		&host.flash_mgr, 0);
-	status |= mock_expect (&host.logger.mock, host.logger.base.create_entry, &host.logger, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
 	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 1);
 	status |= mock_expect (&host.logger.mock, host.logger.base.create_entry, &host.logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_clr_pfms, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
@@ -1343,6 +1364,15 @@ host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_
 		MOCK_ARG_PTR (&host.pfm));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.reset_flash,
+		&host.flash_mgr, 0);
+	status |= mock_expect (&host.logger.mock, host.logger.base.create_entry, &host.logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -1382,13 +1412,15 @@ host_processor_dual_full_bypass_test_soft_reset_pending_pfm_no_active_not_dirty_
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
 
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
 static void
 host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirty_empty_manifest_reset_flash
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct host_processor_dual_full_bypass_testing host;
 	struct debug_log_entry_info entry = {
@@ -1421,15 +1453,6 @@ host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirt
 	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
 		&host.control, 0, MOCK_ARG (true));
 
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
-
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.reset_flash,
-		&host.flash_mgr, 0);
-	status |= mock_expect (&host.logger.mock, host.logger.base.create_entry, &host.logger, 0,
-		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
-		MOCK_ARG (sizeof (entry)));
-
 	status |= mock_expect (&host.pfm_next.mock, host.pfm_next.base.base.is_empty, &host.pfm_next,
 		1);
 	status |= mock_expect (&host.logger.mock, host.logger.base.create_entry, &host.logger, 0,
@@ -1442,6 +1465,15 @@ host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirt
 		MOCK_ARG_PTR (&host.pfm_next));
 	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.base.clear_all_manifests,
 		&host.pfm_mgr, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.reset_flash,
+		&host.flash_mgr, 0);
+	status |= mock_expect (&host.logger.mock, host.logger.base.create_entry, &host.logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
 
 	status |= mock_expect (&host.filter.mock, host.filter.base.clear_flash_dirty_state,
 		&host.filter, 0);
@@ -1480,6 +1512,9 @@ host_processor_dual_full_bypass_test_soft_reset_pending_pfm_with_active_not_dirt
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
@@ -1542,6 +1577,9 @@ static void host_processor_dual_full_bypass_test_apply_recovery_image_static_ini
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
 	CuAssertIntEquals (test, false, status);
 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
@@ -1607,6 +1645,9 @@ host_processor_dual_full_bypass_test_apply_recovery_image_static_init_reset_flas
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, false, status);
 
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
 
@@ -1629,6 +1670,9 @@ host_processor_dual_full_bypass_test_apply_recovery_image_static_init_reset_flas
 	CuAssertIntEquals (test, HOST_PROCESSOR_RECOVERY_UNSUPPORTED, status);
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
 	CuAssertIntEquals (test, false, status);
 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
@@ -1654,6 +1698,128 @@ host_processor_dual_full_bypass_test_apply_recovery_image_static_init_reset_flas
 
 	status = host_state_manager_is_bypass_mode (&host.host_state);
 	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_dual_full_bypass_test_config_read_only_flash_static_init_reset_flash (
+	CuTest *test)
+{
+	struct host_processor_dual_full_bypass_testing host = {
+		.test = host_processor_dual_full_bypass_static_init_reset_flash (&host.state,
+			&host.control.base, &host.flash_mgr.base, &host.host_state, &host.filter.base,
+			&host.pfm_mgr.base, &host.recovery_manager.base)
+	};
+	int status;
+	spi_filter_cs current_ro = SPI_FILTER_CS_1;
+	spi_filter_cs next_ro = SPI_FILTER_CS_1;
+	enum host_read_only_activation apply_next_cs = HOST_READ_ONLY_ACTIVATE_ON_POR_AND_AT_RUN_TIME;
+
+	TEST_START;
+
+	host_processor_dual_full_bypass_testing_init_static (test, &host);
+
+	host_state_manager_set_bypass_mode (&host.host_state, true);
+
+	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_clear_read_only_flash_override (&host.host_state);
+
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS1));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro,
+		&apply_next_cs);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_bypass_mode (&host.host_state));
+	CuAssertIntEquals (test, SPI_FILTER_CS_1,
+		host_state_manager_get_read_only_flash (&host.host_state));
+	CuAssertIntEquals (test, SPI_FILTER_CS_1,
+		host_state_manager_get_read_only_flash_nv_config (&host.host_state));
+	CuAssertIntEquals (test, true,
+		host_state_manager_has_read_only_flash_override (&host.host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host.host_state));
+	CuAssertIntEquals (test, HOST_READ_ONLY_ACTIVATE_ON_POR_AND_AT_RUN_TIME,
+		host_state_manager_get_read_only_activation_events (&host.host_state));
+
+	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
+}
+
+static void
+host_processor_dual_full_bypass_test_config_read_only_flash_static_init_reset_flash_pulse_reset (
+	CuTest *test)
+{
+	struct host_processor_dual_full_bypass_testing host = {
+		.test = host_processor_dual_full_bypass_static_init_reset_flash_pulse_reset (&host.state,
+			&host.control.base, &host.flash_mgr.base, &host.host_state, &host.filter.base,
+			&host.pfm_mgr.base, &host.recovery_manager.base, 100)
+	};
+	int status;
+	spi_filter_cs current_ro = SPI_FILTER_CS_0;
+	spi_filter_cs next_ro = SPI_FILTER_CS_1;
+	enum host_read_only_activation apply_next_cs = HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY;
+
+	TEST_START;
+
+	host_processor_dual_full_bypass_testing_init_static (test, &host);
+
+	host_state_manager_set_bypass_mode (&host.host_state, true);
+
+	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	CuAssertIntEquals (test, 0, status);
+
+	host_state_manager_clear_read_only_flash_override (&host.host_state);
+
+	status = mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_mode, &host.filter, 0,
+		MOCK_ARG (SPI_FILTER_FLASH_BYPASS_CS0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_bypass_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.config_read_only_flash (&host.test.base, &current_ro, &next_ro,
+		&apply_next_cs);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_bypass_mode (&host.host_state));
+	CuAssertIntEquals (test, SPI_FILTER_CS_0,
+		host_state_manager_get_read_only_flash (&host.host_state));
+	CuAssertIntEquals (test, SPI_FILTER_CS_1,
+		host_state_manager_get_read_only_flash_nv_config (&host.host_state));
+	CuAssertIntEquals (test, true,
+		host_state_manager_has_read_only_flash_override (&host.host_state));
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host.host_state));
+	CuAssertIntEquals (test, HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY,
+		host_state_manager_get_read_only_activation_events (&host.host_state));
 
 	host_processor_dual_full_bypass_testing_validate_and_release (test, &host);
 }
@@ -1688,6 +1854,8 @@ TEST (host_processor_dual_full_bypass_test_apply_recovery_image_static_init_rese
 TEST (host_processor_dual_full_bypass_test_apply_recovery_image_static_init_reset_flash_pulse_reset);
 TEST (host_processor_dual_full_bypass_test_apply_recovery_image_static_init_reset_flash_no_recovery_manager);
 TEST (host_processor_dual_full_bypass_test_apply_recovery_image_static_init_reset_flash_no_recovery_manager_pulse_reset);
+TEST (host_processor_dual_full_bypass_test_config_read_only_flash_static_init_reset_flash);
+TEST (host_processor_dual_full_bypass_test_config_read_only_flash_static_init_reset_flash_pulse_reset);
 
 
 TEST_SUITE_END;

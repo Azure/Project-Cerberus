@@ -15,6 +15,15 @@
 
 
 /**
+ * Types of special handling for the flash dirty state during verification.
+ */
+enum host_processor_filtered_dirty {
+	HOST_PROCESSOR_FILTERED_DIRTY_NORMAL,	/**< No special handling.  Handle dirty state normally. */
+	HOST_PROCESSOR_FILTERED_DIRTY_IGNORE,	/**< Ignore the flash dirty state. */
+	HOST_PROCESSOR_FILTERED_DIRTY_FORCE,	/**< Force the flash to be treated as dirty. */
+};
+
+/**
  * Variable context for host connected to a SPI filter.
  */
 struct host_processor_filtered_state {
@@ -54,6 +63,30 @@ struct host_processor_filtered {
 		 * @return 0 if bypass mode was configured successfully or an error code.
 		 */
 		int (*enable_bypass_mode) (const struct host_processor_filtered *host);
+
+		/**
+		 * Check the host state and prepare for host flash verification.  Any read-only flash
+		 * override handling prior to verification should be part of this handler.
+		 *
+		 * @param host The instance for the processor whose flash is being verified.
+		 * @param ro_ignore A verification context where read-only flash switching is ignored.
+		 * @param active_pfm The current active PFM for the host.
+		 * @param pending_pfm The current pending PFM for the host.
+		 *
+		 * @return The required handling for dirty flash during verification.
+		 */
+		enum host_processor_filtered_dirty (*prepare_verification) (
+			const struct host_processor_filtered *host, enum host_read_only_activation ro_ignore,
+			const struct pfm *active_pfm, const struct pfm *pending_pfm);
+
+		/**
+		 * Execute any final steps in host flash verification before the host is released from
+		 * reset.
+		 *
+		 * @param host The instance for the processor whose flash is being verified.
+		 * @param result The result of flash verification.
+		 */
+		void (*finalize_verification) (const struct host_processor_filtered *host, int result);
 	} internal;
 };
 
@@ -79,7 +112,7 @@ int host_processor_filtered_power_on_reset (const struct host_processor_filtered
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single);
 int host_processor_filtered_update_verification (const struct host_processor_filtered *host,
 	const struct hash_engine *hash, const struct rsa_engine *rsa, bool single, bool reset,
-	int bypass_status);
+	enum host_read_only_activation ro_ignore, int bypass_status);
 
 int host_processor_filtered_get_next_reset_verification_actions (const struct host_processor *host);
 int host_processor_filtered_needs_config_recovery (const struct host_processor *host);
