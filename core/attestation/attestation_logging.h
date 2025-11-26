@@ -57,6 +57,8 @@ enum {
 	ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED,					/**< Target device measurement failed attestation rule check. */
 	ATTESTATION_LOGGING_MEASUREMENT_BITMASK_TOO_SMALL,				/**< CFM defined bitmask is too small for the runtime measurement. */
 	ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET,			/**< CFM has multiple allowable data entries for a single version set where only one is permitted. */
+	ATTESTATION_LOGGING_DEVICE_DISCOVERY_COMPLETE,					/**< Device discovery completed successfully. */
+	ATTESTATION_LOGGING_EID_DISCOVERED,								/**< Target device EID is discovered. */
 };
 
 
