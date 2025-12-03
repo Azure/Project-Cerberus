@@ -493,7 +493,10 @@ def generate_hash (element, hash_engine):
 
     ctypes.memmove (ctypes.addressof (element_buf), ctypes.addressof (element), element_size)
 
-    hash_object = hash_engine.new (element_buf)
+    # Convert ctypes array to bytes to avoid TypeError with PyCrypto
+    element_bytes = bytes(element_buf)
+
+    hash_object = hash_engine.new (element_bytes)
     hash_buf = (ctypes.c_ubyte * hash_object.digest_size).from_buffer_copy (hash_object.digest ())
 
     return hash_buf
