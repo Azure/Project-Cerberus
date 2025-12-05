@@ -59,6 +59,7 @@ enum {
 	ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET,			/**< CFM has multiple allowable data entries for a single version set where only one is permitted. */
 	ATTESTATION_LOGGING_DEVICE_DISCOVERY_COMPLETE,					/**< Device discovery completed successfully. */
 	ATTESTATION_LOGGING_EID_DISCOVERED,								/**< Target device EID is discovered. */
+	ATTESTATION_LOGGING_PROCESS_PENDING_ACTION_ERROR,				/**< Failed to process pending action in device manager. */
 };
 
 

@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "attestation/attestation_requester.h"
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
@@ -385,6 +386,24 @@ struct cerberus_protocol_get_configuration_ids_response {
  */
 #define cerberus_protocol_configuration_ids_get_platform_ids(resp)  \
 	(((uint8_t*) resp) + sizeof (*resp) + (sizeof (uint32_t) * (resp->pfm_count + resp->cfm_count)))
+
+
+
+/**
+ * Cerberus protocol force attestation request format
+ */
+struct cerberus_protocol_force_attestation {
+	struct cerberus_protocol_header header;				/**< Message header */
+	struct device_manager_force_attestation_data data;	/**< Force attestation mode and optional targeting */
+};
+
+/**
+ * Cerberus protocol force attestation response format
+ */
+struct cerberus_protocol_force_attestation_response {
+	struct cerberus_protocol_header header;	/**< Message header */
+};
+
 #pragma pack(pop)
 
 
@@ -469,6 +488,9 @@ int cerberus_protocol_process_challenge_response (struct cmd_interface_msg *resp
 
 int cerberus_protocol_process_device_capabilities_response (struct device_manager *device_mgr,
 	struct cmd_interface_msg *response);
+
+int cerberus_protocol_force_attestation (struct attestation_requester *attestation,
+	struct cmd_interface_msg *request);
 
 /* Private functions for internal use */
 int cerberus_protocol_get_manifest_id_version (const struct manifest *manifest,

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "attestation/attestation_requester.h"
 #include "attestation/pcr_store.h"
 #include "cmd_interface/attestation_cmd_interface.h"
 #include "cmd_interface/cerberus_protocol.h"
@@ -20,6 +21,7 @@
 #include "logging/debug_log.h"
 #include "logging/logging_flash.h"
 #include "mctp/mctp_base_protocol.h"
+#include "mctp/mctp_interface.h"
 #include "recovery/recovery_image_header.h"
 #include "testing/asn1/x509_testing.h"
 #include "testing/cmd_interface/cerberus_protocol_debug_commands_testing.h"
@@ -35,8 +37,10 @@
 #include "testing/mock/cmd_interface/cerberus_protocol_observer_mock.h"
 #include "testing/mock/cmd_interface/cmd_authorization_mock.h"
 #include "testing/mock/cmd_interface/cmd_background_mock.h"
+#include "testing/mock/cmd_interface/cmd_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_device_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
+#include "testing/mock/cmd_interface/msg_transport_mock.h"
 #include "testing/mock/cmd_interface/session_manager_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
@@ -104,45 +108,47 @@ const char *fw_version_list[FW_VERSION_COUNT];
  * Dependencies for testing the system command interface.
  */
 struct cmd_interface_system_testing {
-	struct cmd_interface_system handler;					/**< Command handler instance. */
-	struct firmware_update_control_mock update;				/**< The firmware update mock. */
-	struct manifest_cmd_interface_mock pfm_0;				/**< The PFM update mock for port 0. */
-	struct manifest_cmd_interface_mock pfm_1;				/**< The PFM update mock for port 1. */
-	struct manifest_cmd_interface_mock cfm;					/**< The CFM update mock. */
-	struct manifest_cmd_interface_mock pcd;					/**< The PCD update mock. */
-	struct pfm_manager_mock pfm_manager_0;					/**< The PFM manager mock for port 0. */
-	struct pfm_manager_mock pfm_manager_1;					/**< The PFM manager mock for port 1. */
-	struct cfm_manager_mock cfm_manager;					/**< The CFM manager mock. */
-	struct pcd_manager_mock pcd_manager;					/**< The PCD manager mock. */
-	struct logging_mock debug;								/**< The debug logger mock. */
-	struct attestation_responder_mock attestation;			/**< The attestation responder mock. */
-	struct recovery_image_cmd_interface_mock recovery_0;	/**< The recovery image update mock for port 0. */
-	struct recovery_image_cmd_interface_mock recovery_1;	/**< The recovery image update mock for port 1. */
-	struct recovery_image_manager_mock recovery_manager_0;	/**< The recovery image manager mock for port 0. */
-	struct recovery_image_manager_mock recovery_manager_1;	/**< The recovery image manager mock for port 1. */
-	struct hash_engine_mock hash;							/**< Hashing engine mock. */
-	struct host_cmd_interface_mock host_0;					/**< The host interface mock for port 0. */
-	struct host_cmd_interface_mock host_1;					/**< The host interface mock for port 1. */
-	struct keystore_mock keystore;							/**< RIoT keystore. */
-	struct x509_engine_mock x509_mock;						/**< The X.509 engine mock for the RIoT keys. */
-	X509_TESTING_ENGINE (x509);								/**< X.509 engine for the RIoT keys. */
-	struct flash_mock flash;								/**< The flash mock to set expectations on. */
-	struct host_state_manager_state state_context;			/**< Variable context for the state manager. */
-	struct host_state_manager state;						/**< The state manager. */
-	struct flash_mock flash_state;							/**< The mock for the flash state storage. */
-	struct cmd_background_mock background;					/**< The background command interface mock. */
-	struct pcr_store store;									/**< PCR storage. */
-	struct device_manager device_manager;					/**< Device manager. */
-	struct cmd_authorization_mock auth;						/**< The authorization handler. */
-	struct authorized_execution_mock execution;				/**< The authorized execution context. */
-	struct riot_key_manager_state riot_state;				/**< Context for the RIoT key manager. */
-	struct riot_key_manager riot;							/**< RIoT keys manager. */
-	struct host_control_mock host_ctrl_0;					/**< The host control mock interface for port 0. */
-	struct host_control_mock host_ctrl_1;					/**< The host control mock interface for port 1. */
-	struct cmd_interface_fw_version fw_version;				/**< The firmware version data. */
-	struct cmd_device_mock cmd_device;						/**< The device command handler mock instance. */
-	struct session_manager_mock session;					/**< Session manager mock. */
-	struct cerberus_protocol_observer_mock observer;		/**< Cerberus protocol observer. */
+	struct cmd_interface_system handler;						/**< Command handler instance. */
+	struct firmware_update_control_mock update;					/**< The firmware update mock. */
+	struct manifest_cmd_interface_mock pfm_0;					/**< The PFM update mock for port 0. */
+	struct manifest_cmd_interface_mock pfm_1;					/**< The PFM update mock for port 1. */
+	struct manifest_cmd_interface_mock cfm;						/**< The CFM update mock. */
+	struct manifest_cmd_interface_mock pcd;						/**< The PCD update mock. */
+	struct pfm_manager_mock pfm_manager_0;						/**< The PFM manager mock for port 0. */
+	struct pfm_manager_mock pfm_manager_1;						/**< The PFM manager mock for port 1. */
+	struct cfm_manager_mock cfm_manager;						/**< The CFM manager mock. */
+	struct pcd_manager_mock pcd_manager;						/**< The PCD manager mock. */
+	struct logging_mock debug;									/**< The debug logger mock. */
+	struct attestation_responder_mock attestation;				/**< The attestation responder mock. */
+	struct recovery_image_cmd_interface_mock recovery_0;		/**< The recovery image update mock for port 0. */
+	struct recovery_image_cmd_interface_mock recovery_1;		/**< The recovery image update mock for port 1. */
+	struct recovery_image_manager_mock recovery_manager_0;		/**< The recovery image manager mock for port 0. */
+	struct recovery_image_manager_mock recovery_manager_1;		/**< The recovery image manager mock for port 1. */
+	struct hash_engine_mock hash;								/**< Hashing engine mock. */
+	struct host_cmd_interface_mock host_0;						/**< The host interface mock for port 0. */
+	struct host_cmd_interface_mock host_1;						/**< The host interface mock for port 1. */
+	struct keystore_mock keystore;								/**< RIoT keystore. */
+	struct x509_engine_mock x509_mock;							/**< The X.509 engine mock for the RIoT keys. */
+	X509_TESTING_ENGINE (x509);									/**< X.509 engine for the RIoT keys. */
+	struct flash_mock flash;									/**< The flash mock to set expectations on. */
+	struct host_state_manager_state state_context;				/**< Variable context for the state manager. */
+	struct host_state_manager state;							/**< The state manager. */
+	struct flash_mock flash_state;								/**< The mock for the flash state storage. */
+	struct cmd_background_mock background;						/**< The background command interface mock. */
+	struct pcr_store store;										/**< PCR storage. */
+	struct device_manager device_manager;						/**< Device manager. */
+	struct cmd_authorization_mock auth;							/**< The authorization handler. */
+	struct authorized_execution_mock execution;					/**< The authorized execution context. */
+	struct riot_key_manager_state riot_state;					/**< Context for the RIoT key manager. */
+	struct riot_key_manager riot;								/**< RIoT keys manager. */
+	struct host_control_mock host_ctrl_0;						/**< The host control mock interface for port 0. */
+	struct host_control_mock host_ctrl_1;						/**< The host control mock interface for port 1. */
+	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
+	struct cmd_device_mock cmd_device;							/**< The device command handler mock instance. */
+	struct session_manager_mock session;						/**< Session manager mock. */
+	struct cerberus_protocol_observer_mock observer;			/**< Cerberus protocol observer. */
+	struct attestation_requester attestation_req;				/**< Minimal attestation requester instance. */
+	struct attestation_requester_state attestation_req_state;	/**< Attestation requester state. */
 };
 
 
@@ -237,6 +243,16 @@ static void setup_cmd_interface_system_mock_test_init (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_responder_mock_init (&cmd->attestation);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Initialize minimal attestation_requester with device_manager and state for force attestation testing */
+	memset (&cmd->attestation_req, 0, sizeof (struct attestation_requester));
+	memset (&cmd->attestation_req_state, 0, sizeof (struct attestation_requester_state));
+	cmd->attestation_req.device_mgr = &cmd->device_manager;
+	cmd->attestation_req.state = &cmd->attestation_req_state;
+
+	/* Initialize the semaphore for attestation signaling */
+	status = platform_semaphore_init (&cmd->attestation_req_state.next_action);
 	CuAssertIntEquals (test, 0, status);
 
 	status = hash_mock_init (&cmd->hash);
@@ -419,10 +435,10 @@ static void setup_cmd_interface_system_mock_test (CuTest *test,
 
 	status = cmd_interface_system_init (&cmd->handler, &cmd->update.base, pfm_0_ptr, pfm_1_ptr,
 		cfm_ptr, pcd_ptr, pfm_manager_0_ptr, pfm_manager_1_ptr, cfm_manager_ptr, pcd_manager_ptr,
-		&cmd->attestation.base, &cmd->device_manager, &cmd->store, &cmd->hash.base,
-		&cmd->background.base, host_0_ptr, host_1_ptr, &cmd->fw_version, &cmd->riot,
-		&cmd->auth.base, host_ctrl_0_ptr, host_ctrl_1_ptr, recovery_0_ptr, recovery_1_ptr,
-		recovery_manager_0_ptr, recovery_manager_1_ptr, &cmd->cmd_device.base,
+		&cmd->attestation.base, &cmd->attestation_req, &cmd->device_manager, &cmd->store,
+		&cmd->hash.base, &cmd->background.base, host_0_ptr, host_1_ptr, &cmd->fw_version,
+		&cmd->riot,	&cmd->auth.base, host_ctrl_0_ptr, host_ctrl_1_ptr, recovery_0_ptr,
+		recovery_1_ptr,	recovery_manager_0_ptr, recovery_manager_1_ptr,	&cmd->cmd_device.base,
 		CERBERUS_PROTOCOL_MSFT_PCI_VID, 2, CERBERUS_PROTOCOL_MSFT_PCI_VID, 4, session_mgr_ptr);
 	CuAssertIntEquals (test, 0, status);
 
@@ -487,6 +503,9 @@ static void complete_cmd_interface_system_mock_test (CuTest *test,
 	pcr_store_release (&cmd->store);
 
 	host_state_manager_release (&cmd->state);
+
+	/* Clean up attestation requester semaphore */
+	platform_semaphore_free (&cmd->attestation_req_state.next_action);
 
 	cmd_interface_system_deinit (&cmd->handler);
 }
@@ -647,9 +666,9 @@ static void cmd_interface_system_test_init (CuTest *test)
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
-		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
-		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
@@ -868,79 +887,79 @@ static void cmd_interface_system_test_init_null (CuTest *test)
 
 	status = cmd_interface_system_init (NULL, &update.base, &pfm_0.base, &pfm_1.base, &cfm.base,
 		&pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
-		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
-		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, NULL, &pfm_0.base, &pfm_1.base, &cfm.base,
 		&pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
-		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
-		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base, NULL,
-		&device_manager, &store, &hash.base, &background.base, &host_0.base, &host_1.base,
+		NULL, &device_manager, &store, &hash.base, &background.base, &host_0.base, &host_1.base,
 		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL,
 		NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, NULL, &store, &hash.base, &background.base, &host_0.base, &host_1.base,
-		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL,
-		NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+		&attestation.base, NULL, NULL, &store, &hash.base, &background.base, &host_0.base,
+		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
+		NULL, NULL,	NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, NULL, &hash.base, &background.base, &host_0.base,
+		&attestation.base, NULL, &device_manager, NULL, &hash.base, &background.base, &host_0.base,
 		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
 		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, NULL, &background.base, &host_0.base,
+		&attestation.base, NULL, &device_manager, &store, NULL, &background.base, &host_0.base,
 		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
 		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
 		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, NULL, &host_0.base, &host_1.base,
-		&fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL, NULL,
-		NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
-		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
-		&host_1.base, NULL, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL,
-		NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
-		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
-		&host_1.base, &fw_version, NULL, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
-		NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
-		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
-		&host_1.base, &fw_version, &riot, NULL, &host_ctrl_0.base, &host_ctrl_1.base, NULL, NULL,
-		NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
-		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
-		&attestation.base, &device_manager, &store, &hash.base, &background.base, &host_0.base,
+		&attestation.base, NULL, &device_manager, &store, &hash.base, NULL, &host_0.base,
 		&host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base, NULL,
-		NULL, NULL, NULL, NULL, 0, 0, 0, 0, &session.base);
+		NULL, NULL,	NULL, &cmd_device.base, 0, 0, 0, 0,	&session.base);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
+		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
+		&attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, NULL, &riot, &auth.base, &host_ctrl_0.base, &host_ctrl_1.base,
+		NULL, NULL,	NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
+		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
+		&attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, NULL, &auth.base, &host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
+		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
+		&attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, NULL, &host_ctrl_0.base, &host_ctrl_1.base,
+		NULL, NULL,	NULL, NULL, &cmd_device.base, 0, 0, 0, 0, &session.base);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	status = cmd_interface_system_init (&interface, &update.base, &pfm_0.base, &pfm_1.base,
+		&cfm.base, &pcd.base, &pfm_mgr_0.base, &pfm_mgr_1.base, &cfm_mgr.base, &pcd_mgr.base,
+		&attestation.base, NULL, &device_manager, &store, &hash.base, &background.base,
+		&host_0.base, &host_1.base, &fw_version, &riot, &auth.base, &host_ctrl_0.base,
+		&host_ctrl_1.base, NULL, NULL, NULL, NULL, NULL, 0, 0, 0, 0, &session.base);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
@@ -2377,7 +2396,7 @@ cmd_interface_system_test_process_get_recovery_image_ext_update_status_port0_cmd
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.attestation.base, NULL, &cmd.device_manager, &cmd.store, &cmd.hash.base,
 		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
 		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, NULL, &cmd.recovery_1.base,
 		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base, &cmd.cmd_device.base, 0, 0, 0,
@@ -2421,7 +2440,7 @@ cmd_interface_system_test_process_get_recovery_image_ext_update_status_port1_cmd
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.attestation.base, NULL, &cmd.device_manager, &cmd.store, &cmd.hash.base,
 		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
 		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base, NULL,
 		&cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base, &cmd.cmd_device.base, 0, 0, 0,
@@ -2540,7 +2559,7 @@ static void cmd_interface_system_test_process_get_fw_version_unset_version (CuTe
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.attestation.base, NULL, &cmd.device_manager, &cmd.store, &cmd.hash.base,
 		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
 		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base,
 		&cmd.recovery_1.base, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
@@ -2567,7 +2586,7 @@ static void cmd_interface_system_test_process_get_fw_version_maxlen_version (CuT
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.attestation.base, NULL, &cmd.device_manager, &cmd.store, &cmd.hash.base,
 		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
 		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base,
 		&cmd.recovery_1.base, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
@@ -2632,7 +2651,7 @@ static void cmd_interface_system_test_process_get_fw_version_bad_count (CuTest *
 	status = cmd_interface_system_init (&cmd.handler, &cmd.update.base, &cmd.pfm_0.base,
 		&cmd.pfm_1.base, &cmd.cfm.base, &cmd.pcd.base, &cmd.pfm_manager_0.base,
 		&cmd.pfm_manager_1.base, &cmd.cfm_manager.base, &cmd.pcd_manager.base,
-		&cmd.attestation.base, &cmd.device_manager, &cmd.store, &cmd.hash.base,
+		&cmd.attestation.base, NULL, &cmd.device_manager, &cmd.store, &cmd.hash.base,
 		&cmd.background.base, &cmd.host_0.base, &cmd.host_1.base, &cmd.fw_version, &cmd.riot,
 		&cmd.auth.base, &cmd.host_ctrl_0.base, &cmd.host_ctrl_1.base, &cmd.recovery_0.base,
 		&cmd.recovery_1.base, &cmd.recovery_manager_0.base, &cmd.recovery_manager_1.base,
@@ -5863,6 +5882,329 @@ static void cmd_interface_system_test_process_get_component_instance_info_invali
 		true, true, true);
 	cerberus_protocol_master_commands_testing_process_get_component_instance_info_invalid_len (test,
 		&cmd.handler.base, &cmd.device_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+	int device_state;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 4,	DEVICE_MANAGER_ATTESTATION_FAILED);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+
+	/* Process the force attestation request */
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, req_msg->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req_msg->header.pci_vendor_id);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_FORCE_ATTESTATION, req_msg->header.command);
+
+	status = device_manager_process_pending_action (&cmd.device_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify devices remain in NOT_ATTESTABLE state (no change expected since they're not attestable) */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_failed_only (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+	int device_state;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request for FAILED_ONLY mode */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Verify devices are in NOT_ATTESTABLE state as expected */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 4,	DEVICE_MANAGER_ATTESTATION_FAILED);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 5,
+		DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, device_state);
+
+	/* Process the request */
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_process_pending_action (&cmd.device_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify: devices remain in NOT_ATTESTABLE state (no change since they're not attestable) */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_passed_only (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+	int device_state;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request for PASSED_ONLY mode */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Verify devices are in NOT_ATTESTABLE state as expected */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 4,	DEVICE_MANAGER_ATTESTATION_FAILED);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 5,
+		DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, device_state);
+
+	/* Process the request */
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_process_pending_action (&cmd.device_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify: devices remain in NOT_ATTESTABLE state (no change since they're not attestable) */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, device_state);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request with invalid length */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = 3;
+
+	request.length = sizeof (struct cerberus_protocol_force_attestation) - 1;	/* Invalid length */
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_invalid_mode (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request with invalid mode */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = 0xFF;	/* Invalid mode */
+
+	request.length = sizeof (struct cerberus_protocol_force_attestation);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_OUT_OF_RANGE, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_no_attestation_requester (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = 3;
+
+	request.length = sizeof (struct cerberus_protocol_force_attestation);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	/* Setup test without attestation requester */
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cmd.handler.attestation_req = NULL;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_COMMAND, status);
+
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
@@ -9351,6 +9693,12 @@ TEST (cmd_interface_system_test_process_get_component_instance_info_limited_resp
 TEST (cmd_interface_system_test_process_get_component_instance_info_no_dev_manager);
 TEST (cmd_interface_system_test_process_get_component_instance_info_dev_manager_not_init);
 TEST (cmd_interface_system_test_process_get_component_instance_info_invalid_len);
+TEST (cmd_interface_system_test_process_force_attestation);
+TEST (cmd_interface_system_test_process_force_attestation_failed_only);
+TEST (cmd_interface_system_test_process_force_attestation_passed_only);
+TEST (cmd_interface_system_test_process_force_attestation_invalid_len);
+TEST (cmd_interface_system_test_process_force_attestation_invalid_mode);
+TEST (cmd_interface_system_test_process_force_attestation_no_attestation_requester);
 TEST (cmd_interface_system_test_process_pcd_update_init);
 TEST (cmd_interface_system_test_process_pcd_update_init_no_pcd_manager);
 TEST (cmd_interface_system_test_process_pcd_update_init_invalid_len);

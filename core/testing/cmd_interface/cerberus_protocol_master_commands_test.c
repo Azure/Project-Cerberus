@@ -3524,6 +3524,104 @@ void cerberus_protocol_master_commands_testing_process_get_component_instance_in
 	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
 }
 
+static void cerberus_protocol_master_commands_test_get_component_instance_info_format (CuTest *test)
+{
+	int status;
+	uint8_t raw_buffer_req[] = {
+		0x7e, 0x14, 0x13, 0x03, 0x8f,
+		0x02, 0x03, 0x04, 0x05
+	};
+	uint8_t raw_buffer_resp[] = {
+		0x7e, 0x14, 0x13, 0x03, 0x8f,
+		0x05, 0x04, 0x05, 0x06, 0x07,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35
+	};
+	uint8_t raw_buffer_instance_ids[] = {
+		0x04, 0x05, 0x06, 0x07,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35
+	};
+
+	struct cerberus_protocol_get_pcd_component_instance_info *req;
+	struct cerberus_protocol_get_pcd_component_instance_info_response *resp;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer_req),
+		sizeof (struct cerberus_protocol_get_pcd_component_instance_info));
+
+	req = (struct cerberus_protocol_get_pcd_component_instance_info*) raw_buffer_req;
+	CuAssertIntEquals (test, 0, req->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, req->header.rq);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
+	CuAssertIntEquals (test, 0, req->header.crypt);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
+		req->header.command);
+
+	CuAssertIntEquals (test, 0x05040302, req->component_id);
+
+	resp = (struct cerberus_protocol_get_pcd_component_instance_info_response*) raw_buffer_resp;
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
+		resp->header.command);
+
+	CuAssertIntEquals (test, 0x05, resp->count);
+	status = testing_validate_array ((uint8_t*) raw_buffer_instance_ids,
+		(uint8_t*) cerberus_protocol_pcd_component_instance_info (resp), resp->count * 2);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cerberus_protocol_master_commands_test_force_attestation_format (CuTest *test)
+{
+	uint8_t raw_buffer_req[] = {
+		0x7e, 0x14, 0x13, 0x03, 0x90, 0x01
+	};
+	uint8_t raw_buffer_resp[] = {
+		0x7e, 0x14, 0x13, 0x03, 0x90
+	};
+
+	struct cerberus_protocol_force_attestation *req;
+	struct cerberus_protocol_force_attestation_response *resp;
+
+	TEST_START;
+
+	CuAssertIntEquals (test, sizeof (raw_buffer_req),
+		(sizeof (struct cerberus_protocol_header) + sizeof (uint8_t)));
+
+	req = (struct cerberus_protocol_force_attestation*) raw_buffer_req;
+	CuAssertIntEquals (test, 0, req->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, req->header.rq);
+	CuAssertIntEquals (test, 0, req->header.reserved2);
+	CuAssertIntEquals (test, 0, req->header.crypt);
+	CuAssertIntEquals (test, 0x03, req->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_FORCE_ATTESTATION, req->header.command);
+
+	CuAssertIntEquals (test, 1, req->data.mode);
+
+	CuAssertIntEquals (test, sizeof (raw_buffer_resp),
+		sizeof (struct cerberus_protocol_force_attestation_response));
+
+	resp = (struct cerberus_protocol_force_attestation_response*) raw_buffer_resp;
+	CuAssertIntEquals (test, 0, resp->header.integrity_check);
+	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
+	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
+	CuAssertIntEquals (test, 0, resp->header.rq);
+	CuAssertIntEquals (test, 0, resp->header.reserved2);
+	CuAssertIntEquals (test, 0, resp->header.crypt);
+	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_FORCE_ATTESTATION, resp->header.command);
+}
+
 void cerberus_protocol_master_commands_testing_process_pcd_update_init (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *pcd)
 {
@@ -6069,61 +6167,6 @@ static void cerberus_protocol_master_commands_test_get_pcd_component_ids_format 
 	CuAssertPtrEquals (test, &raw_buffer_resp[10], cerberus_protocol_pcd_component_ids (resp));
 }
 
-static void cerberus_protocol_master_commands_test_get_component_instance_info_format (CuTest *test)
-{
-	int status;
-	uint8_t raw_buffer_req[] = {
-		0x7e, 0x14, 0x13, 0x03, 0x8f,
-		0x02, 0x03, 0x04, 0x05
-	};
-	uint8_t raw_buffer_resp[] = {
-		0x7e, 0x14, 0x13, 0x03, 0x8f,
-		0x05, 0x04, 0x05, 0x06, 0x07,
-		0x30, 0x31, 0x32, 0x33, 0x34, 0x35
-	};
-	uint8_t raw_buffer_instance_ids[] = {
-		0x04, 0x05, 0x06, 0x07,
-		0x30, 0x31, 0x32, 0x33, 0x34, 0x35
-	};
-
-	struct cerberus_protocol_get_pcd_component_instance_info *req;
-	struct cerberus_protocol_get_pcd_component_instance_info_response *resp;
-
-	TEST_START;
-
-	CuAssertIntEquals (test, sizeof (raw_buffer_req),
-		sizeof (struct cerberus_protocol_get_pcd_component_instance_info));
-
-	req = (struct cerberus_protocol_get_pcd_component_instance_info*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
-	CuAssertIntEquals (test, 0x1314, req->header.pci_vendor_id);
-	CuAssertIntEquals (test, 0, req->header.rq);
-	CuAssertIntEquals (test, 0, req->header.reserved2);
-	CuAssertIntEquals (test, 0, req->header.crypt);
-	CuAssertIntEquals (test, 0x03, req->header.reserved1);
-	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
-		req->header.command);
-
-	CuAssertIntEquals (test, 0x05040302, req->component_id);
-
-	resp = (struct cerberus_protocol_get_pcd_component_instance_info_response*) raw_buffer_resp;
-	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
-	CuAssertIntEquals (test, 0x1314, resp->header.pci_vendor_id);
-	CuAssertIntEquals (test, 0, resp->header.rq);
-	CuAssertIntEquals (test, 0, resp->header.reserved2);
-	CuAssertIntEquals (test, 0, resp->header.crypt);
-	CuAssertIntEquals (test, 0x03, resp->header.reserved1);
-	CuAssertIntEquals (test, CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,
-		resp->header.command);
-
-	CuAssertIntEquals (test, 0x05, resp->count);
-	status = testing_validate_array ((uint8_t*) raw_buffer_instance_ids,
-		(uint8_t*) cerberus_protocol_pcd_component_instance_info (resp), resp->count * 2);
-	CuAssertIntEquals (test, 0, status);
-}
-
 static void cerberus_protocol_master_commands_test_complete_pcd_update_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
@@ -6688,6 +6731,7 @@ TEST (cerberus_protocol_master_commands_test_prepare_pcd_update_format);
 TEST (cerberus_protocol_master_commands_test_pcd_update_format);
 TEST (cerberus_protocol_master_commands_test_get_pcd_component_ids_format);
 TEST (cerberus_protocol_master_commands_test_get_component_instance_info_format);
+TEST (cerberus_protocol_master_commands_test_force_attestation_format);
 TEST (cerberus_protocol_master_commands_test_complete_pcd_update_format);
 TEST (cerberus_protocol_master_commands_test_update_status_format);
 TEST (cerberus_protocol_master_commands_test_extended_update_status_format);

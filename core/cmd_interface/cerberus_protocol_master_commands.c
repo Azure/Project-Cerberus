@@ -1395,3 +1395,66 @@ int cerberus_protocol_process_device_capabilities_response (struct device_manage
 
 	return device_manager_update_device_capabilities (device_mgr, device_num, &rsp->capabilities);
 }
+
+/**
+ * Process a force attestation command.
+ *
+ * @param attestation Attestation requester instance to utilize
+ * @param request The force attestation request to process
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int cerberus_protocol_force_attestation (struct attestation_requester *attestation,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_force_attestation *req =
+		(struct cerberus_protocol_force_attestation*) request->data;
+	struct device_manager_pending_action pending;
+	size_t data_length;
+	int status = 0;
+
+	if (attestation == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+	}
+
+	if ((attestation->device_mgr == NULL) || (attestation->state == NULL)) {
+		return CMD_HANDLER_INVALID_ARGUMENT;
+	}
+
+	if (req->data.mode > DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	data_length = request->length - sizeof (struct cerberus_protocol_header);
+
+	if (req->data.mode == DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
+		if (data_length != (sizeof (uint8_t) + sizeof (struct device_manager_device_ids_target))) {
+			return CMD_HANDLER_BAD_LENGTH;
+		}
+	}
+	else if (req->data.mode == DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID) {
+		if (data_length != (sizeof (uint8_t) + sizeof (struct device_manager_component_target))) {
+			return CMD_HANDLER_BAD_LENGTH;
+		}
+	}
+	else {
+		if (data_length != (sizeof (uint8_t))) {
+			return CMD_HANDLER_BAD_LENGTH;
+		}
+	}
+
+	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
+	memcpy (pending.data, &req->data, data_length);
+	pending.data_size = data_length;
+
+	status = device_manager_set_pending_action (attestation->device_mgr, &pending);
+	if (status != 0) {
+		return status;
+	}
+
+	request->length = sizeof (struct cerberus_protocol_force_attestation_response);
+
+	platform_semaphore_post (&attestation->state->next_action);
+
+	return status;
+}

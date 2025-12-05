@@ -48,6 +48,79 @@
  */
 #define device_manager_set_crypto_timeout_ms(timeout)			((timeout) / 100)
 
+/**
+ * Device manager pending action types
+ */
+enum device_manager_action_type {
+	DEVICE_MANAGER_ACTION_NONE = 0,				/**< No pending action */
+	DEVICE_MANAGER_ACTION_FORCE_ATTESTATION,	/**< Force attestation action */
+	DEVICE_MANAGER_ACTION_FORCE_DISCOVERY,		/**< Device discovery action */
+};
+
+
+/**
+ * Force attestation modes
+ */
+enum {
+	DEVICE_MANAGER_FORCE_ATTESTATION_FAILED = 0,	/**< Only previously failed devices */
+	DEVICE_MANAGER_FORCE_ATTESTATION_PASSED,		/**< Only previously passed devices */
+	DEVICE_MANAGER_FORCE_ATTESTATION_ALL,			/**< All devices */
+	DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID,	/**< Target by component and instance ID */
+	DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS,	/**< Target by device and instance ID */
+};
+
+#pragma pack(push, 1)
+
+/**
+ * Container for component ID targeting data
+ */
+struct device_manager_component_target {
+	uint32_t component_id;	/**< Component ID to target */
+	uint8_t instance_id;	/**< Instance ID to target */
+};
+
+/**
+ * Container for device IDs targeting data
+ */
+struct device_manager_device_ids_target {
+	uint16_t pci_vid;			/**< PCI vendor ID */
+	uint16_t pci_device_id;		/**< PCI device ID */
+	uint16_t pci_subsystem_vid;	/**< PCI subsystem vendor ID */
+	uint16_t pci_subsystem_id;	/**< PCI subsystem ID */
+	uint8_t instance_id;		/**< Instance ID to target */
+};
+
+/**
+ * Union for targeting data
+ */
+union device_manager_target_data {
+	struct device_manager_component_target component;	/**< Component ID targeting */
+	struct device_manager_device_ids_target device_ids;	/**< Device IDs targeting */
+};
+
+/**
+ * Container for force attestation action data
+ */
+struct device_manager_force_attestation_data {
+	uint8_t mode;								/**< Force attestation mode */
+	union device_manager_target_data target;	/**< Optional targeting data */
+};
+
+
+// Maximum size for pending action data
+#define DEVICE_MANAGER_PENDING_DATA_MAX_SIZE \
+	sizeof(struct device_manager_force_attestation_data)
+
+/**
+ * Container for pending device manager actions
+ */
+struct device_manager_pending_action {
+	enum device_manager_action_type type;				/**< Type of pending action */
+	uint8_t data[DEVICE_MANAGER_PENDING_DATA_MAX_SIZE];	/**< Static buffer for action data */
+	size_t data_size;									/**< Size of the action-specific data */
+};
+
+#pragma pack(pop)
 
 /**
  * Device states
@@ -81,6 +154,17 @@ enum device_manager_device_state {
 	MAX_DEVICE_MANAGER_STATES,									/**< Max number of device states */
 };
 
+
+/**
+ * Check if a device state indicates the device is authenticated.
+ *
+ * @param state The device state to check
+ */
+#define DEVICE_MANAGER_IS_AUTHENTICATED(state) \
+	(((state) == DEVICE_MANAGER_AUTHENTICATED) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT))
 
 /**
  * Device hierarchy roles as defined in the Cerberus protocol.
@@ -270,6 +354,8 @@ struct device_manager {
 	struct device_manager_key alias_key;					/**< Container with device alias key */
 	uint8_t alias_key_eid;									/**< EID of component alias key belongs */
 	struct observable observable;							/**< Observer manager for the interface. */
+	struct device_manager_pending_action pending_action;	/**< Pending action to be processed by device manager. */
+	platform_mutex action_mutex;							/**< Mutex for protecting pending action operations */
 };
 
 /**
@@ -422,6 +508,13 @@ int device_manager_mark_component_attestation_invalid (struct device_manager *mg
 
 bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t eid);
 
+int device_manager_set_pending_action (struct device_manager *mgr,
+	struct device_manager_pending_action *action);
+int device_manager_get_pending_action (struct device_manager *mgr,
+	struct device_manager_pending_action *action);
+int device_manager_process_pending_action (struct device_manager *mgr);
+int device_manager_clear_pending_action (struct device_manager *mgr);
+
 
 #define	DEVICE_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_DEVICE_MANAGER, code)
 
@@ -441,6 +534,7 @@ enum {
 	DEVICE_MGR_DIGEST_NOT_UNIQUE = DEVICE_MGR_ERROR (0x09),			/**< Certificate chain digest not unique. */
 	DEVICE_MGR_INVALID_RESPONDER_COUNT = DEVICE_MGR_ERROR (0x0A),	/**< Invalid responder count. */
 	DEVICE_MGR_STATE_UPDATE_UNSUPPORTED = DEVICE_MGR_ERROR (0x0B),	/**< State update not supported. */
+	DEVICE_MGR_NO_PENDING_ACTION = DEVICE_MGR_ERROR (0x0C),			/**< No pending action available. */
 };
 
 

@@ -18,6 +18,7 @@
 #include "common/unused.h"
 #include "logging/debug_log.h"
 #include "manifest/cfm/cfm_manager.h"
+#include "manifest/manifest_logging.h"
 #include "mctp/cmd_interface_protocol_mctp.h"
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
@@ -1757,8 +1758,15 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
 {
 	const struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, const struct attestation_requester, cfm_observer);
+	struct device_manager_pending_action pending;
 
-	device_manager_reset_authenticated_devices (attestation->device_mgr);
+	memset (&pending, 0, sizeof (pending));
+
+	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
+	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
+	pending.data_size = sizeof (uint8_t);
+
+	device_manager_set_pending_action (attestation->device_mgr, &pending);
 
 	platform_semaphore_post (&attestation->state->next_action);
 }
@@ -3902,6 +3910,12 @@ void attestation_requester_discovery_and_attestation_loop (
 	eid = 0;
 
 	while (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
+		status = device_manager_process_pending_action (attestation->device_mgr);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_PROCESS_PENDING_ACTION_ERROR, status, 0);
+		}
+
 		eid = device_manager_get_eid_of_next_device_to_attest (attestation->device_mgr);
 		if (!ROT_IS_ERROR (eid)) {
 			status = attestation_requester_attest_device (attestation, eid);

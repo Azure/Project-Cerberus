@@ -14,6 +14,7 @@
 #include "device_manager.h"
 #include "session_manager.h"
 #include "session_manager.h"
+#include "attestation/attestation_requester.h"
 #include "attestation/attestation_responder.h"
 #include "attestation/pcr_store.h"
 #include "common/observable.h"
@@ -49,6 +50,7 @@ struct cmd_interface_system {
 	const struct riot_key_manager *riot;						/**< RIoT key manager */
 	const struct cmd_authorization *auth;						/**< Authorization handler */
 	struct attestation_responder *attestation;					/**< Attestation responder instance */
+	struct attestation_requester *attestation_req;				/**< Attestation requester instance */
 	const struct hash_engine *hash;								/**< The hashing engine for PCR operations. */
 	const struct cmd_interface_fw_version *fw_version;			/**< FW version numbers */
 	const struct host_control *host_0_ctrl;						/**< Host hardware control for port 0. */
@@ -71,7 +73,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct manifest_cmd_interface *pcd, const struct pfm_manager *pfm_manager_0,
 	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
 	const struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
-	struct device_manager *device_manager, struct pcr_store *store, const struct hash_engine *hash,
+	struct attestation_requester *attestation_req, struct device_manager *device_manager,
+	struct pcr_store *store, const struct hash_engine *hash,
 	const struct cmd_background *background, const struct host_cmd_interface *host_0,
 	const struct host_cmd_interface *host_1, const struct cmd_interface_fw_version *fw_version,
 	const struct riot_key_manager *riot, const struct cmd_authorization *auth,

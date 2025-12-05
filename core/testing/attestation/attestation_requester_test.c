@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "attestation/attestation_logging.h"
 #include "attestation/attestation_requester.h"
 #include "attestation/attestation_requester_static.h"
+#include "cmd_interface/cerberus_protocol_master_commands.h"
 #include "cmd_interface/cerberus_protocol_required_commands.h"
 #include "cmd_interface/cmd_interface_multi_handler.h"
 #include "cmd_interface/cmd_interface_system.h"
@@ -18,8 +19,8 @@
 #include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/checksum.h"
-#include "mctp/cmd_interface_protocol_mctp.h"
 #include "mctp/cmd_interface_mctp_control.h"
+#include "mctp/cmd_interface_protocol_mctp.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
 #include "spdm/cmd_interface_spdm.h"
@@ -27,6 +28,9 @@
 #include "spdm/spdm_discovery.h"
 #include "spdm/spdm_measurements.h"
 #include "spdm/spdm_protocol.h"
+#include "testing/asn1/x509_testing.h"
+#include "testing/engines/x509_testing_engine.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/asn1/x509_mock.h"
 #include "testing/mock/attestation/attestation_responder_mock.h"
 #include "testing/mock/cmd_interface/cmd_authorization_mock.h"
@@ -36,17 +40,14 @@
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
 #include "testing/mock/cmd_interface/msg_transport_mock.h"
 #include "testing/mock/crypto/ecc_mock.h"
-#include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
 #include "testing/mock/crypto/rng_mock.h"
+#include "testing/mock/crypto/rsa_mock.h"
 #include "testing/mock/firmware/firmware_update_control_mock.h"
 #include "testing/mock/keystore/keystore_mock.h"
 #include "testing/mock/logging/logging_mock.h"
 #include "testing/mock/manifest/cfm/cfm_manager_mock.h"
 #include "testing/mock/manifest/cfm/cfm_mock.h"
-#include "testing/engines/x509_testing_engine.h"
-#include "testing/asn1/x509_testing.h"
-#include "testing/logging/debug_log_testing.h"
 #include "testing/riot/riot_core_testing.h"
 
 
@@ -193,6 +194,7 @@ struct attestation_requester_testing {
 	size_t next_cert_resp;										/**< Index of the next GET_CERTIFICATE response to generate. */
 	uint32_t rsp_data_transfer_size;							/**< Max message size of SPDM response size. */
 };
+
 
 /**
  * Helper function to add an intermediate and root CA to RIoT key manager cert chain
@@ -382,9 +384,9 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 		&testing->keystore.base, &keys, x509, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&testing->device_mgr, 1 + !no_mctp_bridge, !no_mctp_bridge, !no_mctp_bridge,
-		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10, 10, 10, 10, 0, 0,
-		0);
+	status = device_manager_init (&testing->device_mgr, 1 + !no_mctp_bridge, !no_mctp_bridge,
+		!no_mctp_bridge, DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10,
+		10, 10, 10, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 0,
@@ -424,7 +426,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 
 	status = cmd_interface_system_init (&testing->cmd_cerberus, &testing->fw_update.base, NULL,
 		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing->attestation_responder.base,
-		&testing->device_mgr, &testing->store, &testing->primary_hash.base,
+		&testing->test, &testing->device_mgr, &testing->store, &testing->primary_hash.base,
 		&testing->background.base, NULL, NULL, &testing->fw_version, &testing->riot,
 		&testing->authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing->device.base, 1,
 		2, 3, 4, NULL);
@@ -473,8 +475,8 @@ static void setup_attestation_requester_mock_test (CuTest *test,
  * @param riot_no_root_ca Boolean flag indicating whether to initialize RIoT keystore with a root CA
  * @param testing The testing instances to initialize
  */
-static void setup_attestation_requester_mock_certificate_test (CuTest *test,
-	bool init_cert_expect, bool riot_no_root_ca, struct attestation_requester_testing *testing)
+static void setup_attestation_requester_mock_certificate_test (CuTest *test, bool init_cert_expect,
+	bool riot_no_root_ca, struct attestation_requester_testing *testing)
 {
 	size_t i;
 	size_t alias_offset;
@@ -516,16 +518,18 @@ static void setup_attestation_requester_mock_certificate_test (CuTest *test,
 	}
 	else {
 		max_read_len = ((testing->spdm_version == 2) ? testing->rsp_data_transfer_size :
-			SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN) - sizeof (struct spdm_get_certificate_response);
+				SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN) - sizeof (struct spdm_get_certificate_response);
 		/* Update the list get cert messages if cert size is more than SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN. */
 		cert_msg_idx = 2;
 		alias_offset = testing->cert_msg[cert_msg_idx].req_offset;
 
-		memset (testing->cert_msg + 2, 0, sizeof (struct attestation_requester_testing_get_cert) * 8);
+		memset (testing->cert_msg + 2, 0,
+			sizeof (struct attestation_requester_testing_get_cert) * 8);
 	}
 
 	if (!riot_no_root_ca) {
-		for (i = 0; i < (X509_CERTSS_RSA_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+		for (i = 0;
+			i < (X509_CERTSS_RSA_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
 			i += max_read_len) {
 			if (((X509_CERTSS_RSA_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN) -
 				i) < max_read_len) {
@@ -548,10 +552,12 @@ static void setup_attestation_requester_mock_certificate_test (CuTest *test,
 			}
 		}
 
-		alias_offset += (X509_CERTSS_RSA_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+		alias_offset += (X509_CERTSS_RSA_CA_NOPL_DER_LEN -
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
 	}
 	else {
-		for (i = 0; i < (X509_CERTSS_ECC_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+		for (i = 0;
+			i < (X509_CERTSS_ECC_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
 			i += max_read_len) {
 			if (((X509_CERTSS_ECC_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN) -
 				i) < max_read_len) {
@@ -574,7 +580,8 @@ static void setup_attestation_requester_mock_certificate_test (CuTest *test,
 			}
 		}
 
-		alias_offset += (X509_CERTSS_ECC_CA_NOPL_DER_LEN - ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
+		alias_offset += (X509_CERTSS_ECC_CA_NOPL_DER_LEN -
+			ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
 	}
 
 	/* GET_CERTIFICATE RIOT_CORE_DEVID_SIGNED_CERT request for the first part. */
@@ -704,10 +711,12 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 	if (meas_hash_algo == HASH_TYPE_SHA256) {
 		testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
-	} else if (meas_hash_algo == HASH_TYPE_SHA384) {
+	}
+	else if (meas_hash_algo == HASH_TYPE_SHA384) {
 		testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_384;
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_384;
-	} else {
+	}
+	else {
 		testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_512;
 		testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_512;
 	}
@@ -1317,7 +1326,6 @@ static void attestation_requester_testing_send_and_receive_cerberus_device_capab
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_cerberus_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -1350,8 +1358,8 @@ static void attestation_requester_testing_send_and_receive_cerberus_device_capab
  * @param testing Testing instances.
  */
 static void attestation_requester_testing_send_and_receive_cerberus_get_digest (CuTest *test,
-	bool get_rsp, bool rsp_fail, bool unexpected_rsp, uint8_t hash_len,
-	uint8_t slot_num, uint8_t key_alg, struct attestation_requester_testing *testing)
+	bool get_rsp, bool rsp_fail, bool unexpected_rsp, uint8_t hash_len,	uint8_t slot_num,
+	uint8_t key_alg, struct attestation_requester_testing *testing)
 {
 	struct cmd_packet tx_packet;
 	struct mctp_base_protocol_transport_header *header;
@@ -1407,7 +1415,6 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_digest (
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_cerberus_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -1504,7 +1511,6 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_cerberus_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			status = mock_expect_external_action (&testing->channel.mock,
@@ -1613,11 +1619,11 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 	status = mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.start_sha256,
 		&testing->primary_hash, 0);
 	status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.update,
-		&testing->primary_hash, hash_update_result, MOCK_ARG_PTR_CONTAINS_TMP (
-			&tx_packet.data[sizeof (struct mctp_base_protocol_transport_header) +
-				sizeof (struct cerberus_protocol_header)],
-			sizeof (struct attestation_challenge)),
-			MOCK_ARG (sizeof (struct attestation_challenge)));
+		&testing->primary_hash, hash_update_result,
+		MOCK_ARG_PTR_CONTAINS_TMP (
+		&tx_packet.data[sizeof (struct mctp_base_protocol_transport_header) +
+		sizeof (struct cerberus_protocol_header)], sizeof (struct attestation_challenge)),
+		MOCK_ARG (sizeof (struct attestation_challenge)));
 	if (!rsp_successful) {
 		status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.cancel,
 			&testing->primary_hash, 0);
@@ -1651,8 +1657,8 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 	}
 
 	status = mock_expect (&testing->channel.mock, testing->channel.base.send_packet,
-		&testing->channel, 0, MOCK_ARG_VALIDATOR_TMP (cmd_channel_mock_validate_packet, &tx_packet,
-		sizeof (tx_packet)));
+		&testing->channel, 0,
+		MOCK_ARG_VALIDATOR_TMP (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 	CuAssertIntEquals (test, 0, status);
 
 	if (get_rsp) {
@@ -1660,7 +1666,6 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_cerberus_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			status = mock_expect_external_action (&testing->channel.mock,
@@ -1704,8 +1709,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_challenge (C
 		else if (!rsa_not_supported) {
 			status = mock_expect (&testing->rsa.mock, testing->rsa.base.init_public_key,
 				&testing->rsa, init_pub_key_result, MOCK_ARG_NOT_NULL,
-				MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-					RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+				MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 				MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN));
 
 			if (init_pub_key_result == 0) {
@@ -1924,9 +1928,8 @@ static void attestation_requester_testing_verify_cerberus_alias_with_mocks (CuTe
 
 		memcpy (pub_key, RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN);
 
-		status = mock_expect (&testing->x509_mock.mock,
-			testing->x509_mock.base.get_public_key_type, &testing->x509_mock, key_type,
-			MOCK_ARG_SAVED_ARG (1));
+		status = mock_expect (&testing->x509_mock.mock,	testing->x509_mock.base.get_public_key_type,
+			&testing->x509_mock, key_type, MOCK_ARG_SAVED_ARG (1));
 
 		status |= mock_expect (&testing->x509_mock.mock, testing->x509_mock.base.get_public_key,
 			&testing->x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
@@ -1963,9 +1966,9 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 	struct cfm_root_ca_digests root_ca_digests;
 	uint8_t out_digest[SHA256_HASH_LENGTH] = {0};
 	const uint8_t *root_cert = (riot_no_root_ca || vendor_root_ca) ? X509_CERTSS_ECC_CA_NOPL_DER :
-		X509_CERTSS_RSA_CA_NOPL_DER;
+			X509_CERTSS_RSA_CA_NOPL_DER;
 	size_t root_cert_len = (riot_no_root_ca || vendor_root_ca) ? X509_CERTSS_ECC_CA_NOPL_DER_LEN :
-		X509_CERTSS_RSA_CA_NOPL_DER_LEN;
+			X509_CERTSS_RSA_CA_NOPL_DER_LEN;
 	size_t i_digest;
 	int key_type = ecc ? X509_PUBLIC_KEY_ECC : X509_PUBLIC_KEY_RSA;
 
@@ -2202,7 +2205,7 @@ static int64_t attestation_requester_testing_spdm_get_capabilities_rsp_callback 
 	header = (struct mctp_base_protocol_transport_header*) rx_packet.data;
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	header->byte_count = (testing->spdm_version >= 2)? 0x1A : 0x12;
+	header->byte_count = (testing->spdm_version >= 2) ? 0x1A : 0x12;
 	header->source_addr = (0x20 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
@@ -2331,10 +2334,10 @@ static int64_t attestation_requester_testing_spdm_negotiate_algorithms_rsp_callb
 	algorithms_response->num_alg_structure_tables = 0;
 	algorithms_response->length = sizeof (struct spdm_negotiate_algorithms_response);
 	algorithms_response->measurement_specification = testing->measurement_spec_unsupported ?
-		(SPDM_MEASUREMENT_SPEC_DMTF + 1) : SPDM_MEASUREMENT_SPEC_DMTF;
+			(SPDM_MEASUREMENT_SPEC_DMTF + 1) : SPDM_MEASUREMENT_SPEC_DMTF;
 	algorithms_response->base_asym_sel = testing->asymmetric_key_signature_alg_unsupported ?
-		0 : (testing->asymmetric_key_signature_alg_mismatched ?
-			SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
+			0 : (testing->asymmetric_key_signature_alg_mismatched ?
+				SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
 	algorithms_response->base_hash_sel = testing->hashing_alg_supported;
 	algorithms_response->measurement_hash_algo = testing->meas_hashing_alg_supported;
 
@@ -2526,7 +2529,8 @@ static int64_t attestation_requester_testing_spdm_get_certificate_rsp_callback (
 		sizeof (struct spdm_get_certificate_response);
 
 	if (!testing->rsp_len_invalid[2]) {
-		memcpy (&msg[payload_len], &cert_buffer[get_cert->req_offset], get_cert->resp_length + testing->rsp_len_invalid[3]);
+		memcpy (&msg[payload_len], &cert_buffer[get_cert->req_offset],
+			get_cert->resp_length + testing->rsp_len_invalid[3]);
 
 		payload_len += get_cert->resp_length + testing->rsp_len_invalid[3];
 	}
@@ -2732,7 +2736,7 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 		(4 - testing->device_id_block_short);
 
 	block_len = testing->spdm_discovery ? spdm_measurements_block_size (device_id_len) :
-		num_blocks_in_rsp * spdm_measurements_block_size (hash_len);
+			num_blocks_in_rsp* spdm_measurements_block_size (hash_len);
 
 	if (testing->get_num_indices) {
 		block_len = 0;
@@ -2835,11 +2839,12 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 1) ?
-				SPDM_DISCOVERY_DEVICE_ID_PCI_VID :
-				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+					SPDM_DISCOVERY_DEVICE_ID_PCI_VID :
+					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
-			buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA);
+			buffer_unaligned_write16 (id,
+				(testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA);
 			payload_len += 2;
 
 			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
@@ -2847,11 +2852,12 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 2) ?
-				SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID :
-				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+					SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID :
+					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
-			buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB);
+			buffer_unaligned_write16 (id,
+				(testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB);
 			payload_len += 2;
 
 			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &msg[payload_len];
@@ -2859,11 +2865,12 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 3) ?
-				SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID :
-				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+					SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID :
+					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &msg[payload_len];
-			buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC);
+			buffer_unaligned_write16 (id,
+				(testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC);
 			payload_len += 2;
 
 			if (!testing->device_id_block_short) {
@@ -2873,11 +2880,12 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 
 				device_id_descriptor->descriptor_len = sizeof (uint16_t);
 				device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 4) ?
-					SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID :
-					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+						SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID :
+						SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 				id = (uint16_t*) &msg[payload_len];
-				buffer_unaligned_write16(id, (testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD);
+				buffer_unaligned_write16 (id,
+					(testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD);
 				payload_len += 2;
 			}
 		}
@@ -2888,11 +2896,11 @@ static int64_t attestation_requester_testing_spdm_get_measurements_rsp_callback 
 	}
 
 	opaque_length = (uint16_t*) &msg[payload_len];
-	buffer_unaligned_write16(opaque_length, testing->spdm_discovery ? 0 : 5);
+	buffer_unaligned_write16 (opaque_length, testing->spdm_discovery ? 0 : 5);
 	payload_len += 2;
 
 	if (!testing->spdm_discovery) {
-		for (i = 0; i < buffer_unaligned_read16(opaque_length); ++i, ++payload_len) {
+		for (i = 0; i < buffer_unaligned_read16 (opaque_length); ++i, ++payload_len) {
 			msg[payload_len] = 5 + i;
 		}
 
@@ -3072,7 +3080,6 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_spdm_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -3186,10 +3193,10 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
-	if ( testing->spdm_version >= 2 ) {
+	if (testing->spdm_version >= 2) {
 		header->byte_count = 0x1A;
 	}
-	else if (testing->spdm_version == 1 ) {
+	else if (testing->spdm_version == 1) {
 		header->byte_count = 0x12;
 	}
 	else {
@@ -3269,7 +3276,6 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_spdm_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -3303,9 +3309,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	struct spdm_get_capabilities req;
 	struct spdm_get_capabilities rsp;
 	size_t capabilities_len_rsp = (testing->spdm_version >= 2) ?
-		(sizeof (struct spdm_get_capabilities)) : (sizeof (struct spdm_get_capabilities_1_1));
+			(sizeof (struct spdm_get_capabilities)) : (sizeof (struct spdm_get_capabilities_1_1));
 	size_t capabilities_len_req = (testing->spdm_version >= 1) ? capabilities_len_rsp :
-		(sizeof (struct spdm_get_capabilities_1_0));
+			(sizeof (struct spdm_get_capabilities_1_0));
 	int status;
 
 	memset (&req, 0, sizeof (struct spdm_get_capabilities));
@@ -3348,7 +3354,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	rsp.base_capabilities.flags.cert_cap = !testing->get_cert_unsupported;
 	rsp.base_capabilities.flags.chal_cap = !testing->challenge_unsupported;
 	rsp.base_capabilities.flags.meas_cap = (testing->meas_cap_unsupported ?
-		0 : (testing->meas_cap_sign_unsupported ? 1 : 2));
+			0 : (testing->meas_cap_sign_unsupported ? 1 : 2));
 	rsp.base_capabilities.flags.meas_fresh_cap = 0;
 	rsp.base_capabilities.flags.encrypt_cap = 0;
 	rsp.base_capabilities.flags.mac_cap = 0;
@@ -3477,7 +3483,6 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_spdm_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -3537,8 +3542,8 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	rsp.length = sizeof (struct spdm_negotiate_algorithms_response);
 	rsp.measurement_specification = SPDM_MEASUREMENT_SPEC_DMTF;
 	rsp.base_asym_sel = testing->asymmetric_key_signature_alg_unsupported ?
-		0 : (testing->asymmetric_key_signature_alg_mismatched ?
-			SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
+			0 : (testing->asymmetric_key_signature_alg_mismatched ?
+				SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
 	rsp.base_hash_sel = testing->hashing_alg_supported;
 	rsp.measurement_hash_algo = testing->meas_hashing_alg_supported;
 
@@ -3635,7 +3640,6 @@ static void attestation_requester_testing_send_and_receive_spdm_get_digests (CuT
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_spdm_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -3821,7 +3825,6 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_spdm_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -3852,7 +3855,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
  * @param unexpected_rsp Flag indicating whether to send an unexpected response.
  * @param testing Testing instances.
  */
-static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_fail_rsp (
+static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_fail_rsp
+(
 	CuTest *test, bool hash_update_fail, bool get_rsp, bool rsp_fail, bool unexpected_rsp,
 	bool non_contiguous_slot_mask, struct attestation_requester_testing *testing)
 {
@@ -3896,12 +3900,15 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 	}
 	else {
 		rsp->portion_len = get_cert->resp_length + testing->rsp_len_invalid[3];
-		rsp->remainder_len = testing->cert_buffer_len - (get_cert->req_offset + get_cert->resp_length + testing->rsp_len_invalid[3]);
+		rsp->remainder_len = testing->cert_buffer_len -
+			(get_cert->req_offset + get_cert->resp_length + testing->rsp_len_invalid[3]);
 
 		memcpy (&rsp_buf[sizeof (struct spdm_get_certificate_response)],
-			&cert_buffer[get_cert->req_offset], get_cert->resp_length + testing->rsp_len_invalid[3]);
+			&cert_buffer[get_cert->req_offset],
+			get_cert->resp_length + testing->rsp_len_invalid[3]);
 
-		rsp_len = sizeof (struct spdm_get_certificate_response) + get_cert->resp_length + testing->rsp_len_invalid[3];
+		rsp_len = sizeof (struct spdm_get_certificate_response) + get_cert->resp_length +
+			testing->rsp_len_invalid[3];
 	}
 
 	status = mock_expect (&testing->secondary_hash.mock, testing->secondary_hash.base.update,
@@ -3977,7 +3984,7 @@ static void attestation_requester_testing_verify_spdm_root_ca_with_mocks (CuTest
 			testing->primary_hash.base.calculate_sha256, &testing->primary_hash, 0,
 			MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 			MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
-				MOCK_ARG (HASH_MAX_HASH_LEN));
+			MOCK_ARG (HASH_MAX_HASH_LEN));
 		status |= mock_expect_output_tmp (&testing->primary_hash.mock, 2,
 			&root_ca_digests->digests.digests[SHA256_HASH_LENGTH], SHA256_HASH_LENGTH, -1);
 
@@ -4003,20 +4010,20 @@ static void attestation_requester_testing_verify_spdm_root_ca_with_mocks (CuTest
 	}
 
 	if (hash_algo == HASH_TYPE_SHA256) {
-		status = mock_expect (&testing->primary_hash.mock,
-			testing->primary_hash.base.start_sha256, &testing->primary_hash, 0);
+		status = mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.start_sha256,
+			&testing->primary_hash, 0);
 
 		hash_len = SHA256_HASH_LENGTH;
 	}
 	else if (hash_algo == HASH_TYPE_SHA384) {
-		status = mock_expect (&testing->primary_hash.mock,
-			testing->primary_hash.base.start_sha384, &testing->primary_hash, 0);
+		status = mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.start_sha384,
+			&testing->primary_hash, 0);
 
 		hash_len = SHA384_HASH_LENGTH;
 	}
 	else {
-		status = mock_expect (&testing->primary_hash.mock,
-			testing->primary_hash.base.start_sha512, &testing->primary_hash, 0);
+		status = mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.start_sha512,
+			&testing->primary_hash, 0);
 
 		hash_len = SHA512_HASH_LENGTH;
 	}
@@ -4187,7 +4194,8 @@ static void attestation_requester_testing_verify_spdm_alias_with_mocks (CuTest *
  * @param ca_digests Buffer to use as root CA digests
  * @param component_id Component ID of device attested
  */
-static void attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (
+static void
+attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (
 	CuTest *test, struct attestation_requester_testing *testing, uint8_t hash_algo, bool x509_mock,
 	bool use_riot_root_ca, bool vendor_root_ca, bool non_contiguous_slot_mask, uint8_t *ca_digests,
 	uint8_t component_id)
@@ -4200,7 +4208,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate_
 	// 	X509_CERTSS_ECC_CA_NOPL_DER_LEN;
 	// size_t cert_chain_len_wout_root_ca = RIOT_CORE_DEVID_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
 	// size_t cert_chain_len = use_riot_root_ca ? root_ca_cert_len :
-		// (cert_chain_len_wout_root_ca + X509_CERTSS_ECC_CA_NOPL_DER_LEN);
+	// (cert_chain_len_wout_root_ca + X509_CERTSS_ECC_CA_NOPL_DER_LEN);
 	struct attestation_requester_testing_get_cert *get_cert;
 	size_t hash_len;
 	size_t i_digest;
@@ -4364,7 +4372,6 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_spdm_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -4540,7 +4547,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 
 	header->cmd_code = SMBUS_CMD_CODE_MCTP;
 	header->byte_count = (testing->spdm_discovery || testing->get_cert_unsupported) ? 0x0A :
-		(testing->spdm_version == 0) ? 0x2A : 0x2B;
+			(testing->spdm_version == 0) ? 0x2A : 0x2B;
 	header->source_addr = (0x41 << 1) | 1;
 	header->rsvd = 0;
 	header->header_version = 1;
@@ -4566,7 +4573,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 
 	request->measurement_operation = measurement_operation;
 	request->sig_required = !testing->spdm_discovery && !testing->get_cert_unsupported;
-	request->raw_bit_stream_requested = testing->spdm_version <= 1 ? 0 : raw_request;
+	request->raw_bit_stream_requested = (testing->spdm_version <= 1) ? 0 : raw_request;
 
 	offset += sizeof (struct spdm_get_measurements_request);
 
@@ -4606,7 +4613,6 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 			status = mock_expect_external_action (&testing->channel.mock,
 				attestation_requester_testing_spdm_error_rsp_callback, testing);
 			CuAssertIntEquals (test, 0, status);
-
 		}
 		else if (unexpected_rsp) {
 			testing->cert_num = 0;
@@ -4646,12 +4652,12 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) &rsp_buf;
 	struct spdm_measurements_measurement_block *block =
 		(struct spdm_measurements_measurement_block*)
-			spdm_get_measurements_resp_measurement_record (rsp);
+		spdm_get_measurements_resp_measurement_record (rsp);
 	uint16_t *opaque_length;
 	uint8_t *slot_id;
 	uint8_t *nonce;
 	size_t num_blocks = (measurement_operation == SPDM_MEASUREMENT_OPERATION_GET_ALL_BLOCKS) ?
-		2 : 1;
+			2 : 1;
 	size_t hash_len;
 	size_t offset;
 	int status;
@@ -4753,10 +4759,10 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	}
 
 	opaque_length = (uint16_t*) &rsp_buf[offset];
-	buffer_unaligned_write16(opaque_length, 5);
+	buffer_unaligned_write16 (opaque_length, 5);
 	offset += 2;
 
-	for (i = 0; i < buffer_unaligned_read16(opaque_length); ++i, ++offset) {
+	for (i = 0; i < buffer_unaligned_read16 (opaque_length); ++i, ++offset) {
 		rsp_buf[offset] = 5 + i;
 	}
 
@@ -4777,11 +4783,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	}
 
 	rq_len = (testing->spdm_version == 0) ?
-		spdm_get_measurements_rq_length_1_0 (req) : spdm_get_measurements_rq_length (req);
+			spdm_get_measurements_rq_length_1_0 (req) : spdm_get_measurements_rq_length (req);
 	status = mock_expect (&testing->secondary_hash.mock, testing->secondary_hash.base.update,
-		&testing->secondary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (req, rq_len),
-		MOCK_ARG (rq_len));
+		&testing->secondary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (req, rq_len), MOCK_ARG (rq_len));
 	if (hash_update_fail) {
 		status |= mock_expect (&testing->secondary_hash.mock, testing->secondary_hash.base.update,
 			&testing->secondary_hash, HASH_ENGINE_NO_MEMORY,
@@ -4824,7 +4828,7 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type_req
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type));
 	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct mctp_control_get_message_type);
 	req_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
 	req_expected->payload = tx_message;
@@ -4836,8 +4840,7 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type_req
 	request->header.rq = 1;
 	/* Request contruction ends. */
 
-	rx_message = platform_calloc (1,
-		sizeof (struct mctp_control_get_message_type_response) + 1 +
+	rx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type_response) + 1 +
 		testing->cerberus_discovery + testing->spdm_discovery);
 	resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
@@ -4851,7 +4854,8 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type_req
 	if (command_fail) {
 		response->header.header.command_code = 0;
 		response->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
-	} else {
+	}
+	else {
 		response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 		response->header.completion_code = MCTP_CONTROL_PROTOCOL_ERROR;
 	}
@@ -4922,7 +4926,6 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (Cu
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
 	uint32_t timeout = device_manager_get_mctp_ctrl_timeout (&testing->device_mgr);
 
-
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type));
 	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
@@ -4952,18 +4955,18 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (Cu
 		status = mock_expect (&testing->mctp_control.mock,
 			testing->mctp_control.base.send_request_message, &testing->mctp_control.base,
 			get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
-			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP ( cmd_interface_mock_validate_request, req_expected,
-				sizeof (*req_expected), cmd_interface_mock_save_request,
-				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 			MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 		CuAssertIntEquals (test, 0, status);
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
-	rx_message = platform_calloc (1,
-		sizeof (struct mctp_control_get_message_type_response) + 1 +
+	rx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type_response) + 1 +
 		testing->cerberus_discovery + testing->spdm_discovery);
 	resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
@@ -4973,7 +4976,7 @@ static void attestation_requester_testing_send_and_receive_mctp_get_msg_type (Cu
 
 	/* Added header info for message transport get message type response payload*/
 	response = (struct mctp_control_get_message_type_response*)
-		(resp_expected->payload );
+		(resp_expected->payload);
 	response->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	response->header.completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
 	response->message_type_count = 1 + testing->cerberus_discovery + testing->spdm_discovery;
@@ -5036,10 +5039,9 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 	size_t offset;
 
 	/* Request contruction starts */
-	tx_message = platform_calloc (1,
-		sizeof (struct mctp_control_get_routing_table_entries));
+	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_routing_table_entries));
 	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct mctp_control_get_routing_table_entries);
 	req_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
 	req_expected->payload = tx_message;
@@ -5068,18 +5070,20 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 		status = mock_expect (&testing->mctp_control.mock,
 			testing->mctp_control.base.send_request_message, &testing->mctp_control.base,
 			get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
-			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP ( cmd_interface_mock_validate_request, req_expected,
-				sizeof (*req_expected), cmd_interface_mock_save_request,
-				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 			MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 		CuAssertIntEquals (test, 0, status);
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
 	/* Response contruction starts. */
-	rx_message = platform_calloc (1, sizeof (struct mctp_control_get_routing_table_entries_response) +
+	rx_message = platform_calloc (1,
+		sizeof (struct mctp_control_get_routing_table_entries_response) +
 		sizeof (struct mctp_control_routing_table_entry) * 2);
 	resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
@@ -5304,7 +5308,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 	};
 	struct attestation_requester attestation = attestation_requester_static_init (&testing.state,
 		&testing.mctp, &testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
-		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL, 
+		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL,
 		&testing.mctp_control.base);
 	int status;
 
@@ -5364,8 +5368,8 @@ static void attestation_requester_test_init_state (CuTest *test)
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
-		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key, &testing.keystore,
+		KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
 		sizeof (testing.dev_id_der), -1);
 	CuAssertIntEquals (test, 0, status);
@@ -5404,12 +5408,11 @@ static void attestation_requester_test_init_state (CuTest *test)
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
 
-	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
-		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
-		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
-		2, 3, 4, NULL);
+	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base, &testing.test,
+		&testing.device_mgr, &testing.store, &testing.primary_hash.base, &testing.background.base,
+		NULL, NULL, &testing.fw_version, &testing.riot,	&testing.authorization.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, &testing.device.base, 1, 2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mctp_control_init (&testing.cmd_mctp, &testing.device_mgr, 0x1414, 4);
@@ -5499,8 +5502,8 @@ static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5564,8 +5567,8 @@ static void attestation_requester_test_attest_device_cerberus_ecc_vendor_root_ca
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5628,8 +5631,8 @@ static void attestation_requester_test_attest_device_cerberus_ecc_untrusted_root
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5692,8 +5695,8 @@ static void attestation_requester_test_attest_device_cerberus_rsa (CuTest *test)
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5756,8 +5759,8 @@ static void attestation_requester_test_attest_device_cerberus_mbedtls_x509 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5827,8 +5830,8 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5899,8 +5902,8 @@ static void attestation_requester_test_attest_device_cerberus_already_authentica
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5964,8 +5967,8 @@ static void attestation_requester_test_attest_device_cerberus_multiple_pmr0_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -5999,8 +6002,8 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6034,8 +6037,8 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6047,7 +6050,8 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_already_authenticated (
+static void
+attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_already_authenticated (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6076,8 +6080,8 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -6089,7 +6093,9 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6118,8 +6124,8 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6153,8 +6159,8 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6190,8 +6196,8 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_fail (C
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6240,8 +6246,8 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_hash_fa
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6278,8 +6284,8 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_unexpec
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6315,8 +6321,8 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6328,7 +6334,8 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_already_authenticated (
+static void
+attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_already_authenticated (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6360,8 +6367,8 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -6373,7 +6380,9 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6405,8 +6414,8 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6449,8 +6458,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fa
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6494,8 +6503,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6539,8 +6548,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6552,7 +6561,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_init_ca_cert_store_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_init_ca_cert_store_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6589,8 +6599,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6646,8 +6656,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6659,7 +6669,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_no_riot_ca_add_root_ca_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_no_riot_ca_add_root_ca_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6703,8 +6714,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6716,7 +6727,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_vendor_root_ca_hash_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_vendor_root_ca_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6752,17 +6764,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		false, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_ECC_CA_NOPL_DER,
 		X509_CERTSS_ECC_CA_NOPL_DER_LEN, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
-		&testing.cfm, 0,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,	&testing.cfm, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.primary_hash.mock,
-		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, HASH_ENGINE_NO_MEMORY,
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -6774,8 +6785,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6787,7 +6798,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_vendor_root_ca_not_supported (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_vendor_root_ca_not_supported (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6825,17 +6837,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		false, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_ECC_CA_NOPL_DER,
 		X509_CERTSS_ECC_CA_NOPL_DER_LEN, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
-		&testing.cfm, 0,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,	&testing.cfm, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.primary_hash.mock,
-		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -6849,8 +6860,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6862,7 +6873,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_vendor_root_ca_add_root_ca_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_vendor_root_ca_add_root_ca_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6898,17 +6910,16 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 		false, false, ATTESTATION_RIOT_SLOT_NUM, 0, X509_CERTSS_ECC_CA_NOPL_DER,
 		X509_CERTSS_ECC_CA_NOPL_DER_LEN, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
-		&testing.cfm, 0,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,	&testing.cfm, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.primary_hash.mock,
-		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -6933,8 +6944,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -6946,7 +6957,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ve
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_start_cert_chain_hash_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_start_cert_chain_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6995,8 +7007,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_st
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7008,7 +7020,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_st
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_update_root_ca_hash_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_update_root_ca_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7065,8 +7078,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_up
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7078,7 +7091,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_up
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_hash_intermediate_cert_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_hash_intermediate_cert_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7127,8 +7141,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7140,7 +7154,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_load_intermediate_fail (
+static void attestation_requester_test_attest_device_cerberus_get_certificate_load_intermediate_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7195,8 +7210,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7208,7 +7223,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_authenticate_intermediate_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_authenticate_intermediate_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7270,8 +7286,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7283,7 +7299,9 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_init_intermediate_cert_store_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_init_intermediate_cert_store_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7347,8 +7365,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_in
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7432,8 +7450,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ad
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7485,8 +7503,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -7502,8 +7519,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7555,14 +7572,12 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, X509_ENGINE_LOAD_FAILED, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -7578,8 +7593,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7591,7 +7606,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_lo
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_authenticate_alias_cert_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_authenticate_alias_cert_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7631,14 +7647,12 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, X509_ENGINE_CERT_NOT_VALID, MOCK_ARG_SAVED_ARG (1),
@@ -7661,8 +7675,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7674,7 +7688,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_au
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_finish_cert_chain_hash_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_finish_cert_chain_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7714,14 +7729,12 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fi
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -7747,8 +7760,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fi
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7760,7 +7773,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fi
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_compare_cert_chain_digest_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_compare_cert_chain_digest_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7801,14 +7815,12 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_co
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -7818,8 +7830,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_co
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 0, out_digest,
-		SHA256_HASH_LENGTH, -1);
+	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 0, out_digest, SHA256_HASH_LENGTH,
+		-1);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1));
@@ -7832,8 +7844,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7845,7 +7857,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_co
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_get_alias_public_key_type_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_get_alias_public_key_type_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7891,14 +7904,12 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -7908,8 +7919,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 0, out_digest,
-		SHA256_HASH_LENGTH, -1);
+	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 0, out_digest, SHA256_HASH_LENGTH,
+		-1);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.get_public_key_type,
 		&testing.x509_mock, X509_ENGINE_KEY_TYPE_FAILED, MOCK_ARG_SAVED_ARG (1));
@@ -7925,8 +7936,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -7938,7 +7949,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_get_alias_public_key_fail (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_get_alias_public_key_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -7984,14 +7996,12 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.load_certificate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1),
 		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_DEVID_INTR_SIGNED_CERT,
-			RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN),
-		MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN), MOCK_ARG (RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.authenticate,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_SAVED_ARG (0));
@@ -8001,8 +8011,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 0, out_digest,
-		SHA256_HASH_LENGTH, -1);
+	status |= mock_expect_output_tmp (&testing.primary_hash.mock, 0, out_digest, SHA256_HASH_LENGTH,
+		-1);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.get_public_key_type,
 		&testing.x509_mock, X509_PUBLIC_KEY_ECC, MOCK_ARG_SAVED_ARG (1));
@@ -8022,8 +8032,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_ge
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8066,8 +8076,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8079,7 +8089,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_no_rsp_already_authenticated (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_no_rsp_already_authenticated (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -8118,8 +8129,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -8131,7 +8142,9 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_get_certificate_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_cerberus_get_certificate_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -8170,8 +8183,8 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8214,8 +8227,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_start_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8263,8 +8276,8 @@ static void attestation_requester_test_attest_device_cerberus_generate_challenge
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8306,8 +8319,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8348,8 +8361,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_fail (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8391,8 +8404,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8434,8 +8447,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8447,7 +8460,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_challenge_unexpected_min_protocol_version (
+static void
+attestation_requester_test_attest_device_cerberus_challenge_unexpected_min_protocol_version (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -8477,8 +8491,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8490,7 +8504,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_challenge_unexpected_max_protocol_version (
+static void
+attestation_requester_test_attest_device_cerberus_challenge_unexpected_max_protocol_version (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -8520,8 +8535,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8563,8 +8578,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_update_h
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8606,8 +8621,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_hash_fin
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8649,8 +8664,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_init
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8692,8 +8707,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_ecc_veri
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8735,8 +8750,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_not_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8778,8 +8793,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_init
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8821,8 +8836,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_rsa_veri
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8864,8 +8879,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8906,8 +8921,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -8919,7 +8934,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp (
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_already_authenticated (
+static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_already_authenticated
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -8956,8 +8972,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -8969,7 +8985,9 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_cerberus_challenge_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -9006,8 +9024,8 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9054,8 +9072,8 @@ static void attestation_requester_test_attest_device_cerberus_get_component_pmr_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9113,8 +9131,8 @@ static void attestation_requester_test_attest_device_cerberus_pmr0_digest_invali
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9172,8 +9190,8 @@ static void attestation_requester_test_attest_device_cerberus_no_pmr0_digest_mat
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9227,8 +9245,8 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -9284,8 +9302,9 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -9295,15 +9314,13 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -9326,7 +9343,8 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
 		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
@@ -9356,14 +9374,14 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (attestation_status_expected_pcr +
-		sizeof (pcr_event_version_info) , attestation_status, sizeof (attestation_status_expected));
+		sizeof (pcr_event_version_info), attestation_status, sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9440,8 +9458,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -9451,8 +9470,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
@@ -9477,8 +9496,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_challenge 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9514,8 +9533,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -9550,15 +9569,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -9578,8 +9595,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_challe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9625,8 +9642,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -9656,8 +9673,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -9667,15 +9685,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -9695,8 +9711,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_challenge 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9732,8 +9748,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -9768,15 +9784,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -9796,8 +9810,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_challe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9843,8 +9857,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -9874,8 +9888,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -9885,15 +9900,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -9913,8 +9926,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_challenge 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -9950,8 +9963,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -9986,15 +9999,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -10014,8 +10025,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_challe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10064,8 +10075,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -10108,8 +10119,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -10119,15 +10131,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -10153,8 +10163,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10202,8 +10212,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -10265,8 +10275,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10278,7 +10288,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_cert_unsupported_already_authenticated (
+static void
+attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_cert_unsupported_already_authenticated
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -10314,8 +10326,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -10384,8 +10396,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10397,7 +10409,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_cert_unsupported_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_cert_unsupported_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -10433,8 +10447,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -10503,8 +10517,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_pmr0_get_c
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10548,8 +10562,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -10588,15 +10602,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -10622,8 +10634,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10635,7 +10647,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0 (
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported (
+static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -10668,8 +10681,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -10727,8 +10740,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10740,7 +10753,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported_already_authenticated (
+static void
+attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported_already_authenticated
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -10773,8 +10788,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -10839,8 +10854,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -10852,7 +10867,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_get_cert_unsupported_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -10885,8 +10902,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -10951,8 +10968,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_pmr0_g
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11001,8 +11018,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -11045,8 +11062,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -11056,15 +11074,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -11090,8 +11106,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_pmr0 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11135,8 +11151,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -11175,15 +11191,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -11209,8 +11223,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_pmr0 (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11259,8 +11273,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -11303,8 +11317,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -11314,15 +11329,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -11348,8 +11361,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_pmr0 (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11393,8 +11406,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -11433,15 +11446,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -11467,8 +11478,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_pmr0 (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11525,18 +11536,18 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 
 	TEST_START;
 
-	buffer_reverse(signature, ECC_KEY_LENGTH_256);
-	buffer_reverse(signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 70, status);
 
-	buffer_reverse(signature, ECC_KEY_LENGTH_256);
-	buffer_reverse(signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -11577,9 +11588,8 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
@@ -11590,15 +11600,13 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 70),
-		MOCK_ARG (70));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 70), MOCK_ARG (70));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -11624,8 +11632,8 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11682,18 +11690,18 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 
 	TEST_START;
 
-	buffer_reverse(signature, ECC_KEY_LENGTH_256);
-	buffer_reverse(signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 70, status);
 
-	buffer_reverse(signature, ECC_KEY_LENGTH_256);
-	buffer_reverse(signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -11734,28 +11742,25 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest,
-		sizeof (digest)), MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 69),
-		MOCK_ARG (69));
+		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)), MOCK_ARG (sizeof (digest)),
+		MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 70),
-		MOCK_ARG (70));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 70), MOCK_ARG (70));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -11781,8 +11786,8 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11821,8 +11826,8 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -11852,8 +11857,9 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -11863,14 +11869,14 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+		ECC_ENGINE_BAD_SIGNATURE, MOCK_ARG_SAVED_ARG (0),
+		MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)), MOCK_ARG (sizeof (digest)),
+		MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -11881,8 +11887,8 @@ static void attestation_requester_test_attest_device_spdm_only_little_endian_sig
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -11932,8 +11938,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -11976,8 +11982,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -11987,15 +11994,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12021,8 +12026,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_multiple_pmr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -12075,8 +12080,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -12119,8 +12124,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -12130,15 +12136,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12164,8 +12168,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_only_measuremen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -12213,8 +12217,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -12253,15 +12257,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12287,8 +12289,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_1_1_only_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -12341,8 +12343,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -12385,8 +12387,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -12396,15 +12399,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12430,8 +12431,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_only_measuremen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -12479,8 +12480,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -12519,15 +12520,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12553,8 +12552,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_1_1_only_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -12607,8 +12606,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -12651,8 +12650,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -12662,15 +12662,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12696,8 +12694,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_only_measuremen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -12745,8 +12743,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -12785,15 +12783,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12819,8 +12815,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -12832,7 +12828,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_1_1_only_measur
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_multiple_measurement_options (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_multiple_measurement_options (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -12874,8 +12871,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 		signature[i] = i * 10;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -12918,8 +12915,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -12929,15 +12927,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -12963,8 +12959,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_multi
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -13040,12 +13036,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		signature2[i] = i * 10 - 1;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -13088,8 +13084,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -13099,15 +13096,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -13129,8 +13124,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -13140,15 +13136,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -13179,8 +13173,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -13256,12 +13250,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 		signature2[i] = i * 10 - 1;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -13304,8 +13298,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -13315,15 +13310,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -13345,8 +13338,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -13356,15 +13350,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -13395,8 +13387,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -13408,7 +13400,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_versi
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_skip_inapplicable_version_set (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_skip_inapplicable_version_set (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -13458,7 +13451,6 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 		HASH_TYPE_SHA256;
 	container2.measurement.digest.allowable_digests[0].digests.digests = measurement2;
 
-
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
 		digest2[i] = i * 2;
@@ -13473,12 +13465,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 		signature2[i] = i * 10 - 1;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -13521,8 +13513,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -13532,15 +13525,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -13562,8 +13553,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -13573,15 +13565,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -13612,8 +13602,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -13625,7 +13615,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_skip_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_2_measurement_blocks_multiple_allowable_digests_for_different_version_sets (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_2_measurement_blocks_multiple_allowable_digests_for_different_version_sets
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -13696,12 +13688,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		signature2[i] = i * 10 - 1;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -13744,8 +13736,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -13755,15 +13748,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -13785,8 +13776,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -13796,15 +13788,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -13835,8 +13825,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -13848,7 +13838,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_2_measurement_blocks_fail_on_second (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_2_measurement_blocks_fail_on_second (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -13921,12 +13912,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -13972,8 +13963,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -13983,15 +13975,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -14018,8 +14008,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -14029,15 +14020,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -14070,8 +14059,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -14084,7 +14073,6 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_2_mea
 
 	status = logging_mock_validate_and_release (&logger);
 	CuAssertIntEquals (test, 0, status);
-
 }
 
 static void attestation_requester_test_attest_device_spdm_only_measurement_data_equal (CuTest *test)
@@ -14135,8 +14123,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -14180,8 +14168,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -14191,15 +14180,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -14225,8 +14212,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -14287,8 +14274,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -14332,8 +14319,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -14343,15 +14331,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -14377,8 +14363,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -14443,8 +14429,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -14489,8 +14475,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -14500,15 +14487,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -14534,8 +14519,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -14596,8 +14581,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -14641,8 +14626,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -14652,15 +14638,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -14669,8 +14653,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL);
 	status |= mock_expect (&testing.cfm.mock,
-		testing.cfm.base.get_next_measurement_or_measurement_data,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
 		sizeof (struct cfm_measurement_container), -1);
 	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
@@ -14683,8 +14667,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -14696,7 +14680,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_equal_with_bitmask_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_equal_with_bitmask_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -14751,8 +14736,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -14797,8 +14782,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -14808,15 +14794,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -14839,8 +14823,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -14905,8 +14889,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -14950,8 +14934,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -14961,15 +14946,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -14995,8 +14978,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -15008,7 +14991,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_big_endian (
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_big_endian
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -15061,8 +15045,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -15106,8 +15090,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -15117,15 +15102,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -15151,8 +15134,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -15164,7 +15147,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_with_bitmask (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_with_bitmask (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -15219,8 +15203,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -15265,8 +15249,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -15276,15 +15261,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -15310,8 +15293,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -15372,8 +15355,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -15417,8 +15400,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -15428,15 +15412,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -15459,8 +15441,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -15472,7 +15454,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_fail_second_data_entry (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_fail_second_data_entry
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -15525,8 +15509,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -15570,8 +15554,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -15581,15 +15566,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -15612,8 +15595,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -15625,7 +15608,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_with_bitmask_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_not_equal_with_bitmask_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -15678,8 +15662,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -15724,8 +15708,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -15735,15 +15720,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -15766,8 +15749,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -15831,8 +15814,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -15876,8 +15859,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -15887,14 +15871,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -15920,8 +15903,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -15933,7 +15916,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_big_endian (
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_big_endian
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -15985,8 +15969,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -16030,8 +16014,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -16041,14 +16026,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -16074,8 +16058,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -16087,7 +16071,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_with_bitmask (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_with_bitmask (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -16142,8 +16127,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -16188,8 +16173,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -16199,15 +16185,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -16233,8 +16217,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -16295,8 +16279,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -16340,8 +16324,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -16351,15 +16336,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -16382,8 +16365,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -16395,7 +16378,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_with_bitmask_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_with_bitmask_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -16448,8 +16432,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -16494,8 +16478,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -16505,15 +16490,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -16536,8 +16519,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -16600,8 +16583,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -16645,8 +16628,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -16656,15 +16640,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -16690,8 +16672,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -16703,7 +16685,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_big_endian (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_big_endian (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -16754,8 +16737,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -16799,8 +16782,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -16810,15 +16794,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -16844,8 +16826,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -16857,7 +16839,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_equal (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -16906,8 +16889,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -16951,8 +16934,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -16962,15 +16946,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -16996,8 +16978,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -17009,7 +16991,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -17064,8 +17048,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -17110,8 +17094,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -17121,15 +17106,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -17155,8 +17138,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -17168,7 +17151,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask_equal
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -17222,8 +17207,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -17268,8 +17253,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -17279,15 +17265,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -17313,8 +17297,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -17326,7 +17310,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -17377,8 +17362,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -17422,8 +17407,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -17433,15 +17419,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -17464,8 +17448,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -17477,7 +17461,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_less_than_or_equal_with_bitmask_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -17532,8 +17518,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -17578,8 +17564,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -17589,15 +17576,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -17620,8 +17605,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -17684,8 +17669,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -17729,8 +17714,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -17740,15 +17726,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -17774,8 +17758,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -17787,7 +17771,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_big_endian (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_big_endian (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -17838,8 +17823,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -17883,8 +17868,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -17894,15 +17880,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -17928,8 +17912,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -17941,7 +17925,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_with_bitmask (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_with_bitmask (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -17996,8 +17981,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -18042,8 +18027,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -18053,15 +18039,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -18087,8 +18071,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -18149,8 +18133,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -18194,8 +18178,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -18205,15 +18190,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -18236,8 +18219,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -18249,7 +18232,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_with_bitmask_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_with_bitmask_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -18302,8 +18286,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -18348,8 +18332,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -18359,15 +18344,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -18390,8 +18373,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -18403,7 +18386,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -18454,8 +18438,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -18499,8 +18483,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -18510,15 +18495,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -18544,8 +18527,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -18557,7 +18540,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_big_endian (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_big_endian
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -18607,8 +18592,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -18652,8 +18637,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -18663,15 +18649,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -18700,7 +18684,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_equal (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -18749,8 +18734,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -18794,8 +18779,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -18805,15 +18791,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -18839,8 +18823,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -18852,7 +18836,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -18907,8 +18893,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -18953,8 +18939,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -18964,15 +18951,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -18998,8 +18983,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -19011,7 +18996,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask_equal
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -19065,8 +19052,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -19111,8 +19098,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -19122,15 +19110,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -19156,8 +19142,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -19169,7 +19155,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -19220,8 +19207,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -19265,8 +19252,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -19276,15 +19264,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -19307,8 +19293,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -19320,7 +19306,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_greater_than_or_equal_with_bitmask_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -19375,8 +19363,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -19421,8 +19409,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -19432,15 +19421,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -19463,8 +19450,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -19528,8 +19515,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -19574,8 +19561,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -19585,15 +19573,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -19616,8 +19602,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -19629,7 +19615,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_equal
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -19682,8 +19670,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -19727,8 +19715,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -19738,15 +19727,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -19772,8 +19759,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -19785,7 +19772,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_equal_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_equal_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -19838,8 +19827,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -19883,8 +19872,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -19894,15 +19884,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -19925,8 +19913,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -19938,7 +19926,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_not_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_not_equal
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -19991,8 +19981,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -20036,8 +20026,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -20047,15 +20038,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -20081,8 +20070,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -20094,7 +20083,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_not_equal_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_not_equal_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -20147,8 +20138,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -20192,8 +20183,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -20203,15 +20195,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -20234,8 +20224,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -20247,7 +20237,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_less_than (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_less_than
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -20300,8 +20292,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -20345,8 +20337,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -20356,15 +20349,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -20387,8 +20378,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -20400,7 +20391,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_less_than_or_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_less_than_or_equal
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -20453,8 +20446,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -20498,8 +20491,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -20509,15 +20503,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -20540,8 +20532,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -20553,7 +20545,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_greater_than (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_greater_than
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -20606,8 +20600,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -20651,8 +20645,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -20662,15 +20657,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -20693,8 +20686,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -20706,7 +20699,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_greater_than_or_equal (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_measurement_options_greater_than_or_equal
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -20759,8 +20754,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -20804,8 +20799,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -20815,15 +20811,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -20846,8 +20840,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -20926,8 +20920,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -20971,8 +20965,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -20982,15 +20977,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -21013,8 +21006,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -21026,12 +21019,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_2_data_checks_differing_length (
-	CuTest* test)
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_2_data_checks_differing_length (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
-	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = { 0 };
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-measurements signing";
 	struct cfm_measurement_container container;
@@ -21040,7 +21034,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
-	uint8_t measurement[SHA384_HASH_LENGTH*2];
+	uint8_t measurement[SHA384_HASH_LENGTH * 2];
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
 	int status;
@@ -21081,8 +21075,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -21122,30 +21116,29 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof(digest), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof(digest)),
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof(digest2),
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof(digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -21171,8 +21164,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -21181,7 +21174,7 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
-	complete_attestation_requester_mock_test(test, &testing, true);
+	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_spdm_only_measurement_data_1_1 (CuTest *test)
@@ -21227,8 +21220,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -21268,15 +21261,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -21302,8 +21293,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -21364,8 +21355,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -21409,8 +21400,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -21420,15 +21412,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -21454,8 +21444,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -21516,8 +21506,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -21561,8 +21551,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -21572,15 +21563,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -21606,8 +21595,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -21619,7 +21608,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_2_measurement_blocks (
+static void attestation_requester_test_attest_device_spdm_only_measurement_data_2_measurement_blocks
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -21696,12 +21686,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -21746,8 +21736,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -21757,15 +21748,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -21787,8 +21776,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -21798,15 +21788,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -21837,8 +21825,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -21850,7 +21838,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_version_set_0_permitted (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_version_set_0_permitted (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -21927,12 +21916,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -21977,8 +21966,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -21988,15 +21978,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -22018,8 +22006,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -22029,15 +22018,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -22068,8 +22055,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -22081,7 +22068,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_skip_inapplicable_version_set (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_skip_inapplicable_version_set (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -22158,12 +22146,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -22208,8 +22196,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -22219,15 +22208,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -22249,8 +22236,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -22260,15 +22248,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -22299,8 +22285,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -22312,7 +22298,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_data_entries_for_different_version_sets (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_multiple_data_entries_for_different_version_sets
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -22394,12 +22382,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -22444,8 +22432,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -22455,15 +22444,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -22485,8 +22472,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -22496,15 +22484,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -22535,8 +22521,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -22548,7 +22534,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_measurement_data_2_measurement_blocks_fail_on_second (
+static void
+attestation_requester_test_attest_device_spdm_only_measurement_data_2_measurement_blocks_fail_on_second
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -22625,12 +22613,12 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -22675,8 +22663,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -22686,15 +22675,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -22716,8 +22703,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -22727,15 +22715,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -22763,8 +22749,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -22810,8 +22796,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -22855,8 +22841,9 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -22866,15 +22853,13 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -22897,8 +22882,8 @@ static void attestation_requester_test_attest_device_spdm_only_measurement_data_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -22980,12 +22965,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -23030,8 +23015,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -23041,15 +23027,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -23071,8 +23055,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -23082,15 +23067,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -23121,8 +23104,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_then_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -23204,12 +23187,12 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
-	status = ecc_der_encode_ecdsa_signature (signature2,
-		&signature2[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	status = ecc_der_encode_ecdsa_signature (signature2, &signature2[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
 	CuAssertIntEquals (test, 71, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -23254,8 +23237,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -23265,15 +23249,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -23295,8 +23277,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
 		MOCK_ARG (sizeof (digest3)));
@@ -23306,15 +23289,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71),
-		MOCK_ARG (71));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
+		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -23345,8 +23326,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_then_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -23388,8 +23369,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	for (i = 0; i < sizeof (digest); ++i) {
@@ -23426,8 +23407,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -23437,13 +23419,12 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
 		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
@@ -23453,9 +23434,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA,
-		RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,
-		X509_PUBLIC_KEY_ECC);
+	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA, RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,	X509_PUBLIC_KEY_ECC);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
@@ -23473,8 +23453,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_no_cert_retriev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -23516,8 +23496,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -23554,8 +23534,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -23565,15 +23546,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -23582,9 +23561,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA,
-		RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,
-		X509_PUBLIC_KEY_ECC);
+	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA, RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,	X509_PUBLIC_KEY_ECC);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
@@ -23602,8 +23580,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_no_cert_retriev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -23645,8 +23623,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -23683,8 +23661,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -23694,15 +23673,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -23711,9 +23688,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 		ATTESTATION_RIOT_SLOT_NUM, cert_chain_digest, sizeof (cert_chain_digest));
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA,
-		RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,
-		X509_PUBLIC_KEY_ECC);
+	status = device_manager_update_alias_key (&testing.device_mgr, 0xAA, RIOT_CORE_ALIAS_PUBLIC_KEY,
+		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN,	X509_PUBLIC_KEY_ECC);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
@@ -23731,8 +23707,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_no_cert_retriev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -23774,8 +23750,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	for (i = 0; i < sizeof (cert_chain_digest); ++i) {
@@ -23814,8 +23790,9 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -23825,15 +23802,13 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -23857,8 +23832,8 @@ static void attestation_requester_test_attest_device_spdm_sha256_update_cert_cha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -23900,8 +23875,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	for (i = 0; i < sizeof (cert_chain_digest); ++i) {
@@ -23940,8 +23915,9 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -23951,15 +23927,13 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -23983,8 +23957,8 @@ static void attestation_requester_test_attest_device_spdm_sha384_update_cert_cha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24026,8 +24000,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	for (i = 0; i < sizeof (cert_chain_digest); ++i) {
@@ -24066,8 +24040,9 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha512,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24077,15 +24052,13 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24109,8 +24082,8 @@ static void attestation_requester_test_attest_device_spdm_sha512_update_cert_cha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24157,8 +24130,8 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -24188,8 +24161,9 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24199,15 +24173,13 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24227,8 +24199,8 @@ static void attestation_requester_test_attest_device_spdm_vendor_root_ca (CuTest
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24274,8 +24246,8 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -24305,8 +24277,9 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24316,15 +24289,13 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24344,8 +24315,8 @@ static void attestation_requester_test_attest_device_spdm_riot_root_ca (CuTest *
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24386,8 +24357,8 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -24422,8 +24393,9 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24433,15 +24405,13 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24461,8 +24431,8 @@ static void attestation_requester_test_attest_device_spdm_mbedtls_x509 (CuTest *
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24503,8 +24473,8 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -24539,8 +24509,9 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24550,15 +24521,13 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24585,8 +24554,8 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24628,8 +24597,8 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -24664,8 +24633,9 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24675,15 +24645,13 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24710,8 +24678,8 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24755,8 +24723,8 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 		signature[i] = i * 10;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	pmr_digest.pmr_id = 0;
@@ -24821,8 +24789,9 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24832,15 +24801,13 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24860,8 +24827,8 @@ static void attestation_requester_test_attest_device_spdm_cert_retrieval_more_th
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -24908,8 +24875,8 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -24939,8 +24906,9 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -24950,15 +24918,13 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -24978,8 +24944,8 @@ static void attestation_requester_test_attest_device_spdm_multiple_pmr0_digest_o
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25030,8 +24996,8 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
 		sizeof (struct cfm_component_device), -1);
 	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
-		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
@@ -25040,8 +25006,8 @@ static void attestation_requester_test_attest_device_spdm_no_secondary_hash (CuT
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25075,8 +25041,8 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha256_fail
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25110,8 +25076,8 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha384_fail
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25145,8 +25111,8 @@ static void attestation_requester_test_attest_device_spdm_start_hash_sha512_fail
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25193,8 +25159,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_req_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25243,8 +25209,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_fail (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25296,8 +25262,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_response_n
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25346,8 +25312,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_unexpected
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25396,8 +25362,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25454,8 +25420,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -25467,7 +25433,9 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_get_version_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -25512,8 +25480,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_no_rsp_alr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25563,8 +25531,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25617,8 +25585,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25630,7 +25598,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_version_unsupported_prerelease_version (
+static void attestation_requester_test_attest_device_spdm_get_version_unsupported_prerelease_version
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -25670,8 +25639,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_unsupporte
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_VERSION, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25709,8 +25678,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_rsp_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25789,8 +25758,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_req_h
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25862,8 +25831,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_fail 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -25938,8 +25907,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_respo
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26012,8 +25981,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_unexp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26086,8 +26055,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26099,7 +26068,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rsp_already_authenticated (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_no_rsp_already_authenticated (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26167,8 +26137,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -26180,7 +26150,9 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26248,8 +26220,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26261,7 +26233,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_no_rs
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_not_supported (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_not_supported (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26324,8 +26297,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26337,7 +26310,9 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_without_sig (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_without_sig
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26400,8 +26375,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26413,7 +26388,9 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_with_sig_get_cert_unsupported (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_measurement_cap_supported_with_sig_get_cert_unsupported
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26476,8 +26453,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26489,7 +26466,9 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_measu
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_challenge_supported_get_cert_unsupported (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_challenge_supported_get_cert_unsupported
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26553,8 +26532,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_chall
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CAPS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26592,8 +26571,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_rsp_h
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26605,7 +26584,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_rsp_h
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_0_max_msg_size (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_0_max_msg_size (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26644,8 +26624,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_verif
 	CuAssertIntEquals (test, SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN,
 		capabilities.request.max_message_size);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26657,7 +26637,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_verif
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_1_max_msg_size (
+static void
+attestation_requester_test_attest_device_spdm_get_capabilities_verify_spdm_1_1_max_msg_size (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26696,8 +26677,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_verif
 	CuAssertIntEquals (test, SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN,
 		capabilities.request.max_message_size);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26709,7 +26690,8 @@ static void attestation_requester_test_attest_device_spdm_get_capabilities_verif
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_req_hash_update_fail (
+static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_req_hash_update_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -26755,8 +26737,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26816,8 +26798,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_f
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26879,8 +26861,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -26940,8 +26922,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27001,8 +26983,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27014,7 +26996,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_no_rsp_already_authenticated (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_no_rsp_already_authenticated (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27069,8 +27052,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -27082,7 +27065,9 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_no_rsp_already_autenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_no_rsp_already_autenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27137,8 +27122,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27150,7 +27135,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_n
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_measurement_spec (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_measurement_spec (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27199,8 +27185,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27212,7 +27198,9 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_mismatched_base_asym_key_sig_alg (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_mismatched_base_asym_key_sig_alg
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27262,8 +27250,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_m
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27275,7 +27263,9 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_m
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_base_asym_key_sig_alg_get_cert_unsupported (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_base_asym_key_sig_alg_get_cert_unsupported
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27328,8 +27318,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27341,7 +27331,9 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_hash_alg_get_cert_unsupported (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_supported_hash_alg_get_cert_unsupported
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27394,8 +27386,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27407,7 +27399,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_s
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_hash_alg (
+static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_hash_alg
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27457,8 +27450,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27520,8 +27513,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27533,7 +27526,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_meas_hash_alg (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_unsupported_meas_hash_alg (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27583,8 +27577,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27596,7 +27590,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_unexpected_meas_hash_alg (
+static void
+attestation_requester_test_attest_device_spdm_negotiate_algorithms_unexpected_meas_hash_alg (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27646,8 +27641,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27659,7 +27654,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_u
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_rsp_hash_update_fail (
+static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_rsp_hash_update_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27676,8 +27672,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
-		true, &testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test, true,
+		&testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
@@ -27685,8 +27681,8 @@ static void attestation_requester_test_attest_device_spdm_negotiate_algorithms_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27738,8 +27734,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27792,8 +27788,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_fail (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27846,8 +27842,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_unexpected
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27900,8 +27896,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -27962,8 +27958,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -27975,7 +27971,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_get_digests_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -28024,8 +28022,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_no_rsp_alr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28080,8 +28078,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_invalid_rs
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28133,8 +28131,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_req_slot_e
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28174,8 +28172,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_hash_u
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28242,8 +28240,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -28322,8 +28320,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
-		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key, &testing.keystore,
+		KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
 		sizeof (testing.dev_id_der), -1);
 	CuAssertIntEquals (test, 0, status);
@@ -28373,12 +28371,11 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
 
-	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
-		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
-		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
-		2, 3, 4, NULL);
+	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base, &testing.test,
+		&testing.device_mgr, &testing.store, &testing.primary_hash.base, &testing.background.base,
+		NULL, NULL, &testing.fw_version, &testing.riot,	&testing.authorization.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, &testing.device.base, 1, 2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mctp_control_init (&testing.cmd_mctp, &testing.device_mgr, 0x1414, 4);
@@ -28422,13 +28419,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device,
-		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device,	&testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
 		sizeof (struct cfm_component_device), -1);
 	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
-		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
@@ -28538,8 +28535,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	}
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (rsp_buf, sizeof (rsp_buf)),
+		&testing.secondary_hash, 0,	MOCK_ARG_PTR_CONTAINS_TMP (rsp_buf, sizeof (rsp_buf)),
 		MOCK_ARG (rsp_len));
 
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
@@ -28553,8 +28549,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -28564,15 +28561,13 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)),MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -28592,8 +28587,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28605,7 +28600,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready_too_many_retries (
+static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready_too_many_retries
+(
 	CuTest *test)
 {
 	uint32_t component_id = 101;
@@ -28650,8 +28646,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28709,8 +28705,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_req_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28769,8 +28765,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_fail (
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28830,8 +28826,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_unexpe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28890,8 +28886,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28942,7 +28938,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 		&testing.primary_hash, 0);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
-	&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
+		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
 
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
@@ -28955,8 +28951,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -28968,7 +28964,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_already_authenticated (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_already_authenticated (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -29023,8 +29020,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -29035,7 +29032,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
-static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_no_rsp_already_authenticated_with_timeout
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -29090,8 +29089,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rsp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29153,8 +29152,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_un
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29196,8 +29195,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_rsp_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29256,8 +29255,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_too_la
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29269,7 +29268,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_too_la
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_zero_rsp_len (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_get_certificate_zero_rsp_len (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	int status;
@@ -29308,7 +29308,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_zero_r
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_invalid_rsp_len (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_get_certificate_invalid_rsp_len (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	int status;
@@ -29347,7 +29348,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_invali
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_single (
+static void attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_single
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -29382,8 +29384,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 		signature[i] = i * 10;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -29446,16 +29448,14 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
@@ -29479,8 +29479,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29492,7 +29492,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_multiple (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_non_contiguous_mask_multiple (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -29527,8 +29528,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 		signature[i] = i * 10;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -29591,16 +29592,14 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
@@ -29624,8 +29623,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_non_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29684,8 +29683,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_c
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29751,8 +29750,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_ro
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29764,7 +29763,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_ro
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_no_riot_ca_add_root_ca_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_no_riot_ca_add_root_ca_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -29818,8 +29818,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_no_rio
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29874,8 +29874,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_ve
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29933,13 +29933,12 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
-		&testing.cfm, 0,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,	&testing.cfm, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.primary_hash.mock,
-		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, HASH_ENGINE_NO_MEMORY,
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -29955,8 +29954,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -29968,7 +29967,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_vendor_root_ca_not_supported (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_vendor_root_ca_not_supported (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30016,13 +30016,12 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
-		&testing.cfm, 0,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,	&testing.cfm, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.primary_hash.mock,
-		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -30040,8 +30039,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30053,7 +30052,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_vendor_root_ca_add_root_ca_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_vendor_root_ca_add_root_ca_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30099,13 +30099,12 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &root_ca_digests,
 		sizeof (struct cfm_root_ca_digests), -1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,
-		&testing.cfm, 0,
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_root_ca_digest,	&testing.cfm, 0,
 		MOCK_ARG_PTR_CONTAINS_TMP (&root_ca_digests, sizeof (struct cfm_root_ca_digests)));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.primary_hash.mock,
-		testing.primary_hash.base.calculate_sha256, &testing.primary_hash, 0,
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.calculate_sha256,
+		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (X509_CERTSS_ECC_CA_NOPL_DER, X509_CERTSS_ECC_CA_NOPL_DER_LEN),
 		MOCK_ARG (X509_CERTSS_ECC_CA_NOPL_DER_LEN), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (HASH_MAX_HASH_LEN));
@@ -30134,8 +30133,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30147,7 +30146,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_vendor
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_start_sha256_cert_chain_hash_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_start_sha256_cert_chain_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30177,8 +30177,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
 		false, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
+		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
@@ -30206,8 +30206,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30219,7 +30219,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_update_sha256_cert_chain_header_hash_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_update_sha256_cert_chain_header_hash_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30249,8 +30251,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
 		false, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
+		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
@@ -30267,7 +30269,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-			sizeof (struct spdm_certificate_chain) + SHA256_HASH_LENGTH),
+		sizeof (struct spdm_certificate_chain) + SHA256_HASH_LENGTH),
 		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
@@ -30287,8 +30289,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30300,7 +30302,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_start_sha384_cert_chain_hash_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_start_sha384_cert_chain_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30330,8 +30333,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
 		false, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
+		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
@@ -30359,8 +30362,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30372,7 +30375,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_update_sha384_cert_chain_header_hash_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_update_sha384_cert_chain_header_hash_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30402,8 +30407,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
 		false, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
+		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
@@ -30420,7 +30425,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-			sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
+		sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
 		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
@@ -30440,8 +30445,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30453,7 +30458,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_start_sha512_cert_chain_hash_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_start_sha512_cert_chain_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30483,8 +30489,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
 		false, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
+		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
@@ -30512,8 +30518,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30525,7 +30531,9 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_start_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_update_sha512_cert_chain_header_hash_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_update_sha512_cert_chain_header_hash_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30555,8 +30563,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
 		false, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
+		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
@@ -30573,7 +30581,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-			sizeof (struct spdm_certificate_chain) + SHA512_HASH_LENGTH),
+		sizeof (struct spdm_certificate_chain) + SHA512_HASH_LENGTH),
 		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA512_HASH_LENGTH));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
@@ -30593,8 +30601,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30636,8 +30644,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks (test, false,
 		false, &testing);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest,
-		&testing.cfm, CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_root_ca_digest, &testing.cfm,
+		CFM_ROOT_CA_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.init_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_NOT_NULL);
@@ -30654,7 +30662,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-			sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
+		sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
 		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -30679,8 +30687,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30692,7 +30700,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_hash_intermediate_cert_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_hash_intermediate_cert_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30752,8 +30761,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_i
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30830,8 +30839,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_i
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30843,7 +30852,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_i
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_authenticate_intermediate_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_authenticate_intermediate_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -30916,8 +30926,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -30929,7 +30939,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_init_intermediate_cert_store_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_init_intermediate_cert_store_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -31004,8 +31015,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_init_i
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31100,8 +31111,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_add_tr
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31183,8 +31194,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_hash_a
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31271,8 +31282,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_a
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31284,7 +31295,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_load_a
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_authenticate_alias_cert_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_authenticate_alias_cert_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -31366,8 +31378,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31379,7 +31391,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_authen
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_finish_cert_chain_hash_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_finish_cert_chain_hash_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -31464,8 +31477,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_finish
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31477,7 +31490,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_finish
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_compare_cert_chain_digest_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_compare_cert_chain_digest_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -31561,8 +31575,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_compar
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31574,7 +31588,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_compar
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_get_alias_public_key_type_fail (
+static void
+attestation_requester_test_attest_device_spdm_get_certificate_get_alias_public_key_type_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -31666,8 +31681,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31679,7 +31694,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_get_alias_public_key_fail (
+static void attestation_requester_test_attest_device_spdm_get_certificate_get_alias_public_key_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -31775,8 +31791,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31788,7 +31804,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_get_al
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_certificate_1_2_min_transfer_size (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_get_certificate_1_2_min_transfer_size (
+	CuTest *test)
 {
 	uint32_t component_id = 50;
 	struct attestation_requester_testing testing;
@@ -31815,8 +31832,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_1_2_mi
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, RNG_ENGINE_NO_MEMORY, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		RNG_ENGINE_NO_MEMORY, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
@@ -31829,8 +31846,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_1_2_mi
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31866,8 +31883,8 @@ static void attestation_requester_test_attest_device_spdm_generate_random_buffer
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, RNG_ENGINE_NO_MEMORY, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		RNG_ENGINE_NO_MEMORY, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
@@ -31880,8 +31897,8 @@ static void attestation_requester_test_attest_device_spdm_generate_random_buffer
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -31933,13 +31950,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_req_hash_upd
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS ( &req, sizeof (req)),
+		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (&req, sizeof (req)),
 		MOCK_ARG (sizeof (req)));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
@@ -31951,8 +31968,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_req_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32003,8 +32020,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32024,8 +32041,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_fail (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32076,8 +32093,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32097,8 +32114,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_unexpected_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32149,8 +32166,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32170,8 +32187,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32223,8 +32240,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32251,8 +32268,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -32264,7 +32281,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_challenge_no_rsp_already_authenticated_with_timeout (
 	CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -32304,8 +32322,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32332,8 +32350,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_rsp_alrea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32387,8 +32405,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32408,8 +32426,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32463,8 +32481,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32484,8 +32502,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_unsuppor
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32539,8 +32557,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32560,8 +32578,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_req_slot
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32614,8 +32632,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32635,8 +32653,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_invalid_rsp_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32690,8 +32708,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA384, true, false, false, NULL, false, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, req.nonce, sizeof (req.nonce), -1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -32711,8 +32729,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_compare_cert
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32757,8 +32775,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_rsp_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32809,8 +32827,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_hash_finish_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32822,7 +32840,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_hash_finish_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_start_hash_sha256_fail (
+static void
+attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_start_hash_sha256_fail (
 	CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -32868,8 +32887,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32881,7 +32900,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_start_hash_sha384_fail (
+static void
+attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_start_hash_sha384_fail (
 	CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -32927,8 +32947,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32940,7 +32960,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_start_hash_sha512_fail (
+static void
+attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_start_hash_sha512_fail (
 	CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -32986,8 +33007,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -32999,7 +33020,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_update_hash_prefix_fail (
+static void
+attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_update_hash_prefix_fail (
 	CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -33045,8 +33067,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -33057,8 +33080,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33070,7 +33093,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_update_hash_digest_fail (
+static void
+attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_update_hash_digest_fail (
 	CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -33116,11 +33140,12 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (digest,
-			sizeof (digest)), MOCK_ARG (sizeof (digest)));
+		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), MOCK_ARG (sizeof (digest)));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -33131,8 +33156,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33144,7 +33169,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_hash_finish_fail (
+static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_format_hash_finish_fail
+(
 	CuTest *test)
 {
 	uint32_t component_id = 50;
@@ -33190,8 +33216,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -33208,8 +33235,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_1_2_hash_for
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33269,8 +33296,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -33281,8 +33309,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		ECC_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		ECC_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -33292,8 +33320,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_init_pub
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33335,8 +33363,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -33362,8 +33390,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha384,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -33373,17 +33402,16 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-			RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
 		ECC_ENGINE_NO_MEMORY, MOCK_ARG_SAVED_ARG (0),
 		MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)), MOCK_ARG (sizeof (digest2)),
 		MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair,
-		&testing.ecc, 0, MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
@@ -33392,8 +33420,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_ecc_verify_f
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33432,8 +33460,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -33463,8 +33491,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -33474,15 +33503,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -33497,8 +33524,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_get_componen
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33545,8 +33572,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -33576,8 +33603,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -33587,15 +33615,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -33615,8 +33641,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_pmr0_digest_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33662,8 +33688,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -33693,8 +33719,9 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -33704,15 +33731,13 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -33732,8 +33757,8 @@ static void attestation_requester_test_attest_device_spdm_challenge_no_pmr0_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33791,8 +33816,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_get_pmr_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33869,8 +33894,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_start_hash_f
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -33958,8 +33983,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_1_2_setup_de
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -34015,8 +34040,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
 		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, RNG_ENGINE_NO_MEMORY, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		RNG_ENGINE_NO_MEMORY, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
@@ -34042,8 +34067,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_generate_ran
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -34125,8 +34150,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 		nonce[i] = SPDM_NONCE_LEN - i;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -34154,8 +34179,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -34296,8 +34321,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 		rsp_buf[offset + i] = i * 10;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -34328,8 +34353,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_fail (Cu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -34470,8 +34495,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 		rsp_buf[offset + i] = i * 10;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -34481,7 +34506,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 		MOCK_ARG_PTR_CONTAINS_TMP (req, spdm_get_measurements_rq_length (req)),
 		MOCK_ARG (spdm_get_measurements_rq_length (req)));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-			&testing.secondary_hash, 0);
+		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, false, false, false,
@@ -34502,8 +34527,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp (CuTe
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -34645,8 +34670,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		rsp_buf[offset + i] = i * 10;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -34656,7 +34681,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		MOCK_ARG_PTR_CONTAINS_TMP (req, spdm_get_measurements_rq_length (req)),
 		MOCK_ARG (spdm_get_measurements_rq_length (req)));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-			&testing.secondary_hash, 0);
+		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, false, false, false,
@@ -34684,8 +34709,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -34697,7 +34722,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_already_authenticated_with_timeout (
+static void
+attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_already_authenticated_with_timeout (
 	CuTest *test)
 {
 	uint8_t rq_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -34827,8 +34853,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		rsp_buf[offset + i] = i * 10;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -34838,7 +34864,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 		MOCK_ARG_PTR_CONTAINS_TMP (req, spdm_get_measurements_rq_length (req)),
 		MOCK_ARG (spdm_get_measurements_rq_length (req)));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-			&testing.secondary_hash, 0);
+		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, false, false, false,
@@ -34866,8 +34892,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_rsp_alrea
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35008,8 +35034,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 		rsp_buf[offset + i] = i * 10;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -35019,7 +35045,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 		MOCK_ARG_PTR_CONTAINS_TMP (req, spdm_get_measurements_rq_length (req)),
 		MOCK_ARG (spdm_get_measurements_rq_length (req)));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-			&testing.secondary_hash, 0);
+		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, true,
@@ -35040,8 +35066,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_unexpected_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35184,8 +35210,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 		rsp_buf[offset + i] = i * 10;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -35195,7 +35221,7 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 		MOCK_ARG_PTR_CONTAINS_TMP (req, spdm_get_measurements_rq_length (req)),
 		MOCK_ARG (spdm_get_measurements_rq_length (req)));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
-			&testing.secondary_hash, 0);
+		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
@@ -35216,8 +35242,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_unexpect
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35297,8 +35323,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_rsp_hash_upd
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35385,8 +35411,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35398,7 +35424,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_hash_finish_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_start_hash_sha256_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_start_hash_sha256_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -35474,8 +35502,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35487,7 +35515,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_start_hash_sha384_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_start_hash_sha384_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -35563,8 +35593,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35576,7 +35606,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_start_hash_sha512_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_start_hash_sha512_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -35652,8 +35684,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35665,7 +35697,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_update_hash_prefix_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_update_hash_prefix_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -35732,8 +35766,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -35753,8 +35788,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35766,7 +35801,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_update_hash_digest_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_update_hash_digest_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -35833,8 +35870,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY,
 		MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), MOCK_ARG (sizeof (digest)));
@@ -35857,8 +35895,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -35870,7 +35908,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_hash_finish_fail (
+static void
+attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_hash_format_hash_finish_fail (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -35937,8 +35976,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -35964,8 +36004,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_1_2_has
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36038,8 +36078,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		ECC_ENGINE_NO_MEMORY, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		ECC_ENGINE_NO_MEMORY,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
@@ -36058,8 +36098,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ini
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36101,8 +36141,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -36141,9 +36181,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
@@ -36169,8 +36208,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_ecc_ver
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36215,8 +36254,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -36255,15 +36294,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -36289,8 +36326,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_co
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36335,8 +36372,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
@@ -36375,15 +36412,13 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -36409,8 +36444,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36422,7 +36457,9 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_dige
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_get_next_measurement_or_measurement_data_fail (
+static void
+attestation_requester_test_attest_device_spdm_measurement_get_next_measurement_or_measurement_data_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -36470,8 +36507,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_next_m
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36554,8 +36591,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36567,7 +36604,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_only_measurement_version_set_selector_invalid (
+static void
+attestation_requester_test_attest_device_spdm_measurement_only_measurement_version_set_selector_invalid
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -36609,8 +36648,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		signature[i] = i * 10;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -36653,8 +36692,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -36664,15 +36704,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -36695,8 +36733,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36708,7 +36746,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_only_measurement_version_set_selection_fail (
+static void
+attestation_requester_test_attest_device_spdm_measurement_only_measurement_version_set_selection_fail
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -36748,8 +36788,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -36792,8 +36832,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -36803,15 +36844,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -36834,8 +36873,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36920,8 +36959,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -36933,7 +36972,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_get_m
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_data_raw_requested_but_response_digest (
+static void
+attestation_requester_test_attest_device_spdm_measurement_data_raw_requested_but_response_digest (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -36982,8 +37022,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -37028,8 +37068,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -37039,15 +37080,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -37070,8 +37109,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37083,7 +37122,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_raw_r
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_data_num_blocks_in_rsp_not_one (
+static void attestation_requester_test_attest_device_spdm_measurement_data_num_blocks_in_rsp_not_one
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -37179,8 +37219,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
 		1, true, &testing);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -37211,8 +37251,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37224,7 +37264,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_num_b
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_data_unexpected_measurement_block (
+static void
+attestation_requester_test_attest_device_spdm_measurement_data_unexpected_measurement_block (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -37273,8 +37314,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -37319,8 +37360,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -37330,15 +37372,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -37361,8 +37401,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37374,7 +37414,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_data_unexp
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_only_measurement_data_version_set_selector_invalid (
+static void
+attestation_requester_test_attest_device_spdm_measurement_only_measurement_data_version_set_selector_invalid
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -37423,8 +37465,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -37468,8 +37510,9 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -37479,15 +37522,13 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -37510,8 +37551,8 @@ static void attestation_requester_test_attest_device_spdm_measurement_only_measu
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37592,8 +37633,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 
 	testing.cert_buffer_len += RIOT_CORE_DEVID_SIGNED_CERT_LEN;
 
-	memcpy (&cert_buffer[testing.cert_buffer_len],
-		RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
+	memcpy (&cert_buffer[testing.cert_buffer_len], RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN);
 
 	testing.cert_buffer_len += RIOT_CORE_ALIAS_CERT_LEN;
 
@@ -37651,8 +37691,8 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
-		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key, &testing.keystore,
+		KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
 		sizeof (testing.dev_id_der), -1);
 	CuAssertIntEquals (test, 0, status);
@@ -37695,12 +37735,11 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
 
-	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
-		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
-		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
-		2, 3, 4, NULL);
+	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base, &testing.test,
+		&testing.device_mgr, &testing.store, &testing.primary_hash.base, &testing.background.base,
+		NULL, NULL, &testing.fw_version, &testing.riot,	&testing.authorization.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, &testing.device.base, 1, 2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mctp_control_init (&testing.cmd_mctp, &testing.device_mgr, 0x1414, 4);
@@ -37752,8 +37791,8 @@ static void attestation_requester_test_attest_device_unsupported_attestation_pro
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37765,7 +37804,8 @@ static void attestation_requester_test_attest_device_unsupported_attestation_pro
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_response_not_ready_unexpected_requested_command (
+static void
+attestation_requester_test_attest_device_spdm_response_not_ready_unexpected_requested_command (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -37805,8 +37845,8 @@ static void attestation_requester_test_attest_device_spdm_response_not_ready_une
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37858,8 +37898,8 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
 		sizeof (struct cfm_component_device), -1);
 	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
-		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
@@ -37868,8 +37908,8 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37892,8 +37932,8 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
 		sizeof (struct cfm_component_device), -1);
 	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
-		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
@@ -37902,8 +37942,8 @@ static void attestation_requester_test_attest_device_cfm_contains_unsupported_ha
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -37980,9 +38020,8 @@ static void attestation_requester_test_attest_device_invalid_component_device (C
 		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device,
-		&testing.cfm, CFM_INVALID_ARGUMENT, MOCK_ARG (component_id),
-		MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device,	&testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
@@ -38107,7 +38146,8 @@ static void attestation_requester_test_discover_device_spdm_update_routing_table
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_update_routing_table_bridge_refresh_request (
+static void
+attestation_requester_test_discover_device_spdm_update_routing_table_bridge_refresh_request (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -38196,7 +38236,8 @@ static void attestation_requester_test_discover_device_get_msg_type_rsp_fail (Cu
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_get_msg_type_no_attestation_protocols_supported (
+static void
+attestation_requester_test_discover_device_get_msg_type_no_attestation_protocols_supported (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -38308,9 +38349,8 @@ static void attestation_requester_test_get_message_type_create_request_fail (CuT
 
 	setup_attestation_requester_mock_test (test, &testing, true, false, true);
 
-	status = mock_expect (&testing.mctp_control.mock,
-		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control,
-		MSG_TRANSPORT_OVERHEAD_FAILED, MOCK_ARG (0xAA), MOCK_ARG_ANY);
+	status = mock_expect (&testing.mctp_control.mock, testing.mctp_control.base.get_buffer_overhead,
+		&testing.mctp_control, MSG_TRANSPORT_OVERHEAD_FAILED, MOCK_ARG (0xAA), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_get_message_type (&testing.test, 0xAA, &request, &response);
@@ -38330,9 +38370,8 @@ static void attestation_requester_test_get_message_type_generate_request_fail (C
 
 	setup_attestation_requester_mock_test (test, &testing, true, false, true);
 
-	status = mock_expect (&testing.mctp_control.mock,
-		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control, 0,
-		MOCK_ARG (0xAA), MOCK_ARG_ANY);
+	status = mock_expect (&testing.mctp_control.mock, testing.mctp_control.base.get_buffer_overhead,
+		&testing.mctp_control, 0, MOCK_ARG (0xAA), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.mctp_control.mock,
@@ -38377,9 +38416,8 @@ static void attestation_requester_test_get_message_type_send_request_fail (CuTes
 	mctp_request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	mctp_request->header.rq = 1;
 
-	status = mock_expect (&testing.mctp_control.mock,
-		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control, 0,
-		MOCK_ARG (0xAA), MOCK_ARG_ANY);
+	status = mock_expect (&testing.mctp_control.mock, testing.mctp_control.base.get_buffer_overhead,
+		&testing.mctp_control, 0, MOCK_ARG (0xAA), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.mctp_control.mock,
@@ -38735,7 +38773,8 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_vid_not_in_device_mgr (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_vid_not_in_device_mgr (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -38777,7 +38816,8 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_id_not_in_device_mgr (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_id_not_in_device_mgr (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -38819,7 +38859,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_vid_not_in_device_mgr (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_vid_not_in_device_mgr
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -38861,7 +38903,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_id_not_in_device_mgr (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_id_not_in_device_mgr
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -38946,7 +38990,8 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_vid_not_in_response (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_vid_not_in_response (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -38989,7 +39034,8 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_id_not_in_response (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_id_not_in_response (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -39032,7 +39078,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_vid_not_in_response (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_vid_not_in_response
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -39075,7 +39123,9 @@ static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_id_not_in_response (
+static void
+attestation_requester_test_discover_device_spdm_get_measurement_rsp_pci_subsystem_id_not_in_response
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -39392,13 +39442,17 @@ static void attestation_requester_test_reset_authenticated_devices_on_cfm_activa
 
 	testing.test.cfm_observer.on_cfm_activation_request (&testing.test.cfm_observer);
 
+	status = device_manager_process_pending_action (&testing.device_mgr);
+	CuAssertIntEquals (test, 0, status);
+
 	status = device_manager_get_eid_of_next_device_to_attest (&testing.device_mgr);
 	CuAssertIntEquals (test, 0xAA, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_pcr_measurement (
+static void
+attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_pcr_measurement (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -39453,8 +39507,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -39513,8 +39567,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -39524,15 +39579,13 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -39588,8 +39641,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -39646,8 +39699,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -39703,8 +39756,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -39714,15 +39768,13 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -39745,7 +39797,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
 		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
@@ -39775,15 +39828,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	CuAssertIntEquals (test, 0, status);
 
 	status = testing_validate_array (attestation_status_expected_pcr +
-			sizeof (pcr_event_version_info),
-		attestation_status, sizeof (attestation_status_expected));
+		sizeof (pcr_event_version_info), attestation_status, sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -39813,8 +39865,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
 	uint8_t digest3[SHA256_HASH_LENGTH];
-	uint8_t attestation_status_expected[12] = {0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
-		0x00, 0x00, 0x01, 0x00};
+	uint8_t attestation_status_expected[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x00
+	};
 	uint8_t attestation_status_expected_pcr[17] = {0};
 	uint8_t pcr_event_version_info[5] = {0};
 	uint8_t *attestation_status;
@@ -39848,8 +39902,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		signature[i] = i * 10;
 	}
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -39934,8 +39988,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = X509_TESTING_ENGINE_INIT (&testing.x509);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key,
-		&testing.keystore, KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key, &testing.keystore,
+		KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
 		sizeof (testing.dev_id_der), -1);
 	CuAssertIntEquals (test, 0, status);
@@ -39948,9 +40002,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.keystore.base, &keys, &testing.x509_mock.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&testing.device_mgr, 2, 2, 2,
-		DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000,
-		0, 0, 0, 0);
+	status = device_manager_init (&testing.device_mgr, 2, 2, 2,	DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
@@ -39982,12 +40035,11 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	testing.fw_version.count = 1;
 	testing.fw_version.id = fw_ver_list;
 
-	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL,
-		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base,
-		&testing.device_mgr, &testing.store, &testing.primary_hash.base,
-		&testing.background.base, NULL, NULL, &testing.fw_version, &testing.riot,
-		&testing.authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing.device.base, 1,
-		2, 3, 4, NULL);
+	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base, &testing.test,
+		&testing.device_mgr, &testing.store, &testing.primary_hash.base, &testing.background.base,
+		NULL, NULL, &testing.fw_version, &testing.riot,	&testing.authorization.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, &testing.device.base, 1, 2, 3, 4, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mctp_control_init (&testing.cmd_mctp, &testing.device_mgr, 0x1414, 4);
@@ -40103,8 +40155,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
 		sizeof (struct cfm_component_device), -1);
 	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
-		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
@@ -40124,8 +40176,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -40135,15 +40188,13 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -40172,8 +40223,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device2,
 		sizeof (struct cfm_component_device), -1);
 	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 2);
-	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device,
-		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (2));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
 	testing.second_device = true;
@@ -40194,8 +40245,9 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -40205,15 +40257,13 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
@@ -40236,7 +40286,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
 		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
@@ -40265,16 +40316,15 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		sizeof (pcr_event_version_info));
 	CuAssertIntEquals (test, 0, status);
 
-	status = testing_validate_array (
-		attestation_status_expected_pcr + sizeof (pcr_event_version_info), attestation_status,
-		sizeof (attestation_status_expected));
+	status = testing_validate_array (attestation_status_expected_pcr +
+		sizeof (pcr_event_version_info), attestation_status, sizeof (attestation_status_expected));
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -40286,8 +40336,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0C);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0x0C,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0x0C, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -40296,11 +40346,11 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
-
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discovery_and_attestation_loop_single_device_authenticated_with_timeout (
+static void
+attestation_requester_test_discovery_and_attestation_loop_single_device_authenticated_with_timeout (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -40352,8 +40402,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 0, event_counters.status_success_count);
 	CuAssertIntEquals (test, 1, event_counters.status_success_timeout_count);
@@ -40365,7 +40415,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_discovery_and_attestation_loop_get_routing_table_before_discovery (
+static void
+attestation_requester_test_discovery_and_attestation_loop_get_routing_table_before_discovery (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -40436,8 +40487,8 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 
 	TEST_START;
 
-	status = ecc_der_encode_ecdsa_signature (signature,
-		&signature[ECC_KEY_LENGTH_256], ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
 	CuAssertIntEquals (test, 69, status);
 
 	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
@@ -40479,8 +40530,9 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix,
-			sizeof (combined_spdm_prefix)), MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
 		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
 		MOCK_ARG (sizeof (digest)));
@@ -40490,15 +40542,13 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 		-1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc,
-		0, MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY,
-		RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
 		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc,
-		0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
-		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69),
-		MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
@@ -40518,8 +40568,8 @@ static void attestation_requester_test_mctp_bridge_was_reset (CuTest *test)
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
 
-	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr, 0xAA,
-		&event_counters);
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 1, event_counters.status_success_count);
 	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
@@ -40554,6 +40604,1424 @@ static void attestation_requester_test_refresh_routing_table_invalid_arg (CuTest
 	TEST_START;
 
 	attestation_requester_refresh_routing_table (NULL);
+}
+
+static void attestation_requester_test_discovery_and_attestation_loop_no_pending_action (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	struct pcr_measured_data pcr_cfm_valid_measured_data;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-challenge_auth signing";
+	struct cfm_pmr_digest pmr_digest;
+	uint32_t component_id = 50;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t attestation_status_expected[6] = {0x32, 0x00, 0x00, 0x00, 0x01, 0x00};
+	uint8_t attestation_status_expected_pcr[11] = {0};
+	uint8_t pcr_event_version_info[5] = {0};
+	uint8_t *attestation_status;
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	uint8_t version[4] = {0};
+	uint8_t event = 0;
+	int status;
+	size_t i;
+
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		digest3[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_UNIDENTIFIED);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.spdm_discovery = true;
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		0xEF, true, &testing);
+
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
+	pcr_cfm_valid_measured_data.data.memory.length = sizeof (attestation_status_expected);
+
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
+
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
+
+	status = device_manager_get_attestation_status (&testing.device_mgr,
+		(const uint8_t**) &attestation_status);
+	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected_pcr,
+		sizeof (attestation_status_expected_pcr));
+	CuAssertIntEquals (test, sizeof (attestation_status_expected_pcr), status);
+
+	status = testing_validate_array (attestation_status_expected_pcr, pcr_event_version_info,
+		sizeof (pcr_event_version_info));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (attestation_status_expected_pcr +
+		sizeof (pcr_event_version_info), attestation_status, sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+
+static void
+attestation_requester_test_discovery_and_attestation_loop_force_attestation_failed_devices (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	struct pcr_measured_data pcr_cfm_valid_measured_data;
+	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
+	struct device_manager_pending_action pending;
+	uint32_t component_id = 50;
+	uint32_t component_id2 = 1;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t attestation_status_expected[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x00
+	};
+	int eid;
+	int status;
+	uint8_t *attestation_status;
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+
+	size_t i;
+	const struct pcr_config pcr_config[1] = {
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+
+	uint8_t version[4] = {0};
+	uint8_t event = 0;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	memset (&testing, 0, sizeof (struct attestation_requester_testing));
+
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.max_protocol_version = 255;
+	testing.spdm_version = 2;
+	testing.spdm_min_version = 1;
+	testing.spdm_max_version = 2;
+
+	status = hash_mock_init (&testing.primary_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&testing.secondary_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&testing.ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rsa_mock_init (&testing.rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_mock_init (&testing.x509_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&testing.rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&testing.keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_init (&testing.channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_control_mock_init (&testing.fw_update);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_responder_mock_init (&testing.attestation_responder);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&testing.store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_background_mock_init (&testing.background);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_authorization_mock_init (&testing.authorization);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_device_mock_init (&testing.device);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&testing.cfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&testing.cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = msg_transport_mock_init (&testing.mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = X509_TESTING_ENGINE_INIT (&testing.x509);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.keystore.mock, testing.keystore.base.load_key, &testing.keystore,
+		KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.keystore.mock, 1, &testing.dev_id_der,
+		sizeof (testing.dev_id_der), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+
+	status = riot_key_manager_init_static_keys (&testing.riot, &testing.riot_state,
+		&testing.keystore.base, &keys, &testing.x509_mock.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&testing.device_mgr, 2, 2, 2,	DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&testing.device_mgr, 1,
+		MCTP_BASE_PROTOCOL_BMC_EID, 0x20, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&testing.device_mgr, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_msg_type_init (&testing.mctp_ctrl,
+		MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, &testing.cmd_mctp.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_protocol_mctp_init (&testing.mctp_proto);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_init (&testing.req_handler, &testing.mctp_proto.base,
+		&testing.mctp_ctrl, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	fw_ver_list[0] = "1.1.1.1";
+	testing.fw_version.count = 1;
+	testing.fw_version.id = fw_ver_list;
+
+	status = cmd_interface_system_init (&testing.cmd_cerberus, &testing.fw_update.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL, NULL, &testing.attestation_responder.base, &testing.test,
+		&testing.device_mgr, &testing.store, &testing.primary_hash.base, &testing.background.base,
+		NULL, NULL, &testing.fw_version, &testing.riot,	&testing.authorization.base, NULL, NULL,
+		NULL, NULL, NULL, NULL, &testing.device.base, 1, 2, 3, 4, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_mctp_control_init (&testing.cmd_mctp, &testing.device_mgr, 0x1414, 4);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_spdm_init (&testing.cmd_spdm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
+		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
+		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
+
+	memset (testing.hash_len, SHA256_HASH_LENGTH, sizeof (testing.hash_len));
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
+	testing.cert_buffer_len += SHA256_HASH_LENGTH;
+
+	setup_attestation_requester_mock_certificate_test (test, true, false, &testing);
+
+	/* Loop the GET_CERTIFICATE requests 1 time. */
+	testing.cert_msg[testing.cert_msg_count].loop_cnt = 1;
+
+	testing.cert_eid[0] = 0xAA;
+	testing.cert_eid[1] = 0x0C;
+
+	cert_chain->length = testing.cert_buffer_len;
+
+	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
+		0xCC, 0xDD, 1, component_id, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 3, 0xAB, 0xBC,
+		0xCD, 0xDE, 1, component_id2, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
+		&testing.test.cerberus_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_spdm_add_spdm_protocol_observer (&testing.cmd_spdm,
+		&testing.test.spdm_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing.cmd_mctp,
+		&testing.test.mctp_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_add_observer (&testing.cfm_manager.base, &testing.test.cfm_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.spdm_discovery = true;
+	testing.multiple_devices = true;
+	testing.hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing.hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		0xEF, true, &testing);
+
+	status = device_manager_update_device_ids (&testing.device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.second_device = true;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		&testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		0xEF, true, &testing);
+
+	testing.second_device = false;
+
+	status = device_manager_update_device_ids (&testing.device_mgr, 3, 0xAB, 0xBC, 0xCD, 0xDE);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
+	pcr_cfm_valid_measured_data.data.memory.length = sizeof (attestation_status_expected);
+
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
+
+	/**
+	 * Pre-configure the device discovery process and set the device attestation state to
+	 * authenticated. This ensures that the attestation_requester_discovery_and_attestation_loop
+	 * function will not re-attempt attestation for already authenticated devices.
+	 */
+
+	eid = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	status = attestation_requester_discover_device (&testing.test, eid);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, eid,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		eid);
+	CuAssertIntEquals (test, 0, status);
+
+	eid = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	status = attestation_requester_discover_device (&testing.test, eid);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, eid,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		eid);
+	CuAssertIntEquals (test, 0, status);
+
+	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
+	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
+	pending.data_size = sizeof (uint8_t);
+
+	status = device_manager_set_pending_action (&testing.device_mgr, &pending);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
+
+	status = device_manager_get_attestation_status (&testing.device_mgr,
+		(const uint8_t**) &attestation_status);
+	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	/**
+	 * Attestation summary indicating that device attestation was not performed
+	 * because the devices have already been attested.
+	 */
+	/* This attestaion summary proved the device atteation not perfomred because of Devices already attested. */
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,	eid,
+		&event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0C);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0x0C, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_setup_attestation_loop (
+	CuTest *test, struct attestation_requester_testing *testing)
+{
+	uint32_t component_id = 50;
+	uint32_t component_id2 = 1;
+	int status = 0;
+	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
+	const struct pcr_config pcr_config[1] = {
+		{
+			.num_measurements = 0,
+			.measurement_algo = HASH_TYPE_SHA256
+		}
+	};
+
+	status = hash_mock_init (&testing->primary_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_init (&testing->secondary_hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_mock_init (&testing->ecc);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rsa_mock_init (&testing->rsa);
+	CuAssertIntEquals (test, 0, status);
+
+	status = x509_mock_init (&testing->x509_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = rng_mock_init (&testing->rng);
+	CuAssertIntEquals (test, 0, status);
+
+	status = keystore_mock_init (&testing->keystore);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_init (&testing->channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = firmware_update_control_mock_init (&testing->fw_update);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_responder_mock_init (&testing->attestation_responder);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_init (&testing->store, pcr_config, ARRAY_SIZE (pcr_config));
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_background_mock_init (&testing->background);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_authorization_mock_init (&testing->authorization);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_device_mock_init (&testing->device);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_mock_init (&testing->cfm_manager);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_mock_init (&testing->cfm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = msg_transport_mock_init (&testing->mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = X509_TESTING_ENGINE_INIT (&testing->x509);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing->keystore.mock, testing->keystore.base.load_key,
+		&testing->keystore,	KEYSTORE_NO_KEY, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing->keystore.mock, 1, &testing->dev_id_der,
+		sizeof (testing->dev_id_der), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	keys.alias_cert_length = RIOT_CORE_ALIAS_CERT_LEN;
+	keys.devid_cert_length = RIOT_CORE_DEVID_CERT_LEN;
+	keys.alias_key_length = RIOT_CORE_ALIAS_KEY_LEN;
+
+	status = riot_key_manager_init_static_keys (&testing->riot, &testing->riot_state,
+		&testing->keystore.base, &keys, &testing->x509_mock.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_init (&testing->device_mgr, 2, 2, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10000, 10000, 10000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 0,
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x41, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 1,
+		MCTP_BASE_PROTOCOL_BMC_EID, 0x20, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&testing->device_mgr, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_add_unidentified_device (&testing->device_mgr, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_msg_type_init (&testing->mctp_ctrl,
+		MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG, &testing->cmd_mctp.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_protocol_mctp_init (&testing->mctp_proto);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_multi_handler_init (&testing->req_handler, &testing->mctp_proto.base,
+		&testing->mctp_ctrl, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	fw_ver_list[0] = "1.1.1.1";
+	testing->fw_version.count = 1;
+	testing->fw_version.id = fw_ver_list;
+
+	status = cmd_interface_system_init (&testing->cmd_cerberus, &testing->fw_update.base, NULL,
+		NULL, NULL, NULL, NULL, NULL, NULL, NULL, &testing->attestation_responder.base,
+		&testing->test,	&testing->device_mgr, &testing->store, &testing->primary_hash.base,
+		&testing->background.base, NULL, NULL, &testing->fw_version, &testing->riot,
+		&testing->authorization.base, NULL, NULL, NULL, NULL, NULL, NULL, &testing->device.base, 1,
+		2, 3, 4, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_mctp_control_init (&testing->cmd_mctp, &testing->device_mgr, 0x1414, 4);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_spdm_init (&testing->cmd_spdm);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_interface_init (&testing->mctp, &testing->mctp_state, &testing->req_handler,
+		&testing->device_mgr, &testing->channel.base, &testing->cmd_cerberus.base,
+		&testing->cmd_mctp.base, &testing->cmd_spdm.base);
+	CuAssertIntEquals (test, 0, status);
+
+	testing->max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
+
+	memset (testing->hash_len, SHA256_HASH_LENGTH, sizeof (testing->hash_len));
+	testing->hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing->hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
+	testing->cert_buffer_len += SHA256_HASH_LENGTH;
+	setup_attestation_requester_mock_certificate_test (test, true, false, testing);
+
+	/* Loop the GET_CERTIFICATE requests 1 time. */
+	testing->cert_msg[testing->cert_msg_count].loop_cnt = 1;
+	testing->cert_eid[0] = 0xAA;
+	testing->cert_eid[1] = 0x0C;
+
+	cert_chain->length = testing->cert_buffer_len;
+	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 2, 0xAA, 0xBB,
+		0xCC, 0xDD, 1, component_id, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 3, 0xAB, 0xBC,
+		0xCD, 0xDE, 1, component_id2, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing->test, &testing->state, &testing->mctp,
+		&testing->channel.base, &testing->primary_hash.base, &testing->secondary_hash.base,
+		&testing->ecc.base, NULL, &testing->x509_mock.base, &testing->rng.base, &testing->riot,
+		&testing->device_mgr, &testing->cfm_manager.base, &testing->mctp_control.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_system_add_cerberus_protocol_observer (&testing->cmd_cerberus,
+		&testing->test.cerberus_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_spdm_add_spdm_protocol_observer (&testing->cmd_spdm,
+		&testing->test.spdm_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing->cmd_mctp,
+		&testing->test.mctp_rsp_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cfm_manager_add_observer (&testing->cfm_manager.base, &testing->test.cfm_observer);
+	CuAssertIntEquals (test, 0, status);
+
+	testing->spdm_discovery = true;
+	testing->multiple_devices = true;
+	testing->hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+	testing->hashing_alg_supported = SPDM_TPM_ALG_SHA_256;
+	testing->meas_hashing_alg_supported = SPDM_MEAS_RSP_TPM_ALG_SHA_256;
+	testing->meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+		SPDM_TPM_ALG_SHA_512;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		0xEF, true, testing);
+
+	status = device_manager_update_device_ids (&testing->device_mgr, 2, 0xAA, 0xBB, 0xCC, 0xDD);
+	CuAssertIntEquals (test, 0, status);
+
+	testing->second_device = true;
+
+	attestation_requester_testing_send_and_receive_mctp_get_msg_type (test, true, false, testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, true, false, false,
+		false, testing);
+	attestation_requester_testing_send_and_receive_spdm_get_capabilities (test, true, false, false,
+		testing);
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms (test, true, false,
+		false, testing);
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, true, false, false,
+		0xEF, true, testing);
+
+	testing->second_device = false;
+
+	status = device_manager_update_device_ids (&testing->device_mgr, 3, 0xAB, 0xBC, 0xCD, 0xDE);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void
+attestation_requester_test_discovery_and_attestation_loop_force_attestation_passed_devices (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	struct pcr_measured_data pcr_cfm_valid_measured_data;
+	struct device_manager_pending_action pending;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-challenge_auth signing";
+	struct cfm_component_device component_device;
+	struct cfm_component_device component_device2;
+	uint32_t component_id = 50;
+	uint32_t component_id2 = 1;
+	struct cfm_pmr_digest pmr_digest;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t attestation_status_expected[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x00
+	};
+	uint8_t attestation_status_expected_pcr[17] = {0};
+	uint8_t pcr_event_version_info[5] = {0};
+	uint8_t *attestation_status;
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	uint8_t version[4] = {0};
+	uint8_t event = 0;
+	int eid = 0;
+	int status;
+	size_t i;
+
+	TEST_START;
+
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		digest3[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
+
+	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device.component_id = component_id;
+	component_device.num_pmr_ids = 1;
+	component_device.pmr_id_list = pmr_id_list;
+	component_device.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device.measurement_hash_type = HASH_TYPE_SHA256;
+
+	component_device2.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device2.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device2.component_id = component_id2;
+	component_device2.num_pmr_ids = 1;
+	component_device2.pmr_id_list = pmr_id_list;
+	component_device2.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device2.measurement_hash_type = HASH_TYPE_SHA256;
+
+	memset (&testing, 0, sizeof (struct attestation_requester_testing));
+
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.max_protocol_version = 255;
+	testing.spdm_version = 2;
+	testing.spdm_min_version = 1;
+	testing.spdm_max_version = 2;
+
+	attestation_requester_setup_attestation_loop (test, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (component_id2), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device2,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 2);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	testing.second_device = true;
+	testing.next_cert_req = 0;
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id2);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id2), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 3);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
+	pcr_cfm_valid_measured_data.data.memory.length = sizeof (attestation_status_expected);
+
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
+
+	/**
+	 * Perform device discovery and set attestation state to authenticated.
+	 */
+	eid = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	status = attestation_requester_discover_device (&testing.test, eid);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, eid,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		eid);
+	CuAssertIntEquals (test, 0, status);
+
+	eid = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	status = attestation_requester_discover_device (&testing.test, eid);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, eid,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		eid);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Allocate and set force attestation mode for failed devices only */
+	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
+	pending.data[0] = 2;
+	pending.data_size = sizeof (uint8_t);
+
+	status = device_manager_set_pending_action (&testing.device_mgr, &pending);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
+
+	status = device_manager_get_attestation_status (&testing.device_mgr,
+		(const uint8_t**) &attestation_status);
+	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected_pcr,
+		sizeof (attestation_status_expected_pcr));
+	CuAssertIntEquals (test, sizeof (attestation_status_expected_pcr), status);
+
+	status = testing_validate_array (attestation_status_expected_pcr, pcr_event_version_info,
+		sizeof (pcr_event_version_info));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (attestation_status_expected_pcr +
+		sizeof (pcr_event_version_info), attestation_status, sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0C);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0x0C, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_discovery_and_attestation_loop_force_attestation_all_devices
+(
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	struct pcr_measured_data pcr_cfm_valid_measured_data;
+	struct device_manager_pending_action pending;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-challenge_auth signing";
+	struct cfm_component_device component_device;
+	struct cfm_component_device component_device2;
+	uint32_t component_id = 50;
+	uint32_t component_id2 = 1;
+	struct cfm_pmr_digest pmr_digest;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t attestation_status_expected[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x00
+	};
+	uint8_t attestation_status_expected_pcr[17] = {0};
+	uint8_t pcr_event_version_info[5] = {0};
+	uint8_t *attestation_status;
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	uint8_t version[4] = {0};
+	uint8_t event = 0;
+	int eid = 0;
+	int status;
+	size_t i;
+
+	TEST_START;
+
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		digest3[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
+
+	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device.component_id = component_id;
+	component_device.num_pmr_ids = 1;
+	component_device.pmr_id_list = pmr_id_list;
+	component_device.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device.measurement_hash_type = HASH_TYPE_SHA256;
+
+	component_device2.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device2.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device2.component_id = component_id2;
+	component_device2.num_pmr_ids = 1;
+	component_device2.pmr_id_list = pmr_id_list;
+	component_device2.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device2.measurement_hash_type = HASH_TYPE_SHA256;
+
+	memset (&testing, 0, sizeof (struct attestation_requester_testing));
+
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.max_protocol_version = 255;
+	testing.spdm_version = 2;
+	testing.spdm_min_version = 1;
+	testing.spdm_max_version = 2;
+
+	attestation_requester_setup_attestation_loop (test, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (component_id2), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device2,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 2);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (2));
+	CuAssertIntEquals (test, 0, status);
+
+	testing.second_device = true;
+	testing.next_cert_req = 0;
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id2);
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id2), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 3);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
+	pcr_cfm_valid_measured_data.data.memory.length = sizeof (attestation_status_expected);
+
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_cfm_valid_measured_data);
+
+	/**
+	 * Perform device discovery and set attestation state to authenticated.
+	 */
+	eid = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	status = attestation_requester_discover_device (&testing.test, eid);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, eid,
+		DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		eid);
+	CuAssertIntEquals (test, 0, status);
+
+	eid = device_manager_get_eid_of_next_device_to_discover (&testing.device_mgr);
+	status = attestation_requester_discover_device (&testing.test, eid);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state_by_eid (&testing.device_mgr, eid,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		eid);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Allocate and set force attestation mode for failed devices only */
+	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
+	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+	pending.data_size = sizeof (uint8_t);
+
+	status = device_manager_set_pending_action (&testing.device_mgr, &pending);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
+
+	status = device_manager_get_attestation_status (&testing.device_mgr,
+		(const uint8_t**) &attestation_status);
+	CuAssertIntEquals (test, sizeof (attestation_status_expected), status);
+
+	status = testing_validate_array (attestation_status_expected, attestation_status, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcr_store_get_measurement_data (&testing.store, 0, 0, attestation_status_expected_pcr,
+		sizeof (attestation_status_expected_pcr));
+	CuAssertIntEquals (test, sizeof (attestation_status_expected_pcr), status);
+
+	status = testing_validate_array (attestation_status_expected_pcr, pcr_event_version_info,
+		sizeof (pcr_event_version_info));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (attestation_status_expected_pcr +
+		sizeof (pcr_event_version_info), attestation_status, sizeof (attestation_status_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0x0C);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0x0C, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requestor_test_wait_for_next_action (CuTest *test)
@@ -40986,6 +42454,10 @@ TEST (attestation_requester_test_discovery_and_attestation_loop_single_device_in
 TEST (attestation_requester_test_discovery_and_attestation_loop_single_device_authenticated_with_timeout);
 TEST (attestation_requester_test_discovery_and_attestation_loop_multiple_devices);
 TEST (attestation_requester_test_discovery_and_attestation_loop_get_routing_table_before_discovery);
+TEST (attestation_requester_test_discovery_and_attestation_loop_no_pending_action);
+TEST (attestation_requester_test_discovery_and_attestation_loop_force_attestation_failed_devices);
+TEST (attestation_requester_test_discovery_and_attestation_loop_force_attestation_passed_devices);
+TEST (attestation_requester_test_discovery_and_attestation_loop_force_attestation_all_devices);
 TEST (attestation_requester_test_mctp_bridge_was_reset);
 TEST (attestation_requester_test_mctp_bridge_was_reset_invalid_arg);
 TEST (attestation_requester_test_refresh_routing_table_invalid_arg);

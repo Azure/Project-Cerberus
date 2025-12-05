@@ -152,6 +152,12 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 		goto error_exit;
 	}
 
+	status = platform_mutex_init (&mgr->action_mutex);
+	if (status != 0) {
+		observable_release (&mgr->observable);
+		goto error_exit;
+	}
+
 	return 0;
 
 error_exit:
@@ -197,7 +203,11 @@ void device_manager_release (struct device_manager *mgr)
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 		device_manager_clear_unidentified_devices (mgr);
 #endif
+
+		device_manager_clear_pending_action (mgr);
+
 		observable_release (&mgr->observable);
+		platform_mutex_free (&mgr->action_mutex);
 	}
 }
 
@@ -2220,4 +2230,274 @@ bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t 
 	}
 
 	return (mgr->entries[device_num].state == DEVICE_MANAGER_NOT_ATTESTABLE);
+}
+
+/**
+ * Set a pending action for the device manager to process.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param action Pointer to the pending action structure to set.
+ *
+ * @return 0 if the action was set successfully or an error code.
+ */
+int device_manager_set_pending_action (struct device_manager *mgr,
+	struct device_manager_pending_action *action)
+{
+	struct device_manager_force_attestation_data *att_data = NULL;
+	int device_num;
+	int status = 0;
+
+	if ((mgr == NULL) || (action == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	switch (action->type) {
+		case DEVICE_MANAGER_ACTION_FORCE_ATTESTATION:
+			att_data = (struct device_manager_force_attestation_data*) action->data;
+
+			if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
+				if (action->data_size != (sizeof (uint8_t) +
+					sizeof (struct device_manager_device_ids_target))) {
+					status = DEVICE_MGR_INVALID_ARGUMENT;
+				}
+				else {
+					device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
+						att_data->target.device_ids.pci_vid,
+						att_data->target.device_ids.pci_device_id,
+						att_data->target.device_ids.pci_subsystem_vid,
+						att_data->target.device_ids.pci_subsystem_id,
+						att_data->target.device_ids.instance_id);
+					if (ROT_IS_ERROR (device_num)) {
+						status = device_num;
+					}
+				}
+			}
+			else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID) {
+				if (action->data_size != (sizeof (uint8_t) +
+					sizeof (struct device_manager_component_target))) {
+					status = DEVICE_MGR_INVALID_ARGUMENT;
+				}
+				else {
+					device_num = device_manager_get_device_num_by_component (mgr,
+						att_data->target.component.component_id,
+						att_data->target.component.instance_id);
+					if (ROT_IS_ERROR (device_num)) {
+						status = device_num;
+					}
+				}
+			}
+			else if (att_data->mode <= DEVICE_MANAGER_FORCE_ATTESTATION_ALL) {
+				if (action->data_size != sizeof (uint8_t)) {
+					status = DEVICE_MGR_INVALID_ARGUMENT;
+				}
+			}
+			else {
+				status = DEVICE_MGR_INVALID_ARGUMENT;
+			}
+			break;
+
+		case DEVICE_MANAGER_ACTION_FORCE_DISCOVERY:
+			status = DEVICE_MGR_INVALID_ARGUMENT;
+			break;
+
+		default:
+			status = DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (status != 0) {
+		return status;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	mgr->pending_action.type = action->type;
+	memcpy (mgr->pending_action.data, action->data, action->data_size);
+	mgr->pending_action.data_size = action->data_size;
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return 0;
+}
+
+/**
+ * Get the current pending action from the device manager.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param action Output buffer for the pending action.
+ *
+ * @return 0 if a pending action was retrieved successfully or an error code.
+ */
+int device_manager_get_pending_action (struct device_manager *mgr,
+	struct device_manager_pending_action *action)
+{
+	if ((mgr == NULL) || (action == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (mgr->pending_action.type == DEVICE_MANAGER_ACTION_NONE) {
+		return DEVICE_MGR_NO_PENDING_ACTION;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	action->type = mgr->pending_action.type;
+	memcpy (action->data, mgr->pending_action.data, mgr->pending_action.data_size);
+	action->data_size = mgr->pending_action.data_size;
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return 0;
+}
+
+/**
+ * Clear the current pending action from the device manager.
+ *
+ * @param mgr Device manager instance to utilize.
+ *
+ * @return 0 if the pending action was cleared successfully or an error code.
+ */
+int device_manager_clear_pending_action (struct device_manager *mgr)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	memset (mgr->pending_action.data, 0, DEVICE_MANAGER_PENDING_DATA_MAX_SIZE);
+	mgr->pending_action.type = DEVICE_MANAGER_ACTION_NONE;
+	mgr->pending_action.data_size = 0;
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return 0;
+}
+
+/**
+ * Process the current pending action based on its type.
+ *
+ * @param mgr Device manager instance to utilize.
+ *
+ * @return 0 if the action was processed successfully or an error code.
+ */
+int device_manager_process_pending_action (struct device_manager *mgr)
+{
+	int status = 0;
+	struct device_manager_force_attestation_data *att_data = NULL;
+	int device_num = 0;
+	int device_state = 0;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	switch (mgr->pending_action.type) {
+		case DEVICE_MANAGER_ACTION_NONE:
+			break;
+
+		case DEVICE_MANAGER_ACTION_FORCE_ATTESTATION:
+			if (mgr->pending_action.data_size > 0) {
+				att_data = (struct device_manager_force_attestation_data*)
+					mgr->pending_action.data;
+
+				if (att_data->mode <= DEVICE_MANAGER_FORCE_ATTESTATION_ALL) {
+					for (device_num = 0; device_num < mgr->num_devices; ++device_num) {
+						device_state = device_manager_get_device_state (mgr, device_num);
+						if (ROT_IS_ERROR (device_state)) {
+							status = device_state;
+							break;
+						}
+
+						if ((device_state == DEVICE_MANAGER_NOT_ATTESTABLE) ||
+							(device_state == DEVICE_MANAGER_UNIDENTIFIED)) {
+							continue;
+						}
+
+						if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_FAILED) {
+							if (DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
+								continue;
+							}
+						}
+						else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_PASSED) {
+							if (!DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
+								continue;
+							}
+						}
+
+						status = device_manager_update_device_state (mgr, device_num,
+							DEVICE_MANAGER_NEVER_ATTESTED);
+						if (ROT_IS_ERROR (status)) {
+							break;
+						}
+					}
+				}
+				else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID) {
+					device_num = device_manager_get_device_num_by_component (mgr,
+						att_data->target.component.component_id,
+						att_data->target.component.instance_id);
+					if (ROT_IS_ERROR (device_num)) {
+						status = device_num;
+						break;
+					}
+
+					device_state = device_manager_get_device_state (mgr, device_num);
+					if (ROT_IS_ERROR (device_state)) {
+						status = device_state;
+						break;
+					}
+					if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+						(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
+						status = device_manager_update_device_state (mgr, device_num,
+							DEVICE_MANAGER_NEVER_ATTESTED);
+					}
+				}
+				else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
+					device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
+						att_data->target.device_ids.pci_vid,
+						att_data->target.device_ids.pci_device_id,
+						att_data->target.device_ids.pci_subsystem_vid,
+						att_data->target.device_ids.pci_subsystem_id,
+						att_data->target.device_ids.instance_id);
+					if (ROT_IS_ERROR (device_num)) {
+						status = device_num;
+						break;
+					}
+
+					device_state = device_manager_get_device_state (mgr, device_num);
+					if (ROT_IS_ERROR (device_state)) {
+						status = device_state;
+						break;
+					}
+					if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+						(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
+						status = device_manager_update_device_state (mgr, device_num,
+							DEVICE_MANAGER_NEVER_ATTESTED);
+					}
+				}
+				else {
+					status = DEVICE_MGR_INVALID_ARGUMENT;
+				}
+			}
+			else {
+				status = DEVICE_MGR_INVALID_ARGUMENT;
+			}
+			break;
+
+		/* TODO: Implement Force Device discovery action */
+		case DEVICE_MANAGER_ACTION_FORCE_DISCOVERY:
+			status = DEVICE_MGR_INVALID_ARGUMENT;
+			break;
+
+		default:
+			status = DEVICE_MGR_INVALID_ARGUMENT;
+			break;
+	}
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	device_manager_clear_pending_action (mgr);
+
+	return status;
 }

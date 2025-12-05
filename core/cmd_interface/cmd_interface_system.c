@@ -313,6 +313,10 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 #endif
 
+		case CERBERUS_PROTOCOL_FORCE_ATTESTATION:
+			status = cerberus_protocol_force_attestation (interface->attestation_req, request);
+			break;
+
 		default:
 			return CMD_HANDLER_UNKNOWN_REQUEST;
 	}
@@ -410,6 +414,7 @@ int cmd_interface_system_process_response (const struct cmd_interface *intf,
  * @param pcd_manager PCD manager
  * @param attestation Attestation responder instance to utilize
  * @param device_manager Device manager
+ * @param attestation_req Attestation requester instance
  * @param store PCR storage
  * @param hash Hash engine to to use for PCR operations
  * @param background Context for executing long-running operations in the background.
@@ -439,7 +444,8 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct manifest_cmd_interface *pcd, const struct pfm_manager *pfm_manager_0,
 	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
 	const struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
-	struct device_manager *device_manager, struct pcr_store *store, const struct hash_engine *hash,
+	struct attestation_requester *attestation_req, struct device_manager *device_manager,
+	struct pcr_store *store, const struct hash_engine *hash,
 	const struct cmd_background *background, const struct host_cmd_interface *host_0,
 	const struct host_cmd_interface *host_1, const struct cmd_interface_fw_version *fw_version,
 	const struct riot_key_manager *riot, const struct cmd_authorization *auth,
@@ -482,6 +488,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->background = background;
 	intf->auth = auth;
 	intf->attestation = attestation;
+	intf->attestation_req = attestation_req;
 	intf->hash = hash;
 	intf->host_0_ctrl = host_ctrl_0;
 	intf->host_1_ctrl = host_ctrl_1;
