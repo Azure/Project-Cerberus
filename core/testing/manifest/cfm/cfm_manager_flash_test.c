@@ -150,10 +150,11 @@ static void cfm_manager_flash_testing_validate_and_release (CuTest *test,
 static int cfm_manager_flash_testing_verify_cfm (struct cfm_manager_flash_testing *manager,
 	uint32_t address, const struct cfm_testing_data *testing_data, int sig_verification_result)
 {
-	uint32_t vvalidate_toc_start = MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE;
+	uint32_t validate_toc_start = MANIFEST_V2_TOC_ENTRY_OFFSET;
 	uint32_t validate_start = testing_data->manifest.plat_id_offset +
 		MANIFEST_V2_PLATFORM_HEADER_SIZE;
 	int status;
+	int i;
 
 	status = flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -175,16 +176,20 @@ static int cfm_manager_flash_testing_verify_cfm (struct cfm_manager_flash_testin
 		FLASH_EXP_READ_CMD (0x03, address + MANIFEST_V2_TOC_HDR_OFFSET, 0, -1,
 		MANIFEST_V2_TOC_HEADER_SIZE));
 
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
-		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
-		testing_data->manifest.raw + MANIFEST_V2_TOC_ENTRY_OFFSET, MANIFEST_V2_TOC_ENTRY_SIZE,
-		FLASH_EXP_READ_CMD (0x03, address + MANIFEST_V2_TOC_ENTRY_OFFSET, 0, -1,
-		MANIFEST_V2_TOC_ENTRY_SIZE));
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < testing_data->manifest.toc_entries;
+		i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
+			FLASH_EXP_READ_STATUS_REG);
+		status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0,
+			testing_data->manifest.raw + validate_toc_start, MANIFEST_V2_TOC_ENTRY_SIZE,
+			FLASH_EXP_READ_CMD (0x03, address + validate_toc_start, 0, -1,
+			MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
 
 	status |= flash_master_mock_expect_verify_flash (&manager->flash_mock,
-		address + vvalidate_toc_start, testing_data->manifest.raw + vvalidate_toc_start,
-		testing_data->manifest.toc_hash_offset - vvalidate_toc_start);
+		address + validate_toc_start, testing_data->manifest.raw + validate_toc_start,
+		testing_data->manifest.toc_hash_offset - validate_toc_start);
 
 	status |= flash_master_mock_expect_rx_xfer (&manager->flash_mock, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);

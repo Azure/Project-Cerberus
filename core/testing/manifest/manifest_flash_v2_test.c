@@ -197,8 +197,8 @@ void manifest_flash_v2_testing_verify_manifest (CuTest *test,
 	status |= mock_expect_output (&manifest->flash.mock, 1, data->toc,
 		data->length - MANIFEST_V2_TOC_HDR_OFFSET, 2);
 
-	/* Find the platform ID TOC entry. */
-	for (i = 0; i <= data->plat_id_entry; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < data->toc_entries; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
 			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -314,8 +314,8 @@ void manifest_flash_v2_testing_verify_manifest_mocked_hash (CuTest *test,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-	/* Find the platform ID TOC entry. */
-	for (i = 0; i <= data->plat_id_entry; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < data->toc_entries; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest->flash.mock, manifest->flash.base.read, &manifest->flash,
 			0, MOCK_ARG (manifest->addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -1667,7 +1667,7 @@ static void manifest_flash_v2_test_verify_max_entries_and_hashes (CuTest *test)
 	uint32_t validate_toc_start = toc_entry_offset;
 	uint32_t toc_hash_offset = MANIFEST_V2_HEADER_SIZE + toc_len - SHA256_HASH_LENGTH;
 	uint32_t plat_id_offset = MANIFEST_V2_HEADER_SIZE + toc_len;
-	uint32_t fw_offset = plat_id_offset + PFM_V2.manifest.plat_id_len;
+	uint32_t fw_offset = plat_id_offset;
 	uint32_t validate_resume =
 		plat_id_offset + MANIFEST_V2_PLATFORM_HEADER_SIZE + PFM_V2.manifest.plat_id_str_len;
 	int i;
@@ -1685,11 +1685,13 @@ static void manifest_flash_v2_test_verify_max_entries_and_hashes (CuTest *test)
 				(MANIFEST_V2_TOC_ENTRY_SIZE * PFM_V2.manifest.plat_id_entry),
 				MANIFEST_V2_TOC_ENTRY_SIZE);
 			toc.data.entries[i].offset = plat_id_offset;
+			fw_offset += PFM_V2.manifest.plat_id_len;
 		}
 		else {
 			memcpy (&toc.data.entries[i], &PFM_V2.manifest.raw[toc_entry_offset],
 				MANIFEST_V2_TOC_ENTRY_SIZE);
 			toc.data.entries[i].offset = fw_offset;
+			toc.data.entries[i].length = 0;
 		}
 		toc.data.entries[i].format = 0x60;
 		toc.data.entries[i].hash_id = i;
@@ -1729,8 +1731,8 @@ static void manifest_flash_v2_test_verify_max_entries_and_hashes (CuTest *test)
 		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (&toc_header, MANIFEST_V2_TOC_HEADER_SIZE),
 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-	/* Find the platform ID TOC entry. */
-	for (i = 0; i <= 0x80; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < 0xFF; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
 			MOCK_ARG (manifest.addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -3483,7 +3485,8 @@ static void manifest_flash_v2_test_verify_platform_id_hash_error (CuTest *test)
 		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-	for (i = 0; i <= data->plat_id_entry; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < data->toc_entries; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
 			MOCK_ARG (manifest.addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -3590,7 +3593,8 @@ static void manifest_flash_v2_test_verify_manifest_part2_read_error (CuTest *tes
 		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-	for (i = 0; i <= data->plat_id_entry; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < data->toc_entries; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
 			MOCK_ARG (manifest.addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -3932,7 +3936,7 @@ static void manifest_flash_v2_test_v2_verify_max_entries_and_hashes (CuTest *tes
 	uint32_t validate_toc_start = toc_entry_offset;
 	uint32_t toc_hash_offset = MANIFEST_V2_HEADER_SIZE + toc_len - SHA256_HASH_LENGTH;
 	uint32_t plat_id_offset = MANIFEST_V2_HEADER_SIZE + toc_len;
-	uint32_t fw_offset = plat_id_offset + PFM_V2.manifest.plat_id_len;
+	uint32_t fw_offset = plat_id_offset;
 	uint32_t validate_resume =
 		plat_id_offset + MANIFEST_V2_PLATFORM_HEADER_SIZE + PFM_V2.manifest.plat_id_str_len;
 	int i;
@@ -3950,11 +3954,13 @@ static void manifest_flash_v2_test_v2_verify_max_entries_and_hashes (CuTest *tes
 				(MANIFEST_V2_TOC_ENTRY_SIZE * PFM_V2.manifest.plat_id_entry),
 				MANIFEST_V2_TOC_ENTRY_SIZE);
 			toc.data.entries[i].offset = plat_id_offset;
+			fw_offset += PFM_V2.manifest.plat_id_len;
 		}
 		else {
 			memcpy (&toc.data.entries[i], &PFM_V2.manifest.raw[toc_entry_offset],
 				MANIFEST_V2_TOC_ENTRY_SIZE);
 			toc.data.entries[i].offset = fw_offset;
+			toc.data.entries[i].length = 0;
 		}
 		toc.data.entries[i].format = 0x60;
 		toc.data.entries[i].hash_id = i;
@@ -3994,8 +4000,8 @@ static void manifest_flash_v2_test_v2_verify_max_entries_and_hashes (CuTest *tes
 		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (&toc_header, MANIFEST_V2_TOC_HEADER_SIZE),
 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-	/* Find the platform ID TOC entry. */
-	for (i = 0; i <= 0x80; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < 0xff; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
 			MOCK_ARG (manifest.addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -5806,7 +5812,8 @@ static void manifest_flash_v2_test_v2_verify_platform_id_hash_error (CuTest *tes
 		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-	for (i = 0; i <= data->plat_id_entry; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < data->toc_entries; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
 			MOCK_ARG (manifest.addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -5913,7 +5920,8 @@ static void manifest_flash_v2_test_v2_verify_manifest_part2_read_error (CuTest *
 		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
 		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 
-	for (i = 0; i <= data->plat_id_entry; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < data->toc_entries; i++, validate_toc_start += MANIFEST_V2_TOC_ENTRY_SIZE) {
 		status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
 			MOCK_ARG (manifest.addr + toc_entry_offset + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
 			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -8072,7 +8080,7 @@ static void manifest_flash_v2_test_read_element_data_max_entry_and_hash (CuTest 
 	uint32_t validate_toc_start = toc_entry_offset;
 	uint32_t toc_hash_offset = MANIFEST_V2_HEADER_SIZE + toc_len - SHA256_HASH_LENGTH;
 	uint32_t plat_id_offset = MANIFEST_V2_HEADER_SIZE + toc_len;
-	uint32_t fw_offset = plat_id_offset + PFM_V2.manifest.plat_id_len;
+	uint32_t fw_offset = plat_id_offset;
 	uint32_t validate_resume =
 		plat_id_offset + MANIFEST_V2_PLATFORM_HEADER_SIZE + PFM_V2.manifest.plat_id_str_len;
 	uint32_t last_entry = toc_entry_offset + (MANIFEST_V2_TOC_ENTRY_SIZE * 0xff);
@@ -8093,12 +8101,14 @@ static void manifest_flash_v2_test_read_element_data_max_entry_and_hash (CuTest 
 				MANIFEST_V2_TOC_ENTRY_SIZE);
 			toc.data.entries[i].offset = plat_id_offset;
 			toc.data.entries[i].format = 0xaa;
+			fw_offset += PFM_V2.manifest.plat_id_len;
 		}
 		else {
 			memcpy (&toc.data.entries[i], &PFM_V2.manifest.raw[toc_entry_offset],
 				MANIFEST_V2_TOC_ENTRY_SIZE);
 			toc.data.entries[i].offset = fw_offset;
 			toc.data.entries[i].format = 0x60;
+			toc.data.entries[i].length = 0;
 		}
 		toc.data.entries[i].hash_id = i;
 
@@ -11668,6 +11678,80 @@ static void manifest_flash_v2_test_get_child_elements_info_toc_invalid (CuTest *
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
+static void manifest_flash_v2_test_verify_toc_entry_overlap (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	const struct manifest_v2_testing_data *data = &PFM_V2.manifest;
+	struct manifest_toc_entry overlapped_toc_entries[data->toc_entries];
+	int status;
+	int i;
+
+	TEST_START;
+
+	/* Clone TOC entries */
+	for (i = 0; i < data->toc_entries; i++) {
+		memcpy (&overlapped_toc_entries[i], data->raw + MANIFEST_V2_TOC_ENTRY_OFFSET +
+				MANIFEST_V2_TOC_ENTRY_SIZE * i,
+				MANIFEST_V2_TOC_ENTRY_SIZE);
+	}
+	/* Create overlapping condition on last entry */
+	overlapped_toc_entries[data->toc_entries - 1].offset -= 4;
+
+	manifest_flash_v2_testing_init (test, &manifest, 0x10000, PFM_MAGIC_NUM, PFM_V2_MAGIC_NUM);
+
+	/* Read manifest header. */
+	status = mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
+		MOCK_ARG (manifest.addr), MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+	status |= mock_expect_output (&manifest.flash.mock, 1, data->raw, data->length, 2);
+
+	/* Read manifest signature. */
+	status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
+		MOCK_ARG (manifest.addr + data->sig_offset), MOCK_ARG_NOT_NULL, MOCK_ARG (data->sig_len));
+	status |= mock_expect_output (&manifest.flash.mock, 1, data->signature, data->sig_len, 2);
+
+	/* Hash */
+	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.start_sha256,
+		&manifest.hash_mock, 0);
+	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.update,
+		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->raw, MANIFEST_V2_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_HEADER_SIZE));
+
+	/* Read table of contents header. */
+	status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
+		MOCK_ARG (manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&manifest.flash.mock, 1, data->toc,
+		data->length - MANIFEST_V2_TOC_HDR_OFFSET, 2);
+
+	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.update,
+		&manifest.hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+
+	/* Iterate over all TOC entries. */
+	for (i = 0; i < data->toc_entries; i++) {
+		status |= mock_expect (&manifest.flash.mock, manifest.flash.base.read, &manifest.flash, 0,
+			MOCK_ARG (manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET + (i * MANIFEST_V2_TOC_ENTRY_SIZE)),
+			MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		status |= mock_expect_output (&manifest.flash.mock, 1, &overlapped_toc_entries[i],
+			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+		status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.update,
+			&manifest.hash_mock, 0,
+			MOCK_ARG_PTR_CONTAINS (&overlapped_toc_entries[i], MANIFEST_V2_TOC_ENTRY_SIZE),
+			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+	}
+
+	status |= mock_expect (&manifest.hash_mock.mock, manifest.hash_mock.base.cancel,
+		&manifest.hash_mock, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_verify (&manifest.test, &manifest.hash_mock.base,
+		&manifest.verification.base, NULL, 0);
+	CuAssertIntEquals (test, MANIFEST_TOC_INVALID, status);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (manifest_flash_v2);
@@ -11951,6 +12035,7 @@ TEST (manifest_flash_v2_test_get_child_elements_info_hash_update_entry_fail);
 TEST (manifest_flash_v2_test_get_child_elements_info_toc_after_last_entry_hash_update_fail);
 TEST (manifest_flash_v2_test_get_child_elements_info_hash_finish_fail);
 TEST (manifest_flash_v2_test_get_child_elements_info_toc_invalid);
+TEST (manifest_flash_v2_test_verify_toc_entry_overlap);
 
 TEST_SUITE_END;
 // *INDENT-ON*

@@ -321,8 +321,11 @@ static int manifest_flash_verify_v2 (const struct manifest_flash *manifest,
 	enum hash_type sig_hash, uint8_t *hash_out)
 {
 	struct manifest_toc_header *toc_header;
+	struct manifest_toc_entry platform_entry;
 	struct manifest_toc_entry entry;
 	struct manifest_platform_id plat_id_header;
+	bool platform_entry_found = false;
+	uint32_t prev_entry_end_offset;
 	uint32_t next_addr;
 	uint32_t toc_end;
 	uint32_t sig_addr =
@@ -382,10 +385,16 @@ static int manifest_flash_verify_v2 (const struct manifest_flash *manifest,
 		goto error;
 	}
 
+	/* Used to ensure TOC entries don't overlap or go backward. */
+	prev_entry_end_offset = sizeof (manifest->state->header) + sizeof (*toc_header) +
+		(toc_header->entry_count * sizeof (entry)) +
+		(toc_header->hash_count * manifest->state->toc_hash_length) +
+		manifest->state->toc_hash_length;
+
 	/* Find the platform ID element, hashing each entry as it is read in. */
 	next_addr += sizeof (*toc_header);
-	i = 0;
-	do {
+
+	for (i = 0; i < toc_header->entry_count; i++, next_addr += sizeof (entry)) {
 		status = manifest->flash->read (manifest->flash, next_addr, (uint8_t*) &entry,
 			sizeof (entry));
 		if (status != 0) {
@@ -397,11 +406,20 @@ static int manifest_flash_verify_v2 (const struct manifest_flash *manifest,
 			goto error;
 		}
 
-		next_addr += sizeof (entry);
-		i++;
-	} while ((entry.type_id != MANIFEST_PLATFORM_ID) && (i < toc_header->entry_count));
+		/* Ensure TOC entries do not overlap or go backward in offset order. */
+		if (prev_entry_end_offset > entry.offset) {
+			status = MANIFEST_TOC_INVALID;
+			goto error;
+		}
+		prev_entry_end_offset = entry.offset + entry.length;
 
-	if (entry.type_id != MANIFEST_PLATFORM_ID) {
+		if ((platform_entry_found == false) && (entry.type_id == MANIFEST_PLATFORM_ID)) {
+			platform_entry = entry;
+			platform_entry_found = true;
+		}
+	}
+
+	if (platform_entry_found == false) {
 		status = MANIFEST_NO_PLATFORM_ID;
 		goto error;
 	}
@@ -431,13 +449,13 @@ static int manifest_flash_verify_v2 (const struct manifest_flash *manifest,
 	/* Hash the flash contents until the platform ID element. */
 	next_addr += manifest->state->toc_hash_length;
 	status = flash_hash_update_contents (manifest->flash, next_addr,
-		manifest->addr + entry.offset - next_addr, hash);
+		manifest->addr + platform_entry.offset - next_addr, hash);
 	if (status != 0) {
 		goto error;
 	}
 
 	/* Read and hash the platform ID element header. */
-	next_addr = manifest->addr + entry.offset;
+	next_addr = manifest->addr + platform_entry.offset;
 	status = manifest->flash->read (manifest->flash, next_addr, (uint8_t*) &plat_id_header,
 		sizeof (plat_id_header));
 	if (status != 0) {
