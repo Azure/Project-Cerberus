@@ -14,3 +14,16 @@ fun:buffer_unaligned_copy*
 # derefernces in the test setup code, but it is not problem for 
 # run time, so exclude them
 fun:*_static_init_null
+
+[function]
+# these functions do call observable functions through
+# void(void*) or void(void*,void*) pointer, by design
+fun:observable_notify_observers
+fun:observable_notify_observers_with_ptr
+
+# these tests call observer functions directly through the
+# incorrect type, utilizing UB for observer optimization.
+fun:manifest_verification_test_after_default_activated_*
+fun:manifest_verification_test_on_pfm_activated_*
+fun:manifest_verification_test_on_pcd_activated_*
+fun:manifest_verification_test_on_cfm_activated_*
