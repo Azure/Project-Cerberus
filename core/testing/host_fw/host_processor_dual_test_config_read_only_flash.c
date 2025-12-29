@@ -1768,7 +1768,7 @@ host_processor_dual_test_config_read_only_flash_active_nv_cs0_no_override_no_nex
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_clear_read_only_flash_override (&host.host_state);
@@ -1783,7 +1783,7 @@ host_processor_dual_test_config_read_only_flash_active_nv_cs0_no_override_no_nex
 		host_state_manager_get_read_only_flash_nv_config (&host.host_state));
 	CuAssertIntEquals (test, false,
 		host_state_manager_has_read_only_flash_override (&host.host_state));
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host.host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host.host_state));
 	CuAssertIntEquals (test, HOST_READ_ONLY_ACTIVATE_ON_ALL,
 		host_state_manager_get_read_only_activation_events (&host.host_state));
 
@@ -1806,7 +1806,7 @@ static void host_processor_dual_test_config_read_only_flash_active_nv_cs0_no_ove
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_clear_read_only_flash_override (&host.host_state);
@@ -1882,7 +1882,7 @@ host_processor_dual_test_config_read_only_flash_active_nv_cs0_override_cs0_no_ne
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	/* It should not be possible to have an override in active mode. */
@@ -1899,7 +1899,7 @@ host_processor_dual_test_config_read_only_flash_active_nv_cs0_override_cs0_no_ne
 		host_state_manager_get_read_only_flash_nv_config (&host.host_state));
 	CuAssertIntEquals (test, true,
 		host_state_manager_has_read_only_flash_override (&host.host_state));
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host.host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host.host_state));
 	CuAssertIntEquals (test, HOST_READ_ONLY_ACTIVATE_ON_ALL,
 		host_state_manager_get_read_only_activation_events (&host.host_state));
 
@@ -1922,7 +1922,7 @@ static void host_processor_dual_test_config_read_only_flash_active_nv_cs0_overri
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	/* It should not be possible to have an override in active mode. */
@@ -2002,7 +2002,7 @@ host_processor_dual_test_config_read_only_flash_active_nv_cs0_override_cs1_no_ne
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	/* It should not be possible to have an override in active mode. */
@@ -2019,7 +2019,7 @@ host_processor_dual_test_config_read_only_flash_active_nv_cs0_override_cs1_no_ne
 		host_state_manager_get_read_only_flash_nv_config (&host.host_state));
 	CuAssertIntEquals (test, true,
 		host_state_manager_has_read_only_flash_override (&host.host_state));
-	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&host.host_state));
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&host.host_state));
 	CuAssertIntEquals (test, HOST_READ_ONLY_ACTIVATE_ON_ALL,
 		host_state_manager_get_read_only_activation_events (&host.host_state));
 
@@ -2042,7 +2042,7 @@ static void host_processor_dual_test_config_read_only_flash_active_nv_cs0_overri
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	/* It should not be possible to have an override in active mode. */
@@ -2198,7 +2198,7 @@ static void host_processor_dual_test_config_read_only_flash_active_nv_cs1_no_ove
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	host_state_manager_clear_read_only_flash_override (&host.host_state);
@@ -2316,7 +2316,7 @@ static void host_processor_dual_test_config_read_only_flash_active_nv_cs1_overri
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	/* It should not be possible to have an override in active mode. */
@@ -2436,7 +2436,7 @@ static void host_processor_dual_test_config_read_only_flash_active_nv_cs1_overri
 	status = host_state_manager_save_read_only_flash_nv_config (&host.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_state_manager_save_inactive_dirty (&host.host_state, false);
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
 	CuAssertIntEquals (test, 0, status);
 
 	/* It should not be possible to have an override in active mode. */

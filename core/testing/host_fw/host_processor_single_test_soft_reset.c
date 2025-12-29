@@ -21431,134 +21431,6 @@ static void host_processor_single_test_soft_reset_pending_pfm_no_active_dirty_ov
 }
 
 static void
-host_processor_single_test_soft_reset_pending_pfm_no_active_dirty_override_ro_switch_por_same_as_nv
-	(CuTest *test)
-{
-	struct host_processor_single_testing host;
-	int status;
-	struct flash_region rw_region;
-	struct pfm_read_write rw_prop;
-	struct pfm_read_write_regions rw_list;
-	struct host_flash_manager_rw_regions rw_host;
-	struct host_processor_single_testing_flash_mgr_action validate_rw = {
-		.override = true,
-		.ro = SPI_FILTER_CS_0,
-		.nv_ro = SPI_FILTER_CS_0,
-		.host = &host,
-		.test = test
-	};
-	struct host_processor_single_testing_flash_mgr_action swap_flash = {
-		.override = true,
-		.ro = SPI_FILTER_CS_0,
-		.nv_ro = SPI_FILTER_CS_0,
-		.used_pending = true,
-		.host = &host,
-		.test = test
-	};
-
-	TEST_START;
-
-	host_processor_single_testing_init (test, &host);
-
-	status = host_state_manager_override_read_only_flash (&host.host_state, SPI_FILTER_CS_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_save_read_only_activation_events (&host.host_state,
-		HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY);
-	CuAssertIntEquals (test, 0, status);
-
-	rw_region.start_addr = 0x200;
-	rw_region.length = 0x100;
-
-	rw_prop.on_failure = PFM_RW_DO_NOTHING;
-
-	rw_list.regions = &rw_region;
-	rw_list.properties = &rw_prop;
-	rw_list.count = 1;
-
-	rw_host.pfm = &host.pfm.base;
-	rw_host.writable = &rw_list;
-	rw_host.count = 1;
-
-	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		MOCK_RETURN_PTR (NULL));
-	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		MOCK_RETURN_PTR (&host.pfm));
-
-	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
-		&host.control, 0, MOCK_ARG (true));
-
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
-		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
-
-	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
-
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
-		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
-		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
-	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
-	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
-	status |= mock_expect_external_action (&host.flash_mgr.mock,
-		host_processor_single_testing_validate_read_write_flash, &validate_rw);
-
-	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
-		&host.filter, 0);
-	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
-		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
-
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
-	status |= mock_expect_external_action (&host.flash_mgr.mock,
-		host_processor_single_testing_swap_flash_devices, &swap_flash);
-
-	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
-		0);
-
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.free_read_write_regions,
-		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
-
-	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
-		0);
-
-	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG_PTR (&host.pfm));
-
-	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
-		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
-	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
-		&host.control, 0, MOCK_ARG (false));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, false, status);	// State changes in flash manager.
-
-	status = host_state_manager_is_pfm_dirty (&host.host_state);
-	CuAssertIntEquals (test, false, status);	// State changes in PFM manager.
-
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
-		host_state_manager_get_run_time_validation (&host.host_state));
-
-	status = host_state_manager_is_bypass_mode (&host.host_state);
-	CuAssertIntEquals (test, false, status);
-
-	status = host_state_manager_has_read_only_flash_override (&host.host_state);
-	CuAssertIntEquals (test, false, status);
-
-	CuAssertIntEquals (test, SPI_FILTER_CS_0,
-		host_state_manager_get_read_only_flash (&host.host_state));
-
-	host_processor_single_testing_validate_and_release (test, &host);
-}
-
-static void
 host_processor_single_test_soft_reset_pending_pfm_no_active_dirty_override_ro_switch_por_cs0 (
 	CuTest *test)
 {
@@ -21682,6 +21554,134 @@ host_processor_single_test_soft_reset_pending_pfm_no_active_dirty_override_ro_sw
 
 	status = host_state_manager_has_read_only_flash_override (&host.host_state);
 	CuAssertIntEquals (test, true, status);
+
+	CuAssertIntEquals (test, SPI_FILTER_CS_0,
+		host_state_manager_get_read_only_flash (&host.host_state));
+
+	host_processor_single_testing_validate_and_release (test, &host);
+}
+
+static void
+host_processor_single_test_soft_reset_pending_pfm_no_active_dirty_override_ro_switch_por_same_as_nv
+	(CuTest *test)
+{
+	struct host_processor_single_testing host;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
+	struct host_processor_single_testing_flash_mgr_action validate_rw = {
+		.override = true,
+		.ro = SPI_FILTER_CS_0,
+		.nv_ro = SPI_FILTER_CS_0,
+		.host = &host,
+		.test = test
+	};
+	struct host_processor_single_testing_flash_mgr_action swap_flash = {
+		.override = true,
+		.ro = SPI_FILTER_CS_0,
+		.nv_ro = SPI_FILTER_CS_0,
+		.used_pending = true,
+		.host = &host,
+		.test = test
+	};
+
+	TEST_START;
+
+	host_processor_single_testing_init (test, &host);
+
+	status = host_state_manager_override_read_only_flash (&host.host_state, SPI_FILTER_CS_0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_save_inactive_dirty (&host.host_state, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_save_read_only_activation_events (&host.host_state,
+		HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x200;
+	rw_region.length = 0x100;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	rw_host.pfm = &host.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		MOCK_RETURN_PTR (NULL));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		MOCK_RETURN_PTR (&host.pfm));
+
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (true));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_rot_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+
+	status |= mock_expect (&host.pfm.mock, host.pfm.base.base.is_empty, &host.pfm, 0);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.validate_read_write_flash,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.pfm), MOCK_ARG_PTR (&host.hash),
+		MOCK_ARG_PTR (&host.rsa), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&host.flash_mgr.mock, 3, &rw_host, sizeof (rw_host), -1);
+	status |= mock_expect_save_arg (&host.flash_mgr.mock, 3, 0);
+	status |= mock_expect_share_save_arg (&host.flash_mgr.mock, 0, &host.pfm.mock, 0);
+	status |= mock_expect_external_action (&host.flash_mgr.mock,
+		host_processor_single_testing_validate_read_write_flash, &validate_rw);
+
+	status |= mock_expect (&host.filter.mock, host.filter.base.clear_filter_rw_regions,
+		&host.filter, 0);
+	status |= mock_expect (&host.filter.mock, host.filter.base.set_filter_rw_region, &host.filter,
+		0, MOCK_ARG (1), MOCK_ARG (0x200), MOCK_ARG (0x300));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.swap_flash_devices,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR (&host.pfm_mgr));
+	status |= mock_expect_external_action (&host.flash_mgr.mock,
+		host_processor_single_testing_swap_flash_devices, &swap_flash);
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_active_mode, &host.observer,
+		0);
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.free_read_write_regions,
+		&host.flash_mgr, 0, MOCK_ARG_SAVED_ARG (0));
+
+	status |= mock_expect (&host.observer.mock, host.observer.base.on_soft_reset, &host.observer,
+		0);
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG_PTR (&host.pfm));
+
+	status |= mock_expect (&host.flash_mgr.mock, host.flash_mgr.base.base.set_flash_for_host_access,
+		&host.flash_mgr, 0, MOCK_ARG_PTR (&host.control));
+	status |= mock_expect (&host.control.mock, host.control.base.hold_processor_in_reset,
+		&host.control, 0, MOCK_ARG (false));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);	// State changes in flash manager.
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);	// State changes in PFM manager.
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
 
 	CuAssertIntEquals (test, SPI_FILTER_CS_0,
 		host_state_manager_get_read_only_flash (&host.host_state));

@@ -9320,9 +9320,9 @@ static void host_processor_dual_test_soft_reset_active_pfm_dirty_override_ro_swi
 	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
-	/* RO switch was not handled in this reset context. */
+	/* No flash switch is required. */
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, true, status);
+	CuAssertIntEquals (test, false, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);
@@ -18115,9 +18115,9 @@ host_processor_dual_test_soft_reset_pending_pfm_no_active_dirty_override_ro_swit
 	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
-	/* RO switch was not handled in this reset context. */
+	/* No flash switch is required. */
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, true, status);
+	CuAssertIntEquals (test, false, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);	// State changes in PFM manager.
@@ -28535,9 +28535,9 @@ host_processor_dual_test_soft_reset_pending_pfm_with_active_dirty_override_ro_sw
 	status = host.test.base.soft_reset (&host.test.base, &host.hash.base, &host.rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
-	/* RO switch was not handled in this reset context. */
+	/* No flash switch is required. */
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, true, status);
+	CuAssertIntEquals (test, false, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);	// State changes in PFM manager.

@@ -377,6 +377,12 @@ int host_processor_dual_config_read_only_flash (const struct host_processor *hos
 				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
 					HOST_LOGGING_FORCE_DIRTY, host_processor_get_port (&dual->base), 0);
 			}
+			else {
+				host_state_manager_save_inactive_dirty (dual->host_state, false);
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_HOST_FW,
+					HOST_LOGGING_FORCE_NOT_DIRTY, host_processor_get_port (&dual->base), 0);
+			}
 		}
 	}
 
@@ -446,6 +452,9 @@ void host_processor_dual_finalize_verification (const struct host_processor_filt
 
 		if (ro != nv_ro) {
 			host_state_manager_save_inactive_dirty (host->host_state, true);
+		}
+		else {
+			host_state_manager_save_inactive_dirty (host->host_state, false);
 		}
 	}
 }

@@ -4530,62 +4530,6 @@ host_processor_dual_test_run_time_verification_active_pfm_not_dirty_override_ro_
 }
 
 static void
-host_processor_dual_test_run_time_verification_active_pfm_not_dirty_override_ro_switch_por_same_as_nv
-	(CuTest *test)
-{
-	/* This is an impossible scenario since no override will get set while in active mode. */
-
-	struct host_processor_dual_testing host;
-	int status;
-
-	TEST_START;
-
-	host_processor_dual_testing_init (test, &host);
-
-	status = host_state_manager_override_read_only_flash (&host.host_state, SPI_FILTER_CS_0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_save_read_only_activation_events (&host.host_state,
-		HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
-		MOCK_RETURN_PTR (&host.pfm));
-	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
-		MOCK_RETURN_PTR (NULL));
-
-	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
-		MOCK_ARG_PTR (&host.pfm));
-
-	CuAssertIntEquals (test, 0, status);
-
-	status = host.test.base.run_time_verification (&host.test.base, &host.hash.base,
-		&host.rsa.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, false, status);
-
-	status = host_state_manager_is_pfm_dirty (&host.host_state);
-	CuAssertIntEquals (test, false, status);
-
-	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
-		host_state_manager_get_run_time_validation (&host.host_state));
-
-	status = host_state_manager_is_bypass_mode (&host.host_state);
-	CuAssertIntEquals (test, false, status);
-
-	status = host_state_manager_has_read_only_flash_override (&host.host_state);
-	CuAssertIntEquals (test, false, status);
-
-	/* RO overrides are not valid in active mode, so update the NV state to match the override. */
-	CuAssertIntEquals (test, SPI_FILTER_CS_0,
-		host_state_manager_get_read_only_flash (&host.host_state));
-
-	host_processor_dual_testing_validate_and_release (test, &host);
-}
-
-static void
 host_processor_dual_test_run_time_verification_active_pfm_not_dirty_override_ro_switch_por_cs0 (
 	CuTest *test)
 {
@@ -4624,6 +4568,62 @@ host_processor_dual_test_run_time_verification_active_pfm_not_dirty_override_ro_
 	/* RO switch was not handled during verification. */
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
 	CuAssertIntEquals (test, true, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_has_read_only_flash_override (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	/* RO overrides are not valid in active mode, so update the NV state to match the override. */
+	CuAssertIntEquals (test, SPI_FILTER_CS_0,
+		host_state_manager_get_read_only_flash (&host.host_state));
+
+	host_processor_dual_testing_validate_and_release (test, &host);
+}
+
+static void
+host_processor_dual_test_run_time_verification_active_pfm_not_dirty_override_ro_switch_por_same_as_nv
+	(CuTest *test)
+{
+	/* This is an impossible scenario since no override will get set while in active mode. */
+
+	struct host_processor_dual_testing host;
+	int status;
+
+	TEST_START;
+
+	host_processor_dual_testing_init (test, &host);
+
+	status = host_state_manager_override_read_only_flash (&host.host_state, SPI_FILTER_CS_0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_save_read_only_activation_events (&host.host_state,
+		HOST_READ_ONLY_ACTIVATE_ON_POR_ONLY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_active_pfm, &host.pfm_mgr,
+		MOCK_RETURN_PTR (&host.pfm));
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.get_pending_pfm, &host.pfm_mgr,
+		MOCK_RETURN_PTR (NULL));
+
+	status |= mock_expect (&host.pfm_mgr.mock, host.pfm_mgr.base.free_pfm, &host.pfm_mgr, 0,
+		MOCK_ARG_PTR (&host.pfm));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = host.test.base.run_time_verification (&host.test.base, &host.hash.base,
+		&host.rsa.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);
@@ -8488,9 +8488,9 @@ host_processor_dual_test_run_time_verification_active_pfm_dirty_override_ro_swit
 		&host.rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
-	/* RO switch was not handled during verification. */
+	/* No flash switch is required. */
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, true, status);
+	CuAssertIntEquals (test, false, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);
@@ -16632,9 +16632,9 @@ host_processor_dual_test_run_time_verification_pending_pfm_no_active_dirty_overr
 		&host.rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
-	/* RO switch was not handled during verification. */
+	/* No flash switch is required. */
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, true, status);
+	CuAssertIntEquals (test, false, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);	// State changes in PFM manager.
@@ -26196,9 +26196,9 @@ host_processor_dual_test_run_time_verification_pending_pfm_with_active_dirty_ove
 		&host.rsa.base);
 	CuAssertIntEquals (test, 0, status);
 
-	/* RO switch was not handled during verification. */
+	/* No flash switch is required. */
 	status = host_state_manager_is_inactive_dirty (&host.host_state);
-	CuAssertIntEquals (test, true, status);
+	CuAssertIntEquals (test, false, status);
 
 	status = host_state_manager_is_pfm_dirty (&host.host_state);
 	CuAssertIntEquals (test, false, status);	// State changes in PFM manager.
