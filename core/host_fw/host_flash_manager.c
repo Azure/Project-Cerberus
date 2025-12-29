@@ -735,3 +735,27 @@ int host_flash_manager_host_has_flash_access (const struct host_control *control
 
 	return 1;
 }
+
+/**
+ * Reset the host flash devices.
+ *
+ * @param cs0 Flash device connected to CS0.
+ * @param cs1 Flash device connected to CS1.  Null if there is only a single flash device.
+ *
+ * @return 0 if both devices were reset successfully or an error code.
+ */
+int host_flash_manager_reset_flash (const struct spi_flash *cs0, const struct spi_flash *cs1)
+{
+	int status;
+
+	status = spi_flash_reset_device (cs0);
+	if (status != 0) {
+		return status;
+	}
+
+	if (cs1 != NULL) {
+		status = spi_flash_reset_device (cs1);
+	}
+
+	return status;
+}

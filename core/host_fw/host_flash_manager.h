@@ -281,6 +281,7 @@ int host_flash_manager_set_flash_for_host_access (const struct host_control *con
 	const struct spi_filter_interface *filter);
 int host_flash_manager_host_has_flash_access (const struct host_control *control,
 	const struct spi_filter_interface *filter);
+int host_flash_manager_reset_flash (const struct spi_flash *cs0, const struct spi_flash *cs1);
 
 
 #define	HOST_FLASH_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_HOST_FLASH_MGR, code)

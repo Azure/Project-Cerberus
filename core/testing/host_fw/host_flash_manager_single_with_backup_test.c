@@ -6,8 +6,8 @@
 #include <string.h>
 #include "testing.h"
 #include "flash/flash_common.h"
-#include "host_fw/host_flash_manager_single.h"
-#include "host_fw/host_flash_manager_single_static.h"
+#include "host_fw/host_flash_manager_single_with_backup.h"
+#include "host_fw/host_flash_manager_single_with_backup_static.h"
 #include "host_fw/host_state_manager.h"
 #include "testing/crypto/rsa_testing.h"
 #include "testing/engines/hash_testing_engine.h"
@@ -22,19 +22,22 @@
 #include "testing/mock/spi_filter/spi_filter_interface_mock.h"
 
 
-TEST_SUITE_LABEL ("host_flash_manager_single");
+TEST_SUITE_LABEL ("host_flash_manager_single_with_backup");
 
 
 /**
  * Dependencies for testing.
  */
-struct host_flash_manager_single_testing {
+struct host_flash_manager_single_with_backup_testing {
 	HASH_TESTING_ENGINE (hash);							/**< Hash engine for testing. */
 	RSA_TESTING_ENGINE (rsa);							/**< RSA engine for testing. */
 	struct flash_master_mock flash_mock0;				/**< Mock for CS0 flash. */
+	struct flash_master_mock flash_mock1;				/**< Mock for CS1 flash. */
 	struct flash_master_mock flash_mock_state;			/**< Mock for host state flash. */
-	struct spi_flash_state state0;						/**< CS0 flash device context. */
+	struct spi_flash_state state0;						/**< CS0 flash context. */
 	struct spi_flash flash0;							/**< CS0 flash device. */
+	struct spi_flash_state state1;						/**< CS1 flash context. */
+	struct spi_flash flash1;							/**< CS1 flash device. */
 	struct spi_flash_state state;						/**< Host state flash context. */
 	struct spi_flash flash_state;						/**< Host state flash device. */
 	struct host_state_manager_state host_state_ctx;		/**< Variable context for host state. */
@@ -46,7 +49,7 @@ struct host_flash_manager_single_testing {
 	struct host_control_mock control;					/**< Mock for host control. */
 	struct pfm_mock pfm;								/**< Mock PFM for testing. */
 	struct pfm_mock pfm_good;							/**< Secondary mock PFM for testing. */
-	struct host_flash_manager_single test;				/**< Flash manager under test. */
+	struct host_flash_manager_single_with_backup test;	/**< Flash manager under test. */
 };
 
 
@@ -56,8 +59,8 @@ struct host_flash_manager_single_testing {
  * @param test The testing framework.
  * @param manager The testing components.
  */
-static void host_flash_manager_single_testing_init_host_state (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_init_host_state (CuTest *test,
+	struct host_flash_manager_single_with_backup_testing *manager)
 {
 	int status;
 	uint16_t end[4] = {0xffff, 0xffff, 0xffff, 0xffff};
@@ -99,8 +102,8 @@ static void host_flash_manager_single_testing_init_host_state (CuTest *test,
  * @param manager The testing components to initialize.
  *
  */
-static void host_flash_manager_single_testing_initialize_dependencies_no_flash_master (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (
+	CuTest *test, struct host_flash_manager_single_with_backup_testing *manager)
 {
 	int status;
 
@@ -116,11 +119,11 @@ static void host_flash_manager_single_testing_initialize_dependencies_no_flash_m
 	status = flash_mfg_filter_handler_mock_init (&manager->handler);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_init_host_state (test, manager);
+	host_flash_manager_single_with_backup_testing_init_host_state (test, manager);
 
-	status = host_flash_initialization_init_single_flash (&manager->flash_init,
-		&manager->init_state, &manager->flash0, &manager->state0, &manager->flash_mock0.base, false,
-		false);
+	status = host_flash_initialization_init (&manager->flash_init, &manager->init_state,
+		&manager->flash0, &manager->state0, &manager->flash_mock0.base, &manager->flash1,
+		&manager->state1, &manager->flash_mock1.base, false, false);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_control_mock_init (&manager->control);
@@ -140,16 +143,21 @@ static void host_flash_manager_single_testing_initialize_dependencies_no_flash_m
  * @param manager The testing components to initialize.
  *
  */
-static void host_flash_manager_single_testing_initialize_dependencies_no_flash (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (
+	CuTest *test, struct host_flash_manager_single_with_backup_testing *manager)
 {
 	int status;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		manager);
 
 	status = flash_master_mock_init (&manager->flash_mock0);
 	CuAssertIntEquals (test, 0, status);
 	manager->flash_mock0.mock.name = "flash_master0";
+
+	status = flash_master_mock_init (&manager->flash_mock1);
+	CuAssertIntEquals (test, 0, status);
+	manager->flash_mock1.mock.name = "flash_master1";
 }
 
 /**
@@ -159,17 +167,23 @@ static void host_flash_manager_single_testing_initialize_dependencies_no_flash (
  * @param manager The testing components to initialize.
  *
  */
-static void host_flash_manager_single_testing_initialize_dependencies (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_initialize_dependencies (CuTest *test,
+	struct host_flash_manager_single_with_backup_testing *manager)
 {
 	int status;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, manager);
 
 	status = spi_flash_init (&manager->flash0, &manager->state0, &manager->flash_mock0.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_set_device_size (&manager->flash0, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&manager->flash1, &manager->state1, &manager->flash_mock1.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&manager->flash1, 0x1000000);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -181,8 +195,8 @@ static void host_flash_manager_single_testing_initialize_dependencies (CuTest *t
  * @param manager The testing components to release.
  *
  */
-static void host_flash_manager_single_testing_validate_and_release_dependencies_no_flash (
-	CuTest *test, struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_validate_and_release_dependencies_no_flash
+	(CuTest *test, struct host_flash_manager_single_with_backup_testing *manager)
 {
 	int status;
 
@@ -193,6 +207,7 @@ static void host_flash_manager_single_testing_validate_and_release_dependencies_
 	RSA_TESTING_ENGINE_RELEASE (&manager->rsa);
 
 	status = flash_master_mock_validate_and_release (&manager->flash_mock0);
+	status |= flash_master_mock_validate_and_release (&manager->flash_mock1);
 	status |= flash_master_mock_validate_and_release (&manager->flash_mock_state);
 	status |= spi_filter_interface_mock_validate_and_release (&manager->filter);
 	status |= flash_mfg_filter_handler_mock_validate_and_release (&manager->handler);
@@ -210,11 +225,13 @@ static void host_flash_manager_single_testing_validate_and_release_dependencies_
  * @param manager The testing components to release.
  *
  */
-static void host_flash_manager_single_testing_validate_and_release_dependencies (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_validate_and_release_dependencies (
+	CuTest *test, struct host_flash_manager_single_with_backup_testing *manager)
 {
 	spi_flash_release (&manager->flash0);
-	host_flash_manager_single_testing_validate_and_release_dependencies_no_flash (test, manager);
+	spi_flash_release (&manager->flash1);
+	host_flash_manager_single_with_backup_testing_validate_and_release_dependencies_no_flash (test,
+		manager);
 }
 
 /**
@@ -223,15 +240,15 @@ static void host_flash_manager_single_testing_validate_and_release_dependencies 
  * @param test The testing framework.
  * @param manager The testing components to initialize.
  */
-static void host_flash_manager_single_testing_init (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_init (CuTest *test,
+	struct host_flash_manager_single_with_backup_testing *manager)
 {
 	int status;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, manager);
 
-	status = host_flash_manager_single_init (&manager->test, &manager->flash0, &manager->host_state,
-		&manager->filter.base, &manager->handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager->test, &manager->flash0,
+		&manager->flash1, &manager->host_state, &manager->filter.base, &manager->handler.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -242,11 +259,11 @@ static void host_flash_manager_single_testing_init (CuTest *test,
  * @param manager The testing components to release.
  *
  */
-static void host_flash_manager_single_testing_validate_and_release (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_validate_and_release (CuTest *test,
+	struct host_flash_manager_single_with_backup_testing *manager)
 {
-	host_flash_manager_single_testing_validate_and_release_dependencies (test, manager);
-	host_flash_manager_single_release (&manager->test);
+	host_flash_manager_single_with_backup_testing_validate_and_release_dependencies (test, manager);
+	host_flash_manager_single_with_backup_release (&manager->test);
 }
 
 /**
@@ -256,8 +273,8 @@ static void host_flash_manager_single_testing_validate_and_release (CuTest *test
  * @param test The testing framework.
  * @param manager The testing components.
  */
-static void host_flash_manager_single_testing_check_state_persistence (CuTest *test,
-	struct host_flash_manager_single_testing *manager)
+static void host_flash_manager_single_with_backup_testing_check_state_persistence (CuTest *test,
+	struct host_flash_manager_single_with_backup_testing *manager)
 {
 	int status;
 
@@ -289,7 +306,7 @@ static void host_flash_manager_single_testing_check_state_persistence (CuTest *t
  * @param mock The flash mock for the SPI device.
  * @param id ID of the flash device.
  */
-static void host_flash_manager_single_testing_initialize_flash_device (CuTest *test,
+static void host_flash_manager_single_with_backup_testing_initialize_flash_device (CuTest *test,
 	struct spi_flash *flash, struct spi_flash_state *state, struct flash_master_mock *mock,
 	const uint8_t *id)
 {
@@ -359,305 +376,331 @@ static void host_flash_manager_single_testing_initialize_flash_device (CuTest *t
  * Test cases
  *******************/
 
-static void host_flash_manager_single_test_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_init (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
-	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.free_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.test.base.restore_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.test.base.host_has_flash_access);
-	CuAssertPtrNotNull (test, manager.test.base.reset_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.has_two_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.free_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.base.base.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.host_has_flash_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.reset_flash);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_init_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_init_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	status = host_flash_manager_single_init (NULL, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (NULL, &manager.flash0, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init (&manager.test, NULL, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, NULL, &manager.flash1,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, NULL,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0, NULL,
+		&manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		NULL, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, NULL, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, NULL);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, NULL, &manager.handler.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release_dependencies (test, &manager);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, NULL);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release_dependencies (test,
+		&manager);
 }
 
-static void host_flash_manager_single_test_init_with_managed_flash_initialization (CuTest *test)
-{
-	struct host_flash_manager_single_testing manager;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
-
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test,
-		&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
-		&manager.flash_init);
-	CuAssertIntEquals (test, 0, status);
-
-	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.free_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.test.base.restore_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.test.base.host_has_flash_access);
-
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_single_test_init_with_managed_flash_initialization_null (
+static void host_flash_manager_single_with_backup_test_init_with_managed_flash_initialization (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (NULL,
-		&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, manager.test.base.base.has_two_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.free_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.base.base.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.host_has_flash_access);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_init_with_managed_flash_initialization_null (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
+
+	status = host_flash_manager_single_with_backup_init_with_managed_flash_initialization (NULL,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		NULL, &manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base,
 		&manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test, NULL,
-		&manager.host_state, &manager.filter.base, &manager.handler.base, &manager.flash_init);
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, NULL, &manager.host_state, &manager.filter.base, &manager.handler.base,
+		&manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test,
-		&manager.flash0, NULL, &manager.filter.base, &manager.handler.base, &manager.flash_init);
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, NULL, &manager.filter.base, &manager.handler.base,
+		&manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test,
-		&manager.flash0, &manager.host_state, NULL, &manager.handler.base, &manager.flash_init);
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, NULL, &manager.handler.base,
+		&manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test,
-		&manager.flash0, &manager.host_state, &manager.filter.base, NULL, &manager.flash_init);
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base, NULL,
+		&manager.flash_init);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test,
-		&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base, NULL);
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release_dependencies (test,
+		&manager);
 }
 
-static void host_flash_manager_single_test_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_static_init (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.free_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.test.base.restore_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.test.base.host_has_flash_access);
-	CuAssertPtrNotNull (test, manager.test.base.reset_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.has_two_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.free_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.base.base.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.host_has_flash_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.reset_flash);
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_static_init_with_managed_flash_initialization (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_static_init_with_managed_flash_initialization
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
+	struct host_flash_manager_single_with_backup_testing manager = {
 		.test =
-			host_flash_manager_single_static_init_with_managed_flash_initialization (
-			&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
-			&manager.flash_init)
+			host_flash_manager_single_with_backup_static_init_with_managed_flash_initialization (
+			&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+			&manager.handler.base, &manager.flash_init)
 	};
 
 	TEST_START;
 
-	CuAssertPtrNotNull (test, manager.test.base.has_two_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_only_flash);
-	CuAssertPtrNotNull (test, manager.test.base.validate_read_write_flash);
-	CuAssertPtrNotNull (test, manager.test.base.get_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.free_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_type);
-	CuAssertPtrNotNull (test, manager.test.base.config_spi_filter_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.swap_flash_devices);
-	CuAssertPtrNotNull (test, manager.test.base.initialize_flash_protection);
-	CuAssertPtrNotNull (test, manager.test.base.restore_flash_read_write_regions);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_rot_access);
-	CuAssertPtrNotNull (test, manager.test.base.set_flash_for_host_access);
-	CuAssertPtrNotNull (test, manager.test.base.host_has_flash_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.has_two_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_only_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.validate_read_write_flash);
+	CuAssertPtrNotNull (test, manager.test.base.base.get_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.free_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_type);
+	CuAssertPtrNotNull (test, manager.test.base.base.config_spi_filter_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.swap_flash_devices);
+	CuAssertPtrNotNull (test, manager.test.base.base.initialize_flash_protection);
+	CuAssertPtrNotNull (test, manager.test.base.base.restore_flash_read_write_regions);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_rot_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.set_flash_for_host_access);
+	CuAssertPtrNotNull (test, manager.test.base.base.host_has_flash_access);
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_release_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_release_null (CuTest *test)
 {
 	TEST_START;
 
-	host_flash_manager_single_release (NULL);
+	host_flash_manager_single_with_backup_release (NULL);
 }
 
-static void host_flash_manager_single_test_has_two_flash_devices (CuTest *test)
+static void host_flash_manager_single_with_backup_test_has_two_flash_devices (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	bool two_flashes;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	two_flashes = manager.test.base.has_two_flash_devices (&manager.test.base);
-	CuAssertIntEquals (test, false, two_flashes);
+	two_flashes = manager.test.base.base.has_two_flash_devices (&manager.test.base.base);
+	CuAssertIntEquals (test, true, two_flashes);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_has_two_flash_devices_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_has_two_flash_devices_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	bool two_flashes;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	two_flashes = manager.test.base.has_two_flash_devices (&manager.test.base);
-	CuAssertIntEquals (test, false, two_flashes);
+	two_flashes = manager.test.base.base.has_two_flash_devices (&manager.test.base.base);
+	CuAssertIntEquals (test, true, two_flashes);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_has_two_flash_devices_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_has_two_flash_devices_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	bool two_flashes;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	two_flashes = manager.test.base.has_two_flash_devices (NULL);
-	CuAssertIntEquals (test, false, two_flashes);
+	two_flashes = manager.test.base.base.has_two_flash_devices (NULL);
+	CuAssertIntEquals (test, true, two_flashes);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_only_flash_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_only_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	active = manager.test.base.get_read_only_flash (&manager.test.base);
+	active = manager.test.base.base.get_read_only_flash (&manager.test.base.base);
 	CuAssertPtrEquals (test, &manager.flash0, (void*) active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_only_flash_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_only_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *active;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = host_state_manager_save_read_only_flash_nv_config (&manager.host_state,
 		SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.test.base.get_read_only_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, (void*) active);
+	active = manager.test.base.base.get_read_only_flash (&manager.test.base.base);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_only_flash_override_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_only_flash_override_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *active;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = host_state_manager_save_read_only_flash_nv_config (&manager.host_state,
 		SPI_FILTER_CS_1);
@@ -666,108 +709,135 @@ static void host_flash_manager_single_test_get_read_only_flash_override_cs0 (CuT
 	status = host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.test.base.get_read_only_flash (&manager.test.base);
+	active = manager.test.base.base.get_read_only_flash (&manager.test.base.base);
 	CuAssertPtrEquals (test, &manager.flash0, (void*) active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_only_flash_override_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_only_flash_override_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *active;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	active = manager.test.base.get_read_only_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, (void*) active);
+	active = manager.test.base.base.get_read_only_flash (&manager.test.base.base);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_only_flash_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_only_flash_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	const struct spi_flash *active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	active = manager.test.base.get_read_only_flash (&manager.test.base);
+	active = manager.test.base.base.get_read_only_flash (&manager.test.base.base);
 	CuAssertPtrEquals (test, &manager.flash0, (void*) active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_only_flash_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_only_flash_static_init_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
+	};
+	const struct spi_flash *active;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
+
+	status = host_state_manager_save_read_only_flash_nv_config (&manager.host_state,
+		SPI_FILTER_CS_1);
+	CuAssertIntEquals (test, 0, status);
+
+	active = manager.test.base.base.get_read_only_flash (&manager.test.base.base);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) active);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_get_read_only_flash_null (CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	active = manager.test.base.get_read_only_flash (NULL);
+	active = manager.test.base.base.get_read_only_flash (NULL);
 	CuAssertPtrEquals (test, NULL, (void*) active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_write_flash_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_write_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *inactive;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
+	inactive = manager.test.base.base.get_read_write_flash (&manager.test.base.base);
 	CuAssertPtrEquals (test, &manager.flash0, (void*) inactive);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_write_flash_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_write_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *inactive;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = host_state_manager_save_read_only_flash_nv_config (&manager.host_state,
 		SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, (void*) inactive);
+	inactive = manager.test.base.base.get_read_write_flash (&manager.test.base.base);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) inactive);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_write_flash_override_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_write_flash_override_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *inactive;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = host_state_manager_save_read_only_flash_nv_config (&manager.host_state,
 		SPI_FILTER_CS_1);
@@ -776,67 +846,93 @@ static void host_flash_manager_single_test_get_read_write_flash_override_cs1 (Cu
 	status = host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 	CuAssertIntEquals (test, 0, status);
 
-	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
+	inactive = manager.test.base.base.get_read_write_flash (&manager.test.base.base);
 	CuAssertPtrEquals (test, &manager.flash0, (void*) inactive);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_write_flash_override_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_write_flash_override_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *inactive;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 	CuAssertIntEquals (test, 0, status);
 
-	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
-	CuAssertPtrEquals (test, &manager.flash0, (void*) inactive);
+	inactive = manager.test.base.base.get_read_write_flash (&manager.test.base.base);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) inactive);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_write_flash_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_write_flash_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	const struct spi_flash *inactive;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
-	inactive = manager.test.base.get_read_write_flash (&manager.test.base);
+	inactive = manager.test.base.base.get_read_write_flash (&manager.test.base.base);
 	CuAssertPtrEquals (test, &manager.flash0, (void*) inactive);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_read_write_flash_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_read_write_flash_static_init_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
+	};
+	const struct spi_flash *inactive;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
+
+	status = host_state_manager_save_read_only_flash_nv_config (&manager.host_state,
+		SPI_FILTER_CS_1);
+	CuAssertIntEquals (test, 0, status);
+
+	inactive = manager.test.base.base.get_read_write_flash (&manager.test.base.base);
+	CuAssertPtrEquals (test, &manager.flash1, (void*) inactive);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_get_read_write_flash_null (CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	const struct spi_flash *inactive;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	inactive = manager.test.base.get_read_write_flash (NULL);
+	inactive = manager.test.base.base.get_read_write_flash (NULL);
 	CuAssertPtrEquals (test, NULL, (void*) inactive);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_cs0 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -846,7 +942,7 @@ static void host_flash_manager_single_test_swap_flash_devices_cs0 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -873,7 +969,7 @@ static void host_flash_manager_single_test_swap_flash_devices_cs0 (CuTest *test)
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -887,14 +983,14 @@ static void host_flash_manager_single_test_swap_flash_devices_cs0 (CuTest *test)
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_cs1 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -904,7 +1000,7 @@ static void host_flash_manager_single_test_swap_flash_devices_cs1 (CuTest *test)
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
@@ -926,34 +1022,35 @@ static void host_flash_manager_single_test_swap_flash_devices_cs1 (CuTest *test)
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
 	CuAssertIntEquals (test, false, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
-	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_override_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_override_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -963,7 +1060,7 @@ static void host_flash_manager_single_test_swap_flash_devices_override_cs0 (CuTe
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
@@ -992,28 +1089,32 @@ static void host_flash_manager_single_test_swap_flash_devices_override_cs0 (CuTe
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
-	CuAssertIntEquals (test, false, status);
+	CuAssertIntEquals (test, true, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+
+	active = host_state_manager_get_read_only_flash_nv_config (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_override_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_override_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1023,7 +1124,7 @@ static void host_flash_manager_single_test_swap_flash_devices_override_cs1 (CuTe
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
@@ -1045,19 +1146,22 @@ static void host_flash_manager_single_test_swap_flash_devices_override_cs1 (CuTe
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
-	CuAssertIntEquals (test, false, status);
+	CuAssertIntEquals (test, true, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	active = host_state_manager_get_read_only_flash_nv_config (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
@@ -1065,14 +1169,15 @@ static void host_flash_manager_single_test_swap_flash_devices_override_cs1 (CuTe
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_activate_pending_pfm (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_activate_pending_pfm (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1083,7 +1188,7 @@ static void host_flash_manager_single_test_swap_flash_devices_activate_pending_p
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = pfm_manager_mock_init (&pending);
@@ -1115,7 +1220,8 @@ static void host_flash_manager_single_test_swap_flash_devices_activate_pending_p
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, &pending.base);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host,
+		&pending.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -1129,23 +1235,24 @@ static void host_flash_manager_single_test_swap_flash_devices_activate_pending_p
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
 	status = pfm_manager_mock_validate_and_release (&pending);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_no_data_migration (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_no_data_migration (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
@@ -1159,7 +1266,7 @@ static void host_flash_manager_single_test_swap_flash_devices_no_data_migration 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, NULL, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, NULL, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -1173,16 +1280,16 @@ static void host_flash_manager_single_test_swap_flash_devices_no_data_migration 
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_static_init (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	int status;
 	struct flash_region rw_region;
@@ -1193,7 +1300,7 @@ static void host_flash_manager_single_test_swap_flash_devices_static_init (CuTes
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1220,7 +1327,7 @@ static void host_flash_manager_single_test_swap_flash_devices_static_init (CuTes
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -1234,20 +1341,20 @@ static void host_flash_manager_single_test_swap_flash_devices_static_init (CuTes
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 static void
-host_flash_manager_single_test_swap_flash_devices_static_init_with_managed_flash_initialization (
-	CuTest *test)
+host_flash_manager_single_with_backup_test_swap_flash_devices_static_init_with_managed_flash_initialization
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
+	struct host_flash_manager_single_with_backup_testing manager = {
 		.test =
-			host_flash_manager_single_static_init_with_managed_flash_initialization (
-			&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
-			&manager.flash_init)
+			host_flash_manager_single_with_backup_static_init_with_managed_flash_initialization (
+			&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+			&manager.handler.base, &manager.flash_init)
 	};
 	int status;
 	struct flash_region rw_region;
@@ -1258,7 +1365,7 @@ host_flash_manager_single_test_swap_flash_devices_static_init_with_managed_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1285,7 +1392,7 @@ host_flash_manager_single_test_swap_flash_devices_static_init_with_managed_flash
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -1299,14 +1406,14 @@ host_flash_manager_single_test_swap_flash_devices_static_init_with_managed_flash
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1316,7 +1423,7 @@ static void host_flash_manager_single_test_swap_flash_devices_null (CuTest *test
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1332,7 +1439,7 @@ static void host_flash_manager_single_test_swap_flash_devices_null (CuTest *test
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.base.swap_flash_devices (NULL, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (NULL, &rw_host, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1343,14 +1450,15 @@ static void host_flash_manager_single_test_swap_flash_devices_null (CuTest *test
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_dirty_clear_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_dirty_clear_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1360,7 +1468,7 @@ static void host_flash_manager_single_test_swap_flash_devices_dirty_clear_error 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1383,7 +1491,7 @@ static void host_flash_manager_single_test_swap_flash_devices_dirty_clear_error 
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1394,14 +1502,15 @@ static void host_flash_manager_single_test_swap_flash_devices_dirty_clear_error 
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_allow_writes_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_allow_writes_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1411,7 +1520,7 @@ static void host_flash_manager_single_test_swap_flash_devices_allow_writes_error
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1436,7 +1545,7 @@ static void host_flash_manager_single_test_swap_flash_devices_allow_writes_error
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ALLOW_WRITE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1447,14 +1556,15 @@ static void host_flash_manager_single_test_swap_flash_devices_allow_writes_error
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_spi_filter_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_spi_filter_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1464,7 +1574,7 @@ static void host_flash_manager_single_test_swap_flash_devices_spi_filter_error (
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	rw_region.start_addr = 0x10000;
@@ -1491,7 +1601,7 @@ static void host_flash_manager_single_test_swap_flash_devices_spi_filter_error (
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, NULL);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
 	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1502,15 +1612,72 @@ static void host_flash_manager_single_test_swap_flash_devices_spi_filter_error (
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_swap_flash_devices_activate_pending_pfm_error (
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_spi_filter_error_cs1 (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
+	spi_filter_cs active;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = RSA_ENCRYPT_LEN;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
+		&manager.filter, 0, MOCK_ARG (true));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host, NULL);
+	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
+
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = mock_validate (&manager.flash_mock_state.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_swap_flash_devices_activate_pending_pfm_error
+	(CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -1521,7 +1688,7 @@ static void host_flash_manager_single_test_swap_flash_devices_activate_pending_p
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	status = pfm_manager_mock_init (&pending);
@@ -1554,7 +1721,8 @@ static void host_flash_manager_single_test_swap_flash_devices_activate_pending_p
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.swap_flash_devices (&manager.test.base, &rw_host, &pending.base);
+	status = manager.test.base.base.swap_flash_devices (&manager.test.base.base, &rw_host,
+		&pending.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -1565,23 +1733,24 @@ static void host_flash_manager_single_test_swap_flash_devices_activate_pending_p
 	status = mock_validate (&manager.flash_mock_state.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_check_state_persistence (test, &manager);
+	host_flash_manager_single_with_backup_testing_check_state_persistence (test, &manager);
 
 	status = pfm_manager_mock_validate_and_release (&pending);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
@@ -1590,52 +1759,53 @@ static void host_flash_manager_single_test_config_spi_filter_flash_devices_cs0 (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
-	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_override_cs0 (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_override_cs0
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 
@@ -1646,62 +1816,62 @@ static void host_flash_manager_single_test_config_spi_filter_flash_devices_overr
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
-	CuAssertIntEquals (test, false, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	active = host_state_manager_get_read_only_flash_nv_config (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_override_cs1 (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_override_cs1
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
-
-	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
-	CuAssertIntEquals (test, false, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	active = host_state_manager_get_read_only_flash_nv_config (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_static_init (
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_static_init (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
@@ -1710,68 +1880,71 @@ static void host_flash_manager_single_test_config_spi_filter_flash_devices_stati
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_null (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.config_spi_filter_flash_devices (NULL);
+	status = manager.test.base.base.config_spi_filter_flash_devices (NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_allow_writes_error (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_allow_writes_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, SPI_FILTER_SET_ALLOW_WRITE_FAILED, MOCK_ARG (true));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ALLOW_WRITE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_devices_mode_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_mode_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	spi_filter_cs active;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
@@ -1780,18 +1953,47 @@ static void host_flash_manager_single_test_config_spi_filter_flash_devices_mode_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_devices (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_cs0 (CuTest *test)
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_mode_error_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	spi_filter_cs active;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
+
+	status = mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
+		&manager.filter, 0, MOCK_ARG (true));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_devices (&manager.test.base.base);
+	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
+
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_cs0 (CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -1809,7 +2011,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs0 (CuTest 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -1887,8 +2089,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs0 (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -1909,14 +2111,14 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs0 (CuTest 
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -1934,7 +2136,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -1969,7 +2171,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest 
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -1982,9 +2184,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest 
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
@@ -1999,9 +2201,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest 
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
@@ -2013,8 +2215,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2025,7 +2227,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest 
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -2035,14 +2237,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_cs1 (CuTest 
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_override_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_override_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2060,7 +2263,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs0
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 
@@ -2140,8 +2343,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs0
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2162,14 +2365,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs0
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_override_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_override_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2187,7 +2391,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs1
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -2222,7 +2426,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs1
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -2235,9 +2439,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs1
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
@@ -2252,9 +2456,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs1
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
@@ -2266,8 +2470,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs1
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2278,7 +2482,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs1
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -2288,14 +2492,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_override_cs1
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_single_fw (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_single_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -2313,7 +2518,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_single_fw (C
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2391,8 +2596,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_single_fw (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2413,14 +2618,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_single_fw (C
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_multiple_fw (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -2442,7 +2648,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_multiple_fw 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -2641,8 +2847,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_multiple_fw 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -2676,14 +2882,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_multiple_fw 
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_full_validation (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2701,7 +2908,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2784,8 +2991,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2806,15 +3013,16 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_full_validation_not_blank_byte (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation_not_blank_byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -2832,7 +3040,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -2916,8 +3124,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -2938,15 +3146,16 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_full_validation_single_fw (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation_single_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -2964,7 +3173,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -3047,8 +3256,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -3069,15 +3278,16 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_full_validation_multiple_fw (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -3099,7 +3309,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -3311,8 +3521,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -3346,14 +3556,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_validat
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -3370,7 +3581,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm (Cu
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -3452,8 +3663,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -3474,15 +3686,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm (Cu
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_single_fw (
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_single_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -3499,7 +3711,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_sin
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -3581,8 +3793,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_sin
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -3603,15 +3816,15 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_sin
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_multiple_fw (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_multiple_fw
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -3633,7 +3846,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_mul
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -3845,8 +4058,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_mul
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -3880,15 +4094,16 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_mul
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_match_image (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_no_match_image (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -3909,7 +4124,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4010,8 +4225,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -4032,16 +4248,16 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 static void
-host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw (
-	CuTest *test)
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -4063,7 +4279,7 @@ host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_match_image_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -4292,8 +4508,9 @@ host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_match_image_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -4327,15 +4544,16 @@ host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_match_image_
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_full_validation (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_full_validation (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4353,7 +4571,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_ful
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4436,8 +4654,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_ful
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, true,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -4458,16 +4677,17 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_ful
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
@@ -4486,7 +4706,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_static_init 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4564,8 +4784,8 @@ static void host_flash_manager_single_test_validate_read_only_flash_static_init 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -4586,70 +4806,71 @@ static void host_flash_manager_single_test_validate_read_only_flash_static_init 
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.validate_read_only_flash (NULL, &manager.pfm.base, NULL,
+	status = manager.test.base.base.validate_read_only_flash (NULL, &manager.pfm.base, NULL,
 		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, NULL, NULL,
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base, NULL, NULL,
 		&manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, NULL, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, NULL, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, NULL, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, NULL, false, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, NULL);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_pfm_firmware_error (
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_firmware_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_pfm_version_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_version_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -4657,7 +4878,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_version_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4675,17 +4896,18 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_version_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_pfm_version_error_multiple_fw (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_version_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -4707,7 +4929,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_version_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -4871,16 +5093,17 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_version_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_pfm_images_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_images_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4891,7 +5114,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_images_e
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -4928,16 +5151,17 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_images_e
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_pfm_rw_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_rw_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -4952,7 +5176,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_rw_error
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5011,17 +5235,17 @@ static void host_flash_manager_single_test_validate_read_only_flash_pfm_rw_error
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_flash_version_error (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_flash_version_error
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5032,7 +5256,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_flash_versio
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5063,16 +5287,17 @@ static void host_flash_manager_single_test_validate_read_only_flash_flash_versio
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_flash_image_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_only_flash_flash_image_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5090,7 +5315,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_flash_image_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5168,17 +5393,18 @@ static void host_flash_manager_single_test_validate_read_only_flash_flash_image_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_full_flash_image_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_full_flash_image_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5196,7 +5422,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_flash_i
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5274,40 +5500,43 @@ static void host_flash_manager_single_test_validate_read_only_flash_full_flash_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.hash.base, &manager.rsa.base, true, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_firmware_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_firmware_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_version_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -5315,7 +5544,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5333,18 +5562,19 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 static void
-host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw (
-	CuTest *test)
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -5366,7 +5596,7 @@ host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_version_err
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -5550,17 +5780,19 @@ host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_version_err
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_flash_version_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_flash_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5571,7 +5803,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_fla
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5605,17 +5837,19 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_fla
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_images_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_images_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5626,7 +5860,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5666,17 +5900,19 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_rw_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_rw_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5690,7 +5926,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5752,17 +5988,19 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_good_images_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_good_images_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5780,7 +6018,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_goo
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -5862,8 +6100,9 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_goo
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -5884,15 +6123,16 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_goo
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_flash_image_error (
+static void
+host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_flash_image_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -5913,7 +6153,7 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_fla
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6014,16 +6254,17 @@ static void host_flash_manager_single_test_validate_read_only_flash_good_pfm_fla
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_only_flash (&manager.test.base, &manager.pfm.base,
-		&manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false, &rw_output);
+	status = manager.test.base.base.validate_read_only_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.pfm_good.base, &manager.hash.base, &manager.rsa.base, false,
+		&rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_cs1 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6041,7 +6282,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs1 (CuTest
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6124,8 +6365,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs1 (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -6146,14 +6387,14 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs1 (CuTest
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_cs0 (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6171,7 +6412,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -6207,7 +6448,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -6220,9 +6461,9 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
@@ -6237,14 +6478,14 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0 + strlen (img_data),
 		0x200 - strlen (img_data));
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
@@ -6255,8 +6496,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -6267,7 +6508,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -6277,14 +6518,15 @@ static void host_flash_manager_single_test_validate_read_write_flash_cs0 (CuTest
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_override_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_override_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6302,7 +6544,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 
@@ -6387,8 +6629,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -6409,14 +6651,15 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_override_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_override_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6434,7 +6677,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -6470,7 +6713,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -6483,9 +6726,9 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware_images, &manager.pfm, 0,
@@ -6500,14 +6743,14 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 	status |= mock_expect_output (&manager.pfm.mock, 2, &rw_list, sizeof (rw_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 2, 2);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) img_data,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) img_data,
 		strlen (img_data), FLASH_EXP_READ_CMD (0x03, 0, 0, -1, strlen (img_data)));
 
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0 + strlen (img_data),
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0 + strlen (img_data),
 		0x200 - strlen (img_data));
-	status |= flash_master_mock_expect_blank_check (&manager.flash_mock0, 0x300, 0x1000 - 0x300);
+	status |= flash_master_mock_expect_blank_check (&manager.flash_mock1, 0x300, 0x1000 - 0x300);
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.free_fw_versions, &manager.pfm, 0,
 		MOCK_ARG_SAVED_ARG (0));
@@ -6518,8 +6761,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -6530,7 +6773,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -6540,14 +6783,15 @@ static void host_flash_manager_single_test_validate_read_write_flash_override_cs
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_not_blank_byte (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_not_blank_byte (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -6565,7 +6809,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_not_blank_b
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6649,8 +6893,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_not_blank_b
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -6671,14 +6915,15 @@ static void host_flash_manager_single_test_validate_read_write_flash_not_blank_b
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_single_fw (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_single_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -6696,7 +6941,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_single_fw (
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -6779,8 +7024,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_single_fw (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -6801,14 +7046,15 @@ static void host_flash_manager_single_test_validate_read_write_flash_single_fw (
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_multiple_fw (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -6830,7 +7076,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_multiple_fw
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -7042,8 +7288,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_multiple_fw
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -7077,16 +7323,17 @@ static void host_flash_manager_single_test_validate_read_write_flash_multiple_fw
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
@@ -7105,7 +7352,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_static_init
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -7188,8 +7435,8 @@ static void host_flash_manager_single_test_validate_read_write_flash_static_init
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -7210,71 +7457,71 @@ static void host_flash_manager_single_test_validate_read_write_flash_static_init
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.validate_read_write_flash (NULL, &manager.pfm.base,
+	status = manager.test.base.base.validate_read_write_flash (NULL, &manager.pfm.base,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, NULL,
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base, NULL,
 		&manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		NULL, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, NULL, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, NULL, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, NULL, &rw_output);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, NULL);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_pfm_firmware_error (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_firmware_error
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_pfm_version_error (
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -7282,7 +7529,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_version
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -7300,17 +7547,18 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_version
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_pfm_version_error_multiple_fw (
+static void
+host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_version_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -7332,7 +7580,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_version
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -7501,16 +7749,17 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_version
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_pfm_images_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_images_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -7521,7 +7770,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_images_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -7559,16 +7808,17 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_images_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_IMAGES_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_pfm_rw_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_rw_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -7583,7 +7833,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_rw_erro
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -7643,16 +7893,17 @@ static void host_flash_manager_single_test_validate_read_write_flash_pfm_rw_erro
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_version_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_version_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -7663,7 +7914,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_version_err
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -7695,16 +7946,17 @@ static void host_flash_manager_single_test_validate_read_write_flash_version_err
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_validate_read_write_flash_verify_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_validate_read_write_flash_verify_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -7722,7 +7974,7 @@ static void host_flash_manager_single_test_validate_read_write_flash_verify_erro
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -7801,16 +8053,16 @@ static void host_flash_manager_single_test_validate_read_write_flash_verify_erro
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.validate_read_write_flash (&manager.test.base, &manager.pfm.base,
-		&manager.hash.base, &manager.rsa.base, &rw_output);
+	status = manager.test.base.base.validate_read_write_flash (&manager.test.base.base,
+		&manager.pfm.base, &manager.hash.base, &manager.rsa.base, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_free_read_write_regions_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_free_read_write_regions_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions *rw_list;
@@ -7819,7 +8071,7 @@ static void host_flash_manager_single_test_free_read_write_regions_null (CuTest 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
@@ -7841,37 +8093,39 @@ static void host_flash_manager_single_test_free_read_write_regions_null (CuTest 
 		0, MOCK_ARG_PTR (rw_list));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (NULL, &rw_host);
+	manager.test.base.base.free_read_write_regions (NULL, &rw_host);
 
 	status = mock_validate (&manager.pfm.mock);
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, NULL);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, NULL);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_free_read_write_regions_null_list (CuTest *test)
+static void host_flash_manager_single_with_backup_test_free_read_write_regions_null_list (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct host_flash_manager_rw_regions rw_host;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	rw_host.pfm = &manager.pfm.base;
 	rw_host.writable = NULL;
 	rw_host.count = 1;
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_host);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_host);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_free_read_write_regions_null_pfm (CuTest *test)
+static void host_flash_manager_single_with_backup_test_free_read_write_regions_null_pfm (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -7879,7 +8133,7 @@ static void host_flash_manager_single_test_free_read_write_regions_null_pfm (CuT
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	rw_region.start_addr = 0x200;
 	rw_region.length = 0x100;
@@ -7894,14 +8148,14 @@ static void host_flash_manager_single_test_free_read_write_regions_null_pfm (CuT
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_host);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_host);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7910,12 +8164,14 @@ static void host_flash_manager_single_test_set_flash_for_rot_access (CuTest *tes
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -7929,6 +8185,8 @@ static void host_flash_manager_single_test_set_flash_for_rot_access (CuTest *tes
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
@@ -7939,6 +8197,16 @@ static void host_flash_manager_single_test_set_flash_for_rot_access (CuTest *tes
 	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
@@ -7954,25 +8222,35 @@ static void host_flash_manager_single_test_set_flash_for_rot_access (CuTest *tes
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Detect 4-byte addressing. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_not_initilized_device (
+static void
+host_flash_manager_single_with_backup_test_set_flash_for_rot_access_not_initilized_device (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -7980,10 +8258,11 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_not_initiliz
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -7997,9 +8276,13 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_not_initiliz
 	/* Detect devices. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
@@ -8013,13 +8296,26 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_not_initiliz
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Detect 4-byte addressing. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.flash_mock0.mock);
@@ -8028,12 +8324,16 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_not_initiliz
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_check_qspi_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_check_qspi_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -8042,12 +8342,14 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_check_qspi_e
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8061,6 +8363,8 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_check_qspi_e
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
@@ -8071,6 +8375,16 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_check_qspi_e
 	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
@@ -8086,24 +8400,34 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_check_qspi_e
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Detect 4-byte addressing. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_wip_set (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_wip_set (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -8113,12 +8437,14 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_wip_set (CuT
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8137,6 +8463,11 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_wip_set (CuT
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_set, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
@@ -8146,6 +8477,16 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_wip_set (CuT
 	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
@@ -8161,25 +8502,35 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_wip_set (CuT
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Detect 4-byte addressing. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_initialization (
+static void
+host_flash_manager_single_with_backup_test_set_flash_for_rot_access_with_flash_initialization (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -8213,11 +8564,12 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_i
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test,
-		&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
-		&manager.flash_init);
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8228,7 +8580,7 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_i
 	status |= mock_expect (&manager.control.mock,
 		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
-	/* Initialize flash device. */
+	/* Initialize flash devices. */
 
 	/* Get Device ID. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
@@ -8264,14 +8616,52 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_i
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	/* Prepare device. */
+	/* Get Device ID. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) header,
+		sizeof (header), FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) params,
+		sizeof (params), FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
+	status |= mock_expect (&manager.flash_mock1.mock, manager.flash_mock0.base.capabilities,
+		&manager.flash_mock1, FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	/* Detect address mode. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+
+	/* Clear block protect bits. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &write_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	/* Prepare devices. */
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &write_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
@@ -8287,26 +8677,36 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_i
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Detect 4-byte addressing. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
@@ -8316,9 +8716,11 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_static_init 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8331,6 +8733,8 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_static_init 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &bp_status, 1,
@@ -8341,6 +8745,16 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_static_init 
 	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock0, 0,
 		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &bp_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &WIP_STATUS, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
@@ -8356,30 +8770,39 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_static_init 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Detect 4-byte addressing. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 static void
-host_flash_manager_single_test_set_flash_for_rot_access_static_init_with_flash_initialization (
-	CuTest *test)
+host_flash_manager_single_with_backup_test_set_flash_for_rot_access_static_init_with_flash_initialization
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
+	struct host_flash_manager_single_with_backup_testing manager = {
 		.test =
-			host_flash_manager_single_static_init_with_managed_flash_initialization (
-			&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
-			&manager.flash_init)
+			host_flash_manager_single_with_backup_static_init_with_managed_flash_initialization (
+			&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+			&manager.handler.base, &manager.flash_init)
 	};
 	int status;
 	uint32_t header[] = {
@@ -8414,7 +8837,7 @@ host_flash_manager_single_test_set_flash_for_rot_access_static_init_with_flash_i
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8424,7 +8847,7 @@ host_flash_manager_single_test_set_flash_for_rot_access_static_init_with_flash_i
 	status |= mock_expect (&manager.control.mock,
 		manager.control.base.enable_processor_flash_access, &manager.control, 0, MOCK_ARG (false));
 
-	/* Initialize flash device. */
+	/* Initialize flash devices. */
 
 	/* Get Device ID. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
@@ -8460,14 +8883,52 @@ host_flash_manager_single_test_set_flash_for_rot_access_static_init_with_flash_i
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
-	/* Prepare device. */
+	/* Get Device ID. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	/* Use SFDP to discover device properties. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) header,
+		sizeof (header), FLASH_EXP_READ_CMD (0x5a, 0x000000, 1, -1, sizeof (header)));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) params,
+		sizeof (params), FLASH_EXP_READ_CMD (0x5a, 0x000030, 1, -1, sizeof (params)));
+	status |= mock_expect (&manager.flash_mock1.mock, manager.flash_mock0.base.capabilities,
+		&manager.flash_mock1, FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR);
+
+	/* Detect device WIP state. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	/* Detect address mode. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+
+	/* Clear block protect bits. */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&manager.flash_mock1, 0,
+		FLASH_EXP_WRITE_REG (0x01, &write_status, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &write_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	/* Prepare devices. */
 
 	/* Detect device WIP state. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
 
 	/* Clear block protect bits. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &write_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &write_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
 	/* Enable QSPI mode. */
@@ -8483,47 +8944,57 @@ host_flash_manager_single_test_set_flash_for_rot_access_static_init_with_flash_i
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &qspi_enable, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &qspi_enable, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
 	/* Detect 4-byte addressing. */
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &addr_mode, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &addr_mode, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_is_4byte_address_mode (&manager.flash0);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	status = spi_flash_is_4byte_address_mode (&manager.flash1);
+	CuAssertIntEquals (test, 1, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.set_flash_for_rot_access (NULL, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, NULL);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_filter_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_filter_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8531,20 +9002,22 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_filter_error
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_ENABLE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_mux_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_mux_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8557,26 +9030,30 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_mux_error (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_ACCESS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_wip_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_wip_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8593,27 +9070,30 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_wip_error (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_block_protect_error (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_block_protect_error
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8634,27 +9114,31 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_block_protec
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_qspi_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_qspi_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8688,15 +9172,17 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_qspi_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_4byte_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_4byte_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 	uint8_t bp_status = 0x3c;
@@ -8704,12 +9190,14 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_4byte_error 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_testing_initialize_flash_device (test, &manager.flash0,
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash0,
 		&manager.state0, &manager.flash_mock0, id);
+	host_flash_manager_single_with_backup_testing_initialize_flash_device (test, &manager.flash1,
+		&manager.state1, &manager.flash_mock1, id);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8754,20 +9242,22 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_4byte_error 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_id_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_id_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8783,21 +9273,23 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_id_error (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_unknown_id_ff (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_unknown_id_ff (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xff, 0xff, 0xff};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8813,21 +9305,23 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_unknown_id_f
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_VENDOR, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_unknown_id_00 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_rot_access_unknown_id_00 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0x00, 0x00, 0x00};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Disable SPI filter. */
 	status = mock_expect (&manager.filter.mock, manager.filter.base.enable_filter, &manager.filter,
@@ -8843,26 +9337,28 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_unknown_id_0
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_VENDOR, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_initialization_error
-(
-	CuTest *test)
+static void
+host_flash_manager_single_with_backup_test_set_flash_for_rot_access_with_flash_initialization_error
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash (test, &manager);
 
-	status = host_flash_manager_single_init_with_managed_flash_initialization (&manager.test,
-		&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
-		&manager.flash_init);
+	status =
+		host_flash_manager_single_with_backup_init_with_managed_flash_initialization (&manager.test,
+		&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+		&manager.handler.base, &manager.flash_init);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Disable SPI filter. */
@@ -8881,21 +9377,23 @@ static void host_flash_manager_single_test_set_flash_for_rot_access_with_flash_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_rot_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_rot_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release_dependencies_no_flash (test, &manager);
-	host_flash_manager_single_release (&manager.test);
+	host_flash_manager_single_with_backup_testing_validate_and_release_dependencies_no_flash (test,
+		&manager);
+	host_flash_manager_single_with_backup_release (&manager.test);
 }
 
-static void host_flash_manager_single_test_set_flash_for_host_access (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_host_access (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Switch SPI mux. */
 	status = mock_expect (&manager.control.mock, manager.control.base.enable_processor_flash_access,
@@ -8907,24 +9405,25 @@ static void host_flash_manager_single_test_set_flash_for_host_access (CuTest *te
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+	status = manager.test.base.base.set_flash_for_host_access (&manager.test.base.base,
 		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_host_access_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_host_access_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	/* Switch SPI mux. */
 	status = mock_expect (&manager.control.mock, manager.control.base.enable_processor_flash_access,
@@ -8936,39 +9435,40 @@ static void host_flash_manager_single_test_set_flash_for_host_access_static_init
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+	status = manager.test.base.base.set_flash_for_host_access (&manager.test.base.base,
 		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_host_access_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_host_access_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.set_flash_for_host_access (NULL, &manager.control.base);
+	status = manager.test.base.base.set_flash_for_host_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.set_flash_for_host_access (&manager.test.base, NULL);
+	status = manager.test.base.base.set_flash_for_host_access (&manager.test.base.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_host_access_mux_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_host_access_mux_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Switch SPI mux. */
 	status = mock_expect (&manager.control.mock, manager.control.base.enable_processor_flash_access,
@@ -8976,21 +9476,22 @@ static void host_flash_manager_single_test_set_flash_for_host_access_mux_error (
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+	status = manager.test.base.base.set_flash_for_host_access (&manager.test.base.base,
 		&manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_ACCESS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_set_flash_for_host_access_enable_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_set_flash_for_host_access_enable_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Switch SPI mux. */
 	status = mock_expect (&manager.control.mock, manager.control.base.enable_processor_flash_access,
@@ -9002,28 +9503,31 @@ static void host_flash_manager_single_test_set_flash_for_host_access_enable_erro
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.set_flash_for_host_access (&manager.test.base,
+	status = manager.test.base.base.set_flash_for_host_access (&manager.test.base.base,
 		&manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_ENABLE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9040,30 +9544,37 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type (CuTest 
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_4byte (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
 	CuAssertIntEquals (test, 0, status);
 
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
+	CuAssertIntEquals (test, 0, status);
+
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9080,16 +9591,113 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_4byte (C
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_require_write_enable (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_3byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x2000000));
+
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xe9));
+
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_4byte (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x2000000));
+
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0xb7));
+
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_4));
+	status |= mock_expect (&manager.filter.mock,
+		manager.filter.base.require_addr_byte_mode_write_enable, &manager.filter, 0,
+		MOCK_ARG (false));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_reset_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_require_write_enable (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9119,15 +9727,20 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_require_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
 		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9144,16 +9757,17 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_require_
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_addr_mode_3byte (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_fixed_addr_mode_3byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9176,15 +9790,20 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
 		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9201,16 +9820,17 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_addr_mode_4byte (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_fixed_addr_mode_4byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9233,15 +9853,20 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
 		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9258,29 +9883,33 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_reset_addr_mode_4byte (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_reset_addr_mode_4byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9289,6 +9918,8 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_reset_ad
 		&manager.filter, 0, MOCK_ARG (0x2000000));
 
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, reset_4b, 1,
 		FLASH_EXP_READ_REG (0x15, 1));
 
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
@@ -9301,28 +9932,32 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_reset_ad
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_set_size_unsupported (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_set_size_unsupported (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9339,29 +9974,32 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_set_size
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 static void
-host_flash_manager_single_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported (
-	CuTest *test)
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9378,29 +10016,32 @@ host_flash_manager_single_test_config_spi_filter_flash_type_addr_mode_write_en_u
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_reset_addr_mode_unsupported
-(
-	CuTest *test)
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_reset_addr_mode_unsupported
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9417,30 +10058,34 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_reset_ad
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9457,34 +10102,37 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_static_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 static void
-host_flash_manager_single_test_config_spi_filter_flash_type_static_init_with_managed_flash_initialization
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_static_init_with_flash_initialization
 	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
+	struct host_flash_manager_single_with_backup_testing manager = {
 		.test =
-			host_flash_manager_single_static_init_with_managed_flash_initialization (
-			&manager.flash0, &manager.host_state, &manager.filter.base, &manager.handler.base,
-			&manager.flash_init)
+			host_flash_manager_single_with_backup_static_init_with_managed_flash_initialization (
+			&manager.flash0, &manager.flash1, &manager.host_state, &manager.filter.base,
+			&manager.handler.base, &manager.flash_init)
 	};
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9501,68 +10149,486 @@ host_flash_manager_single_test_config_spi_filter_flash_type_static_init_with_man
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_null (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.config_spi_filter_flash_type (NULL);
+	status = manager.test.base.base.config_spi_filter_flash_type (NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_id_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_vendors (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
+	uint8_t id0[] = {0xc2, 0x20, 0x19};
+	uint8_t id1[] = {0xef, 0x40, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id0, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id1, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_VENDOR, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_devices (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id0[] = {0xc2, 0x20, 0x19};
+	uint8_t id1[] = {0xc2, 0x20, 0x18};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id0, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id1, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_DEVICE, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_sizes (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	status = spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_SIZES, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_require_write_enable (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params_we[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa2f8a0e9
+	};
+	uint32_t params_no_we[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f860e9
+	};
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		id, header, params_we, sizeof (params_we), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
+		id, header, params_no_we, sizeof (params_no_we), 0x000030, FULL_CAPABILITIES);
+
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_control (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010106,
+		0x10010600,
+		0xff000030
+	};
+	uint32_t params_switch[] = {
+		0xff8220e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f860e9
+	};
+	uint32_t params_fixed[] = {
+		0xff8020e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff088000,
+		0xa1f860e9
+	};
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		id, header, params_switch, sizeof (params_switch), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
+		id, header, params_fixed, sizeof (params_fixed), 0x000030, FULL_CAPABILITIES);
+
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_fixed_addr_mode (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint32_t header[] = {
+		0x50444653,
+		0xff010100,
+		0x09010000,
+		0xff000030
+	};
+	uint32_t params_3b[] = {
+		0xff8020e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+	uint32_t params_4b[] = {
+		0xff8420e5,
+		0x00ffffff,
+		0xff00ff00,
+		0xff00ff00,
+		0xffffffee,
+		0xff00ffff,
+		0xff00ffff,
+		0xd810200c,
+		0xff00ff00
+	};
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
+	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		id, header, params_3b, sizeof (params_3b), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
+		id, header, params_4b, sizeof (params_4b), 0x000030, FULL_CAPABILITIES);
+
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x200000));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_reset_addr_mode (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id[] = {0xef, 0x40, 0x19};
+	uint8_t reset_4b[] = {0x02};
+	uint8_t reset_3b[] = {~0x02};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x2000000));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, reset_3b, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_MISMATCH_ADDR_MODE, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_id0_error (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = flash_master_mock_expect_xfer (&manager.flash_mock0, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x9f, 3));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_get_reset_addr_mode_error (
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_id1_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_error (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id[] = {0xc2, 0x20, 0x19};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x2000000));
+
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_OPCODE (0xe9));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_get_reset_addr_mode0_error (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xef, 0x40, 0x19};
 	uint8_t reset_4b[] = {0x02};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9575,27 +10641,67 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_get_rese
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_filter_error (CuTest *test)
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_get_reset_addr_mode1_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	uint8_t id[] = {0xef, 0x40, 0x19};
+	uint8_t reset_4b[] = {0x02};
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+
+	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
+		&manager.handler, 0, MOCK_ARG (0xef), MOCK_ARG (0x4019));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
+		&manager.filter, 0, MOCK_ARG (0x2000000));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, reset_4b, 1,
+		FLASH_EXP_READ_REG (0x15, 1));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, FLASH_MASTER_XFER_FAILED,
+		reset_4b, 1, FLASH_EXP_READ_REG (0x15, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_filter_error (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
-
-	/* Set the device size to support 4-byte addressing. */
-	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9603,28 +10709,26 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_filter_e
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_SET_MFG_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_unsupported_mfg (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_unsupported_mfg
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0x01, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
-
-	/* Set the device size to support 4-byte addressing. */
-	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9633,28 +10737,26 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_unsuppor
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_UNSUPPORTED_VENDOR, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_unsupported_dev (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_unsupported_dev
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x18};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
-
-	/* Set the device size to support 4-byte addressing. */
-	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9663,59 +10765,61 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_unsuppor
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, MFG_FILTER_HANDLER_UNSUPPORTED_DEVICE, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_filter_size_error (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_filter_size_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
-
-	/* Set the device size to support 4-byte addressing. */
-	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
-	CuAssertIntEquals (test, 0, status);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
 		&manager.handler, 0, MOCK_ARG (0xc2), MOCK_ARG (0x2019));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_flash_size,
-		&manager.filter, SPI_FILTER_SET_SIZE_FAILED, MOCK_ARG (0x2000000));
+		&manager.filter, SPI_FILTER_SET_SIZE_FAILED, MOCK_ARG (0x1000000));
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_SIZE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_addr_mode_error (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_addr_mode_error
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9727,16 +10831,17 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_addr_mod
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ADDR_MODE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_addr_mode_error (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_fixed_addr_mode_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -9759,15 +10864,20 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
 		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
+		id, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9779,28 +10889,32 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_fixed_ad
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_FIXED_ADDR_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_addr_mode_write_en_error (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_addr_mode_write_en_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9815,28 +10929,32 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_addr_mod
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_WREN_REQ_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_config_spi_filter_flash_type_reset_addr_mode_error (
+static void
+host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_reset_addr_mode_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint8_t id[] = {0xc2, 0x20, 0x19};
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	/* Set the device size to support 4-byte addressing. */
 	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status |= spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, id, FLASH_ID_LEN,
+		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, id, FLASH_ID_LEN,
 		FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
 
 	status |= mock_expect (&manager.handler.mock, manager.handler.base.set_flash_manufacturer,
@@ -9853,15 +10971,16 @@ static void host_flash_manager_single_test_config_spi_filter_flash_type_reset_ad
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.config_spi_filter_flash_type (&manager.test.base);
+	status = manager.test.base.base.config_spi_filter_flash_type (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FILTER_SET_RESET_ADDR_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs0_3byte (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_3byte (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9871,7 +10990,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_3byte
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -9904,7 +11023,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_3byte
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -9915,12 +11034,13 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_3byte
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs0_4byte (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -9930,7 +11050,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_4byte
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -9966,7 +11086,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_4byte
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -9977,13 +11097,13 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_4byte
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed_3byte (
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_fixed_3byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10010,13 +11130,16 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
 		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
@@ -10043,7 +11166,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -10054,13 +11177,13 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed_4byte (
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_fixed_4byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10087,13 +11210,16 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
 		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
@@ -10120,7 +11246,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -10131,12 +11257,13 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs0_fixed
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs1_3byte (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_3byte (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10146,12 +11273,12 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_3byte
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
-	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
@@ -10174,29 +11301,30 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_3byte
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
 	CuAssertIntEquals (test, false, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
-	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs1_4byte (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_4byte (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10206,15 +11334,15 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_4byte
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
-	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
-	status = spi_flash_force_4byte_address_mode (&manager.flash0, true);
+	status = spi_flash_force_4byte_address_mode (&manager.flash1, true);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
@@ -10237,30 +11365,30 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_4byte
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
 	CuAssertIntEquals (test, false, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
-	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs1_fixed_3byte (
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_fixed_3byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10287,14 +11415,17 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_fixed
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
 		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
@@ -10315,30 +11446,30 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_fixed
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
 	CuAssertIntEquals (test, false, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
-	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_cs1_fixed_4byte (
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_fixed_4byte (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	uint32_t header[] = {
 		0x50444653,
@@ -10365,14 +11496,17 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_fixed
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies_no_flash_master (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies_no_flash_master (test,
+		&manager);
 	spi_flash_testing_discover_params (test, &manager.flash0, &manager.state0, &manager.flash_mock0,
+		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
+	spi_flash_testing_discover_params (test, &manager.flash1, &manager.state1, &manager.flash_mock1,
 		TEST_ID, header, params, sizeof (params), 0x000030, FULL_CAPABILITIES);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
-	status = host_flash_manager_single_init (&manager.test, &manager.flash0, &manager.host_state,
-		&manager.filter.base, &manager.handler.base);
+	status = host_flash_manager_single_with_backup_init (&manager.test, &manager.flash0,
+		&manager.flash1, &manager.host_state, &manager.filter.base, &manager.handler.base);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
@@ -10393,29 +11527,30 @@ static void host_flash_manager_single_test_initialize_flash_protection_cs1_fixed
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
 	CuAssertIntEquals (test, false, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
-	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_override_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_override_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10425,7 +11560,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_override_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
@@ -10460,23 +11595,27 @@ static void host_flash_manager_single_test_initialize_flash_protection_override_
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
-	CuAssertIntEquals (test, false, status);
+	CuAssertIntEquals (test, true, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
+	active = host_state_manager_get_read_only_flash_nv_config (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_override_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_override_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10486,12 +11625,12 @@ static void host_flash_manager_single_test_initialize_flash_protection_override_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
-	status = spi_flash_set_device_size (&manager.flash0, 0x2000000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x2000000);
 	CuAssertIntEquals (test, 0, status);
 
 	rw_region.start_addr = 0x10000;
@@ -10514,29 +11653,33 @@ static void host_flash_manager_single_test_initialize_flash_protection_override_
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
 		&manager.filter, 0, MOCK_ARG (true));
 	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
-		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS0));
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
-	CuAssertIntEquals (test, false, status);
+	CuAssertIntEquals (test, true, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	active = host_state_manager_get_read_only_flash_nv_config (&manager.host_state);
 	CuAssertIntEquals (test, SPI_FILTER_CS_0, active);
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_multiple_fw (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_multiple_fw (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
@@ -10546,7 +11689,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_multiple_
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -10593,7 +11736,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_multiple_
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -10604,14 +11747,15 @@ static void host_flash_manager_single_test_initialize_flash_protection_multiple_
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	int status;
 	struct flash_region rw_region;
@@ -10622,7 +11766,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_static_in
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -10655,7 +11799,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_static_in
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, 0, status);
 
 	status = host_state_manager_has_read_only_flash_override (&manager.host_state);
@@ -10666,12 +11810,13 @@ static void host_flash_manager_single_test_initialize_flash_protection_static_in
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_null (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10681,7 +11826,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_null (CuT
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -10701,10 +11846,10 @@ static void host_flash_manager_single_test_initialize_flash_protection_null (CuT
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.base.initialize_flash_protection (NULL, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (NULL, &rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, NULL);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10712,13 +11857,13 @@ static void host_flash_manager_single_test_initialize_flash_protection_null (CuT
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_dirty_clear_error (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_initialize_flash_protection_dirty_clear_error
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10728,7 +11873,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_dirty_cle
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -10755,7 +11900,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_dirty_cle
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_CLEAR_DIRTY_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10763,13 +11908,14 @@ static void host_flash_manager_single_test_initialize_flash_protection_dirty_cle
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_filter_addr_mode_error (
+static void
+host_flash_manager_single_with_backup_test_initialize_flash_protection_filter_addr_mode_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10779,7 +11925,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_filter_ad
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -10808,7 +11954,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_filter_ad
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ADDR_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10816,13 +11962,14 @@ static void host_flash_manager_single_test_initialize_flash_protection_filter_ad
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_allow_writes_error (
+static void
+host_flash_manager_single_with_backup_test_initialize_flash_protection_allow_writes_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10832,7 +11979,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_allow_wri
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -10863,7 +12010,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_allow_wri
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_ALLOW_WRITE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10871,13 +12018,14 @@ static void host_flash_manager_single_test_initialize_flash_protection_allow_wri
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_initialize_flash_protection_filter_flash_mode_error (
+static void
+host_flash_manager_single_with_backup_test_initialize_flash_protection_filter_flash_mode_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
@@ -10887,7 +12035,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_filter_fl
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_inactive_dirty (&manager.host_state, true);
 
 	/* Set the device size to support 4-byte addressing. */
@@ -10920,7 +12068,7 @@ static void host_flash_manager_single_test_initialize_flash_protection_filter_fl
 
 	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	status = manager.test.base.initialize_flash_protection (&manager.test.base, &rw_host);
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
 	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
 
 	active = host_state_manager_get_read_only_flash (&manager.host_state);
@@ -10928,12 +12076,72 @@ static void host_flash_manager_single_test_initialize_flash_protection_filter_fl
 
 	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_cs0 (CuTest *test)
+static void
+host_flash_manager_single_with_backup_test_initialize_flash_protection_filter_flash_mode_error_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
+	int status;
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
+	spi_filter_cs active;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
+	host_state_manager_save_inactive_dirty (&manager.host_state, true);
+
+	/* Set the device size to support 4-byte addressing. */
+	status = spi_flash_set_device_size (&manager.flash1, 0x2000000);
+	CuAssertIntEquals (test, 0, status);
+
+	rw_region.start_addr = 0x10000;
+	rw_region.length = RSA_ENCRYPT_LEN;
+
+	rw_prop.on_failure = PFM_RW_DO_NOTHING;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	status = mock_expect (&manager.filter.mock, manager.filter.base.clear_flash_dirty_state,
+		&manager.filter, 0);
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_addr_byte_mode,
+		&manager.filter, 0, MOCK_ARG (SPI_FILTER_ADDRESS_MODE_3));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.allow_all_single_flash_writes,
+		&manager.filter, 0, MOCK_ARG (true));
+	status |= mock_expect (&manager.filter.mock, manager.filter.base.set_filter_mode,
+		&manager.filter, SPI_FILTER_SET_FILTER_MODE_FAILED, MOCK_ARG (SPI_FILTER_FLASH_SINGLE_CS1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, true, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	status = manager.test.base.base.initialize_flash_protection (&manager.test.base.base, &rw_host);
+	CuAssertIntEquals (test, SPI_FILTER_SET_FILTER_MODE_FAILED, status);
+
+	active = host_state_manager_get_read_only_flash (&manager.host_state);
+	CuAssertIntEquals (test, SPI_FILTER_CS_1, active);
+
+	CuAssertIntEquals (test, false, host_state_manager_is_inactive_dirty (&manager.host_state));
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_cs0 (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -10947,7 +12155,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -10998,8 +12206,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11020,14 +12228,15 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11041,7 +12250,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -11062,7 +12271,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -11075,9 +12284,9 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
@@ -11093,8 +12302,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11105,7 +12314,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -11115,15 +12324,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_override_cs0 (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_override_cs0 (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11137,7 +12347,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 
@@ -11190,8 +12400,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11212,15 +12422,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_override_cs1 (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_override_cs1 (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11234,7 +12445,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -11255,7 +12466,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -11268,9 +12479,9 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
@@ -11286,8 +12497,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11298,7 +12509,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -11308,15 +12519,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_single_fw (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_single_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -11330,7 +12542,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11381,8 +12593,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11403,15 +12615,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_multiple_fw (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -11427,7 +12640,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -11545,8 +12758,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -11580,14 +12793,15 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11601,7 +12815,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -11652,8 +12866,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		true, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11674,14 +12888,15 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11695,7 +12910,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -11716,7 +12931,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -11729,9 +12944,9 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
@@ -11747,8 +12962,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		true, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11759,7 +12974,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -11769,15 +12984,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_override_cs1 (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_override_cs1 (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11791,7 +13007,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 
@@ -11844,8 +13060,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		true, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11866,15 +13082,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_override_cs0 (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_override_cs0 (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -11888,7 +13105,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 
 	fw_list.ids = &fw_exp;
@@ -11909,7 +13126,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 	rw_list.properties = &rw_prop;
 	rw_list.count = 1;
 
-	status = spi_flash_set_device_size (&manager.flash0, 0x1000);
+	status = spi_flash_set_device_size (&manager.flash1, 0x1000);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm, 0,
@@ -11922,9 +13139,9 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 	status |= mock_expect_output (&manager.pfm.mock, 1, &version_list, sizeof (version_list), -1);
 	status |= mock_expect_save_arg (&manager.pfm.mock, 1, 0);
 
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &WIP_STATUS, 1,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &WIP_STATUS, 1,
 		FLASH_EXP_READ_STATUS_REG);
-	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, (uint8_t*) version_exp,
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, (uint8_t*) version_exp,
 		strlen (version_exp), FLASH_EXP_READ_CMD (0x03, 0x123, 0, -1, strlen (version_exp)));
 
 	status |= mock_expect (&manager.pfm.mock, manager.pfm.base.get_read_write_regions, &manager.pfm,
@@ -11940,8 +13157,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		true, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -11952,7 +13169,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 	CuAssertPtrEquals (test, &rw_region, (void*) rw_output.writable->regions);
 	CuAssertPtrEquals (test, &rw_prop, (void*) rw_output.writable->properties);
 
-	status = mock_validate (&manager.flash_mock0.mock);
+	status = mock_validate (&manager.flash_mock1.mock);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_validate (&manager.pfm.mock);
@@ -11962,15 +13179,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_single_fw (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_single_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = "fw1";
 	struct pfm_firmware_version version;
@@ -11984,7 +13202,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -12035,8 +13253,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		true, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -12057,15 +13275,16 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_multiple_fw (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -12081,7 +13300,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -12199,8 +13418,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		true, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, true, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 3, rw_output.count);
@@ -12234,16 +13453,17 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_flash_read_write_regions_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
@@ -12258,7 +13478,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_static_i
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -12309,8 +13529,8 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_static_i
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertIntEquals (test, 1, rw_output.count);
@@ -12331,63 +13551,66 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_static_i
 		0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	manager.test.base.free_read_write_regions (&manager.test.base, &rw_output);
+	manager.test.base.base.free_read_write_regions (&manager.test.base.base, &rw_output);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_null (CuTest *test)
-{
-	struct host_flash_manager_single_testing manager;
-	struct host_flash_manager_rw_regions rw_output;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_single_testing_init (test, &manager);
-
-	status = manager.test.base.get_flash_read_write_regions (NULL, &manager.pfm.base, false,
-		&rw_output);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, NULL, false,
-		&rw_output);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, NULL);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
-
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_firmware_error (
+static void host_flash_manager_single_with_backup_test_get_flash_read_write_regions_null (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct host_flash_manager_rw_regions rw_output;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	status = manager.test.base.base.get_flash_read_write_regions (NULL, &manager.pfm.base, false,
+		&rw_output);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base, NULL,
+		false, &rw_output);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, NULL);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_firmware_error (
+	CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	struct host_flash_manager_rw_regions rw_output;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.pfm.mock, manager.pfm.base.get_firmware, &manager.pfm,
 		PFM_GET_FW_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_FW_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_version_error (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct host_flash_manager_rw_regions rw_output;
@@ -12395,7 +13618,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_vers
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -12413,18 +13636,18 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_vers
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 static void
-host_flash_manager_single_test_get_flash_read_write_regions_pfm_version_error_multiple_fw (
-	CuTest *test)
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_version_error_multiple_fw
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -12440,7 +13663,7 @@ host_flash_manager_single_test_get_flash_read_write_regions_pfm_version_error_mu
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -12546,17 +13769,18 @@ host_flash_manager_single_test_get_flash_read_write_regions_pfm_version_error_mu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_VERSIONS_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_version_error (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -12567,7 +13791,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -12601,17 +13825,18 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_ro_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_version_error (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_version_error (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -12622,7 +13847,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -12656,16 +13881,17 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_rw_flash
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		true, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, true, &rw_output);
 	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_rw_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp = NULL;
 	struct pfm_firmware_version version;
@@ -12676,7 +13902,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_e
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = &fw_exp;
 	fw_list.count = 1;
@@ -12716,17 +13942,18 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_e
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw (
+static void
+host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct pfm_firmware fw_list;
 	const char *fw_exp[3] = {"fw1", "fw2", "fw3"};
 	struct pfm_firmware_version version[3];
@@ -12742,7 +13969,7 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_e
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	fw_list.ids = fw_exp;
 	fw_list.count = 3;
@@ -12839,22 +14066,22 @@ static void host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_e
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.get_flash_read_write_regions (&manager.test.base, &manager.pfm.base,
-		false, &rw_output);
+	status = manager.test.base.base.get_flash_read_write_regions (&manager.test.base.base,
+		&manager.pfm.base, false, &rw_output);
 	CuAssertIntEquals (test, PFM_GET_READ_WRITE_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_host_has_flash_access (CuTest *test)
+static void host_flash_manager_single_with_backup_test_host_has_flash_access (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, 1);
@@ -12865,21 +14092,23 @@ static void host_flash_manager_single_test_host_has_flash_access (CuTest *test)
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.host_has_flash_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_host_has_flash_access_rot_access (CuTest *test)
+static void host_flash_manager_single_with_backup_test_host_has_flash_access_rot_access (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, 0);
@@ -12890,21 +14119,23 @@ static void host_flash_manager_single_test_host_has_flash_access_rot_access (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.host_has_flash_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_host_has_flash_access_filter_disabled (CuTest *test)
+static void host_flash_manager_single_with_backup_test_host_has_flash_access_filter_disabled (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	bool enabled = false;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, 1);
@@ -12915,24 +14146,26 @@ static void host_flash_manager_single_test_host_has_flash_access_filter_disabled
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.host_has_flash_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_host_has_flash_access_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_host_has_flash_access_static_init (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, 1);
@@ -12943,39 +14176,41 @@ static void host_flash_manager_single_test_host_has_flash_access_static_init (Cu
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.host_has_flash_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, 1, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_host_has_flash_access_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_host_has_flash_access_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.host_has_flash_access (NULL, &manager.control.base);
+	status = manager.test.base.base.host_has_flash_access (NULL, &manager.control.base);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.host_has_flash_access (&manager.test.base, NULL);
+	status = manager.test.base.base.host_has_flash_access (&manager.test.base.base, NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_host_has_flash_access_access_check_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_host_has_flash_access_access_check_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 	bool enabled = true;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.control.mock, manager.control.base.processor_has_flash_access,
 		&manager.control, HOST_CONTROL_FLASH_CHECK_FAILED);
@@ -12986,35 +14221,39 @@ static void host_flash_manager_single_test_host_has_flash_access_access_check_er
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.host_has_flash_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, HOST_CONTROL_FLASH_CHECK_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_host_has_flash_access_filter_check_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_host_has_flash_access_filter_check_error (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = mock_expect (&manager.filter.mock, manager.filter.base.get_filter_enabled,
 		&manager.filter, SPI_FILTER_GET_ENABLED_FAILED, MOCK_ARG_NOT_NULL);
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.host_has_flash_access (&manager.test.base, &manager.control.base);
+	status = manager.test.base.base.host_has_flash_access (&manager.test.base.base,
+		&manager.control.base);
 	CuAssertIntEquals (test, SPI_FILTER_GET_ENABLED_FAILED, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_restore_flash_read_write_regions_cs1 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_cs1 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -13023,7 +14262,7 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_cs1 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	rw_region.start_addr = 0x20000;
 	rw_region.length = 0x10000;
@@ -13038,15 +14277,17 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_cs1 
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
+	status = manager.test.base.base.restore_flash_read_write_regions (&manager.test.base.base,
+		&rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_UNSUPPORTED_OPERATION, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_restore_flash_read_write_regions_cs0 (CuTest *test)
+static void host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_cs0 (
+	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -13055,7 +14296,7 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_cs0 
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 
 	rw_region.start_addr = 0x20000;
@@ -13071,16 +14312,17 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_cs0 
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
+	status = manager.test.base.base.restore_flash_read_write_regions (&manager.test.base.base,
+		&rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_UNSUPPORTED_OPERATION, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_restore_flash_read_write_regions_override_cs1 (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_override_cs1
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -13089,7 +14331,7 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_over
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_save_read_only_flash_nv_config (&manager.host_state, SPI_FILTER_CS_1);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_0);
 
@@ -13106,16 +14348,17 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_over
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
+	status = manager.test.base.base.restore_flash_read_write_regions (&manager.test.base.base,
+		&rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_UNSUPPORTED_OPERATION, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_restore_flash_read_write_regions_override_cs0 (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_override_cs0
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -13124,7 +14367,7 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_over
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 	host_state_manager_override_read_only_flash (&manager.host_state, SPI_FILTER_CS_1);
 
 	rw_region.start_addr = 0x20000;
@@ -13140,16 +14383,17 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_over
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
+	status = manager.test.base.base.restore_flash_read_write_regions (&manager.test.base.base,
+		&rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_UNSUPPORTED_OPERATION, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_restore_flash_read_write_regions_multiple_fw (
-	CuTest *test)
+static void host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_multiple_fw
+	(CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region[3];
 	struct pfm_read_write rw_prop[3];
 	struct pfm_read_write_regions rw_list[3];
@@ -13158,7 +14402,7 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_mult
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	rw_region[0].start_addr = 0;
 	rw_region[0].length = 0x10000;
@@ -13187,19 +14431,54 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_mult
 	rw_host.writable = rw_list;
 	rw_host.count = 3;
 
-	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
+	status = manager.test.base.base.restore_flash_read_write_regions (&manager.test.base.base,
+		&rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_UNSUPPORTED_OPERATION, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_restore_flash_read_write_regions_static_init (
+static void host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_static_init
+	(CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
+	};
+	struct flash_region rw_region;
+	struct pfm_read_write rw_prop;
+	struct pfm_read_write_regions rw_list;
+	struct host_flash_manager_rw_regions rw_host;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
+
+	rw_region.start_addr = 0x20000;
+	rw_region.length = 0x10000;
+
+	rw_prop.on_failure = PFM_RW_ERASE;
+
+	rw_list.regions = &rw_region;
+	rw_list.properties = &rw_prop;
+	rw_list.count = 1;
+
+	rw_host.pfm = &manager.pfm.base;
+	rw_host.writable = &rw_list;
+	rw_host.count = 1;
+
+	status = manager.test.base.base.restore_flash_read_write_regions (&manager.test.base.base,
+		&rw_host);
+	CuAssertIntEquals (test, HOST_FLASH_MGR_UNSUPPORTED_OPERATION, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_null (
 	CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
-	};
+	struct host_flash_manager_single_with_backup_testing manager;
 	struct flash_region rw_region;
 	struct pfm_read_write rw_prop;
 	struct pfm_read_write_regions rw_list;
@@ -13208,7 +14487,7 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_stat
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	rw_region.start_addr = 0x20000;
 	rw_region.length = 0x10000;
@@ -13223,332 +14502,356 @@ static void host_flash_manager_single_test_restore_flash_read_write_regions_stat
 	rw_host.writable = &rw_list;
 	rw_host.count = 1;
 
-	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, &rw_host);
-	CuAssertIntEquals (test, HOST_FLASH_MGR_UNSUPPORTED_OPERATION, status);
-
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
-}
-
-static void host_flash_manager_single_test_restore_flash_read_write_regions_null (CuTest *test)
-{
-	struct host_flash_manager_single_testing manager;
-	struct flash_region rw_region;
-	struct pfm_read_write rw_prop;
-	struct pfm_read_write_regions rw_list;
-	struct host_flash_manager_rw_regions rw_host;
-	int status;
-
-	TEST_START;
-
-	host_flash_manager_single_testing_init (test, &manager);
-
-	rw_region.start_addr = 0x20000;
-	rw_region.length = 0x10000;
-
-	rw_prop.on_failure = PFM_RW_ERASE;
-
-	rw_list.regions = &rw_region;
-	rw_list.properties = &rw_prop;
-	rw_list.count = 1;
-
-	rw_host.pfm = &manager.pfm.base;
-	rw_host.writable = &rw_list;
-	rw_host.count = 1;
-
-	status = manager.test.base.restore_flash_read_write_regions (NULL, &rw_host);
+	status = manager.test.base.base.restore_flash_read_write_regions (NULL, &rw_host);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	status = manager.test.base.restore_flash_read_write_regions (&manager.test.base, NULL);
+	status = manager.test.base.base.restore_flash_read_write_regions (&manager.test.base.base,
+		NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_reset_flash (CuTest *test)
+static void host_flash_manager_single_with_backup_test_reset_flash (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	uint8_t wip_status = 0;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x66));
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x99));
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0x99));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.reset_flash (&manager.test.base);
+	status = manager.test.base.base.reset_flash (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_reset_flash_static_init (CuTest *test)
+static void host_flash_manager_single_with_backup_test_reset_flash_static_init (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager = {
-		.test = host_flash_manager_single_static_init (&manager.flash0, &manager.host_state,
-			&manager.filter.base, &manager.handler.base)
+	struct host_flash_manager_single_with_backup_testing manager = {
+		.test = host_flash_manager_single_with_backup_static_init (&manager.flash0, &manager.flash1,
+			&manager.host_state, &manager.filter.base, &manager.handler.base)
 	};
 	uint8_t wip_status = 0;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_initialize_dependencies (test, &manager);
+	host_flash_manager_single_with_backup_testing_initialize_dependencies (test, &manager);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x66));
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x99));
 
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock1, 0, FLASH_EXP_OPCODE (0x99));
+
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.reset_flash (&manager.test.base);
+	status = manager.test.base.base.reset_flash (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_reset_flash_null (CuTest *test)
+static void host_flash_manager_single_with_backup_test_reset_flash_null (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
-	status = manager.test.base.reset_flash (NULL);
+	status = manager.test.base.base.reset_flash (NULL);
 	CuAssertIntEquals (test, HOST_FLASH_MGR_INVALID_ARGUMENT, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
-static void host_flash_manager_single_test_reset_flash_error (CuTest *test)
+static void host_flash_manager_single_with_backup_test_reset_flash_cs0_error (CuTest *test)
 {
-	struct host_flash_manager_single_testing manager;
+	struct host_flash_manager_single_with_backup_testing manager;
 	uint8_t wip_status = FLASH_STATUS_WIP;
 	int status;
 
 	TEST_START;
 
-	host_flash_manager_single_testing_init (test, &manager);
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
 
 	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
 	CuAssertIntEquals (test, 0, status);
 
-	status = manager.test.base.reset_flash (&manager.test.base);
+	status = manager.test.base.base.reset_flash (&manager.test.base.base);
 	CuAssertIntEquals (test, SPI_FLASH_WRITE_IN_PROGRESS, status);
 
-	host_flash_manager_single_testing_validate_and_release (test, &manager);
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
+}
+
+static void host_flash_manager_single_with_backup_test_reset_flash_cs1_error (CuTest *test)
+{
+	struct host_flash_manager_single_with_backup_testing manager;
+	uint8_t wip_status_cs0 = 0;
+	uint8_t wip_status_cs1 = FLASH_STATUS_WIP;
+	int status;
+
+	TEST_START;
+
+	host_flash_manager_single_with_backup_testing_init (test, &manager);
+
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock0, 0, &wip_status_cs0, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x66));
+	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x99));
+
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_status_cs1, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.reset_flash (&manager.test.base.base);
+	CuAssertIntEquals (test, SPI_FLASH_WRITE_IN_PROGRESS, status);
+
+	host_flash_manager_single_with_backup_testing_validate_and_release (test, &manager);
 }
 
 
 // *INDENT-OFF*
-TEST_SUITE_START (host_flash_manager_single);
+TEST_SUITE_START (host_flash_manager_single_with_backup);
 
-TEST (host_flash_manager_single_test_init);
-TEST (host_flash_manager_single_test_init_null);
-TEST (host_flash_manager_single_test_init_with_managed_flash_initialization);
-TEST (host_flash_manager_single_test_init_with_managed_flash_initialization_null);
-TEST (host_flash_manager_single_test_static_init);
-TEST (host_flash_manager_single_test_static_init_with_managed_flash_initialization);
-TEST (host_flash_manager_single_test_release_null);
-TEST (host_flash_manager_single_test_has_two_flash_devices);
-TEST (host_flash_manager_single_test_has_two_flash_devices_static_init);
-TEST (host_flash_manager_single_test_has_two_flash_devices_null);
-TEST (host_flash_manager_single_test_get_read_only_flash_cs0);
-TEST (host_flash_manager_single_test_get_read_only_flash_cs1);
-TEST (host_flash_manager_single_test_get_read_only_flash_override_cs0);
-TEST (host_flash_manager_single_test_get_read_only_flash_override_cs1);
-TEST (host_flash_manager_single_test_get_read_only_flash_static_init);
-TEST (host_flash_manager_single_test_get_read_only_flash_null);
-TEST (host_flash_manager_single_test_get_read_write_flash_cs1);
-TEST (host_flash_manager_single_test_get_read_write_flash_cs0);
-TEST (host_flash_manager_single_test_get_read_write_flash_override_cs1);
-TEST (host_flash_manager_single_test_get_read_write_flash_override_cs0);
-TEST (host_flash_manager_single_test_get_read_write_flash_static_init);
-TEST (host_flash_manager_single_test_get_read_write_flash_null);
-TEST (host_flash_manager_single_test_swap_flash_devices_cs0);
-TEST (host_flash_manager_single_test_swap_flash_devices_cs1);
-TEST (host_flash_manager_single_test_swap_flash_devices_override_cs0);
-TEST (host_flash_manager_single_test_swap_flash_devices_override_cs1);
-TEST (host_flash_manager_single_test_swap_flash_devices_activate_pending_pfm);
-TEST (host_flash_manager_single_test_swap_flash_devices_no_data_migration);
-TEST (host_flash_manager_single_test_swap_flash_devices_static_init);
-TEST (host_flash_manager_single_test_swap_flash_devices_static_init_with_managed_flash_initialization);
-TEST (host_flash_manager_single_test_swap_flash_devices_null);
-TEST (host_flash_manager_single_test_swap_flash_devices_dirty_clear_error);
-TEST (host_flash_manager_single_test_swap_flash_devices_allow_writes_error);
-TEST (host_flash_manager_single_test_swap_flash_devices_spi_filter_error);
-TEST (host_flash_manager_single_test_swap_flash_devices_activate_pending_pfm_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_cs0);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_cs1);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_override_cs0);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_override_cs1);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_static_init);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_null);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_allow_writes_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_devices_mode_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_cs0);
-TEST (host_flash_manager_single_test_validate_read_only_flash_cs1);
-TEST (host_flash_manager_single_test_validate_read_only_flash_override_cs0);
-TEST (host_flash_manager_single_test_validate_read_only_flash_override_cs1);
-TEST (host_flash_manager_single_test_validate_read_only_flash_single_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_full_validation);
-TEST (host_flash_manager_single_test_validate_read_only_flash_full_validation_not_blank_byte);
-TEST (host_flash_manager_single_test_validate_read_only_flash_full_validation_single_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_full_validation_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_single_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_match_image);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_full_validation);
-TEST (host_flash_manager_single_test_validate_read_only_flash_static_init);
-TEST (host_flash_manager_single_test_validate_read_only_flash_null);
-TEST (host_flash_manager_single_test_validate_read_only_flash_pfm_firmware_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_pfm_version_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_pfm_version_error_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_pfm_images_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_pfm_rw_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_flash_version_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_flash_image_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_full_flash_image_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_firmware_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_version_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_flash_version_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_images_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_pfm_rw_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_good_images_error);
-TEST (host_flash_manager_single_test_validate_read_only_flash_good_pfm_flash_image_error);
-TEST (host_flash_manager_single_test_validate_read_write_flash_cs1);
-TEST (host_flash_manager_single_test_validate_read_write_flash_cs0);
-TEST (host_flash_manager_single_test_validate_read_write_flash_override_cs1);
-TEST (host_flash_manager_single_test_validate_read_write_flash_override_cs0);
-TEST (host_flash_manager_single_test_validate_read_write_flash_not_blank_byte);
-TEST (host_flash_manager_single_test_validate_read_write_flash_single_fw);
-TEST (host_flash_manager_single_test_validate_read_write_flash_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_write_flash_static_init);
-TEST (host_flash_manager_single_test_validate_read_write_flash_null);
-TEST (host_flash_manager_single_test_validate_read_write_flash_pfm_firmware_error);
-TEST (host_flash_manager_single_test_validate_read_write_flash_pfm_version_error);
-TEST (host_flash_manager_single_test_validate_read_write_flash_pfm_version_error_multiple_fw);
-TEST (host_flash_manager_single_test_validate_read_write_flash_pfm_images_error);
-TEST (host_flash_manager_single_test_validate_read_write_flash_pfm_rw_error);
-TEST (host_flash_manager_single_test_validate_read_write_flash_version_error);
-TEST (host_flash_manager_single_test_validate_read_write_flash_verify_error);
-TEST (host_flash_manager_single_test_free_read_write_regions_null);
-TEST (host_flash_manager_single_test_free_read_write_regions_null_list);
-TEST (host_flash_manager_single_test_free_read_write_regions_null_pfm);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_not_initilized_device);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_check_qspi_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_wip_set);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_with_flash_initialization);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_static_init);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_static_init_with_flash_initialization);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_null);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_filter_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_mux_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_wip_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_block_protect_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_qspi_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_4byte_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_id_error);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_unknown_id_ff);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_unknown_id_00);
-TEST (host_flash_manager_single_test_set_flash_for_rot_access_with_flash_initialization_error);
-TEST (host_flash_manager_single_test_set_flash_for_host_access);
-TEST (host_flash_manager_single_test_set_flash_for_host_access_static_init);
-TEST (host_flash_manager_single_test_set_flash_for_host_access_null);
-TEST (host_flash_manager_single_test_set_flash_for_host_access_mux_error);
-TEST (host_flash_manager_single_test_set_flash_for_host_access_enable_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_4byte);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_require_write_enable);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_fixed_addr_mode_3byte);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_fixed_addr_mode_4byte);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_reset_addr_mode_4byte);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_set_size_unsupported);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_reset_addr_mode_unsupported);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_static_init);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_static_init_with_managed_flash_initialization);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_null);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_id_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_get_reset_addr_mode_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_filter_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_unsupported_mfg);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_unsupported_dev);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_filter_size_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_addr_mode_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_fixed_addr_mode_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_addr_mode_write_en_error);
-TEST (host_flash_manager_single_test_config_spi_filter_flash_type_reset_addr_mode_error);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs0_3byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs0_4byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs0_fixed_3byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs0_fixed_4byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs1_3byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs1_4byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs1_fixed_3byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_cs1_fixed_4byte);
-TEST (host_flash_manager_single_test_initialize_flash_protection_override_cs0);
-TEST (host_flash_manager_single_test_initialize_flash_protection_override_cs1);
-TEST (host_flash_manager_single_test_initialize_flash_protection_multiple_fw);
-TEST (host_flash_manager_single_test_initialize_flash_protection_static_init);
-TEST (host_flash_manager_single_test_initialize_flash_protection_null);
-TEST (host_flash_manager_single_test_initialize_flash_protection_dirty_clear_error);
-TEST (host_flash_manager_single_test_initialize_flash_protection_filter_addr_mode_error);
-TEST (host_flash_manager_single_test_initialize_flash_protection_allow_writes_error);
-TEST (host_flash_manager_single_test_initialize_flash_protection_filter_flash_mode_error);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_cs0);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_cs1);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_override_cs0);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_override_cs1);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_single_fw);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_multiple_fw);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_cs1);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_cs0);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_override_cs1);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_override_cs0);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_single_fw);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_multiple_fw);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_static_init);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_null);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_pfm_firmware_error);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_pfm_version_error);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_pfm_version_error_multiple_fw);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_ro_flash_version_error);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_rw_flash_version_error);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_error);
-TEST (host_flash_manager_single_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw);
-TEST (host_flash_manager_single_test_host_has_flash_access);
-TEST (host_flash_manager_single_test_host_has_flash_access_rot_access);
-TEST (host_flash_manager_single_test_host_has_flash_access_filter_disabled);
-TEST (host_flash_manager_single_test_host_has_flash_access_static_init);
-TEST (host_flash_manager_single_test_host_has_flash_access_null);
-TEST (host_flash_manager_single_test_host_has_flash_access_access_check_error);
-TEST (host_flash_manager_single_test_host_has_flash_access_filter_check_error);
-TEST (host_flash_manager_single_test_restore_flash_read_write_regions_cs1);
-TEST (host_flash_manager_single_test_restore_flash_read_write_regions_cs0);
-TEST (host_flash_manager_single_test_restore_flash_read_write_regions_override_cs1);
-TEST (host_flash_manager_single_test_restore_flash_read_write_regions_override_cs0);
-TEST (host_flash_manager_single_test_restore_flash_read_write_regions_multiple_fw);
-TEST (host_flash_manager_single_test_restore_flash_read_write_regions_static_init);
-TEST (host_flash_manager_single_test_restore_flash_read_write_regions_null);
-TEST (host_flash_manager_single_test_reset_flash);
-TEST (host_flash_manager_single_test_reset_flash_static_init);
-TEST (host_flash_manager_single_test_reset_flash_null);
-TEST (host_flash_manager_single_test_reset_flash_error);
+TEST (host_flash_manager_single_with_backup_test_init);
+TEST (host_flash_manager_single_with_backup_test_init_null);
+TEST (host_flash_manager_single_with_backup_test_init_with_managed_flash_initialization);
+TEST (host_flash_manager_single_with_backup_test_init_with_managed_flash_initialization_null);
+TEST (host_flash_manager_single_with_backup_test_static_init);
+TEST (host_flash_manager_single_with_backup_test_static_init_with_managed_flash_initialization);
+TEST (host_flash_manager_single_with_backup_test_release_null);
+TEST (host_flash_manager_single_with_backup_test_has_two_flash_devices);
+TEST (host_flash_manager_single_with_backup_test_has_two_flash_devices_static_init);
+TEST (host_flash_manager_single_with_backup_test_has_two_flash_devices_null);
+TEST (host_flash_manager_single_with_backup_test_get_read_only_flash_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_read_only_flash_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_read_only_flash_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_read_only_flash_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_read_only_flash_static_init);
+TEST (host_flash_manager_single_with_backup_test_get_read_only_flash_static_init_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_read_only_flash_null);
+TEST (host_flash_manager_single_with_backup_test_get_read_write_flash_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_read_write_flash_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_read_write_flash_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_read_write_flash_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_read_write_flash_static_init);
+TEST (host_flash_manager_single_with_backup_test_get_read_write_flash_static_init_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_read_write_flash_null);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_cs0);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_cs1);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_activate_pending_pfm);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_no_data_migration);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_static_init);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_static_init_with_managed_flash_initialization);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_null);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_dirty_clear_error);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_allow_writes_error);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_spi_filter_error);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_spi_filter_error_cs1);
+TEST (host_flash_manager_single_with_backup_test_swap_flash_devices_activate_pending_pfm_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_cs0);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_cs1);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_static_init);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_null);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_allow_writes_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_mode_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_devices_mode_error_cs1);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_cs0);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_cs1);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_single_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation_not_blank_byte);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation_single_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_full_validation_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_single_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_no_match_image);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_no_match_image_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_full_validation);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_static_init);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_null);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_firmware_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_version_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_version_error_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_images_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_pfm_rw_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_flash_version_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_flash_image_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_full_flash_image_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_firmware_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_version_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_version_error_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_flash_version_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_images_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_pfm_rw_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_good_images_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_only_flash_good_pfm_flash_image_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_cs1);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_cs0);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_not_blank_byte);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_single_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_static_init);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_null);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_firmware_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_version_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_version_error_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_images_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_pfm_rw_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_version_error);
+TEST (host_flash_manager_single_with_backup_test_validate_read_write_flash_verify_error);
+TEST (host_flash_manager_single_with_backup_test_free_read_write_regions_null);
+TEST (host_flash_manager_single_with_backup_test_free_read_write_regions_null_list);
+TEST (host_flash_manager_single_with_backup_test_free_read_write_regions_null_pfm);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_not_initilized_device);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_check_qspi_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_wip_set);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_with_flash_initialization);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_static_init);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_static_init_with_flash_initialization);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_null);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_filter_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_mux_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_wip_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_block_protect_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_qspi_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_4byte_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_id_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_unknown_id_ff);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_unknown_id_00);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_rot_access_with_flash_initialization_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_host_access);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_host_access_static_init);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_host_access_null);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_host_access_mux_error);
+TEST (host_flash_manager_single_with_backup_test_set_flash_for_host_access_enable_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_4byte);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_3byte);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_4byte);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_require_write_enable);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_fixed_addr_mode_3byte);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_fixed_addr_mode_4byte);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_reset_addr_mode_4byte);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_set_size_unsupported);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_addr_mode_write_en_unsupported);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_reset_addr_mode_unsupported);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_static_init);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_static_init_with_flash_initialization);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_null);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_vendors);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_devices);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_sizes);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_require_write_enable);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_control);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_fixed_addr_mode);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_reset_addr_mode);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_id0_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_id1_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_diff_addr_mode_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_get_reset_addr_mode0_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_get_reset_addr_mode1_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_filter_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_unsupported_mfg);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_unsupported_dev);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_filter_size_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_addr_mode_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_fixed_addr_mode_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_addr_mode_write_en_error);
+TEST (host_flash_manager_single_with_backup_test_config_spi_filter_flash_type_reset_addr_mode_error);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_3byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_4byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_fixed_3byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs0_fixed_4byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_3byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_4byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_fixed_3byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_cs1_fixed_4byte);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_static_init);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_null);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_dirty_clear_error);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_filter_addr_mode_error);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_allow_writes_error);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_filter_flash_mode_error);
+TEST (host_flash_manager_single_with_backup_test_initialize_flash_protection_filter_flash_mode_error_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_single_fw);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_single_fw);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_static_init);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_null);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_firmware_error);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_version_error);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_version_error_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_ro_flash_version_error);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_rw_flash_version_error);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_rw_error);
+TEST (host_flash_manager_single_with_backup_test_get_flash_read_write_regions_pfm_rw_error_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_host_has_flash_access);
+TEST (host_flash_manager_single_with_backup_test_host_has_flash_access_rot_access);
+TEST (host_flash_manager_single_with_backup_test_host_has_flash_access_filter_disabled);
+TEST (host_flash_manager_single_with_backup_test_host_has_flash_access_static_init);
+TEST (host_flash_manager_single_with_backup_test_host_has_flash_access_null);
+TEST (host_flash_manager_single_with_backup_test_host_has_flash_access_access_check_error);
+TEST (host_flash_manager_single_with_backup_test_host_has_flash_access_filter_check_error);
+TEST (host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_cs1);
+TEST (host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_cs0);
+TEST (host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_override_cs1);
+TEST (host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_override_cs0);
+TEST (host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_multiple_fw);
+TEST (host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_static_init);
+TEST (host_flash_manager_single_with_backup_test_restore_flash_read_write_regions_null);
+TEST (host_flash_manager_single_with_backup_test_reset_flash);
+TEST (host_flash_manager_single_with_backup_test_reset_flash_static_init);
+TEST (host_flash_manager_single_with_backup_test_reset_flash_null);
+TEST (host_flash_manager_single_with_backup_test_reset_flash_cs0_error);
+TEST (host_flash_manager_single_with_backup_test_reset_flash_cs1_error);
 
 TEST_SUITE_END;
 // *INDENT-ON*

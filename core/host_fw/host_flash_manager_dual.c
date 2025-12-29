@@ -323,18 +323,12 @@ int host_flash_manager_dual_host_has_flash_access (const struct host_flash_manag
 int host_flash_manager_dual_reset_flash (const struct host_flash_manager *manager)
 {
 	const struct host_flash_manager_dual *dual = (const struct host_flash_manager_dual*) manager;
-	int status = 0;
 
 	if (dual == NULL) {
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
-	status = spi_flash_reset_device (dual->flash_cs0);
-	if (status != 0) {
-		return status;
-	}
-
-	return spi_flash_reset_device (dual->flash_cs1);
+	return host_flash_manager_reset_flash (dual->flash_cs0, dual->flash_cs1);
 }
 
 /**

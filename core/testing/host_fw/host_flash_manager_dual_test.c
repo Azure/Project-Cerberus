@@ -199,35 +199,22 @@ static void host_flash_manager_dual_testing_validate_and_release_dependencies_no
 {
 	int status;
 
-	status = flash_master_mock_validate_and_release (&manager->flash_mock0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&manager->flash_mock1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_master_mock_validate_and_release (&manager->flash_mock_state);
-	CuAssertIntEquals (test, 0, status);
-
-	status = spi_filter_interface_mock_validate_and_release (&manager->filter);
-	CuAssertIntEquals (test, 0, status);
-
-	status = flash_mfg_filter_handler_mock_validate_and_release (&manager->handler);
-	CuAssertIntEquals (test, 0, status);
-
-	status = host_control_mock_validate_and_release (&manager->control);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&manager->pfm);
-	CuAssertIntEquals (test, 0, status);
-
-	status = pfm_mock_validate_and_release (&manager->pfm_good);
-	CuAssertIntEquals (test, 0, status);
-
 	host_state_manager_release (&manager->host_state);
 	host_flash_initialization_release (&manager->flash_init);
 	spi_flash_release (&manager->flash_state);
 	HASH_TESTING_ENGINE_RELEASE (&manager->hash);
 	RSA_TESTING_ENGINE_RELEASE (&manager->rsa);
+
+	status = flash_master_mock_validate_and_release (&manager->flash_mock0);
+	status |= flash_master_mock_validate_and_release (&manager->flash_mock1);
+	status |= flash_master_mock_validate_and_release (&manager->flash_mock_state);
+	status |= spi_filter_interface_mock_validate_and_release (&manager->filter);
+	status |= flash_mfg_filter_handler_mock_validate_and_release (&manager->handler);
+	status |= host_control_mock_validate_and_release (&manager->control);
+	status |= pfm_mock_validate_and_release (&manager->pfm);
+	status |= pfm_mock_validate_and_release (&manager->pfm_good);
+
+	CuAssertIntEquals (test, 0, status);
 }
 
 /**
@@ -240,9 +227,9 @@ static void host_flash_manager_dual_testing_validate_and_release_dependencies_no
 static void host_flash_manager_dual_testing_validate_and_release_dependencies (CuTest *test,
 	struct host_flash_manager_dual_testing *manager)
 {
-	host_flash_manager_dual_testing_validate_and_release_dependencies_no_flash (test, manager);
 	spi_flash_release (&manager->flash0);
 	spi_flash_release (&manager->flash1);
+	host_flash_manager_dual_testing_validate_and_release_dependencies_no_flash (test, manager);
 }
 
 /**
@@ -15437,6 +15424,7 @@ static void host_flash_manager_dual_test_reset_flash_cs1_error (CuTest *test)
 		FLASH_EXP_READ_STATUS_REG);
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x66));
 	status |= flash_master_mock_expect_xfer (&manager.flash_mock0, 0, FLASH_EXP_OPCODE (0x99));
+
 	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock1, 0, &wip_status_cs1, 1,
 		FLASH_EXP_READ_STATUS_REG);
 
@@ -15607,9 +15595,9 @@ TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_filter_error);
 TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_unsupported_mfg);
 TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_unsupported_dev);
 TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_filter_size_error);
-TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_write_en_error);
 TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_error);
 TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_fixed_addr_mode_error);
+TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_addr_mode_write_en_error);
 TEST (host_flash_manager_dual_test_config_spi_filter_flash_type_reset_addr_mode_error);
 TEST (host_flash_manager_dual_test_initialize_flash_protection_cs0_3byte_cs1_3byte);
 TEST (host_flash_manager_dual_test_initialize_flash_protection_cs1_3byte_cs0_3byte);

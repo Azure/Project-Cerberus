@@ -51,6 +51,12 @@ static void add_all_host_fw_tests (CuSuite *suite)
 	!defined TESTING_SKIP_HOST_FLASH_MANAGER_SINGLE_SUITE
 	TESTING_RUN_SUITE (host_flash_manager_single);
 #endif
+#if (defined TESTING_RUN_HOST_FLASH_MANAGER_SINGLE_WITH_BACKUP_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_HOST_FLASH_MANAGER_SINGLE_WITH_BACKUP_SUITE
+	TESTING_RUN_SUITE (host_flash_manager_single_with_backup);
+#endif
 #if (defined TESTING_RUN_HOST_FW_UTIL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

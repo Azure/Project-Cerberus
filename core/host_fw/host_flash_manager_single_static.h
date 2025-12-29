@@ -15,16 +15,6 @@ const struct spi_flash* host_flash_manager_single_get_read_write_flash (
 
 
 bool host_flash_manager_single_has_two_flash_devices (const struct host_flash_manager *manager);
-int host_flash_manager_single_validate_read_only_flash (const struct host_flash_manager *manager,
-	const struct pfm *pfm, const struct pfm *good_pfm, const struct hash_engine *hash,
-	const struct rsa_engine *rsa, bool full_validation,
-	struct host_flash_manager_rw_regions *host_rw);
-int host_flash_manager_single_validate_read_write_flash (const struct host_flash_manager *manager,
-	const struct pfm *pfm, const struct hash_engine *hash, const struct rsa_engine *rsa,
-	struct host_flash_manager_rw_regions *host_rw);
-int host_flash_manager_single_get_flash_read_write_regions (
-	const struct host_flash_manager *manager, const struct pfm *pfm, bool rw_flash,
-	struct host_flash_manager_rw_regions *host_rw);
 int host_flash_manager_single_config_spi_filter_flash_type (
 	const struct host_flash_manager *manager);
 int host_flash_manager_single_config_spi_filter_flash_devices (
@@ -33,13 +23,7 @@ int host_flash_manager_single_swap_flash_devices (const struct host_flash_manage
 	const struct host_flash_manager_rw_regions *host_rw, const struct pfm_manager *used_pending);
 int host_flash_manager_single_initialize_flash_protection (
 	const struct host_flash_manager *manager, const struct host_flash_manager_rw_regions *host_rw);
-int host_flash_manager_single_restore_flash_read_write_regions (
-	const struct host_flash_manager *manager, const struct host_flash_manager_rw_regions *host_rw);
 int host_flash_manager_single_set_flash_for_rot_access (const struct host_flash_manager *manager,
-	const struct host_control *control);
-int host_flash_manager_single_set_flash_for_host_access (const struct host_flash_manager *manager,
-	const struct host_control *control);
-int host_flash_manager_single_host_has_flash_access (const struct host_flash_manager *manager,
 	const struct host_control *control);
 int host_flash_manager_single_reset_flash (const struct host_flash_manager *manager);
 
@@ -68,6 +52,30 @@ int host_flash_manager_single_reset_flash (const struct host_flash_manager *mana
 		.reset_flash = host_flash_manager_single_reset_flash, \
 	}
 
+/**
+ * Internal initializer for use by derived types to initialize a static instance for a manager using
+ * a single host flash device.
+ *
+ * There is no validation done on the arguments.
+ *
+ * @param api The flash manager API implementation to use.
+ * @param flash_ptr The host flash device.
+ * @param host_state_ptr The manager for host state information.
+ * @param filter_ptr The SPI filter for the protected flash.
+ * @param mfg_handler_ptr The SPI filter handler for configuring the flash device manufacturer.
+ * @param flash_init_ptr The initialization manager for SPI flash interfaces.  This can be null if
+ * it's not used.
+ */
+#define	host_flash_manager_single_static_init_internal(api, flash_ptr, host_state_ptr, filter_ptr, \
+	mfg_handler_ptr, flash_init_ptr)	{ \
+		.base = api, \
+		.flash = flash_ptr, \
+		.host_state = host_state_ptr, \
+		.filter = filter_ptr, \
+		.mfg_handler = mfg_handler_ptr, \
+		.flash_init = flash_init_ptr, \
+	}
+
 
 /**
  * Initialize a static instance of the manager for a single host flash device.
@@ -80,14 +88,9 @@ int host_flash_manager_single_reset_flash (const struct host_flash_manager *mana
  * @param mfg_handler_ptr The SPI filter handler for configuring the flash device manufacturer.
  */
 #define	host_flash_manager_single_static_init(flash_ptr, host_state_ptr, filter_ptr, \
-	mfg_handler_ptr)	{ \
-		.base = HOST_FLASH_MANAGER_SINGLE_API_INIT, \
-		.flash = flash_ptr, \
-		.host_state = host_state_ptr, \
-		.filter = filter_ptr, \
-		.mfg_handler = mfg_handler_ptr, \
-		.flash_init = NULL, \
-	}
+	mfg_handler_ptr)    \
+		host_flash_manager_single_static_init_internal (HOST_FLASH_MANAGER_SINGLE_API_INIT, \
+			flash_ptr, host_state_ptr, filter_ptr, mfg_handler_ptr, NULL)
 
 /**
  * Initialize a static instance of the manager for a single host flash device.  The interface to the
@@ -103,14 +106,9 @@ int host_flash_manager_single_reset_flash (const struct host_flash_manager *mana
  * @param flash_init_ptr The initialization manager for SPI flash interfaces.
  */
 #define	host_flash_manager_single_static_init_with_managed_flash_initialization(flash_ptr, \
-	host_state_ptr, filter_ptr, mfg_handler_ptr, flash_init_ptr)	{ \
-		.base = HOST_FLASH_MANAGER_SINGLE_API_INIT, \
-		.flash = flash_ptr, \
-		.host_state = host_state_ptr, \
-		.filter = filter_ptr, \
-		.mfg_handler = mfg_handler_ptr, \
-		.flash_init = flash_init_ptr, \
-	}
+	host_state_ptr, filter_ptr, mfg_handler_ptr, flash_init_ptr)    \
+		host_flash_manager_single_static_init_internal (HOST_FLASH_MANAGER_SINGLE_API_INIT, \
+			flash_ptr, host_state_ptr, filter_ptr, mfg_handler_ptr, flash_init_ptr)
 
 
 #endif	/* HOST_FLASH_MANAGER_SINGLE_STATIC_H_ */
