@@ -29,7 +29,7 @@ struct spdm_measurements_testing {
 	struct hash_engine_mock hash_mock;	/**< Mock for hash operations. */
 	struct flash_mock flash;			/**< Mock for measurement flash operations. */
 	struct pcr_store store;				/**< Measurement storage. */
-	struct spdm_measurements test;		/**< PCR store under test. */
+	struct spdm_measurements test;		/**< SPDM measurement handler under test. */
 };
 
 

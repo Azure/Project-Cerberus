@@ -262,7 +262,7 @@ int spdm_measurements_mock_init (struct spdm_measurements_mock *mock)
 }
 
 /**
- * Release a mock SPM measurement handler.
+ * Release a mock SPDM measurement handler.
  *
  * @param mock The mock to release.
  */

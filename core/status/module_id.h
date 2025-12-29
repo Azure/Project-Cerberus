@@ -185,6 +185,7 @@ enum {
 	ROT_MODULE_TDISP_DRIVER_OBSERVER = 0x00ad,			/**< TDISP driver observer interface. */
 	ROT_MODULE_FATAL_ERROR_HANDLER = 0x00ae,			/**< Handler for fatal firmware errors. */
 	ROT_MODULE_SPDM_PERSISTENT_CONTEXT = 0x00af,		/**< SPDM persistent context interface. */
+	ROT_MODULE_SPDM_CERT_CHAIN = 0x00b0,				/**< SPDM certificate chain manager. */
 };
 
 
