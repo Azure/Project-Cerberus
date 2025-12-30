@@ -223,14 +223,12 @@ int host_flash_manager_single_swap_flash_devices (const struct host_flash_manage
  * No parameter validation is performed.
  *
  * @param manager Manager for the flash protection to initialize.
- * @param host_rw The list of read/write images in the protected image.
  * @param mode The SPI filter mode to use.
  *
  * @return 0 if flash protection was initialized successfully or an error code.
  */
 int host_flash_manager_single_initialize_flash_protection_for_mode (
-	const struct host_flash_manager_single *single,
-	const struct host_flash_manager_rw_regions *host_rw, spi_filter_flash_mode mode)
+	const struct host_flash_manager_single *single, spi_filter_flash_mode mode)
 {
 	const struct spi_flash *flash = single->base.get_read_only_flash (&single->base);
 	int status;
@@ -281,7 +279,7 @@ int host_flash_manager_single_initialize_flash_protection (
 	host_state_manager_save_read_only_flash_nv_config (single->host_state, SPI_FILTER_CS_0);
 	host_state_manager_clear_read_only_flash_override (single->host_state);
 
-	return host_flash_manager_single_initialize_flash_protection_for_mode (single, host_rw,
+	return host_flash_manager_single_initialize_flash_protection_for_mode (single,
 		SPI_FILTER_FLASH_SINGLE_CS0);
 }
 

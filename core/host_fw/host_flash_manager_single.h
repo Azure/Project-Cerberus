@@ -61,8 +61,7 @@ int host_flash_manager_single_swap_flash_devices_with_mode (
 	const struct host_flash_manager_single *single, const struct pfm_manager *used_pending,
 	spi_filter_flash_mode mode);
 int host_flash_manager_single_initialize_flash_protection_for_mode (
-	const struct host_flash_manager_single *single,
-	const struct host_flash_manager_rw_regions *host_rw, spi_filter_flash_mode mode);
+	const struct host_flash_manager_single *single, spi_filter_flash_mode mode);
 
 
 #endif	/* HOST_FLASH_MANAGER_SINGLE_H_ */

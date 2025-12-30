@@ -119,7 +119,7 @@ int host_flash_manager_single_with_backup_initialize_flash_protection (
 		return HOST_FLASH_MGR_INVALID_ARGUMENT;
 	}
 
-	return host_flash_manager_single_initialize_flash_protection_for_mode (&single->base, host_rw,
+	return host_flash_manager_single_initialize_flash_protection_for_mode (&single->base,
 		host_flash_manager_single_with_backup_get_filter_mode (single));
 }
 
