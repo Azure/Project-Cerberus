@@ -9,20 +9,6 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-void attestation_requester_on_spdm_get_version_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
-void attestation_requester_on_spdm_get_capabilities_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
-void attestation_requester_on_spdm_negotiate_algorithms_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
-void attestation_requester_on_spdm_get_digests_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
-void attestation_requester_on_spdm_get_certificate_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
-void attestation_requester_on_spdm_challenge_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
-void attestation_requester_on_spdm_get_measurements_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_cerberus_get_digest_response (
 	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response);
 void attestation_requester_on_cerberus_get_certificate_response (
@@ -66,30 +52,6 @@ void attestation_requester_on_mctp_set_eid_request (
 #endif
 
 /**
- * Constant initializer for the SPDM response observer API.
- */
-#ifdef ATTESTATION_SUPPORT_SPDM
-#define	ATTESTATION_REQUESTER_SPDM_RSP_OBSERVER_API_INIT { \
-		.on_spdm_get_version_response = \
-			attestation_requester_on_spdm_get_version_response, \
-		.on_spdm_get_capabilities_response = \
-			attestation_requester_on_spdm_get_capabilities_response, \
-		.on_spdm_negotiate_algorithms_response = \
-			attestation_requester_on_spdm_negotiate_algorithms_response, \
-		.on_spdm_get_digests_response = \
-			attestation_requester_on_spdm_get_digests_response, \
-		.on_spdm_get_certificate_response = \
-			attestation_requester_on_spdm_get_certificate_response, \
-		.on_spdm_challenge_response = \
-			attestation_requester_on_spdm_challenge_response, \
-		.on_spdm_get_measurements_response = \
-			attestation_requester_on_spdm_get_measurements_response \
-	}
-#else
-#define ATTESTATION_REQUESTER_SPDM_RSP_OBSERVER_API_INIT
-#endif
-
-/**
  * Initialize a static attestation requester instance.
  * There is no validation done on the arguments.
  *
@@ -105,11 +67,12 @@ void attestation_requester_on_mctp_set_eid_request (
  * @param riot_ptr RIoT key manager.
  * @param device_mgr_ptr Device manager instance to utilize.
  * @param cfm_manager_ptr CFM manager to utilize.
- * @param mctp_control Message transport MCTP control instance to utilize
+ * @param mctp_control_ptr Message transport MCTP control instance to utilize.
+ * @param spdm_transport_ptr Message transport SPDM instance to utilize.
  */
 #define attestation_requester_static_init(state_ptr, mctp_ptr, channel_ptr, primary_hash_ptr, \
 	secondary_hash_ptr, ecc_ptr, rsa_ptr, x509_ptr, rng_ptr, riot_ptr, device_mgr_ptr, \
-	cfm_manager_ptr, mctp_control_ptr) { \
+	cfm_manager_ptr, mctp_control_ptr, spdm_transport_ptr) { \
 		.mctp = mctp_ptr, \
 		.channel = channel_ptr, \
 		.primary_hash = primary_hash_ptr, \
@@ -123,9 +86,9 @@ void attestation_requester_on_mctp_set_eid_request (
 		.cfm_manager = cfm_manager_ptr, \
 		.state = state_ptr, \
 		.mctp_control = mctp_control_ptr, \
+		.spdm_transport = spdm_transport_ptr, \
 		.mctp_rsp_observer = ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT, \
 		.cerberus_rsp_observer = ATTESTATION_REQUESTER_CERBERUS_RSP_OBSERVER_API_INIT, \
-		.spdm_rsp_observer = ATTESTATION_REQUESTER_SPDM_RSP_OBSERVER_API_INIT, \
 	}
 
 

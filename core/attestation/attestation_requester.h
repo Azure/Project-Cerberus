@@ -19,7 +19,6 @@
 #include "mctp/mctp_base_protocol.h"
 #include "mctp/mctp_control_protocol_observer.h"
 #include "riot/riot_key_manager.h"
-#include "spdm/spdm_protocol_observer.h"
 
 
 /**
@@ -83,9 +82,6 @@ struct attestation_requester {
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
 	struct cerberus_protocol_observer cerberus_rsp_observer;	/**< Observer to notifications of a Cerberus protocol response message. */
 #endif
-#ifdef ATTESTATION_SUPPORT_SPDM
-	struct spdm_protocol_observer spdm_rsp_observer;			/**< Observer to notifications of a SPDM protocol response message. */
-#endif
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	struct mctp_control_protocol_observer mctp_rsp_observer;	/**< Observer to notifications of a MCTP control protocol response message. */
 #endif
@@ -103,6 +99,7 @@ struct attestation_requester {
 	struct device_manager *device_mgr;							/**< Device manager instance to utilize. */
 	const struct cfm_manager *cfm_manager;						/**< CFM manager instance */
 	const struct msg_transport *mctp_control;					/**< MCTP Control message transport. */
+	const struct msg_transport *spdm_transport;					/**< SPDM message transport for SPDM Commands send */
 };
 
 
@@ -112,7 +109,8 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	const struct hash_engine *secondary_hash, const struct ecc_engine *ecc,
 	const struct rsa_engine *rsa, const struct x509_engine *x509, const struct rng_engine *rng,
 	const struct riot_key_manager *riot, struct device_manager *device_mgr,
-	const struct cfm_manager *cfm_manager, const struct msg_transport *mctp_control);
+	const struct cfm_manager *cfm_manager, const struct msg_transport *mctp_control,
+	const struct msg_transport *spdm_transport);
 int attestation_requester_init_state (const struct attestation_requester *attestation);
 void attestation_requester_deinit (const struct attestation_requester *ctrl);
 

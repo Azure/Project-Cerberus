@@ -60,6 +60,7 @@ enum {
 	ATTESTATION_LOGGING_DEVICE_DISCOVERY_COMPLETE,					/**< Device discovery completed successfully. */
 	ATTESTATION_LOGGING_EID_DISCOVERED,								/**< Target device EID is discovered. */
 	ATTESTATION_LOGGING_PROCESS_PENDING_ACTION_ERROR,				/**< Failed to process pending action in device manager. */
+	ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,						/**< Received SPDM response error. */
 };
 
 
