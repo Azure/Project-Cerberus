@@ -23,6 +23,7 @@
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
+#include "spdm/spdm_certificate_chain.h"
 #include "spdm/spdm_commands.h"
 #include "spdm/spdm_discovery.h"
 #include "spdm/spdm_measurements.h"
@@ -3272,8 +3273,7 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 {
 	struct x509_ca_certs certs_chain;
 	struct x509_certificate cert;
-	uint8_t cert_chain_header[sizeof (struct spdm_certificate_chain) + HASH_MAX_HASH_LEN];
-	struct spdm_certificate_chain *spdm_cert_chain;
+	struct spdm_certificate_chain_header cert_chain_header;
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	size_t cert_offset = 0;
@@ -3282,7 +3282,7 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 	int status;
 
 	/* Determine the length of the SPDM certificate header and request just the header data. */
-	cert_len = sizeof (struct spdm_certificate_chain) + transcript_hash_len;
+	cert_len = sizeof (struct spdm_certificate_chain_min_header) + transcript_hash_len;
 
 	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, eid,
 		dest_addr, cert_offset, cert_len, &cert_data);
@@ -3290,8 +3290,7 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 		return status;
 	}
 
-	memcpy (cert_chain_header, cert_data, cert_len);
-	spdm_cert_chain = (struct spdm_certificate_chain*) cert_chain_header;
+	memcpy (&cert_chain_header, cert_data, cert_len);
 
 	/* Get root CA certificate. */
 	cert_offset = cert_len;
@@ -3303,14 +3302,15 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 	}
 
 	status = attestation_requester_verify_and_load_root_cert (attestation, eid, active_cfm,
-		component_id, cert_data, cert_len, cert_chain_header, cert_offset, &certs_chain);
+		component_id, cert_data, cert_len, (uint8_t*) &cert_chain_header, cert_offset,
+		&certs_chain);
 	if (status != 0) {
 		return status;
 	}
 
 	cert_offset += cert_len;
 
-	while (cert_offset < spdm_cert_chain->length) {
+	while (cert_offset < cert_chain_header.min_hdr.length) {
 		/* Retrieve, hash, and validate each certificate in the chain. */
 		status = attestation_requester_retrieve_individual_spdm_certificate (attestation, dest_addr,
 			eid, cert_offset, &cert_data, &cert_len);
@@ -3324,7 +3324,7 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 		cert_offset += cert_len;
 
 		status = attestation_requester_verify_and_load_certificate (attestation, eid, cert_data,
-			cert_len, (cert_offset >= spdm_cert_chain->length), &cert, &certs_chain);
+			cert_len, (cert_offset >= cert_chain_header.min_hdr.length), &cert, &certs_chain);
 		if (status != 0) {
 			return status;
 		}

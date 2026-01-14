@@ -47,7 +47,9 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
  * @param secured_message_version_num_count_arg Number of supported secured message version numbers.
  * @param local_capabilities_ptr Local SPDM capabilities.
  * @param local_algorithms_ptr Local SPDM algorithms.
- * @param key_manager_ptr Key Manager instance pointer.
+ * @param cert_chains_ptr The list of certificate chains available to the device.  Each index in this
+ * list corresponds to specific SPDM certificate slot.
+ * @param cert_chain_count_arg The number of available certificate chains.
  * @param measurements_ptr Measurements instance pointer.
  * @param ecc_engine_ptr ECC Engine instance pointer.
  * @param rng_engine_ptr RNG Engine instance pointer.
@@ -58,8 +60,9 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 #define	cmd_interface_spdm_responder_static_init(transcript_manager_ptr, \
 	hash_engine_ptr, hash_engine_count_arg, version_num_ptr, version_num_count_arg, \
 	secured_message_version_num_ptr, secured_message_version_num_count_arg, \
-	local_capabilities_ptr, local_algorithms_ptr, key_manager_ptr, measurements_ptr, \
-	ecc_engine_ptr, rng_engine_ptr, session_manager_ptr, vdm_handler_ptr, spdm_context_ptr)	{ \
+	local_capabilities_ptr, local_algorithms_ptr, cert_chains_ptr, cert_chain_count_arg, \
+	measurements_ptr, ecc_engine_ptr, rng_engine_ptr, session_manager_ptr, vdm_handler_ptr, \
+	spdm_context_ptr)	{ \
 		.base = CMD_INTERFACE_SPDM_RESPONDER_API_INIT, \
 		.transcript_manager = transcript_manager_ptr, \
 		.hash_engine = hash_engine_ptr, \
@@ -70,7 +73,8 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
 		.secure_message_version_num_count = secured_message_version_num_count_arg, \
 		.local_capabilities = local_capabilities_ptr, \
 		.local_algorithms = local_algorithms_ptr, \
-		.key_manager = key_manager_ptr, \
+		.cert_chains = cert_chains_ptr, \
+		.cert_chain_count = cert_chain_count_arg, \
 		.measurements = measurements_ptr, \
 		.ecc_engine = ecc_engine_ptr, \
 		.rng_engine = rng_engine_ptr, \

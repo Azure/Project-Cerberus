@@ -210,7 +210,9 @@ int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
  * @param secure_message_version_num_count Number of secured message version number entries.
  * @param local_capabilities Local SPDM capabilities.
  * @param local_algorithms Local SPDM algorithms.
- * @param key_manager RIoT device key manager.
+ * @param cert_chains The list of certificate chains available to the device.  Each index in this
+ * list corresponds to specific SPDM certificate slot.
+ * @param cert_chain_count The number of available certificate chains.
  * @param measurements Measurements for the device.
  * @param ecc_engine ECC engine instance.
  * @param rng_engine RNG engine instance.
@@ -225,9 +227,9 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	uint8_t secure_message_version_num_count,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
-	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	const struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
-	const struct spdm_secure_session_manager *session_manager,
+	const struct spdm_certificate_chain *const *cert_chains, uint8_t cert_chain_count,
+	const struct spdm_measurements *measurements, const struct ecc_engine *ecc_engine,
+	const struct rng_engine *rng_engine, const struct spdm_secure_session_manager *session_manager,
 	const struct cmd_interface *vdm_handler,
 	const struct spdm_persistent_context_interface *spdm_context)
 {
@@ -249,7 +251,8 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->secure_message_version_num_count = secure_message_version_num_count;
 	spdm_responder->local_capabilities = local_capabilities;
 	spdm_responder->local_algorithms = local_algorithms;
-	spdm_responder->key_manager = key_manager;
+	spdm_responder->cert_chains = cert_chains;
+	spdm_responder->cert_chain_count = cert_chain_count;
 	spdm_responder->measurements = measurements;
 	spdm_responder->ecc_engine = ecc_engine;
 	spdm_responder->rng_engine = rng_engine;
@@ -348,7 +351,7 @@ int cmd_interface_spdm_responder_init_state (
 {
 	int status;
 	uint8_t supported_max_version;
-	uint8_t idx;
+	size_t idx;
 
 	/* Current implementation is strictly supports only SPDM v1.2 and nothing else.
 	   TODO: in order to support future versions, like 1.3, below restrictions must be
@@ -359,9 +362,10 @@ int cmd_interface_spdm_responder_init_state (
 		(spdm_responder->transcript_manager == NULL) || (spdm_responder->version_num == NULL) ||
 		(spdm_responder->version_num_count != 1) ||
 		(spdm_responder->local_capabilities == NULL) ||
-		(spdm_responder->local_algorithms == NULL) || (spdm_responder->key_manager == NULL) ||
-		(spdm_responder->measurements == NULL) || (spdm_responder->ecc_engine == NULL) ||
-		(spdm_responder->rng_engine == NULL) || (spdm_responder->spdm_context == NULL)) {
+		(spdm_responder->local_algorithms == NULL) || (spdm_responder->cert_chains == NULL) ||
+		(spdm_responder->cert_chain_count == 0) || (spdm_responder->measurements == NULL) ||
+		(spdm_responder->ecc_engine == NULL) || (spdm_responder->rng_engine == NULL) ||
+		(spdm_responder->spdm_context == NULL)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 		goto exit;
 	}
@@ -385,6 +389,14 @@ int cmd_interface_spdm_responder_init_state (
 	/* Check if the hash engine instances are valid. */
 	for (idx = 0; idx < spdm_responder->hash_engine_count; idx++) {
 		if (spdm_responder->hash_engine[idx] == NULL) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
+			goto exit;
+		}
+	}
+
+	/* Check if the certificate chain instances are valid. */
+	for (idx = 0; idx < spdm_responder->cert_chain_count; idx++) {
+		if (spdm_responder->cert_chains[idx] == NULL) {
 			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 			goto exit;
 		}

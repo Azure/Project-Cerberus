@@ -24,7 +24,6 @@
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "mctp/mctp_base_protocol.h"
-#include "riot/riot_key_manager.h"
 
 
 /**
@@ -992,158 +991,6 @@ static void spdm_reset_transcript_via_request_code (struct spdm_responder_state 
 }
 
 /**
- * Get the list of the certificates in slot 0.
- *
- * @param key_manager RIoT device key manager.
- * @param cert_count_out Number of certificates in the chain.
- * @param cert Certificate chain list in DER format.
- * @param keys_out On success, ptr. to the RIoT keys. This must be released by the caller by calling
- * riot_key_manager_release_riot_keys.
- *
- * @return 0 if certificate list was retrieved successfully or an error code.
- */
-static int spdm_get_certificate_list (const struct riot_key_manager *key_manager,
-	uint8_t *cert_count_out, struct der_cert *cert, const struct riot_keys **keys_out)
-{
-	int status = 0;
-	const struct der_cert *int_ca;
-	const struct der_cert *root_ca;
-	const struct riot_keys *keys = NULL;
-	uint8_t cert_count = 0;
-
-	root_ca = riot_key_manager_get_root_ca (key_manager);
-	if (root_ca != NULL) {
-		cert[cert_count] = *root_ca;
-		cert_count += 1;
-	}
-	int_ca = riot_key_manager_get_intermediate_ca (key_manager);
-	if (int_ca != NULL) {
-		cert[cert_count] = *int_ca;
-		cert_count += 1;
-	}
-
-	keys = riot_key_manager_get_riot_keys (key_manager);
-	if ((keys->devid_cert == NULL) || (keys->devid_cert_length == 0)) {
-		status = CMD_HANDLER_SPDM_RESPONDER_DEVICE_CERT_NOT_AVAILABLE;
-		goto exit;
-	}
-	cert[cert_count].cert = keys->devid_cert;
-	cert[cert_count].length = keys->devid_cert_length;
-	cert_count += 1;
-
-	if ((keys->alias_cert == NULL) || (keys->alias_cert_length == 0)) {
-		status = CMD_HANDLER_SPDM_RESPONDER_ALIAS_CERT_NOT_AVAILABLE;
-		goto exit;
-	}
-	cert[cert_count].cert = keys->alias_cert;
-	cert[cert_count].length = keys->alias_cert_length;
-	cert_count += 1;
-
-	*cert_count_out = cert_count;
-	*keys_out = keys;
-	keys = NULL;
-
-exit:
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
-	return status;
-}
-
-/**
- * Get the digest of the SPDM certificate chain.
- *
- * @param key_manager RIoT device key manager.
- * @param hash_engine Hash engine for hashing operations.
- * @param hash_type Hash type.
- * @param digest Buffer to hold the digest.
- *
- * @return 0 if the digest was calculated successfully or an error code.
- */
-static int spdm_get_certificate_chain_digest (const struct riot_key_manager *key_manager,
-	const struct hash_engine *hash_engine, enum hash_type hash_type, uint8_t *digest)
-{
-	int status;
-	uint8_t i_cert;
-	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
-	uint8_t cert_count;
-	struct spdm_cert_chain cert_chain;
-	uint32_t cert_chain_length;
-	const struct riot_keys *keys = NULL;
-	int hash_size;
-	bool cancel_hash = false;
-
-	/* Retrieve the certificate chain. */
-	status = spdm_get_certificate_list (key_manager, &cert_count, cert, &keys);
-	if (status != 0) {
-		goto exit;
-	}
-
-	hash_size = hash_get_hash_length (hash_type);
-	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
-		status = HASH_ENGINE_UNKNOWN_HASH;
-		goto exit;
-	}
-
-	/* Hash the root cert. */
-	status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
-		cert_chain.root_hash, hash_size);
-	if (ROT_IS_ERROR (status)) {
-		goto exit;
-	}
-	status = 0;
-
-	/* Calculate the cert chain length. */
-	cert_chain_length = 0;
-	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
-		cert_chain_length += cert[i_cert].length;
-	}
-
-	cert_chain.header.length = spdm_get_digests_cert_chain_length (hash_size, cert_chain_length);
-	cert_chain.header.reserved = 0;
-
-	/* Start the cert chain hash. */
-	status = hash_start_new_hash (hash_engine, hash_type);
-	if (status != 0) {
-		goto exit;
-	}
-	cancel_hash = true;
-
-	/* Hash the header of the cert chain and the root cert digest. */
-	status = hash_engine->update (hash_engine, (uint8_t*) &cert_chain,
-		offsetof (struct spdm_cert_chain, root_hash) + hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
-	/* Hash the individual certs in the cert chain. */
-	for (i_cert = 0; i_cert < cert_count; i_cert++) {
-		status = hash_engine->update (hash_engine, cert[i_cert].cert, cert[i_cert].length);
-		if (status != 0) {
-			goto exit;
-		}
-	}
-
-	status = hash_engine->finish (hash_engine, digest, hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-	cancel_hash = false;
-
-exit:
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
-	if (cancel_hash == true) {
-		hash_engine->cancel (hash_engine);
-	}
-
-	return status;
-}
-
-/**
  * SPDM signature context as described in Section 15 of the SPDM specification.
  */
 static const struct spdm_signing_context_str spdm_signing_context_str_table[] = {
@@ -1229,7 +1076,7 @@ static void spdm_create_signing_context (struct spdm_responder_state *state, uin
  * Generate a SPDM response signature.
  *
  * @param state SPDM state.
- * @param key_manager RIoT device key manager.
+ * @param cert_chain The certificate chain to use for signing the data.
  * @param ecc_engine ECC engine.
  * @param hash_engine Hash engine.
  * @param op_code SPDM request opcode.
@@ -1241,7 +1088,7 @@ static void spdm_create_signing_context (struct spdm_responder_state *state, uin
  * @return 0 if signature is generated successfully, error code otherwise.
  */
 static int spdm_responder_data_sign (struct spdm_responder_state *state,
-	const struct riot_key_manager *key_manager, const struct ecc_engine *ecc_engine,
+	const struct spdm_certificate_chain *cert_chain, const struct ecc_engine *ecc_engine,
 	const struct hash_engine *hash_engine, uint8_t op_code, const uint8_t *message_hash,
 	size_t hash_size, uint8_t *signature, size_t sig_size)
 {
@@ -1250,19 +1097,15 @@ static int spdm_responder_data_sign (struct spdm_responder_state *state,
 	size_t message_size;
 	uint8_t spdm12_signing_context_with_hash[SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE +
 		HASH_MAX_HASH_LEN];
-	struct ecc_private_key alias_priv_key;
-	bool release_alias_key = false;
 	uint8_t spdm_version;
 	int sig_size_der;
 	uint8_t sig_der[ECC_DER_ECDSA_MAX_LENGTH] = {0};
 	uint32_t sig_r_component_size = sig_size >> 1;
 	enum hash_type hash_type;
-	const struct riot_keys *keys = NULL;
 
 	spdm_version = SPDM_MAKE_VERSION (state->connection_info.version.major_version,
 		state->connection_info.version.minor_version);
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
-	keys = riot_key_manager_get_riot_keys (key_manager);
 
 	/* v1.2 (and greater) requires a signing context prepended to the hash. */
 	if (spdm_version > SPDM_VERSION_1_1) {
@@ -1279,9 +1122,8 @@ static int spdm_responder_data_sign (struct spdm_responder_state *state,
 		message_size = SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + hash_size;
 
 		/* Calculate the message hash as required by ECDSA. It may not be needed for other algos. */
-		sig_size_der = ecdsa_sign_message (ecc_engine, hash_engine, hash_type, NULL,
-			keys->alias_key, keys->alias_key_length, message, message_size, sig_der,
-			sizeof (sig_der));
+		sig_size_der = cert_chain->sign_message (cert_chain, ecc_engine, hash_engine, hash_type,
+			message, message_size, sig_der, sizeof (sig_der));
 	}
 	else {
 		/* SPDM 1.1 and earlier cannot be made FIPS compliant with the current architecture, since
@@ -1306,14 +1148,6 @@ static int spdm_responder_data_sign (struct spdm_responder_state *state,
 exit:
 	buffer_zeroize (sig_der, sizeof (sig_der));
 
-	if (release_alias_key == true) {
-		ecc_engine->release_key_pair (ecc_engine, &alias_priv_key, NULL);
-	}
-
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
 	return status;
 }
 
@@ -1322,7 +1156,7 @@ exit:
  *
  * @param transcript_manager SPDM transcript manager.
  * @param state SPDM state.
- * @param key_manager RIoT device key manager.
+ * @param cert_chain The certificate chain to use for signing the data.
  * @param ecc_engine ECC engine.
  * @param hash_engine Hash engine.
  * @param session Session information.
@@ -1333,7 +1167,7 @@ exit:
  */
 static int spdm_generate_measurement_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_responder_state *state,
-	const struct riot_key_manager *key_manager, const struct ecc_engine *ecc_engine,
+	const struct spdm_certificate_chain *cert_chain, const struct ecc_engine *ecc_engine,
 	const struct hash_engine *hash_engine, struct spdm_secure_session *session_info,
 	uint8_t *signature, size_t sig_size)
 {
@@ -1367,7 +1201,7 @@ static int spdm_generate_measurement_signature (
 	}
 
 	/* Sign the L1L2 hash. */
-	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
+	status = spdm_responder_data_sign (state, cert_chain, ecc_engine, hash_engine,
 		SPDM_RESPONSE_GET_MEASUREMENTS, l1l2_hash, l1l2_hash_size, signature, sig_size);
 	if (status != 0) {
 		goto exit;
@@ -1384,7 +1218,7 @@ exit:
  *
  * @param transcript_manager SPDM transcript manager.
  * @param state SPDM state.
- * @param key_manager RIoT device key manager.
+ * @param cert_chain The certificate chain to use for signing the data.
  * @param ecc_engine ECC engine.
  * @param hash_engine Hash engine.
  * @param session SPDM secure session.
@@ -1395,7 +1229,7 @@ exit:
  */
 static int spdm_generate_key_exchange_rsp_signature (
 	const struct spdm_transcript_manager *transcript_manager, struct spdm_responder_state *state,
-	const struct riot_key_manager *key_manager, const struct ecc_engine *ecc_engine,
+	const struct spdm_certificate_chain *cert_chain, const struct ecc_engine *ecc_engine,
 	const struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
 	uint32_t sig_size)
 {
@@ -1415,7 +1249,7 @@ static int spdm_generate_key_exchange_rsp_signature (
 	}
 
 	/* Sign the TH hash. */
-	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
+	status = spdm_responder_data_sign (state, cert_chain, ecc_engine, hash_engine,
 		SPDM_RESPONSE_KEY_EXCHANGE, th_hash, th_hash_size, signature, sig_size);
 	if (status != 0) {
 		goto exit;
@@ -2480,13 +2314,15 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	int spdm_error;
 	struct spdm_get_digests_request *spdm_request;
 	struct spdm_get_digests_response *spdm_response;
+	uint8_t *digest_list;
 	uint8_t spdm_version;
 	uint32_t response_size;
 	int hash_size;
+	size_t i;
+	uint8_t cert_slot_count;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	const struct riot_key_manager *key_manager;
 	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	const struct spdm_secure_session_manager *session_manager;
@@ -2506,7 +2342,6 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	transcript_manager = spdm_responder->transcript_manager;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	session_manager = spdm_responder->session_manager;
@@ -2587,7 +2422,9 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 		goto exit;
 	}
 
-	response_size = sizeof (struct spdm_get_digests_response) + hash_size;
+	cert_slot_count = min (SPDM_MAX_SLOT_COUNT, spdm_responder->cert_chain_count);
+
+	response_size = sizeof (struct spdm_get_digests_response) + (hash_size * cert_slot_count);
 	if (response_size > cmd_interface_msg_get_max_response (request)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -2599,14 +2436,18 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_DIGESTS,
 		SPDM_GET_MINOR_VERSION (spdm_version));
-	spdm_response->slot_mask = 1;
 
-	/* Get the digest of the certificate chain. */
-	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
-		(uint8_t*) (spdm_response + 1));
-	if (status != 0) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
+	digest_list = (uint8_t*) (spdm_response + 1);
+	for (i = 0; i < cert_slot_count; i++) {
+		status = spdm_responder->cert_chains[i]->get_digest (spdm_responder->cert_chains[i],
+			hash_engine, hash_type, digest_list, hash_size);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+
+		spdm_response->slot_mask = (spdm_response->slot_mask << 1) | 0x01;
+		digest_list += hash_size;
 	}
 
 	/* Add response to M1M2 hash context. */
@@ -2708,26 +2549,18 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	uint8_t slot_id;
 	struct spdm_get_certificate_request *spdm_request;
 	struct spdm_get_certificate_response *spdm_response;
-	uint16_t requested_offset;
-	uint16_t requested_length;
+	size_t max_cert_block_len;
+	size_t requested_offset;
+	size_t requested_length;
+	size_t total_length;
 	size_t remainder_length = 0;
 	size_t response_size;
-	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
-	uint8_t cert_count = ARRAY_SIZE (cert);
 	uint32_t hash_size;
-	uint8_t *cert_chain = NULL;
-	uint32_t cert_chain_length;
-	uint32_t cert_chain_offset;
-	uint8_t i_cert;
-	uint32_t max_cert_block_len;
-	struct spdm_cert_chain_header *cert_chain_header;
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	const struct riot_key_manager *key_manager = NULL;
 	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
-	const struct riot_keys *keys = NULL;
 	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
 	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
@@ -2745,7 +2578,6 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 
 	transcript_manager = spdm_responder->transcript_manager;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	session_manager = spdm_responder->session_manager;
@@ -2805,16 +2637,15 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 	slot_id = spdm_request->slot_num & SPDM_GET_CERTIFICATE_SLOT_ID_MASK;
-	if (slot_id != 0) {
+	if (slot_id >= SPDM_MAX_SLOT_COUNT) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
-	/* Retrieve the list of certificates in the certificate chain. */
-	status = spdm_get_certificate_list (key_manager, &cert_count, cert, &keys);
-	if (status != 0) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
+	if (slot_id >= spdm_responder->cert_chain_count) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
@@ -2825,58 +2656,8 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 		goto exit;
 	}
 
-	/* Calculate the cert chain data struct. length. */
-	cert_chain_length = sizeof (struct spdm_cert_chain_header) + hash_size;
-	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
-		cert_chain_length += cert[i_cert].length;
-	}
-
-	/* Allocate a temp. buffer to hold the certificate chain. */
-	cert_chain = platform_malloc (cert_chain_length);
-	if (cert_chain == NULL) {
-		status = CMD_HANDLER_SPDM_RESPONDER_NO_MEMORY;
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
-	}
-	cert_chain_header = (struct spdm_cert_chain_header*) cert_chain;
-	cert_chain_header->length = (uint16_t) cert_chain_length;
-	cert_chain_header->reserved = 0;
-
-	/* Copy cert(s) to the temp. buffer. */
-	cert_chain_offset = sizeof (struct spdm_cert_chain_header) + hash_size;
-	for (i_cert = 0; i_cert < cert_count; i_cert++) {
-		memcpy (&cert_chain[cert_chain_offset], cert[i_cert].cert, cert[i_cert].length);
-		cert_chain_offset += cert[i_cert].length;
-	}
-
 	requested_offset = spdm_request->offset;
 	requested_length = spdm_request->length;
-
-	/* Check if the requested cert. chain offset is valid. */
-	if (requested_offset >= cert_chain_length) {
-		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
-		spdm_error = SPDM_ERROR_INVALID_REQUEST;
-		goto exit;
-	}
-
-	/* Compute the maximum cert block that can be sent. */
-	max_cert_block_len = cmd_interface_msg_get_max_response (request) -
-		sizeof (struct spdm_get_certificate_response);
-
-	/* If chunking capability is not supported, adjust the requested cert chain length. */
-	if (!(state->connection_info.peer_capabilities.flags.chunk_cap &&
-		local_capabilities->flags.chunk_cap)) {
-		if (requested_length > max_cert_block_len) {
-			requested_length = max_cert_block_len;
-		}
-	}
-
-	/* Adjust the requested length. */
-	if ((size_t) (requested_offset + requested_length) > cert_chain_length) {
-		requested_length = (uint16_t) (cert_chain_length - requested_offset);
-	}
-	remainder_length = cert_chain_length - (requested_length + requested_offset);
-	response_size = sizeof (struct spdm_get_certificate_response) + requested_length;
 
 	/* Reset transcript manager state as per request code. */
 	spdm_reset_transcript_via_request_code (state, transcript_manager,
@@ -2893,30 +2674,47 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 		}
 	}
 
+	/* Compute the maximum cert block that can be sent. */
+	max_cert_block_len =
+		spdm_get_certificate_max_cert_buffer (cmd_interface_msg_get_max_response (request));
+
+	/* TODO: If chunking is ever supported, the entire cert length needs to be reported, even if
+	 * it's larger the available message buffer.
+	 *
+	 * if (!(state->connection_info.peer_capabilities.flags.chunk_cap &&
+	 * local_capabilities->flags.chunk_cap)) */
+	if (requested_length > max_cert_block_len) {
+		requested_length = max_cert_block_len;
+	}
+
 	/* Construct the response. */
 	spdm_response = (struct spdm_get_certificate_response*) request->payload;
-	memset (spdm_response, 0, response_size);
+	memset (spdm_response, 0, cmd_interface_msg_get_max_response (request));
+
+	status =
+		spdm_responder->cert_chains[slot_id]->get_certificate_chain (
+		spdm_responder->cert_chains[slot_id], hash_engine, hash_type, requested_offset,
+		spdm_get_certificate_resp_cert_chain (spdm_response), &requested_length, &total_length);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	remainder_length = total_length - requested_length;
+	if (requested_offset < remainder_length) {
+		remainder_length -= requested_offset;
+	}
+	else {
+		remainder_length = 0;
+	}
 
 	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_CERTIFICATE,
 		SPDM_GET_MINOR_VERSION (spdm_version));
 	spdm_response->slot_num = slot_id;
 	spdm_response->portion_len = requested_length;
-	spdm_response->remainder_len = (uint16_t) remainder_length;
+	spdm_response->remainder_len = remainder_length;
 
-	/* Hash the root certificate if not already provided to the requester. */
-	if (requested_offset < (sizeof (struct spdm_cert_chain_header) + hash_size)) {
-		status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
-			cert_chain + sizeof (struct spdm_cert_chain_header), hash_size);
-		if (ROT_IS_ERROR (status)) {
-			spdm_error = SPDM_ERROR_UNSPECIFIED;
-			goto exit;
-		}
-		status = 0;
-	}
-
-	/* Copy cert_chain portion to response. */
-	memcpy (spdm_get_certificate_resp_cert_chain (spdm_response), cert_chain + requested_offset,
-		requested_length);
+	response_size = spdm_get_certificate_resp_length (spdm_response);
 
 	/* Add response to M1M2 hash context. */
 	if (session == NULL) {
@@ -2937,12 +2735,6 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 exit:
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
-	platform_free (cert_chain);
-
 	if (status != 0) {
 		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
 			SPDM_REQUEST_GET_CERTIFICATE, status);
@@ -3030,7 +2822,6 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	const struct spdm_device_capability *local_capabilities;
 	const struct spdm_transcript_manager *transcript_manager;
 	const struct hash_engine *hash_engine;
-	const struct riot_key_manager *key_manager;
 	const struct rng_engine *rng_engine;
 	const struct ecc_engine *ecc_engine;
 	enum hash_type hash_type;
@@ -3042,6 +2833,8 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	uint8_t measurement_summary_type;
 	uint32_t meas_summary_hash_size;
 	uint8_t slot_num;
+	uint8_t max_slot_count;
+	int i;
 	uint8_t m1_hash[HASH_MAX_HASH_LEN] = {0};
 	uint8_t *response_ptr;
 	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
@@ -3059,7 +2852,6 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	transcript_manager = spdm_responder->transcript_manager;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	ecc_engine = spdm_responder->ecc_engine;
 	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
@@ -3101,8 +2893,16 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 		goto exit;
 	}
 
-	if (spdm_request->slot_num != 0) {
+	slot_num = spdm_request->slot_num;
+	if (slot_num >= SPDM_MAX_SLOT_COUNT) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	max_slot_count = min (SPDM_MAX_SLOT_COUNT, spdm_responder->cert_chain_count);
+	if (slot_num >= max_slot_count) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
@@ -3129,7 +2929,6 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 		goto exit;
 	}
 
-	slot_num = spdm_request->slot_num;
 	signature_size =
 		spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
 	if (signature_size == 0) {
@@ -3177,11 +2976,16 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 		SPDM_GET_MINOR_VERSION (spdm_version));
 	spdm_response->basic_mutual_auth_req = 0;
 	spdm_response->slot_num = slot_num;
-	spdm_response->slot_mask = (1 << slot_num);
+	for (i = 0; i < max_slot_count; i++) {
+		spdm_response->slot_mask = (spdm_response->slot_mask << 1) | 0x01;
+	}
+
 	response_ptr = (uint8_t*) (spdm_response + 1);
 
 	/* Get the digest of the certificate chain. */
-	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type, response_ptr);
+	status =
+		spdm_responder->cert_chains[slot_num]->get_digest (spdm_responder->cert_chains[slot_num],
+		hash_engine, hash_type, response_ptr, hash_size);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3231,8 +3035,8 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	/* Sign the M1 hash. */
-	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
-		SPDM_RESPONSE_CHALLENGE, m1_hash, hash_size, response_ptr, signature_size);
+	status = spdm_responder_data_sign (state, spdm_responder->cert_chains[slot_num], ecc_engine,
+		hash_engine, SPDM_RESPONSE_CHALLENGE, m1_hash, hash_size, response_ptr, signature_size);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3343,6 +3147,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	int measurement_length;
 	bool raw_bit_stream_requested;
 	bool signature_requested;
+	uint8_t slot_id = 0;
 	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
 	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
@@ -3454,8 +3259,15 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 		}
 
 		/* Check if slot id is valid. */
-		if (*(spdm_get_measurements_rq_slot_id_ptr (spdm_request)) != 0) {
+		slot_id = *(spdm_get_measurements_rq_slot_id_ptr (spdm_request));
+		if (slot_id >= SPDM_MAX_SLOT_COUNT) {
 			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+
+		if (slot_id >= spdm_responder->cert_chain_count) {
+			status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
 			spdm_error = SPDM_ERROR_INVALID_REQUEST;
 			goto exit;
 		}
@@ -3574,7 +3386,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	/* Generate the signature, if requested. */
 	if (signature_requested == true) {
 		status = spdm_generate_measurement_signature (transcript_manager, state,
-			spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine, session,
+			spdm_responder->cert_chains[slot_id], spdm_responder->ecc_engine, hash_engine, session,
 			spdm_get_measurements_resp_signature (spdm_response), signature_size);
 		if (status != 0) {
 			spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -3766,7 +3578,6 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	const struct spdm_transcript_manager *transcript_manager;
 	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	const struct riot_key_manager *key_manager;
 	const struct hash_engine *hash_engine;
 	const struct rng_engine *rng_engine;
 	bool release_session = false;
@@ -3791,7 +3602,6 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	transcript_manager = spdm_responder->transcript_manager;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	hash_engine = spdm_responder->hash_engine[0];
 	rng_engine = spdm_responder->rng_engine;
 	session_manager = spdm_responder->session_manager;
@@ -3872,14 +3682,26 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Check the slot Id. */
 	slot_id = spdm_request->slot_id;
-	if (slot_id != 0) {
+	if (slot_id >= SPDM_MAX_SLOT_COUNT) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	if (slot_id >= spdm_responder->cert_chain_count) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
 	/* Get the crypto parameter sizes. */
 	hash_size = hash_get_hash_length (hash_type);
+	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
+		status = HASH_ENGINE_UNKNOWN_HASH;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	sig_size = spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
 	dhe_key_size =
 		spdm_get_dhe_pub_key_size (state->connection_info.peer_algorithms.dhe_named_group);
@@ -3960,8 +3782,8 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	release_session = true;
 
 	/* Obtain the cert chain hash. */
-	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
-		cert_chain_hash);
+	status = spdm_responder->cert_chains[slot_id]->get_digest (spdm_responder->cert_chains[slot_id],
+		hash_engine, hash_type, cert_chain_hash, sizeof (cert_chain_hash));
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -4068,7 +3890,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Generate the response signature. */
 	status = spdm_generate_key_exchange_rsp_signature (transcript_manager, state,
-		spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine, session, ptr,
+		spdm_responder->cert_chains[slot_id], spdm_responder->ecc_engine, hash_engine, session, ptr,
 		sig_size);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;

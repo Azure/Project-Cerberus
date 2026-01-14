@@ -506,19 +506,8 @@ struct spdm_negotiate_algorithms_response_no_ext_alg {
 
 /**
  * SPDM certificate slot maximum count.
- * [TODO] This will be removed when the Certificate Manager component is available.
  */
-#ifndef SPDM_MAX_SLOT_COUNT
-#define SPDM_MAX_SLOT_COUNT		1
-#endif
-
-/**
- * SPDM max. certificates in a chain.
- * [TODO] This will be removed when the Certificate Manager component is available.
- */
-#ifndef SPDM_MAX_CERT_COUNT_IN_CHAIN
-#define SPDM_MAX_CERT_COUNT_IN_CHAIN		4
-#endif
+#define SPDM_MAX_SLOT_COUNT					8
 
 /**
  * SPDM get digests request format
@@ -538,31 +527,6 @@ struct spdm_get_digests_response {
 	uint8_t slot_mask;					/**< Slot mask */
 };
 
-/**
- * SPDM cert chain header
- */
-struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_cert_chain_header {
-	uint16_t length;	/**< Length of the cert chain including this struct. */
-	uint16_t reserved;	/**< Reserved */
-};
-
-/**
- * SPDM cert chain format
- */
-struct spdm_cert_chain {
-	struct spdm_cert_chain_header header;	/**< Cert chain header */
-	uint8_t root_hash[HASH_MAX_HASH_LEN];	/**< Max. hash size of the root cert. */
-};
-
-
-/**
- * Get the total length of a SPDM certificate chain.
- *
- * @param hash_size Size of the cert chain hash.
- * @param cert_chain_length Length of the cert chain.
- */
-#define	spdm_get_digests_cert_chain_length(hash_size, cert_chain_length)    \
-	(offsetof (struct spdm_cert_chain, root_hash) + hash_size + cert_chain_length)
 
 /**
  * Get the total length of a SPDM get digests response message
@@ -640,14 +604,6 @@ struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_certificate_response {
  * @param resp Buffer with struct spdm_get_certificate_response
  */
 #define	spdm_get_certificate_resp_cert_chain(resp)	(((uint8_t*) resp) + sizeof (*resp))
-
-/**
- * SPDM certificate chain format
- */
-struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_certificate_chain {
-	uint16_t length;	/**< Total length of certificate chain including all fields */
-	uint16_t reserved;	/**< Reserved */
-};
 
 /**
  * SPDM measurement summary hash types for Challenge command, from section 10.9 in DSP0274 SPDM

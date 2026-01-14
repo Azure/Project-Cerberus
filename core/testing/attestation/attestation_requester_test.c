@@ -24,6 +24,7 @@
 #include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
 #include "spdm/cmd_interface_spdm.h"
+#include "spdm/spdm_certificate_chain.h"
 #include "spdm/spdm_commands.h"
 #include "spdm/spdm_discovery.h"
 #include "spdm/spdm_measurements.h"
@@ -302,7 +303,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 
 	memset (testing, 0, sizeof (struct attestation_requester_testing));
 
-	testing->cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing->cert_buffer_len = sizeof (struct spdm_certificate_chain_min_header);
 	testing->max_protocol_version = 255;
 	testing->spdm_version = 2;
 	testing->spdm_min_version = 1;
@@ -451,7 +452,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 		status = attestation_requester_init (&testing->test, &testing->state, &testing->mctp,
 			&testing->channel.base, &testing->primary_hash.base, &testing->secondary_hash.base,
 			&testing->ecc.base, NULL, &testing->x509.base, &testing->rng.base, &testing->riot,
-			&testing->device_mgr, &testing->cfm_manager.base, &testing->mctp_control.base, 
+			&testing->device_mgr, &testing->cfm_manager.base, &testing->mctp_control.base,
 			&testing->spdm_transport.base);
 		CuAssertIntEquals (test, 0, status);
 
@@ -668,7 +669,8 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 {
 	struct cfm_component_device component_device;
 	struct x509_engine *x509;
-	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
+	struct spdm_certificate_chain_min_header *cert_chain =
+		(struct spdm_certificate_chain_min_header*) cert_buffer;
 	int status;
 
 	component_device.attestation_protocol = attestation_protocol;
@@ -2088,7 +2090,7 @@ static int64_t attestation_requester_testing_receive_spdm_rsp_not_ready (CuTest 
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
 	int status = 0;
 
-	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) + 
+	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_error_response) + sizeof (struct spdm_error_response_not_ready));
 	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
@@ -2219,7 +2221,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 	}
 
 	/* Response contruction starts. */
-	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) + 
+	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_get_version_response) + (sizeof (struct spdm_version_num_entry) * num_entries));
 	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
@@ -2437,7 +2439,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	}
 
 	/* Response contruction starts. */
-	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) + 
+	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_get_capabilities));
 	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
@@ -2508,7 +2510,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 		cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
-	
+
 	cmd_interface_mock_free_request (req_expected);
 	cmd_interface_mock_free_request (resp_expected);
 }
@@ -2735,7 +2737,7 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	algorithms_response->measurement_hash_algo = testing->meas_hashing_alg_supported;
 
 	offset += sizeof (struct spdm_negotiate_algorithms_response);
-	
+
 	resp_expected->length = offset;
 	resp_expected->payload_length = resp_expected->length - 1;
 	/* Response contruction ends. */
@@ -2751,7 +2753,7 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 		cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
-	
+
 	cmd_interface_mock_free_request (req_expected);
 	cmd_interface_mock_free_request (resp_expected);
 }
@@ -2897,7 +2899,7 @@ static void attestation_requester_testing_spdm_get_digests_response_mock (CuTest
 	}
 
 	/* Response contruction starts. */
-	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) + 
+	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_get_digests_response) + hash_len);
 	resp_expected = (struct cmd_interface_msg *) platform_calloc (1,
 		sizeof (struct cmd_interface_msg));
@@ -3169,7 +3171,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 	}
 
 	/* Response contruction starts. */
-	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) + 
+	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_get_certificate_response) + get_cert->resp_length + testing->rsp_len_invalid[3]);
 	resp_expected = (struct cmd_interface_msg *) platform_calloc (1,
 		sizeof (struct cmd_interface_msg));
@@ -3419,8 +3421,8 @@ static void attestation_requester_testing_verify_spdm_root_ca_with_mocks (CuTest
 
 	status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.update,
 		&testing->primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (cert_buffer, sizeof (struct spdm_certificate_chain) + hash_len),
-		MOCK_ARG (sizeof (struct spdm_certificate_chain) + hash_len));
+		MOCK_ARG_PTR_CONTAINS (cert_buffer, sizeof (struct spdm_certificate_chain_min_header) +
+		hash_len), MOCK_ARG (sizeof (struct spdm_certificate_chain_min_header) + hash_len));
 
 	status |= mock_expect (&testing->primary_hash.mock, testing->primary_hash.base.update,
 		&testing->primary_hash, 0,
@@ -3777,7 +3779,7 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 	}
 
 	/* Response contruction starts. */
-	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) + 
+	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_challenge_response) + (hash_len * 2) + SPDM_NONCE_LEN + 7 +
 		(ECC_KEY_LENGTH_256 * 2));
 	resp_expected = (struct cmd_interface_msg *) platform_calloc (1,
@@ -4310,7 +4312,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 		cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
-	
+
 	cmd_interface_mock_free_request (req_expected);
 	cmd_interface_mock_free_request (resp_expected);
 
@@ -5003,7 +5005,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 	};
 	struct attestation_requester attestation = attestation_requester_static_init (&testing.state,
 		&testing.mctp, &testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base,
-		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL, 
+		NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr, NULL,
 		&testing.mctp_control.base, &testing.spdm_transport.base);
 	int status;
 
@@ -27952,7 +27954,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	struct spdm_get_digests_request req;
 	struct spdm_get_digests_response *rsp = (struct spdm_get_digests_response*) &rsp_buf;
 	struct cfm_component_device component_device;
-	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
+	struct spdm_certificate_chain_min_header *cert_chain =
+		(struct spdm_certificate_chain_min_header*) cert_buffer;
 	struct spdm_respond_if_ready_request *request;
 	uint8_t *tx_message = NULL;
 	struct cmd_interface_msg *req_expected = NULL;
@@ -28009,7 +28012,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
-	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain_min_header);
 	testing.max_protocol_version = 255;
 	testing.spdm_version = 2;
 	testing.spdm_min_version = 1;
@@ -29004,7 +29007,7 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_too_la
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
-	size_t cert_header_len = sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH;
+	size_t cert_header_len = sizeof (struct spdm_certificate_chain_min_header) + SHA384_HASH_LENGTH;
 	size_t root_ca_len_offset = cert_header_len + 2;
 	uint16_t bad_len = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN + 1;
 	uint8_t bad_len_bytes[2] = {
@@ -30061,8 +30064,8 @@ attestation_requester_test_attest_device_spdm_get_certificate_update_sha256_cert
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-		sizeof (struct spdm_certificate_chain) + SHA256_HASH_LENGTH),
-		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA256_HASH_LENGTH));
+		sizeof (struct spdm_certificate_chain_min_header) + SHA256_HASH_LENGTH),
+		MOCK_ARG (sizeof (struct spdm_certificate_chain_min_header) + SHA256_HASH_LENGTH));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -30217,8 +30220,8 @@ attestation_requester_test_attest_device_spdm_get_certificate_update_sha384_cert
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-		sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
-		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH));
+		sizeof (struct spdm_certificate_chain_min_header) + SHA384_HASH_LENGTH),
+		MOCK_ARG (sizeof (struct spdm_certificate_chain_min_header) + SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -30373,8 +30376,8 @@ attestation_requester_test_attest_device_spdm_get_certificate_update_sha512_cert
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-		sizeof (struct spdm_certificate_chain) + SHA512_HASH_LENGTH),
-		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA512_HASH_LENGTH));
+		sizeof (struct spdm_certificate_chain_min_header) + SHA512_HASH_LENGTH),
+		MOCK_ARG (sizeof (struct spdm_certificate_chain_min_header) + SHA512_HASH_LENGTH));
 
 	status |= mock_expect (&testing.x509_mock.mock, testing.x509_mock.base.release_ca_cert_store,
 		&testing.x509_mock, 0, MOCK_ARG_SAVED_ARG (0));
@@ -30454,8 +30457,8 @@ static void attestation_requester_test_attest_device_spdm_get_certificate_update
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, 0,
 		MOCK_ARG_PTR_CONTAINS (cert_buffer,
-		sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH),
-		MOCK_ARG (sizeof (struct spdm_certificate_chain) + SHA384_HASH_LENGTH));
+		sizeof (struct spdm_certificate_chain_min_header) + SHA384_HASH_LENGTH),
+		MOCK_ARG (sizeof (struct spdm_certificate_chain_min_header) + SHA384_HASH_LENGTH));
 
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
 		&testing.primary_hash, HASH_ENGINE_UPDATE_FAILED,
@@ -37431,7 +37434,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
-	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain_min_header);
 	testing.max_protocol_version = 255;
 	testing.spdm_version = 2;
 	testing.spdm_min_version = 1;
@@ -39681,7 +39684,8 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	struct cfm_component_device component_device;
 	struct cfm_component_device component_device2;
 	struct cfm_pmr_digest pmr_digest;
-	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
+	struct spdm_certificate_chain_min_header *cert_chain =
+		(struct spdm_certificate_chain_min_header*) cert_buffer;
 	uint32_t component_id = 50;
 	uint32_t component_id2 = 1;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -39750,7 +39754,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
-	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain_min_header);
 	testing.max_protocol_version = 255;
 	testing.spdm_version = 2;
 	testing.spdm_min_version = 1;
@@ -40626,7 +40630,8 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
-	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
+	struct spdm_certificate_chain_min_header *cert_chain =
+		(struct spdm_certificate_chain_min_header*) cert_buffer;
 	struct device_manager_pending_action pending;
 	uint32_t component_id = 50;
 	uint32_t component_id2 = 1;
@@ -40665,7 +40670,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
-	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain_min_header);
 	testing.max_protocol_version = 255;
 	testing.spdm_version = 2;
 	testing.spdm_min_version = 1;
@@ -40826,7 +40831,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
 		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
 		&testing.spdm_transport.base);
-	
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
@@ -40982,7 +40987,8 @@ static void attestation_requester_setup_attestation_loop (
 	uint32_t component_id = 50;
 	uint32_t component_id2 = 1;
 	int status = 0;
-	struct spdm_certificate_chain *cert_chain = (struct spdm_certificate_chain*) cert_buffer;
+	struct spdm_certificate_chain_min_header *cert_chain =
+		(struct spdm_certificate_chain_min_header*) cert_buffer;
 	const struct pcr_config pcr_config[1] = {
 		{
 			.num_measurements = 0,
@@ -41272,7 +41278,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
-	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain_min_header);
 	testing.max_protocol_version = 255;
 	testing.spdm_version = 2;
 	testing.spdm_min_version = 1;
@@ -41599,7 +41605,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 
 	memset (&testing, 0, sizeof (struct attestation_requester_testing));
 
-	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain);
+	testing.cert_buffer_len = sizeof (struct spdm_certificate_chain_min_header);
 	testing.max_protocol_version = 255;
 	testing.spdm_version = 2;
 	testing.spdm_min_version = 1;

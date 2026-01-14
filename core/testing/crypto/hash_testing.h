@@ -7,37 +7,37 @@
 
 /* Input data for some test hashes. */
 extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_440[];
-extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_440_LEN;
+extern const size_t HASH_TESTING_PARTIAL_BLOCK_440_LEN;
 
 extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_448[];
-extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_448_LEN;
+extern const size_t HASH_TESTING_PARTIAL_BLOCK_448_LEN;
 
 extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_480[];
-extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_480_LEN;
+extern const size_t HASH_TESTING_PARTIAL_BLOCK_480_LEN;
 
 extern const uint8_t HASH_TESTING_FULL_BLOCK_512[];
-extern const uint32_t HASH_TESTING_FULL_BLOCK_512_LEN;
+extern const size_t HASH_TESTING_FULL_BLOCK_512_LEN;
 
 extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_952[];
-extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_952_LEN;
+extern const size_t HASH_TESTING_PARTIAL_BLOCK_952_LEN;
 
 extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_960[];
-extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_960_LEN;
+extern const size_t HASH_TESTING_PARTIAL_BLOCK_960_LEN;
 
 extern const uint8_t HASH_TESTING_PARTIAL_BLOCK_992[];
-extern const uint32_t HASH_TESTING_PARTIAL_BLOCK_992_LEN;
+extern const size_t HASH_TESTING_PARTIAL_BLOCK_992_LEN;
 
 extern const uint8_t HASH_TESTING_FULL_BLOCK_1024[];
-extern const uint32_t HASH_TESTING_FULL_BLOCK_1024_LEN;
+extern const size_t HASH_TESTING_FULL_BLOCK_1024_LEN;
 
 extern const uint8_t HASH_TESTING_FULL_BLOCK_2048[];
-extern const uint32_t HASH_TESTING_FULL_BLOCK_2048_LEN;
+extern const size_t HASH_TESTING_FULL_BLOCK_2048_LEN;
 
 extern const uint8_t HASH_TESTING_FULL_BLOCK_4096[];
-extern const uint32_t HASH_TESTING_FULL_BLOCK_4096_LEN;
+extern const size_t HASH_TESTING_FULL_BLOCK_4096_LEN;
 
 extern const uint8_t HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[];
-extern const uint32_t HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN;
+extern const size_t HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN;
 
 
 /* Test hashes for different inputs and algorithms. */

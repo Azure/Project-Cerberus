@@ -5,6 +5,7 @@
 #define CMD_INTERFACE_SPDM_RESPONDER_H_
 
 #include <stdint.h>
+#include "spdm_certificate_chain.h"
 #include "spdm_commands.h"
 #include "spdm_measurements.h"
 #include "spdm_protocol.h"
@@ -13,7 +14,6 @@
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
 #include "crypto/rng.h"
-#include "riot/riot_key_manager.h"
 #include "spdm/spdm_persistent_context_interface.h"
 
 /**
@@ -29,7 +29,8 @@ struct cmd_interface_spdm_responder {
 	const struct hash_engine *const *hash_engine;						/**< Hash engines for hashing operations. */
 	uint8_t hash_engine_count;											/**< Number of hash engine instances. */
 	const struct spdm_transcript_manager *transcript_manager;			/**< Transcript manager for SPDM. */
-	const struct riot_key_manager *key_manager;							/**< Manager for device certificate chain. */
+	const struct spdm_certificate_chain *const *cert_chains;			/**< Available certificate chains for the device. */
+	uint8_t cert_chain_count;											/**< Number of available certificate chains. */
 	const struct spdm_measurements *measurements;						/**< Measurements for the device. */
 	const struct ecc_engine *ecc_engine;								/**< Engine for ECC operations. */
 	const struct rng_engine *rng_engine;								/**< Engine for random number generation. */
@@ -53,9 +54,9 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	uint8_t secure_message_version_num_count,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_algorithms,
-	const struct riot_key_manager *key_manager, const struct spdm_measurements *measurements,
-	const struct ecc_engine *ecc_engine, const struct rng_engine *rng_engine,
-	const struct spdm_secure_session_manager *session_manager,
+	const struct spdm_certificate_chain *const *cert_chains, uint8_t cert_chain_count,
+	const struct spdm_measurements *measurements, const struct ecc_engine *ecc_engine,
+	const struct rng_engine *rng_engine, const struct spdm_secure_session_manager *session_manager,
 	const struct cmd_interface *vdm_handler,
 	const struct spdm_persistent_context_interface *spdm_context);
 
@@ -100,6 +101,7 @@ enum {
 	CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x16),	/**< The opaque data format is invalid. */
 	CMD_HANDLER_SPDM_RESPONDER_INVALID_SESSION_STATE = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x17),			/**< The session manager state is invalid. */
 	CMD_HANDLER_SPDM_RESPONDER_DECRYPT_ERROR = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x18),					/**< Decrypt operation failed. */
+	CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT = CMD_HANDLER_SPDM_RESPONDER_ERROR (0x19),				/**< The certificate slot is not supported. */
 };
 
 

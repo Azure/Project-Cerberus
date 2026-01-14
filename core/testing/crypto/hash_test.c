@@ -22,7 +22,7 @@ const uint8_t HASH_TESTING_PARTIAL_BLOCK_440[] = {
 	0xe2, 0xa1, 0xa0, 0xd8, 0xc2, 0xbe, 0x51
 };
 
-const uint32_t HASH_TESTING_PARTIAL_BLOCK_440_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_440);
+const size_t HASH_TESTING_PARTIAL_BLOCK_440_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_440);
 
 /**
  * A 448-bit block of data.
@@ -34,7 +34,7 @@ const uint8_t HASH_TESTING_PARTIAL_BLOCK_448[] = {
 	0x6e, 0x6d, 0x56, 0x1c, 0xb7, 0xd0, 0xbd, 0x7a
 };
 
-const uint32_t HASH_TESTING_PARTIAL_BLOCK_448_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_448);
+const size_t HASH_TESTING_PARTIAL_BLOCK_448_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_448);
 
 /**
  * A 480-bit block of data.
@@ -46,7 +46,7 @@ const uint8_t HASH_TESTING_PARTIAL_BLOCK_480[] = {
 	0x61, 0x46, 0xea, 0x78, 0x0f, 0x78, 0xe2, 0x21, 0x9f, 0x62, 0x93, 0x09
 };
 
-const uint32_t HASH_TESTING_PARTIAL_BLOCK_480_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_480);
+const size_t HASH_TESTING_PARTIAL_BLOCK_480_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_480);
 
 /**
  * A 512-bit block of data.  This is one full block for SHA1/SHA256 hashes.
@@ -58,7 +58,7 @@ const uint8_t HASH_TESTING_FULL_BLOCK_512[] = {
 	0xf3, 0x35, 0x39, 0x03, 0x94, 0xc3, 0x7f, 0xa1, 0xa9, 0xf9, 0xbe, 0x83, 0x6a, 0xc2, 0x85, 0x09
 };
 
-const uint32_t HASH_TESTING_FULL_BLOCK_512_LEN = sizeof (HASH_TESTING_FULL_BLOCK_512);
+const size_t HASH_TESTING_FULL_BLOCK_512_LEN = sizeof (HASH_TESTING_FULL_BLOCK_512);
 
 /**
  * A 952-bit block of data.
@@ -74,7 +74,7 @@ const uint8_t HASH_TESTING_PARTIAL_BLOCK_952[] = {
 	0x5c, 0x92, 0x5e, 0xde, 0x23, 0xb6, 0xcc
 };
 
-const uint32_t HASH_TESTING_PARTIAL_BLOCK_952_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_952);
+const size_t HASH_TESTING_PARTIAL_BLOCK_952_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_952);
 
 /**
  * A 960-bit block of data.
@@ -90,7 +90,7 @@ const uint8_t HASH_TESTING_PARTIAL_BLOCK_960[] = {
 	0xee, 0x5a, 0xcd, 0x80, 0xb3, 0xe9, 0xc9, 0xd1
 };
 
-const uint32_t HASH_TESTING_PARTIAL_BLOCK_960_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_960);
+const size_t HASH_TESTING_PARTIAL_BLOCK_960_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_960);
 
 /**
  * A 992-bit block of data.
@@ -106,7 +106,7 @@ const uint8_t HASH_TESTING_PARTIAL_BLOCK_992[] = {
 	0xd4, 0x13, 0x9f, 0x4f, 0xb4, 0xda, 0x59, 0x39, 0xf2, 0x6c, 0x02, 0x61
 };
 
-const uint32_t HASH_TESTING_PARTIAL_BLOCK_992_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_992);
+const size_t HASH_TESTING_PARTIAL_BLOCK_992_LEN = sizeof (HASH_TESTING_PARTIAL_BLOCK_992);
 
 /**
  * A 1024-bit block of data.  This is one full block for SHA384/SHA512 hashes, or two full blocks
@@ -123,7 +123,7 @@ const uint8_t HASH_TESTING_FULL_BLOCK_1024[] = {
 	0x10, 0x1d, 0xb9, 0x0b, 0x50, 0xc3, 0xd3, 0xdb, 0xc9, 0xe2, 0x1e, 0x42, 0xff, 0x38, 0x71, 0x87
 };
 
-const uint32_t HASH_TESTING_FULL_BLOCK_1024_LEN = sizeof (HASH_TESTING_FULL_BLOCK_1024);
+const size_t HASH_TESTING_FULL_BLOCK_1024_LEN = sizeof (HASH_TESTING_FULL_BLOCK_1024);
 
 /**
  * A 2048-bit block of data.  This is two full blocks for SHA384/SHA512 hashes, or four full blocks
@@ -148,7 +148,7 @@ const uint8_t HASH_TESTING_FULL_BLOCK_2048[] = {
 	0x15, 0x2a, 0x00, 0xab, 0xd3, 0xd5, 0x8d, 0x9a, 0x87, 0x70, 0xd9, 0xa3, 0xe5, 0x2d, 0x5a, 0x36
 };
 
-const uint32_t HASH_TESTING_FULL_BLOCK_2048_LEN = sizeof (HASH_TESTING_FULL_BLOCK_2048);
+const size_t HASH_TESTING_FULL_BLOCK_2048_LEN = sizeof (HASH_TESTING_FULL_BLOCK_2048);
 
 /**
  * A 4096-bit block of data.  This is four full blocks for SHA384/SHA512 hashes, or eight full
@@ -189,7 +189,7 @@ const uint8_t HASH_TESTING_FULL_BLOCK_4096[] = {
 	0x5f, 0x53, 0xb0, 0x5c, 0xbf, 0x4d, 0xb3, 0xc5, 0x70, 0xb5, 0x47, 0xe1, 0xce, 0xc9, 0xc4, 0x7e
 };
 
-const uint32_t HASH_TESTING_FULL_BLOCK_4096_LEN = sizeof (HASH_TESTING_FULL_BLOCK_4096);
+const size_t HASH_TESTING_FULL_BLOCK_4096_LEN = sizeof (HASH_TESTING_FULL_BLOCK_4096);
 
 /**
  * Test input for hashing that spans multiple hash blocks, and is not aligned to the block size.
@@ -255,7 +255,7 @@ const uint8_t HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[] = {
 	0xf2, 0x05, 0x0b, 0xe8, 0x72, 0x9f, 0x26, 0x17
 };
 
-const uint32_t HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN =
+const size_t HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN =
 	sizeof (HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED);
 
 /**
