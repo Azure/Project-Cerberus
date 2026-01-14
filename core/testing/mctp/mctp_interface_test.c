@@ -120,6 +120,16 @@ static void mctp_interface_testing_init_dependencies (CuTest *test,
 	status = device_manager_update_device_capabilities (&mctp->device_mgr, 0, &capabilities);
 	CuAssertIntEquals (test, 0, status);
 
+	memset (&capabilities, 0, sizeof (capabilities));
+	capabilities.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	capabilities.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+
+	status = device_manager_update_device_capabilities (&mctp->device_mgr, 1, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_capabilities (&mctp->device_mgr, 2, &capabilities);
+	CuAssertIntEquals (test, 0, status);
+
 	debug_log = &mctp->log.base;
 }
 
@@ -6154,7 +6164,7 @@ static void mctp_interface_test_get_max_message_overhead_unknown_device (CuTest 
 	uint8_t eid = 0x34;
 	int status;
 	size_t smbus_overhead = 8;
-	size_t pkt_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	size_t pkt_size = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	size_t msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	size_t max_packets = (msg_size + (pkt_size - 1)) / pkt_size;
 
@@ -6359,7 +6369,7 @@ static void mctp_interface_test_get_max_encapsulated_message_length_unknown_devi
 	uint8_t eid = 0x34;
 	int status;
 	size_t smbus_overhead = 8;
-	size_t pkt_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	size_t pkt_size = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	size_t msg_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	size_t max_packets = (msg_size + (pkt_size - 1)) / pkt_size;
 
@@ -6756,7 +6766,7 @@ static void mctp_interface_test_get_buffer_overhead_packet_length_unknown_target
 	size_t max_message = 1024;
 	int status;
 	size_t smbus_overhead = 8;
-	size_t buffer_length = ((max_packet + smbus_overhead) * 4) + 96;
+	size_t buffer_length = ((MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT + smbus_overhead) * 4) + 40;
 
 	TEST_START;
 

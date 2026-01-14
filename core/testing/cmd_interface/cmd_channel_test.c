@@ -57,6 +57,7 @@ static int cmd_channel_testing_empty_send_packet (const struct cmd_channel *chan
  */
 static void setup_mock_cmd_channel_test (CuTest *test, struct cmd_channel_testing *channel)
 {
+	struct device_manager_full_capabilities capabilities;
 	int status;
 
 	status = cmd_channel_mock_init (&channel->test, 0);
@@ -68,12 +69,23 @@ static void setup_mock_cmd_channel_test (CuTest *test, struct cmd_channel_testin
 	status = cmd_interface_mock_init (&channel->cmd_cerberus);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_init (&channel->device_mgr, 1, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
+	status = device_manager_init (&channel->device_mgr, 2, 0, 0, DEVICE_MANAGER_AC_ROT_MODE,
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 0, 0, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&channel->device_mgr, 0,
-		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x5D, 0);
+		MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, 0x5D, DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&channel->device_mgr, 1,
+		MCTP_BASE_PROTOCOL_BMC_EID, 0xAB, DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&capabilities, 0, sizeof (capabilities));
+	capabilities.request.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	capabilities.request.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+
+	status = device_manager_update_device_capabilities (&channel->device_mgr, 1, &capabilities);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&channel->mctp, &channel->mctp_state, &channel->req_handler.base,

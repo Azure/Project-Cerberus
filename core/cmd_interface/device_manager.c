@@ -748,7 +748,8 @@ size_t device_manager_get_max_message_len_by_eid (struct device_manager *mgr, ui
 /**
  * Get the maximum MCTP transmission unit supported by a device.  For any remote device, this will
  * be the negotiated maximum based on shared capabilities.  If the requested device is not known or
- * has invalid capabilites, the local device packet length is used.
+ * has not negotiated a different transmission unit size, the minimum length required by the MCTP
+ * specification is used.
  *
  * @param mgr Device manager to query.
  * @param device_num Entry in the device table to query.
@@ -760,14 +761,14 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
 	size_t remote_len = 0;
 
 	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+		return MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	}
 
 	if ((device_num >= 0) && (device_num < mgr->num_devices)) {
 		remote_len = mgr->entries[device_num].capabilities.request.max_packet_size;
 	}
 	if (remote_len == 0) {
-		remote_len = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+		remote_len = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	}
 
 	return min (mgr->entries[0].capabilities.request.max_packet_size, remote_len);
@@ -776,7 +777,8 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
 /**
  * Get the maximum MCTP transmission unit supported by a device.  For any remote device, this will
  * be the negotiated maximum based on shared capabilities.  If the requested device is not known or
- * has invalid capabilites, the local device packet length is used.
+ * has not negotiated a different transmission unit size, the minimum length required by the MCTP
+ * specification is used.
  *
  * @param mgr Device manager to query.
  * @param eid EID of the device entry to query.
@@ -789,7 +791,7 @@ size_t device_manager_get_max_transmission_unit_by_eid (struct device_manager *m
 
 	device_num = device_manager_get_device_num (mgr, eid);
 	if (ROT_IS_ERROR (device_num)) {
-		device_num = 0;	// Use the local device if the requested device is not known.
+		return MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	}
 
 	return device_manager_get_max_transmission_unit (mgr, device_num);

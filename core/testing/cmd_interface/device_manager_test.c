@@ -3196,7 +3196,7 @@ static void device_manager_test_get_max_transmission_unit_remote_device_no_capab
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (&manager, 1);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -3228,10 +3228,10 @@ static void device_manager_test_get_max_transmission_unit_remote_device_unknown_
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (&manager, 2);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, length);
 
 	length = device_manager_get_max_transmission_unit (&manager, -1);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -3249,7 +3249,7 @@ static void device_manager_test_get_max_transmission_unit_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit (NULL, 1);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -3399,7 +3399,7 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_n
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xCC);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -3437,7 +3437,7 @@ static void device_manager_test_get_max_transmission_unit_by_eid_remote_device_u
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (&manager, 0xEE);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT - 16, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
@@ -3461,7 +3461,7 @@ static void device_manager_test_get_max_transmission_unit_by_eid_null (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 
 	length = device_manager_get_max_transmission_unit_by_eid (NULL, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT, length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT, length);
 
 	device_manager_release (&manager);
 }
