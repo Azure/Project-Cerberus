@@ -540,6 +540,11 @@ int tdisp_start_interface (const struct tdisp_tdi_context_manager *tdi_context_m
 		goto exit;
 	}
 
+	/* Clear the stored nonce after successful verification. */
+	if (sizeof (*tdisp_request) > sizeof (*tdisp_response)) {
+		buffer_zeroize (tdisp_response + 1, sizeof (*tdisp_request) - sizeof (*tdisp_response));
+	}
+
 	/* Call the TDISP driver to start the interface. */
 	status = tdisp_driver->start_interface_request (tdisp_driver, function_index);
 	if (status != 0) {
