@@ -2653,6 +2653,26 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 	uint32_t log_event;
 	int status = 0;
 
+	/* If device version set is not selected, this might be the first measurement, do not perform the check in this case.
+	If version set is already selected, then check the version set of the given measurement and if it matches the existing version
+	set, then only make the get measurement call, otherwise return with 0 */
+	if (attestation_requester_is_version_set_selected (attestation)) {
+		// Check if at least one allowable digest's version set matches device version set
+		bool version_set_match_found = false;
+		for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+			++i_allowable_digests) {
+			if ((measurement->allowable_digests[i_allowable_digests].version_set == 0) || \
+			(measurement->allowable_digests[i_allowable_digests].version_set ==
+				attestation->state->txn.device_version_set)) {
+				version_set_match_found = true;
+				break;
+			}
+		}
+		if (!version_set_match_found) {
+			return 0;
+		}
+	}
+
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
 		device_addr, measurement->measurement_id, false);
 	if (status != 0) {
@@ -2908,6 +2928,30 @@ static int attestation_requester_verify_data_in_allowable_list (
 }
 
 /**
+ * Check if measurement data belongs to current version set
+ * @param attestation Attestation requester instance to utilize.
+ * @param measurement CFM measurement data entry.
+ */
+static bool check_if_measurement_data_belongs_to_current_version_set (
+	const struct attestation_requester *attestation, const struct cfm_measurement_data *data)
+{
+	size_t num_data_checks = data->data_checks_count;
+	size_t i_check;
+	size_t i_data;
+
+	// Check if at least one allowable data's version set matches device version set
+	for (i_check = 0; i_check < num_data_checks; ++i_check) {
+		struct cfm_allowable_data *check = &data->data_checks[i_check];
+		for (i_data = 0; i_data < check->data_count; ++i_data) {
+			if ((check->allowable_data[i_data].version_set == 0 )|| (check->allowable_data[i_data].version_set ==
+				attestation->state->txn.device_version_set)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+/*
  * Get corresponding the SPDM measurement block for a measurement data entry from the CFM, then
  * compare to allowable values.
  *
@@ -2924,6 +2968,16 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
 {
 	uint32_t log_event;
 	int status;
+
+	/* If device version set is not selected, this might be the first measurement data, do not
+	 * perform the check in this case. If version set is already selected, then check the version
+	 * set of the given measurement data and if it matches the existing version set, then only
+	 * make the get measurement call, otherwise return with 0 */
+	if (attestation_requester_is_version_set_selected (attestation)) {
+		if (!check_if_measurement_data_belongs_to_current_version_set (attestation, data)) {
+			return 0;
+		}
+	}
 
 	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
 		device_addr, data->measurement_id, true);

@@ -13116,8 +13116,6 @@ attestation_requester_test_attest_device_spdm_only_measurement_skip_inapplicable
 	uint32_t component_id = 65;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
-	uint8_t digest3[SHA256_HASH_LENGTH];
-	uint8_t digest4[SHA256_HASH_LENGTH];
 	uint8_t measurement[SHA256_HASH_LENGTH];
 	uint8_t measurement2[SHA256_HASH_LENGTH];
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
@@ -13154,8 +13152,6 @@ attestation_requester_test_attest_device_spdm_only_measurement_skip_inapplicable
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
 		digest2[i] = i * 2;
-		digest3[i] = i * 2 - 1;
-		digest4[i] = i * 3 - 1;
 		measurement[i] = 50 + i;
 		measurement2[i] = 100 - i + 1;
 	}
@@ -13234,46 +13230,6 @@ attestation_requester_test_attest_device_spdm_only_measurement_skip_inapplicable
 		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
-		false, &testing);
-
-	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
-		false, &testing, 2);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
-		-1);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
-		&testing.secondary_hash, 0);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
-		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
-		MOCK_ARG (sizeof (digest3)));
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest4, sizeof (digest4),
-		-1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
-		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
@@ -21786,8 +21742,6 @@ attestation_requester_test_attest_device_spdm_only_measurement_data_skip_inappli
 	uint32_t component_id = 101;
 	uint8_t digest[SHA256_HASH_LENGTH];
 	uint8_t digest2[SHA256_HASH_LENGTH];
-	uint8_t digest3[SHA256_HASH_LENGTH];
-	uint8_t digest4[SHA256_HASH_LENGTH];
 	uint8_t measurement[SHA256_HASH_LENGTH];
 	uint8_t measurement2[SHA256_HASH_LENGTH];
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
@@ -21833,8 +21787,6 @@ attestation_requester_test_attest_device_spdm_only_measurement_data_skip_inappli
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
 		digest2[i] = i * 2;
-		digest3[i] = i * 3 + 1;
-		digest4[i] = i * 2 + 1;
 		measurement[i] = 51 + i;
 		measurement2[i] = 101 - i + 1;
 	}
@@ -21917,46 +21869,6 @@ attestation_requester_test_attest_device_spdm_only_measurement_data_skip_inappli
 		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
 	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
 		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
-		&testing.secondary_hash, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
-		false, &testing);
-
-	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, true,
-		false, &testing, 2);
-
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
-		-1);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
-		&testing.secondary_hash, 0);
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
-		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
-	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
-		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest3, sizeof (digest3)),
-		MOCK_ARG (sizeof (digest3)));
-	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
-		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest4, sizeof (digest4),
-		-1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
-		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
-		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 1);
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
-		MOCK_ARG_SAVED_ARG (1), MOCK_ARG_PTR_CONTAINS_TMP (digest4, sizeof (digest4)),
-		MOCK_ARG (sizeof (digest4)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der2, 71), MOCK_ARG (71));
-	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
-		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
