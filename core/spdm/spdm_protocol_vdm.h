@@ -21,12 +21,16 @@
 #define SPDM_VDM_REGISTRY_ID_VESA		0x9
 #define SPDM_VDM_REGISTRY_ID_IANA_CBOR	0xa
 
+#pragma pack (push, 1)
+
 /**
  * Protocol header for SPDM VDM
  */
 struct spdm_protocol_vdm_header {
 	uint16_t standard_id;	/**< Registry or standards body ID. */
 };
+
+#pragma pack(pop)
 
 #define	SPDM_VDM_PROTOCOL_ERROR(code)			ROT_ERROR (ROT_MODULE_SPDM_VDM_PROTOCOL, code)
 

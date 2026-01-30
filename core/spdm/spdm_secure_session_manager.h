@@ -94,7 +94,7 @@ enum spdm_secure_session_state {
 	SPDM_SESSION_STATE_MAX,			/**< MAX */
 };
 
-#pragma pack(1)
+#pragma pack(push, 1)
 
 /**
  *  Secured Messages opaque specification Id.
@@ -181,7 +181,7 @@ struct spdm_secured_message_cipher_header {
 	uint16_t application_data_length;	/**< The length of the application payload. */
 };
 
-#pragma pack()
+#pragma pack(pop)
 
 /**
  * SPDM secure session master secrets.

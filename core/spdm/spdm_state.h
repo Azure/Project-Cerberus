@@ -22,6 +22,8 @@ enum spdm_connection_state {
 	SPDM_CONNECTION_STATE_MAX,					/**< MAX */
 };
 
+#pragma pack(push, 1)
+
 /**
  * SPDM version info.
  */
@@ -69,6 +71,30 @@ struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_capabilities_flags_format {
 _Static_assert ((sizeof (struct spdm_get_capabilities_flags_format)) == 4,
 	"Unexpected size of struct spdm_get_capabilities_flags_format");
 
+
+/**
+ * SPDM Negotiate Algorithm 'OtherParamsSupport' format.
+ */
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_other_params_support {
+	uint8_t opaque_data_format:4;	/**< Opaque Data Format Support and Selection */
+	uint8_t reserved:4;				/**< Reserved */
+};
+
+/**
+ * SPDM END SESSION 'Negotiated State Preservation Indicator' format per DSP0274 Table 77.
+ */
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_end_session_request_attributes {
+	uint8_t negotiated_state_preservation_indicator:1;	/**< State preservation config */
+	uint8_t reserved:7;									/**< Reserved */
+};
+
+
+_Static_assert ((sizeof (struct spdm_end_session_request_attributes)) == 1,
+	"Unexpected size of struct spdm_end_session_request_attributes");
+
+
+#pragma pack(pop)
+
 /**
  * SPDM device capabilities.
  */
@@ -90,14 +116,6 @@ struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_device_capability {
 
 _Static_assert ((sizeof (struct spdm_device_capability)) == 16,
 	"Unexpected size of struct spdm_device_capability");
-
-/**
- * SPDM Negotiate Algorithm 'OtherParamsSupport' format.
- */
-struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_other_params_support {
-	uint8_t opaque_data_format:4;	/**< Opaque Data Format Support and Selection */
-	uint8_t reserved:4;				/**< Reserved */
-};
 
 /**
  * SPDM algorithms.
@@ -141,18 +159,6 @@ _Static_assert (offsetof (struct spdm_device_algorithms, key_schedule) == 26,
 	"Unexpected struct member offset");
 _Static_assert (sizeof (struct spdm_device_algorithms) == 28,
 	"Unexpected size of struct spdm_device_algorithms");
-
-/**
- * SPDM END SESSION 'Negotiated State Preservation Indicator' format per DSP0274 Table 77.
- */
-struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_end_session_request_attributes {
-	uint8_t negotiated_state_preservation_indicator:1;	/**< State preservation config */
-	uint8_t reserved:7;									/**< Reserved */
-};
-
-
-_Static_assert ((sizeof (struct spdm_end_session_request_attributes)) == 1,
-	"Unexpected size of struct spdm_end_session_request_attributes");
 
 /**
  * SPDM connection info.
