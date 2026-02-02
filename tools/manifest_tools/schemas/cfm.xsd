@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" vc:minVersion="1.1">
+
+    <xs:include schemaLocation="common.xsd"/>
+
+    <!-- Root element for Component Firmware Manifest listing -->
+    <xs:element name="CFM">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="Component" type="xs:string" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines a single component device to include in CFM. ID of component is used here.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:sequence>
+            <xs:attribute name="sku" type="PlatformIdSKU" use="required">
+                <xs:annotation>
+                    <xs:documentation>String identifier for the platform configuration. This becomes the platform ID.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Root element for CFM Component definition -->
+    <xs:element name="CFMComponent">
+        <xs:annotation>
+            <xs:documentation>Defines a single component device.</xs:documentation>
+        </xs:annotation>
+        <xs:complexType>
+            <xs:all>
+                <xs:element name="RootCADigest" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Defines trusted root CAs to be used for certificate chain validation.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Digest" type="xs:hexBinary" maxOccurs="255"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="PMR" type="PMR" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines information needed to regenerate a PMR.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="PMRDigest" type="PMRDigest" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines allowable digests for a single PMR.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="Measurement" type="Measurement" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines group of allowable measurements.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="MeasurementData" type="MeasurementData" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines group of allowable measurement data.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="AllowablePFM" type="AllowablePFM" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines attestation to be performed on PFM IDs. This tag is not supported for attesting SPDM devices.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="AllowableCFM" type="AllowableCFM" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines attestation to be performed on CFM IDs. This tag is not supported for attesting SPDM devices.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="AllowablePCD" type="AllowablePCD" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines attestation to be performed on PCD IDs. This tag is not supported for attesting SPDM devices.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+            </xs:all>
+            <xs:attribute name="type" type="xs:string" use="required">
+                <xs:annotation>
+                    <xs:documentation>Component type string identifier.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="attestation_protocol" type="AttestationProtocolType" use="required">
+                <xs:annotation>
+                    <xs:documentation>The protocol used by the AC-RoT for attestation.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="slot_num" type="xs:unsignedByte" use="required">
+                <xs:annotation>
+                    <xs:documentation>Certificate chain slot number to be used for component attestation.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="transcript_hash_type" type="HashType" use="required">
+                <xs:annotation>
+                    <xs:documentation>Hashing algorithm used for transcript hashing.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+            <xs:attribute name="measurement_hash_type" type="HashType" use="required">
+                <xs:annotation>
+                    <xs:documentation>Hashing algorithm used to compute PMR, measurement, and root CA digests.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
+
+            <xs:assert test="
+                every $digest in (.//RootCADigest/Digest | .//Measurement/Digest | .//PMR/InitialValue) 
+                satisfies string-length(normalize-space(xs:string($digest))) = 
+                (
+                    if (@measurement_hash_type = 'SHA256') then 64
+                    else if (@measurement_hash_type = 'SHA384') then 96
+                    else if (@measurement_hash_type = 'SHA512') then 128
+                    else -1
+                )
+            ">
+                <xs:annotation>
+                    <xs:documentation>Digests's length should match the selected hash type.</xs:documentation>
+                </xs:annotation>
+            </xs:assert>
+
+            <xs:assert test="exists(Measurement) or exists(MeasurementData)">
+                <xs:annotation>
+                    <xs:documentation>At least one Measurement or MeasurementData should be present.</xs:documentation>
+                </xs:annotation>
+            </xs:assert>
+
+            <xs:assert test="
+                @attestation_protocol != 'SPDM' or
+                every $m in (.//Measurement | .//MeasurementData) 
+                satisfies (
+                    not($m/@measurement_id = (0, 255))
+                    and 
+                    not($m/@measurement_id = (240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252))
+                )
+            ">
+                <xs:annotation>
+                    <xs:documentation>SPDM reserved measurement indices should not be used (0, 0xFF, 0xF0-0xFC).</xs:documentation>
+                </xs:annotation>
+            </xs:assert>
+
+            <xs:assert test="@attestation_protocol != 'SPDM' or
+                not(exists(AllowablePFM) or exists(AllowableCFM) or exists(AllowablePCD))">
+                <xs:annotation>
+                    <xs:documentation>Allowable{PFM, CFM, PCD} are not supported for SPDM.</xs:documentation>
+                </xs:annotation>
+            </xs:assert>
+
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Simple type definitions -->
+
+    <xs:simpleType name="DataValue">
+        <xs:union memberTypes="xs:hexBinary xs:string"/>
+    </xs:simpleType>
+
+    <xs:simpleType name="AttestationProtocolType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Cerberus"/>
+            <xs:enumeration value="SPDM"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CheckType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Equal"/>
+            <xs:enumeration value="NotEqual"/>
+            <xs:enumeration value="LessThan"/>
+            <xs:enumeration value="LessOrEqual"/>
+            <xs:enumeration value="GreaterThan"/>
+            <xs:enumeration value="GreaterOrEqual"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PMRId">
+        <xs:restriction base="xs:unsignedByte">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="4"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="PMR">
+        <xs:sequence>
+            <xs:element name="SingleEntry" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="InitialValue" type="xs:hexBinary"/>
+        </xs:sequence>
+        <xs:attribute name="pmr_id" type="PMRId" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="PMRDigest">
+        <xs:sequence>
+            <xs:element name="Digest" type="xs:hexBinary" maxOccurs="255"/>
+        </xs:sequence>
+        <xs:attribute name="pmr_id" type="PMRId" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="MeasurementId">
+        <xs:restriction base="xs:unsignedByte">
+            <xs:minInclusive value="0"/>
+            <xs:maxInclusive value="255"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="MeasurementBase">
+        <xs:attribute name="pmr_id" type="PMRId" use="required">
+            <xs:annotation>
+                <xs:documentation>Identifier for the PMR.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="measurement_id" type="MeasurementId" use="required">
+            <xs:annotation>
+                <xs:documentation>Measurement ID.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="Measurement">
+        <xs:complexContent>
+            <xs:extension base="MeasurementBase">
+                <xs:sequence>
+                    <xs:element name="Digest" type="xs:hexBinary" maxOccurs="255"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="AllowableData">
+        <xs:sequence>
+            <xs:element name="Endianness" type="EndiannessType">
+                <xs:annotation>
+                    <xs:documentation>Multi-byte format of data.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="Check" type="CheckType">
+                <xs:annotation>
+                    <xs:documentation>Type of comparison to perform on data.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="Data" type="DataValue" minOccurs="1" maxOccurs="255">
+                <xs:annotation>
+                    <xs:documentation>The expected data for the measurement data entry.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="Bitmask" type="xs:hexBinary" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>The bitmask to apply to the data during comparison.</xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MeasurementData">
+        <xs:complexContent>
+            <xs:extension base="MeasurementBase">
+                <xs:sequence>
+                    <xs:sequence>
+                        <xs:element name="AllowableData" type="AllowableData" maxOccurs="unbounded">
+                            <xs:annotation>
+                                <xs:documentation>Defines allowable values for single measurement data check.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="AllowableManifest">
+        <xs:sequence>
+            <xs:element name="ManifestID" maxOccurs="unbounded">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Endianness" type="EndiannessType" minOccurs="0"/>
+                        <xs:element name="Check" type="CheckType"/>
+                        <xs:element name="ID" type="HexInteger" maxOccurs="255"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="platform" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AllowablePFM">
+        <xs:complexContent>
+            <xs:extension base="AllowableManifest">
+                <xs:attribute name="port" type="xs:integer" use="required"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="AllowableCFM">
+        <xs:complexContent>
+            <xs:extension base="AllowableManifest">
+                <xs:attribute name="index" type="xs:integer" use="required"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="AllowablePCD">
+        <xs:complexContent>
+            <xs:extension base="AllowableManifest"/>
+        </xs:complexContent>
+    </xs:complexType>
+
+</xs:schema>

@@ -10,7 +10,8 @@ import binascii
 import traceback
 import xml.etree.ElementTree as et
 import manifest_types
-
+import xmlschema
+from pathlib import Path
 
 XML_ATTESTATION_FAIL_RETRY_ATTRIB = "attestation_fail_retry"
 XML_ATTESTATION_PROTOCOL_ATTRIB = "attestation_protocol"
@@ -945,11 +946,19 @@ def load_and_process_xml (xml_file, xml_type, selection_list=None):
 
     root = et.parse (xml_file).getroot ()
 
+    schemas_path = Path(__file__).parent / "schemas"
+
     if xml_type is manifest_types.PFM:
+        schema = xmlschema.XMLSchema11(schemas_path / "pfm.xsd")
+        schema.validate(root)
         return process_pfm (root, xml_file)
     elif xml_type is manifest_types.CFM:
+        schema = xmlschema.XMLSchema11(schemas_path / "cfm.xsd")
+        schema.validate(root)
         return process_cfm (root, xml_file, selection_list["selection"])
     elif xml_type is manifest_types.PCD:
+        schema = xmlschema.XMLSchema11(schemas_path / "pcd.xsd")
+        schema.validate(root)
         return process_pcd (root, xml_file)
     else:
         raise ValueError ("Unknown XML type: {0}".format (xml_type))

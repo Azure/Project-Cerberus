@@ -1,0 +1,2 @@
+pycryptodome~=3.23.0
+xmlschema~=4.2.0
