@@ -154,6 +154,8 @@ void cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_n
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_bad_cert_length (
 	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_bad_cert_buffer_len (
+	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_unsupported_index (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_required_commands_testing_process_import_signed_dev_id_cert_save_error (

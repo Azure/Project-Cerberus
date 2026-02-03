@@ -2765,6 +2765,45 @@ void cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_b
 	CuAssertIntEquals (test, true, request.crypto_timeout);
 }
 
+void cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_bad_cert_buffer_len (
+	CuTest *test, struct cmd_interface *cmd)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_import_certificate *req =
+		(struct cerberus_protocol_import_certificate*) data;
+	int status;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT;
+
+	req->index = 1;
+	req->cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN - 2;
+	memcpy (&req->certificate, X509_CERTSS_RSA_CA_NOPL_DER, X509_CERTSS_RSA_CA_NOPL_DER_LEN);
+	request.length =
+		sizeof (struct cerberus_protocol_import_certificate) + X509_CERTSS_RSA_CA_NOPL_DER_LEN - 3;
+	request.max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+
+	req->cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN + 2;
+	request.length =
+		sizeof (struct cerberus_protocol_import_certificate) + X509_CERTSS_RSA_CA_NOPL_DER_LEN + 1;
+	request.crypto_timeout = false;
+	status = cmd->process_request (cmd, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+	CuAssertIntEquals (test, true, request.crypto_timeout);
+}
+
 void cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_unsupported_index (
 	CuTest *test, struct cmd_interface *cmd)
 {

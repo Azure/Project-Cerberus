@@ -11,6 +11,7 @@
 #include "cmd_logging.h"
 #include "device_manager.h"
 #include "session_manager.h"
+#include "asn1/asn1_util.h"
 #include "attestation/attestation_responder.h"
 #include "common/buffer_util.h"
 #include "common/certificate.h"
@@ -334,6 +335,7 @@ int cerberus_protocol_import_ca_signed_cert (const struct riot_key_manager *riot
 	int min_length =
 		sizeof (struct cerberus_protocol_import_certificate) - sizeof (rq->certificate);
 	int status;
+	size_t cert_length;
 
 	request->crypto_timeout = true;
 
@@ -342,6 +344,12 @@ int cerberus_protocol_import_ca_signed_cert (const struct riot_key_manager *riot
 	}
 
 	if ((rq->cert_length == 0) || ((int) request->length != (min_length + rq->cert_length))) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	/* Check certificate header length against incoming buffer */
+	cert_length = asn1_get_der_item_len (&rq->certificate, rq->cert_length);
+	if (cert_length != rq->cert_length) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 

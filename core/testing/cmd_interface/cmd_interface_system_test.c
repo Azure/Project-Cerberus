@@ -6532,6 +6532,20 @@ static void cmd_interface_system_test_process_import_signed_ca_cert_bad_cert_len
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_import_signed_ca_cert_bad_cert_buffer_len (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_required_commands_testing_process_import_signed_ca_cert_bad_cert_buffer_len (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_import_signed_ca_cert_unsupported_index (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -9724,6 +9738,7 @@ TEST (cmd_interface_system_test_process_import_intermediate_cert);
 TEST (cmd_interface_system_test_process_import_signed_ca_cert_invalid_len);
 TEST (cmd_interface_system_test_process_import_signed_ca_cert_no_cert);
 TEST (cmd_interface_system_test_process_import_signed_ca_cert_bad_cert_length);
+TEST (cmd_interface_system_test_process_import_signed_ca_cert_bad_cert_buffer_len);
 TEST (cmd_interface_system_test_process_import_signed_ca_cert_unsupported_index);
 TEST (cmd_interface_system_test_process_import_signed_dev_id_cert_save_error);
 TEST (cmd_interface_system_test_process_import_root_ca_cert_save_error);
