@@ -36337,6 +36337,220 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_attest_device_spdm_measurement_get_measurement_interrupted
+(
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
+	uint32_t component_id = 101;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t measurement[SHA256_HASH_LENGTH];
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	uint8_t sig_der2[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+	uint8_t rq_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_get_measurements_request *req = (struct spdm_get_measurements_request*) rq_buf;
+	uint8_t rsp_buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct spdm_get_measurements_response *rsp = (struct spdm_get_measurements_response*) &rsp_buf;
+	struct spdm_measurements_measurement_block *block =
+		(struct spdm_measurements_measurement_block*)
+		spdm_get_measurements_resp_measurement_record (rsp);
+	uint16_t *opaque_length;
+	uint8_t *slot_id;
+	uint8_t *nonce;
+	size_t num_blocks = 1;
+	size_t hash_len = SHA256_HASH_LENGTH;
+	size_t offset;
+	size_t rq_len;
+
+	data.allowable_data = &data_entry;
+
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (measurement);
+	data.allowable_data[0].data = measurement;
+	data.allowable_data[0].version_set = 1;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 1;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		measurement[i] = 51 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	buffer_reverse (signature, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
+
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 70, status);
+
+	buffer_reverse (signature, ECC_KEY_LENGTH_256);
+	buffer_reverse (signature + ECC_KEY_LENGTH_256, ECC_KEY_LENGTH_256);
+
+	status = ecc_der_encode_ecdsa_signature (signature,	&signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der2, sizeof (sig_der2));
+	CuAssertIntEquals (test, 69, status);
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+	testing.raw_rsp[0] = true;
+	testing.spdm_max_version = 1;
+	testing.spdm_min_version = 1;
+	testing.spdm_version = 1;
+
+	setup_attestation_requester_mock_certificate_test (test, false, true, &testing);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	req->header.spdm_minor_version = testing.spdm_version;
+	req->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	req->header.req_rsp_code = SPDM_REQUEST_GET_MEASUREMENTS;
+	req->sig_required = 1;
+
+	req->raw_bit_stream_requested = false;
+	req->measurement_operation = 1;
+
+	slot_id = spdm_get_measurements_rq_slot_id_ptr (req);
+	*slot_id = ATTESTATION_RIOT_SLOT_NUM;
+
+	nonce = spdm_get_measurements_rq_nonce (req);
+
+	for (i = 0; i < SPDM_NONCE_LEN; ++i) {
+		nonce[i] = SPDM_NONCE_LEN - i;
+	}
+
+	rsp->header.spdm_minor_version = testing.spdm_version;
+	rsp->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rsp->header.req_rsp_code = SPDM_RESPONSE_GET_MEASUREMENTS;
+	rsp->slot_id = ATTESTATION_RIOT_SLOT_NUM;
+	rsp->number_of_blocks = num_blocks;
+
+	rsp->measurement_record_len[0] = num_blocks * spdm_measurements_block_size (hash_len);
+
+	offset = sizeof (struct spdm_get_measurements_response) +
+		sizeof (struct spdm_measurements_measurement_block);
+
+
+	block->index = 1 + testing.unexpected_measurement_block;
+	block->measurement_size = spdm_measurements_measurement_size (hash_len);
+	block->measurement_specification = 1;
+	block->dmtf.measurement_value_type = 0;
+	block->dmtf.measurement_value_size = hash_len;
+	block->dmtf.raw_bit_stream = !testing.digest_instead_of_raw & testing.raw_rsp[0];
+
+	for (i = 0; i < hash_len; ++i, ++offset) {
+		rsp_buf[offset] = 50 + i + testing.raw_rsp[0];
+
+		if ((i == 0) && (testing.measurement_modify)) {
+			rsp_buf[offset] = 0xCC;
+		}
+	}
+
+	for (i = 0; i < SPDM_NONCE_LEN; ++i, ++offset) {
+		rsp_buf[offset] = SPDM_NONCE_LEN - i;
+	}
+
+	opaque_length = (uint16_t*) &rsp_buf[offset];
+	buffer_unaligned_write16 (opaque_length, 5);
+	offset += 2;
+
+	for (i = 0; i < buffer_unaligned_read16 (opaque_length); ++i, ++offset) {
+		rsp_buf[offset] = 5 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		rsp_buf[offset + i] = i * 10;
+	}
+
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
+		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.rng.mock, 1,
+		spdm_get_measurements_rq_nonce (req), SPDM_NONCE_LEN, -1);
+	CuAssertIntEquals (test, 0, status);
+
+	rq_len = (testing.spdm_version == 0) ?
+			spdm_get_measurements_rq_length_1_0 (req) : spdm_get_measurements_rq_length (req);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS_TMP (req, rq_len), MOCK_ARG (rq_len));
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements (test, false, false, false,
+		1, false, &testing);
+
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1));
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void
 attestation_requester_test_attest_device_spdm_measurement_only_measurement_version_set_selector_invalid
 (
@@ -42126,6 +42340,7 @@ TEST (attestation_requester_test_attest_device_spdm_only_pmr0_pmr0_hash_compute_
 TEST (attestation_requester_test_attest_device_spdm_only_pmr0_no_pmr0_digest_match);
 TEST (attestation_requester_test_attest_device_spdm_measurement_get_next_measurement_or_measurement_data_fail);
 TEST (attestation_requester_test_attest_device_spdm_measurement_get_measurement_fail);
+TEST (attestation_requester_test_attest_device_spdm_measurement_get_measurement_interrupted);
 TEST (attestation_requester_test_attest_device_spdm_measurement_only_measurement_version_set_selector_invalid);
 TEST (attestation_requester_test_attest_device_spdm_measurement_only_measurement_version_set_selection_fail);
 TEST (attestation_requester_test_attest_device_spdm_measurement_data_get_measurement_fail);

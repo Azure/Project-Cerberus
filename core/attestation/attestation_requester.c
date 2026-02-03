@@ -3079,7 +3079,9 @@ static int attestation_requester_get_and_verify_cfm_contents (
 		return 0;
 	}
 
-	if (status != 0) {
+	// Timeouts and invalid responses already updated device state, do not overwrite.
+	if ((status != 0) && (status != MSG_TRANSPORT_REQUEST_TIMEOUT) &&
+		(status != MSG_TRANSPORT_UNEXPECTED_RESPONSE)) {
 		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
 	}
