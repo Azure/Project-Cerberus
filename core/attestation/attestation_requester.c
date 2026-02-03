@@ -70,94 +70,210 @@
 
 #if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
 /**
- * Function to send Cerberus protocol and wait for a response. This function
- * assumes a pregenerated request is in attestation_requester's msg_buffer.
+ * Cerberus get digest response post processing function.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param request_len Length of request to send.
- * @param dest_addr SMBus address of destination device.
- * @param dest_eid MCTP EID of destination device.
- * @param crypto_timeout Flag indicating whether to use the crypto timeout with device.
- * @param mctp_ctrl_cmd Flag indicating whether request is from MCTP control protocol.
+ * @param response The response message to process.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_get_digest_rsp_post_processing (
+	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_get_certificate_digest_response *digest_rsp =
+		(struct cerberus_protocol_get_certificate_digest_response*) response->payload;
+
+	attestation->state->txn.msg_buffer_len = SHA256_HASH_LENGTH * digest_rsp->num_digests;
+	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate_digests (digest_rsp),
+		SHA256_HASH_LENGTH * digest_rsp->num_digests);
+
+	return 0;
+}
+
+/**
+ * Cerberus challenge response post processing function.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_challenge_rsp_post_processing (
+	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_challenge_response *challenge_rsp =
+		(struct cerberus_protocol_challenge_response*) response->payload;
+
+	if (challenge_rsp->challenge.slot_num != attestation->state->txn.slot_num) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
+			(attestation->state->txn.slot_num << 8) | challenge_rsp->challenge.slot_num);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	if (challenge_rsp->challenge.digests_size != SHA256_HASH_LENGTH) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_HASH_LEN_IN_RSP, response->source_eid,
+			(challenge_rsp->challenge.digests_size << 8) | SHA256_HASH_LENGTH);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	if ((challenge_rsp->challenge.min_protocol_version > CERBERUS_PROTOCOL_PROTOCOL_VERSION) ||
+		(challenge_rsp->challenge.max_protocol_version < CERBERUS_PROTOCOL_PROTOCOL_VERSION)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_CERBERUS_PROTOCOL_VER_UNSUPPORTED, response->source_eid,
+			(challenge_rsp->challenge.max_protocol_version << 16) |
+					(challenge_rsp->challenge.min_protocol_version << 8) |
+				CERBERUS_PROTOCOL_PROTOCOL_VERSION);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
+	attestation->state->txn.msg_buffer_len = response->payload_length;
+
+	return 0;
+}
+
+/**
+ * Cerberus get certificate response post processing function.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_get_certificate_cerberus_rsp_post_processing (
+	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_get_certificate_response *rsp =
+		(struct cerberus_protocol_get_certificate_response*) response->payload;
+	size_t cert_portion_len;
+
+	if (rsp->slot_num != attestation->state->txn.slot_num) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
+			(attestation->state->txn.slot_num << 8) | rsp->slot_num);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	cert_portion_len =
+		cerberus_protocol_get_certificate_response_cert_length (response->payload_length);
+
+	/* TODO:  Is there a better error that could be reported here? */
+	if (cert_portion_len > sizeof (attestation->state->txn.msg_buffer)) {
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate (rsp),
+		cert_portion_len);
+	attestation->state->txn.msg_buffer_len = cert_portion_len;
+
+	return 0;
+}
+
+/**
+ * Send Cerberus message transport request command and get response for Cerberus control.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param transport The Message transport instance used to send the messages.
+ * @param request Request to process.
+ * @param response The response container received.
  * @param command Requested command to send out.
  *
- * @return 0 if successful or error code otherwise
+ * @return Initialization status, 0 if success or an error code.
  */
-static int attestation_requester_send_request_and_get_response (
-	const struct attestation_requester *attestation, size_t request_len, uint8_t dest_addr,
-	uint8_t dest_eid, bool crypto_timeout, bool mctp_ctrl_cmd, uint8_t command)
+static int attestation_requester_send_cerberus_msg_transport_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command)
 {
 	uint32_t timeout_ms;
-	uint32_t max_rsp_not_ready_timeout_ms;
-	uint8_t max_rsp_not_ready_retries;
 	int device_state;
 	int status;
+	struct cerberus_protocol_header *resp_header;
 
+	timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
 	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
 	attestation->state->txn.requested_command = command;
 
-	if (mctp_ctrl_cmd) {
-		timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
-	}
-	else {
-		if (crypto_timeout) {
-			timeout_ms = device_manager_get_crypto_timeout_by_eid (attestation->device_mgr,
-				dest_eid);
-		}
-		else {
-			timeout_ms = device_manager_get_reponse_timeout_by_eid (attestation->device_mgr,
-				dest_eid);
-		}
-	}
-
-	status = device_manager_get_rsp_not_ready_limits (attestation->device_mgr,
-		&max_rsp_not_ready_timeout_ms, &max_rsp_not_ready_retries);
+	status = transport->send_request_message (transport, request, timeout_ms, response);
 	if (status != 0) {
-		return status;
-	}
-
-	/* Send request and await response. mctp_interface_issue_request will block till a response
-	 * is received or timeout period elapses. If response is received, the notification
-	 * callbacks will process response and update the request_status. */
-	status = mctp_interface_issue_request (attestation->mctp, attestation->channel, dest_addr,
-		dest_eid, attestation->state->txn.msg_buffer, request_len,
-		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer),
-		timeout_ms);
-	if (status != 0) {
-		if (status == MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT) {
+		if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
 			device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
-				dest_eid);
+				request->target_eid);
 
 			if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 			}
 			else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
 			}
 			else {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
 			}
 		}
-		else if ((status == MCTP_BASE_PROTOCOL_ERROR_RESPONSE) ||
-			(status == MCTP_BASE_PROTOCOL_FAIL_RESPONSE)) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+		else if ((status == MSG_TRANSPORT_RESPONSE_TOO_LARGE) ||
+			(status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) ||
+			(status == MSG_TRANSPORT_RESPONSE_TOO_SHORT)) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
 				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 		}
 
 		return status;
 	}
 
-	if (attestation->state->txn.request_status != ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL) {
-		device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+	resp_header = (struct cerberus_protocol_header*) response->payload;
+
+	if (attestation_requester_check_cerberus_unexpected_rsp (attestation, resp_header->command)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol <<
+					24) | (attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_CERBERUS << 8) | resp_header->command));
+		device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
 			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 
-		return ATTESTATION_REQUEST_FAILED;
+		return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
 	}
 
-	return 0;
+	// Process response based on command type
+	switch (attestation->state->txn.requested_command) {
+		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
+			// No post-processing needed for capabilities
+			status = 0;
+			break;
+
+		case CERBERUS_PROTOCOL_GET_DIGEST:
+			status = attestation_requester_get_digest_rsp_post_processing (attestation, response);
+			break;
+
+		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
+			status =
+				attestation_requester_get_certificate_cerberus_rsp_post_processing (attestation,
+				response);
+			break;
+
+		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
+			status = attestation_requester_challenge_rsp_post_processing (attestation, response);
+			break;
+
+		default:
+			status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+			break;
+	}
+
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+	}
+
+	return status;
 }
 #endif
 
@@ -1641,172 +1757,6 @@ static int attestation_requester_send_spdm_request_and_get_response (
 }
 #endif
 
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-/**
- * Cerberus Challenge get digest response observer function. The Get Digests request/response
- * interaction allows the requester to retrieve certificate chain digests from the responder. The
- * digests will then be compared to the requesters certificate chain cache for the device being
- * attested, and in case of a mismatch, the requester will fetch new certificate chain from device.
- */
-void attestation_requester_on_cerberus_get_digest_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-	struct cerberus_protocol_get_certificate_digest_response *rsp =
-		(struct cerberus_protocol_get_certificate_digest_response*) response->payload;
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_GET_DIGEST)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_DIGEST));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-
-		return;
-	}
-
-	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate_digests (rsp),
-		SHA256_HASH_LENGTH * rsp->num_digests);
-	attestation->state->txn.msg_buffer_len = SHA256_HASH_LENGTH * rsp->num_digests;
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-	return;
-}
-
-/**
- * Cerberus Challenge get certificate response observer function. The Get Certificate
- * request/response interaction is used for the requester to retrieve certificate chain to be used
- * for attestation from responder.
- */
-void attestation_requester_on_cerberus_get_certificate_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-	struct cerberus_protocol_get_certificate_response *rsp =
-		(struct cerberus_protocol_get_certificate_response*) response->payload;
-	size_t cert_portion_len;
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_GET_CERTIFICATE)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_CERTIFICATE));
-		goto fail;
-	}
-
-	if (rsp->slot_num != attestation->state->txn.slot_num) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
-			(attestation->state->txn.slot_num << 8) | rsp->slot_num);
-		goto fail;
-	}
-
-	cert_portion_len =
-		cerberus_protocol_get_certificate_response_cert_length (response->payload_length);
-
-	/* TODO:  Is there a better error that could be reported here? */
-	if (cert_portion_len > sizeof (attestation->state->txn.msg_buffer)) {
-		goto fail;
-	}
-
-	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate (rsp),
-		cert_portion_len);
-	attestation->state->txn.msg_buffer_len = cert_portion_len;
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-	return;
-
-fail:
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-}
-
-/**
- * Cerberus Challenge challenge response observer function. The Challenge request/response
- * interaction allows the requester to authenticate the responder by validating the response
- * signature and comparing the device PMR0 to CFM contents.
- */
-void attestation_requester_on_cerberus_challenge_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-	struct cerberus_protocol_challenge_response *rsp =
-		(struct cerberus_protocol_challenge_response*) response->payload;
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS <<
-						8) | CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE));
-		goto fail;
-	}
-
-	if (rsp->challenge.slot_num != attestation->state->txn.slot_num) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
-			(attestation->state->txn.slot_num << 8) | rsp->challenge.slot_num);
-	}
-	else if (rsp->challenge.digests_size != SHA256_HASH_LENGTH) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_HASH_LEN_IN_RSP, response->source_eid,
-			(rsp->challenge.digests_size << 8) | SHA256_HASH_LENGTH);
-	}
-	else if ((rsp->challenge.min_protocol_version > CERBERUS_PROTOCOL_PROTOCOL_VERSION) ||
-		(rsp->challenge.max_protocol_version < CERBERUS_PROTOCOL_PROTOCOL_VERSION)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_CERBERUS_PROTOCOL_VER_UNSUPPORTED, response->source_eid,
-			(rsp->challenge.max_protocol_version << 16) |
-					(rsp->challenge.min_protocol_version <<
-					8) | CERBERUS_PROTOCOL_PROTOCOL_VERSION);
-	}
-	else {
-		memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
-		attestation->state->txn.msg_buffer_len = response->payload_length;
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-		return;
-	}
-
-fail:
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-}
-
-/**
- * Cerberus Challenge get capabilities response observer function. The Get Capabilities
- * request/response interaction allows both devices to determine device functionalities, including
- * timeout and message size capabilities.
- */
-void attestation_requester_on_cerberus_device_capabilities_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS <<
-						8) | CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-	}
-	else {
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-	}
-}
-#endif
-
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 /**
  * MCTP control protocol set EID request observer function. Incoming set EID requests are monitored
@@ -1908,17 +1858,6 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	attestation->mctp_control = mctp_control;
 	attestation->spdm_transport = spdm_transport;
 
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-	attestation->cerberus_rsp_observer.on_get_digest_response =
-		attestation_requester_on_cerberus_get_digest_response;
-	attestation->cerberus_rsp_observer.on_get_certificate_response =
-		attestation_requester_on_cerberus_get_certificate_response;
-	attestation->cerberus_rsp_observer.on_challenge_response =
-		attestation_requester_on_cerberus_challenge_response;
-	attestation->cerberus_rsp_observer.on_device_capabilities =
-		attestation_requester_on_cerberus_device_capabilities_response;
-#endif
-
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	attestation->mctp_rsp_observer.on_set_eid_request =
 		attestation_requester_on_mctp_set_eid_request;
@@ -1973,6 +1912,166 @@ void attestation_requester_deinit (const struct attestation_requester *attestati
 
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
 /**
+ * Send Cerberus get device capabilities request and receive response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to attest.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_send_cerberus_get_device_capabilities (
+	const struct attestation_requester *attestation, uint8_t eid)
+{
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int request_len;
+	int status;
+
+	status = msg_transport_create_empty_request (&attestation->mctp->base,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		&request);
+	if (status != 0) {
+		return status;
+	}
+
+	request_len =
+		cerberus_protocol_generate_get_device_capabilities_request (attestation->device_mgr,
+		request.payload, request.payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+	cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), &response);
+	if (status != 0) {
+		return status;
+	}
+
+	status =
+		attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES);
+	if (status != 0) {
+		return status;
+	}
+
+	return 0;
+}
+
+/**
+ * Send Cerberus get certificate digest request and process response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to attest.
+ * @param digest Output buffer to receive the computed digest.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_send_cerberus_get_digest (
+	const struct attestation_requester *attestation, uint8_t eid, uint8_t *digest)
+{
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int request_len;
+	int status;
+
+	status = msg_transport_create_empty_request (&attestation->mctp->base,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		&request);
+	if (status != 0) {
+		return status;
+	}
+
+	request_len =
+		cerberus_protocol_generate_get_certificate_digest_request (attestation->state->txn.slot_num,
+		ATTESTATION_ECDHE_KEY_EXCHANGE, request.payload, request.payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+
+	cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), &response);
+	if (status != 0) {
+		return status;
+	}
+
+	status =
+		attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_DIGEST);
+	if (status != 0) {
+		return status;
+	}
+
+	status = attestation->primary_hash->calculate_sha256 (attestation->primary_hash,
+		attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len, digest,
+		SHA256_HASH_LENGTH);
+	if (status != 0) {
+		return status;
+	}
+
+	attestation->state->txn.num_certs = attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
+
+	return 0;
+}
+
+/**
+ * Send Cerberus challenge request and verify the challenge response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to attest.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_send_and_verify_cerberus_challenge (
+	const struct attestation_requester *attestation, uint8_t eid)
+{
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_challenge *challenge_rq;
+	int request_len;
+	int status;
+
+	status = msg_transport_create_empty_request (&attestation->mctp->base,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		&request);
+	if (status != 0) {
+		return status;
+	}
+
+	challenge_rq = (struct cerberus_protocol_challenge*) request.payload;
+	request_len = cerberus_protocol_generate_challenge_request (attestation->rng, eid,
+		attestation->state->txn.slot_num, request.payload, request.payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+
+	cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+	status = attestation->primary_hash->update (attestation->primary_hash,
+		(uint8_t*) &challenge_rq->challenge, sizeof (struct attestation_challenge));
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), &response);
+	if (status != 0) {
+		return status;
+	}
+
+	status =
+		attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE);
+	if (status != 0) {
+		return status;
+	}
+
+	return 0;
+}
+
+/**
  * Retrieve and verify the certificate chain from the device using Cerberus challenge protocol.  If
  * the certs are valid, store the alias key of the device.
  *
@@ -1988,8 +2087,11 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
 	const struct attestation_requester *attestation, uint8_t device_addr, uint8_t eid,
 	const struct cfm *active_cfm, uint32_t component_id)
 {
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
 	struct x509_ca_certs certs_chain;
 	struct x509_certificate cert;
+	int request_len;
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	size_t cert_idx;
@@ -1998,18 +2100,33 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
 	/* TODO:  Cert chain digest calculation seems like it might be wrong for Cerberus now relative
 	 * to how GET_DIGESTS is handled. */
 	for (cert_idx = 0; cert_idx < attestation->state->txn.num_certs; ++cert_idx) {
-		status =
-			cerberus_protocol_generate_get_certificate_request (attestation->state->txn.slot_num,
-			cert_idx, attestation->state->txn.msg_buffer,
-			sizeof (attestation->state->txn.msg_buffer), 0, 0);
-		if (ROT_IS_ERROR (status)) {
-			attestation->primary_hash->cancel (attestation->primary_hash);
-
+		status = msg_transport_create_empty_request (&attestation->mctp->base,
+			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+			&request);
+		if (status != 0) {
 			return status;
 		}
 
-		status = attestation_requester_send_request_and_get_response (attestation, status,
-			device_addr, eid, false, false, CERBERUS_PROTOCOL_GET_CERTIFICATE);
+		request_len =
+			cerberus_protocol_generate_get_certificate_request (attestation->state->txn.slot_num,
+			cert_idx, request.payload, request.payload_length, 0, 0);
+		if (ROT_IS_ERROR (request_len)) {
+			attestation->primary_hash->cancel (attestation->primary_hash);
+
+			return request_len;
+		}
+
+		cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+		status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), &response);
+		if (status != 0) {
+			return status;
+		}
+
+		status =
+			attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+			&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_CERTIFICATE);
 		if (status != 0) {
 			attestation->primary_hash->cancel (attestation->primary_hash);
 
@@ -2052,48 +2169,24 @@ static int attestation_requester_attest_device_cerberus_protocol (
 	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
 	const struct cfm *active_cfm, uint32_t component_id)
 {
-	struct cerberus_protocol_challenge *challenge_rq =
-		(struct cerberus_protocol_challenge*) attestation->state->txn.msg_buffer;
-	struct cerberus_protocol_challenge_response *challenge_rsp =
-		(struct cerberus_protocol_challenge_response*) attestation->state->txn.msg_buffer;
+	struct cerberus_protocol_challenge_response *challenge_rsp;
+
 	const struct device_manager_key *alias_key;
 	uint8_t digest[SHA256_HASH_LENGTH];
-	int challenge_rq_len;
 	int status;
 
 	attestation->state->txn.protocol = ATTESTATION_PROTOCOL_CERBERUS;
 
 	// TODO Get Cerberus Protocol version using the MCTP control Get VDM Support command
 
-	status = cerberus_protocol_generate_get_device_capabilities_request (attestation->device_mgr,
-		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	status = attestation_requester_send_request_and_get_response (attestation, status, device_addr,
-		eid, false, false, CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES);
+	/* Get Device Capabilities */
+	status = attestation_requester_send_cerberus_get_device_capabilities (attestation, eid);
 	if (status != 0) {
 		return status;
 	}
 
-	status =
-		cerberus_protocol_generate_get_certificate_digest_request (attestation->state->txn.slot_num,
-		ATTESTATION_ECDHE_KEY_EXCHANGE, attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	status = attestation_requester_send_request_and_get_response (attestation, status, device_addr,
-		eid, true, false, CERBERUS_PROTOCOL_GET_DIGEST);
-	if (status != 0) {
-		return status;
-	}
-
-	status = attestation->primary_hash->calculate_sha256 (attestation->primary_hash,
-		attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len, digest,
-		sizeof (digest));
+	/* Get Certificate Digest */
+	status = attestation_requester_send_cerberus_get_digest (attestation, eid, digest);
 	if (status != 0) {
 		return status;
 	}
@@ -2103,8 +2196,6 @@ static int attestation_requester_attest_device_cerberus_protocol (
 	if (status != 0) {
 		return status;
 	}
-
-	attestation->state->txn.num_certs = attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
 	alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
 
 	// If certificate chain digest retrieved does not match cached certificate, refresh chain
@@ -2121,25 +2212,13 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		return status;
 	}
 
-	challenge_rq_len = cerberus_protocol_generate_challenge_request (attestation->rng, eid,
-		attestation->state->txn.slot_num, attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer));
-	if (ROT_IS_ERROR (challenge_rq_len)) {
-		status = challenge_rq_len;
-		goto hash_cancel;
-	}
-
-	status = attestation->primary_hash->update (attestation->primary_hash,
-		(uint8_t*) &challenge_rq->challenge, sizeof (struct attestation_challenge));
-	if (ROT_IS_ERROR (status)) {
-		goto hash_cancel;
-	}
-
-	status = attestation_requester_send_request_and_get_response (attestation, challenge_rq_len,
-		device_addr, eid, true, false, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE);
+	status = attestation_requester_send_and_verify_cerberus_challenge (attestation, eid);
 	if (status != 0) {
 		goto hash_cancel;
 	}
+
+	challenge_rsp = (struct cerberus_protocol_challenge_response*)
+		attestation->state->txn.msg_buffer;
 
 	status = attestation->primary_hash->update (attestation->primary_hash,
 		(uint8_t*) &challenge_rsp->challenge,
@@ -2659,10 +2738,11 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 	if (attestation_requester_is_version_set_selected (attestation)) {
 		// Check if at least one allowable digest's version set matches device version set
 		bool version_set_match_found = false;
+
 		for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
 			++i_allowable_digests) {
-			if ((measurement->allowable_digests[i_allowable_digests].version_set == 0) || \
-			(measurement->allowable_digests[i_allowable_digests].version_set ==
+			if ((measurement->allowable_digests[i_allowable_digests].version_set == 0) ||
+				(measurement->allowable_digests[i_allowable_digests].version_set ==
 				attestation->state->txn.device_version_set)) {
 				version_set_match_found = true;
 				break;
@@ -2942,13 +3022,16 @@ static bool check_if_measurement_data_belongs_to_current_version_set (
 	// Check if at least one allowable data's version set matches device version set
 	for (i_check = 0; i_check < num_data_checks; ++i_check) {
 		struct cfm_allowable_data *check = &data->data_checks[i_check];
+
 		for (i_data = 0; i_data < check->data_count; ++i_data) {
-			if ((check->allowable_data[i_data].version_set == 0 )|| (check->allowable_data[i_data].version_set ==
+			if ((check->allowable_data[i_data].version_set == 0) ||
+				(check->allowable_data[i_data].version_set ==
 				attestation->state->txn.device_version_set)) {
 				return true;
 			}
 		}
 	}
+
 	return false;
 }
 /*

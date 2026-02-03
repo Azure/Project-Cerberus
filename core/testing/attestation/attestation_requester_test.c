@@ -456,10 +456,6 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 			&testing->spdm_transport.base);
 		CuAssertIntEquals (test, 0, status);
 
-		status = cmd_interface_system_add_cerberus_protocol_observer (&testing->cmd_cerberus,
-			&testing->test.cerberus_rsp_observer);
-		CuAssertIntEquals (test, 0, status);
-
 		status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing->cmd_mctp,
 			&testing->test.mctp_rsp_observer);
 		CuAssertIntEquals (test, 0, status);
@@ -776,10 +772,6 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 			CuAssertIntEquals (test, 0, status);
 		}
 
-		status = cmd_interface_system_add_cerberus_protocol_observer (&testing->cmd_cerberus,
-			&testing->test.cerberus_rsp_observer);
-		CuAssertIntEquals (test, 0, status);
-
 		status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing->cmd_mctp,
 			&testing->test.mctp_rsp_observer);
 		CuAssertIntEquals (test, 0, status);
@@ -824,10 +816,6 @@ static void complete_attestation_requester_mock_test (CuTest *test,
 	status |= msg_transport_mock_validate_and_release (&testing->spdm_transport);
 
 
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_interface_system_remove_cerberus_protocol_observer (&testing->cmd_cerberus,
-		&testing->test.cerberus_rsp_observer);
 	CuAssertIntEquals (test, 0, status);
 
 	pcr_store_release (&testing->store);
@@ -900,6 +888,71 @@ static size_t attestation_requester_testing_generate_mctp_packets_from_payload (
 }
 
 /**
+ * Callback function which generates and processes a Cerberus protocol unexpected response message
+ *
+ * @param expected The expectation that is being used to validate the current call on the mock.
+ * @param called The context for the actual call on the mock.
+ *
+ * @return This function always returns 0
+ */
+static int64_t attestation_requester_testing_cerberus_unexpected_rsp_callback (
+	const struct mock_call *expected, const struct mock_call *called)
+{
+	struct attestation_requester_testing *testing = expected->context;
+	struct mctp_base_protocol_transport_header *header;
+	struct cerberus_protocol_error *error_response;
+	struct cmd_packet rx_packet;
+	struct cmd_message *tx;
+	size_t offset;
+
+	UNUSED (called);
+
+	memset (&rx_packet, 0, sizeof (rx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) rx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 0x0F;
+	header->source_addr = (0x20 << 1) | 1;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->source_eid = 0xAA;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = MCTP_BASE_PROTOCOL_TO_RESPONSE;
+	header->msg_tag = testing->msg_tag_resp;
+	header->packet_seq = 0;
+
+	++testing->msg_tag_resp;
+
+	offset = sizeof (struct mctp_base_protocol_transport_header);
+
+	error_response = (struct cerberus_protocol_error*) &rx_packet.data[offset];
+	error_response->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	error_response->header.pci_vendor_id = 0x1414;
+	error_response->header.command = CERBERUS_PROTOCOL_ERROR;
+
+	offset += sizeof (struct cerberus_protocol_error);
+
+	rx_packet.data[offset] = checksum_crc8 (0x41 << 1, rx_packet.data, offset);
+
+	offset += MCTP_BASE_PROTOCOL_PEC_SIZE;
+
+	rx_packet.pkt_size = offset;
+	rx_packet.state = CMD_VALID_PACKET;
+	rx_packet.dest_addr = 0x41;
+	rx_packet.timeout_valid = false;
+
+	/* Set the response_msg max_response less than the request buffer's length to trigger TOO_BIG state */
+	testing->mctp.state->response_msg->max_response = 1;
+
+	mctp_interface_process_packet (&testing->mctp, &rx_packet, &tx);
+
+	return 0;
+}
+
+/**
  * Callback function which generates and processes a Cerberus protocol error response message
  *
  * @param expected The expectation that is being used to validate the current call on the mock.
@@ -962,8 +1015,7 @@ static int64_t attestation_requester_testing_cerberus_error_rsp_callback (
 }
 
 /**
- * Callback function which generates and processes a Cerberus protocol Get Device capabilities
- * response message
+ * Setup mock send and receive Cerberus protocol Get Device Capabilities with send_request_message mocks.
  *
  * @param expected The expectation that is being used to validate the current call on the mock.
  * @param called The context for the actual call on the mock.
@@ -5697,7 +5749,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 		true, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -5732,7 +5784,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 		false, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
@@ -5745,6 +5797,92 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_cerberus_device_capabilities_error_response (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	struct cmd_packet tx_packet;
+	struct mctp_base_protocol_transport_header *header;
+	struct cerberus_protocol_device_capabilities *request;
+	size_t offset;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_CERBERUS_PROTOCOL,
+		ATTESTATION_RIOT_SLOT_NUM, 0);
+
+	memset (&tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 0x12;
+	header->source_addr = (0x41 << 1) | 1;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = 0xAA;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = MCTP_BASE_PROTOCOL_TO_REQUEST;
+	header->msg_tag = testing.msg_tag_req++;
+	header->packet_seq = 0;
+
+	offset = sizeof (struct mctp_base_protocol_transport_header);
+
+	request = (struct cerberus_protocol_device_capabilities*) &tx_packet.data[offset];
+	request->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	request->header.pci_vendor_id = 0x1414;
+	request->header.command = CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES;
+
+	request->capabilities.max_message_size = MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	request->capabilities.max_packet_size = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	request->capabilities.security_mode = DEVICE_MANAGER_SECURITY_AUTHENTICATION;
+	request->capabilities.bus_role = DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE;
+	request->capabilities.hierarchy_role = DEVICE_MANAGER_PA_ROT_MODE;
+
+	offset += sizeof (struct cerberus_protocol_device_capabilities);
+
+	tx_packet.data[offset] = checksum_crc8 (0x20 << 1, tx_packet.data, offset);
+
+	offset += MCTP_BASE_PROTOCOL_PEC_SIZE;
+
+	tx_packet.pkt_size = offset;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x20;
+	tx_packet.timeout_valid = false;
+
+	status = mock_expect (&testing.channel.mock, testing.channel.base.send_packet,
+		&testing.channel, 0,
+		MOCK_ARG_VALIDATOR_TMP (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect_external_action (&testing.channel.mock,
+			attestation_requester_testing_cerberus_unexpected_rsp_callback, &testing);
+		CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, MSG_TRANSPORT_RESPONSE_TOO_LARGE, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_invalid_response_count);
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -5772,7 +5910,7 @@ attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_alr
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
@@ -5816,7 +5954,7 @@ attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_alr
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
@@ -5854,7 +5992,7 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 		false, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -5891,7 +6029,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_fail (C
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -5979,7 +6117,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_unexpec
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -6016,7 +6154,7 @@ static void attestation_requester_test_attest_device_cerberus_get_digest_no_rsp 
 		SHA256_HASH_LENGTH, ATTESTATION_RIOT_SLOT_NUM, ATTESTATION_ECDHE_KEY_EXCHANGE, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
@@ -6059,7 +6197,7 @@ attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_already_auth
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
@@ -6106,7 +6244,7 @@ attestation_requester_test_attest_device_cerberus_get_digest_no_rsp_already_auth
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
@@ -6153,7 +6291,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_fa
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -6198,7 +6336,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_un
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -7771,7 +7909,7 @@ static void attestation_requester_test_attest_device_cerberus_get_certificate_no
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
@@ -7821,7 +7959,7 @@ attestation_requester_test_attest_device_cerberus_get_certificate_no_rsp_already
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
@@ -7875,7 +8013,7 @@ attestation_requester_test_attest_device_cerberus_get_certificate_no_rsp_already
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
@@ -8056,7 +8194,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_fail (Cu
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_ERROR_RESPONSE, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -8574,7 +8712,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_unexpect
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, ATTESTATION_REQUEST_FAILED, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_UNEXPECTED_RESPONSE, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
@@ -8616,7 +8754,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp (
 		false, false, false, false, 0, 0, 0, 0, 0, 0, true, false, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, status);
@@ -8664,7 +8802,7 @@ static void attestation_requester_test_attest_device_cerberus_challenge_no_rsp_a
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
@@ -8716,7 +8854,7 @@ attestation_requester_test_attest_device_cerberus_challenge_no_rsp_already_authe
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
-	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT, status);
+	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&testing.device_mgr, 0xAA);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT, status);
@@ -28102,10 +28240,6 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 		&testing.spdm_transport.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
-		&testing.test.cerberus_rsp_observer);
-	CuAssertIntEquals (test, 0, status);
-
 	status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing.cmd_mctp,
 		&testing.test.mctp_rsp_observer);
 	CuAssertIntEquals (test, 0, status);
@@ -37710,11 +37844,6 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 		&testing.spdm_transport.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
-		&testing.test.cerberus_rsp_observer);
-	CuAssertIntEquals (test, 0, status);
-
-
 	status = attestation_requester_attest_device (&testing.test, 0xCC);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
@@ -40043,10 +40172,6 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.spdm_transport.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
-		&testing.test.cerberus_rsp_observer);
-	CuAssertIntEquals (test, 0, status);
-
 	status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing.cmd_mctp,
 		&testing.test.mctp_rsp_observer);
 	CuAssertIntEquals (test, 0, status);
@@ -40960,10 +41085,6 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = cmd_interface_system_add_cerberus_protocol_observer (&testing.cmd_cerberus,
-		&testing.test.cerberus_rsp_observer);
-	CuAssertIntEquals (test, 0, status);
-
 	status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing.cmd_mctp,
 		&testing.test.mctp_rsp_observer);
 	CuAssertIntEquals (test, 0, status);
@@ -41275,10 +41396,6 @@ static void attestation_requester_setup_attestation_loop (
 		&testing->ecc.base, NULL, &testing->x509_mock.base, &testing->rng.base, &testing->riot,
 		&testing->device_mgr, &testing->cfm_manager.base, &testing->mctp_control.base,
 		&testing->spdm_transport.base);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd_interface_system_add_cerberus_protocol_observer (&testing->cmd_cerberus,
-		&testing->test.cerberus_rsp_observer);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_interface_mctp_control_add_mctp_control_protocol_observer (&testing->cmd_mctp,
@@ -42030,6 +42147,7 @@ TEST (attestation_requester_test_attest_device_cerberus_already_authenticated_wi
 TEST (attestation_requester_test_attest_device_cerberus_multiple_pmr0_digest_options);
 TEST (attestation_requester_test_attest_device_cerberus_device_capabilities_unexpected_rsp);
 TEST (attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp);
+TEST (attestation_requester_test_attest_device_cerberus_device_capabilities_error_response);
 TEST (attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_already_authenticated);
 TEST (attestation_requester_test_attest_device_cerberus_device_capabilities_no_rsp_already_authenticated_with_timeout);
 TEST (attestation_requester_test_attest_device_cerberus_device_capabilities_fail);

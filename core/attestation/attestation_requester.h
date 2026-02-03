@@ -79,9 +79,6 @@ struct attestation_requester_state {
  * over MCTP
  */
 struct attestation_requester {
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-	struct cerberus_protocol_observer cerberus_rsp_observer;	/**< Observer to notifications of a Cerberus protocol response message. */
-#endif
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	struct mctp_control_protocol_observer mctp_rsp_observer;	/**< Observer to notifications of a MCTP control protocol response message. */
 #endif
