@@ -605,6 +605,10 @@ static int cfm_flash_populate_allowable_digests (const struct cfm_flash *cfm_fla
 		curr_allowable_digest->digests.hash_type = hash_type;
 		curr_allowable_digest->digests.digest_count = allowable_digest_ptr->digest_count;
 
+		if (curr_allowable_digest->digests.digest_count == 0) {
+			return CFM_MALFORMED_MEASUREMENT_ENTRY;
+		}
+
 		digests_len = curr_allowable_digest->digests.digest_count * hash_len;
 
 		// Advance to start of digests
