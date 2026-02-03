@@ -7,6 +7,7 @@
 #include "manifest_logging.h"
 #include "manifest_pcr.h"
 #include "platform_api.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 
 
@@ -131,6 +132,7 @@ int manifest_pcr_measure_manifest (const struct manifest *active, const struct h
 	uint8_t manifest_digest[HASH_MAX_HASH_LEN] = {0};
 	int digest_length = SHA256_HASH_LENGTH;
 	uint8_t id[5];
+	uint32_t version;
 	char *platform_id = NULL;
 	char empty_string = '\0';
 	int status;
@@ -158,14 +160,16 @@ int manifest_pcr_measure_manifest (const struct manifest *active, const struct h
 		memset (id, 0, sizeof (id));
 	}
 	else {
-		id[0] = 1;
-		status = active->get_id (active, (uint32_t*) &id[1]);
+		status = active->get_id (active, &version);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
 				MANIFEST_LOGGING_GET_ID_FAIL, manifest_id_measurement, status);
 
 			return status;
 		}
+
+		id[0] = 1;
+		buffer_unaligned_write32 ((uint32_t*) &id[1], version);
 	}
 
 	status = pcr_store_update_versioned_buffer (store, hash, manifest_id_measurement, id,

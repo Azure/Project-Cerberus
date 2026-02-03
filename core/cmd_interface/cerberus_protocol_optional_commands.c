@@ -400,6 +400,7 @@ int cerberus_protocol_get_pfm_fw (const struct pfm_manager *const pfm_mgr[], uin
 	struct cerberus_protocol_get_pfm_supported_fw_response *rsp =
 		(struct cerberus_protocol_get_pfm_supported_fw_response*) request->data;
 	const struct pfm *curr_pfm = NULL;
+	uint32_t pfm_id;
 	size_t offset;
 	uint32_t port;
 	char *fw_id = NULL;
@@ -438,10 +439,12 @@ int cerberus_protocol_get_pfm_fw (const struct pfm_manager *const pfm_mgr[], uin
 	if (curr_pfm != NULL) {
 		rsp->valid = 1;
 
-		status = curr_pfm->base.get_id (&curr_pfm->base, &rsp->version);
+		status = curr_pfm->base.get_id (&curr_pfm->base, &pfm_id);
 		if (status != 0) {
 			goto exit;
 		}
+
+		rsp->version = pfm_id;
 
 		if ((request->length > sizeof (struct cerberus_protocol_get_pfm_supported_fw)) &&
 			(cerberus_protocol_get_pfm_supported_fw_id_length (rq) != 0)) {
@@ -726,6 +729,7 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
 	struct cerberus_protocol_message_unseal_result_completed_response *rsp =
 		(struct cerberus_protocol_message_unseal_result_completed_response*) request->data;
 	size_t max_buf_len;
+	uint32_t unseal_status;
 	int status;
 
 	if (request->length != sizeof (struct cerberus_protocol_message_unseal_result)) {
@@ -735,11 +739,12 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
 	max_buf_len = CERBERUS_PROTOCOL_MAX_UNSEAL_KEY_DATA (request);
 
 	if (background != NULL) {
-		status = background->unseal_result (background, &rsp->key, &max_buf_len,
-			&rsp->unseal_status);
+		status = background->unseal_result (background, &rsp->key, &max_buf_len, &unseal_status);
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
+
+		rsp->unseal_status = unseal_status;
 	}
 	else {
 		return CMD_HANDLER_UNSUPPORTED_COMMAND;

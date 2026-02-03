@@ -3719,7 +3719,7 @@ static int attestation_requester_discover_device_spdm_protocol (
 	uint16_t pci_device_id = 0;
 	uint16_t pci_sub_vid = 0;
 	uint16_t pci_sub_id = 0;
-	uint16_t *id;
+	uint16_t id;
 	size_t offset = sizeof (struct spdm_discovery_device_id_block);
 	uint8_t found = 0;
 	int device_addr;
@@ -3764,31 +3764,34 @@ static int attestation_requester_discover_device_spdm_protocol (
 			(struct spdm_discovery_device_id_descriptor*) &attestation->state->txn.msg_buffer[offset];
 
 		offset += sizeof (struct spdm_discovery_device_id_descriptor);
-		id = (uint16_t*) &attestation->state->txn.msg_buffer[offset];
-		offset += descriptor->descriptor_len;
 
+		// PCI descriptors are 2 bytes length, skip if not valid
 		if (descriptor->descriptor_len != sizeof (uint16_t)) {
+			offset += descriptor->descriptor_len;
 			continue;
 		}
 
+		id = buffer_unaligned_read16 ((uint16_t*) &attestation->state->txn.msg_buffer[offset]);
+		offset += sizeof (uint16_t);
+
 		switch (descriptor->descriptor_type) {
 			case SPDM_DISCOVERY_DEVICE_ID_PCI_VID:
-				pci_vid = *id;
+				pci_vid = id;
 				found |= 1;
 				break;
 
 			case SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID:
-				pci_device_id = *id;
+				pci_device_id = id;
 				found |= (1 << 1);
 				break;
 
 			case SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID:
-				pci_sub_vid = *id;
+				pci_sub_vid = id;
 				found |= (1 << 2);
 				break;
 
 			case SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID:
-				pci_sub_id = *id;
+				pci_sub_id = id;
 				found |= (1 << 3);
 				break;
 

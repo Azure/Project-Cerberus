@@ -403,14 +403,16 @@ int cerberus_protocol_get_manifest_id_version (const struct manifest *manifest,
 	/* Just use the CFM structures since they are the same for all manifests. */
 	struct cerberus_protocol_get_cfm_id_version_response *rsp =
 		(struct cerberus_protocol_get_cfm_id_version_response*) request->data;
+	uint32_t version;
 	int status = 0;
 
 	if (manifest != NULL) {
-		status = manifest->get_id (manifest, &rsp->version);
+		status = manifest->get_id (manifest, &version);
 		if (status != 0) {
 			return status;
 		}
 
+		rsp->version = version;
 		rsp->valid = 1;
 	}
 	else {
@@ -557,6 +559,7 @@ int cerberus_protocol_get_cfm_component_ids (const struct cfm_manager *cfm_mgr,
 	struct cerberus_protocol_get_cfm_component_ids_response *rsp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) request->data;
 	const struct cfm *curr_cfm = NULL;
+	uint32_t cfm_id;
 	uint32_t offset;
 	size_t length;
 	int status = 0;
@@ -582,10 +585,12 @@ int cerberus_protocol_get_cfm_component_ids (const struct cfm_manager *cfm_mgr,
 		offset = rq->offset;
 		rsp->valid = 1;
 
-		status = curr_cfm->base.get_id (&curr_cfm->base, &rsp->version);
+		status = curr_cfm->base.get_id (&curr_cfm->base, &cfm_id);
 		if (status != 0) {
 			goto exit;
 		}
+
+		rsp->version = cfm_id;
 
 		length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (request);
 
@@ -758,6 +763,7 @@ int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
 	struct cerberus_protocol_get_pcd_component_ids_response *rsp =
 		(struct cerberus_protocol_get_pcd_component_ids_response*) request->data;
 	const struct pcd *curr_pcd = NULL;
+	uint32_t pcd_id;
 	uint32_t offset;
 	size_t length;
 	int status = 0;
@@ -780,10 +786,12 @@ int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
 		offset = rq->offset;
 		rsp->valid = 1;
 
-		status = curr_pcd->base.get_id (&curr_pcd->base, &rsp->version);
+		status = curr_pcd->base.get_id (&curr_pcd->base, &pcd_id);
 		if (status != 0) {
 			goto exit;
 		}
+
+		rsp->version = pcd_id;
 
 		length = CERBERUS_PROTOCOL_MAX_PCD_COMPONENT_IDS (request);
 
