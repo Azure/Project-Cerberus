@@ -6,7 +6,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "cerberus_protocol_observer.h"
 #include "cmd_authorization.h"
 #include "cmd_background.h"
 #include "cmd_device.h"
@@ -86,11 +85,6 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session);
 void cmd_interface_system_deinit (struct cmd_interface_system *intf);
-
-int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	const struct cerberus_protocol_observer *observer);
-int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	const struct cerberus_protocol_observer *observer);
 
 /* Internal functions for use by derived types. */
 int cmd_interface_system_process_request (const struct cmd_interface *intf,

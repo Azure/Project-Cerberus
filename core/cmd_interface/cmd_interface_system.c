@@ -328,76 +328,16 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	return status;
 }
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 int cmd_interface_system_process_response (const struct cmd_interface *intf,
 	struct cmd_interface_msg *response)
 {
-	struct cmd_interface_system *interface = TO_DERIVED_TYPE (intf, struct cmd_interface_system,
-		base);
-	uint8_t command_id;
-	uint8_t command_set;
-	int status;
+	UNUSED (intf);
+	UNUSED (response);
 
-	status = cmd_interface_process_cerberus_protocol_message (intf, response, &command_id,
-		&command_set, true, true);
-	if (status != 0) {
-		return status;
-	}
-
-	switch (command_id) {
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = cerberus_protocol_process_certificate_digest_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_get_digest_response), response);
-			}
-
-		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			status = cerberus_protocol_process_certificate_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_get_certificate_response),
-					response);
-			}
-
-		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_process_challenge_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_challenge_response), response);
-			}
-
-		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status =
-				cerberus_protocol_process_device_capabilities_response (interface->device_manager,
-				response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_device_capabilities), response);
-			}
-#else
-		UNUSED (interface);
-#endif
-
-		case CERBERUS_PROTOCOL_ERROR:
-			return cerberus_protocol_process_error_response (response);
-
-		default:
-			return CMD_HANDLER_UNKNOWN_RESPONSE;
-	}
+	return CMD_HANDLER_UNSUPPORTED_OPERATION;
 }
+#endif
 
 /**
  * Initialize System command interface instance
@@ -529,40 +469,4 @@ void cmd_interface_system_deinit (struct cmd_interface_system *intf)
 	if (intf != NULL) {
 		observable_release (&intf->observable);
 	}
-}
-
-/**
- * Add an observer for system notifications.
- *
- * @param system The system instance to register with.
- * @param observer The observer to add.
- *
- * @return 0 if the observer was successfully added or an error code.
- */
-int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	const struct cerberus_protocol_observer *observer)
-{
-	if (intf == NULL) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	return observable_add_observer (&intf->observable, (void*) observer);
-}
-
-/**
- * Remove an observer from system notifications.
- *
- * @param system The system instance to deregister from.
- * @param observer The observer to remove.
- *
- * @return 0 if the observer was successfully removed or an error code.
- */
-int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	const struct cerberus_protocol_observer *observer)
-{
-	if (intf == NULL) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	return observable_remove_observer (&intf->observable, (void*) observer);
 }

@@ -8,7 +8,6 @@
 #include "attestation.h"
 #include "pcr_store.h"
 #include "asn1/x509.h"
-#include "cmd_interface/cerberus_protocol_observer.h"
 #include "cmd_interface/device_manager.h"
 #include "crypto/ecc.h"
 #include "crypto/hash.h"
