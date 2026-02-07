@@ -109,7 +109,12 @@ static int cmd_interface_mctp_control_process_request (const struct cmd_interfac
 			break;
 
 		default:
-			status = CMD_HANDLER_MCTP_CTRL_UNKNOWN_REQUEST;
+			/*
+			 * As per MCTP Base Spec DSP0236_1.3.3, Section 12.6 and section 12.3
+			 * completion shall be returned for any unsupported command values received
+			 * in MCTP control Request messages.
+			 */
+			status = mctp_control_protocol_unsupported_cmd (request);
 	}
 
 	return status;

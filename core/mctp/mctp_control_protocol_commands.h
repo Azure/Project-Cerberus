@@ -289,6 +289,7 @@ int mctp_control_protocol_send_discovery_notify (const struct msg_transport *tra
 	struct device_manager *device_mgr, bool use_bridge_eid,	uint32_t timeout_ms,
 	struct cmd_interface_msg *response);
 
+int mctp_control_protocol_unsupported_cmd (struct cmd_interface_msg *request);
 
 #define	CMD_HANDLER_MCTP_CTRL_ERROR(\
 	code)\

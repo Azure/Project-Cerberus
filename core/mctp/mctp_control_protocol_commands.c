@@ -261,6 +261,27 @@ int mctp_control_protocol_get_mctp_version_support (struct cmd_interface_msg *re
 	return 0;
 }
 
+int mctp_control_protocol_unsupported_cmd (struct cmd_interface_msg *request)
+{
+	struct mctp_control_protocol_resp_header *response;
+	struct mctp_control_protocol_header *header;
+
+	if (request == NULL) {
+		return CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT;
+	}
+
+	header = (struct mctp_control_protocol_header*) request->payload;
+	response = (struct mctp_control_protocol_resp_header*) request->payload;
+
+	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
+		MCTP_LOGGING_MCTP_CONTROL_UNSUPPORTED_CMD, header->command_code, request->channel_id);
+
+	cmd_interface_msg_set_message_payload_length (request, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN);
+	response->completion_code = MCTP_CONTROL_PROTOCOL_ERROR_UNSUPPORTED_CMD;
+
+	return 0;
+}
+
 /**
  * Process Get Message Type Support request packet
  *

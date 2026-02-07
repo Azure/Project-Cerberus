@@ -246,6 +246,8 @@ static void cmd_interface_mctp_control_test_process_request_unknown_command (CuT
 	struct cmd_interface_msg request;
 	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
 	struct mctp_control_protocol_header *header = (struct mctp_control_protocol_header*) data;
+	struct mctp_control_protocol_resp_header *response =
+		(struct mctp_control_protocol_resp_header*) data;
 	int status;
 
 	TEST_START;
@@ -265,7 +267,15 @@ static void cmd_interface_mctp_control_test_process_request_unknown_command (CuT
 	setup_cmd_interface_mctp_control_test (test, &cmd, true);
 
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
-	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_UNKNOWN_REQUEST, status);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
+	CuAssertIntEquals (test, 0, response->header.rq);
+	CuAssertIntEquals (test, 0, response->header.d_bit);
+	CuAssertIntEquals (test, 0, response->header.instance_id);
+	CuAssertIntEquals (test, 0, response->header.rsvd);
+	CuAssertIntEquals (test, 0, response->header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR_UNSUPPORTED_CMD,
+		response->completion_code);
 
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }

@@ -2320,6 +2320,95 @@ static void mctp_control_protocol_commands_test_send_discovery_notify_create_req
 	device_manager_release (&device_mgr);
 }
 
+static void mctp_control_protocol_commands_test_process_unsupported_cmd (CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg request;
+	struct mctp_control_protocol_header *header = (struct mctp_control_protocol_header*) data;
+	struct mctp_control_protocol_resp_header *response;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	response = (struct mctp_control_protocol_resp_header*) data;
+
+	request.payload = data;
+	request.payload_length = sizeof (struct mctp_control_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.channel_id = 4;
+
+	header->instance_id = 1;
+	header->rsvd = 0;
+	header->d_bit = 0;
+	header->rq = 1;
+	header->command_code = 0x03;
+
+	status = mctp_control_protocol_unsupported_cmd (&request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
+	CuAssertIntEquals (test, 0x03, response->header.command_code);
+	CuAssertIntEquals (test, 1, response->header.instance_id);
+	CuAssertIntEquals (test, 0, response->header.rsvd);
+	CuAssertIntEquals (test, 0, response->header.d_bit);
+	CuAssertIntEquals (test, 1, response->header.rq);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR_UNSUPPORTED_CMD,
+		response->completion_code);
+}
+
+static void mctp_control_protocol_commands_test_process_unsupported_cmd_overwrite_resp (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg request;
+	struct mctp_control_protocol_resp_header *response =
+		(struct mctp_control_protocol_resp_header*) data;
+	struct mctp_control_protocol_header *header = &response->header;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0xAA, sizeof (data));
+
+	request.payload = data;
+	request.payload_length = sizeof (struct mctp_control_protocol_header);
+	request.channel_id = 7;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	header->instance_id = 3;
+	header->rsvd = 0;
+	header->d_bit = 0;
+	header->rq = 1;
+	header->command_code = 0x0;
+
+	response->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+
+	status = mctp_control_protocol_unsupported_cmd (&request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
+	CuAssertIntEquals (test, 0x0, response->header.command_code);
+	CuAssertIntEquals (test, 3, response->header.instance_id);
+	CuAssertIntEquals (test, 0, response->header.rsvd);
+	CuAssertIntEquals (test, 0, response->header.d_bit);
+	CuAssertIntEquals (test, 1, response->header.rq);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR_UNSUPPORTED_CMD,
+		response->completion_code);
+}
+
+static void mctp_control_protocol_commands_test_process_unsupported_cmd_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = mctp_control_protocol_unsupported_cmd (NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (mctp_control_protocol_commands);
@@ -2389,6 +2478,9 @@ TEST (mctp_control_protocol_commands_test_send_discovery_notify_notify_null);
 TEST (mctp_control_protocol_commands_test_send_discovery_notify_no_mctp_bridge);
 TEST (mctp_control_protocol_commands_test_send_discovery_notify_process_response);
 TEST (mctp_control_protocol_commands_test_send_discovery_notify_create_request_fail);
+TEST (mctp_control_protocol_commands_test_process_unsupported_cmd);
+TEST (mctp_control_protocol_commands_test_process_unsupported_cmd_overwrite_resp);
+TEST (mctp_control_protocol_commands_test_process_unsupported_cmd_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*
