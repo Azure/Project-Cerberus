@@ -38357,6 +38357,66 @@ static void attestation_requester_test_discover_device_get_msg_type_request_comm
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_discover_device_get_msg_type_request_response_too_short (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct mctp_control_get_message_type *request;
+	uint8_t *tx_message = NULL;
+	struct cmd_interface_msg *req_expected = NULL;
+	uint8_t dest_eid = 0xAA;
+	uint32_t timeout;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, false, true);
+
+	timeout = device_manager_get_mctp_ctrl_timeout (&testing.device_mgr);
+
+	/* Request construction */
+	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_message_type));
+	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
+	req_expected->length = sizeof (struct mctp_control_get_message_type);
+	req_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+	req_expected->payload = tx_message;
+	req_expected->payload_length = sizeof (struct mctp_control_get_message_type);
+	req_expected->target_eid = dest_eid;
+
+	request = (struct mctp_control_get_message_type*) req_expected->payload;
+	request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
+	request->header.rq = 1;
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control, 0,
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.get_max_message_payload_length, &testing.mctp_control,
+		MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN, MOCK_ARG (dest_eid));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.mctp_control.mock,
+		testing.mctp_control.base.send_request_message, &testing.mctp_control.base,
+		MSG_TRANSPORT_RESPONSE_TOO_SHORT,
+		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
+		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_discover_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, MSG_TRANSPORT_RESPONSE_TOO_SHORT, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE, status);
+
+	cmd_interface_mock_free_request (req_expected);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_discover_device_get_msg_type_cc_fail (
 	CuTest *test)
 {
@@ -42481,6 +42541,7 @@ TEST (attestation_requester_test_discover_device_spdm_update_routing_table);
 TEST (attestation_requester_test_discover_device_spdm_update_routing_table_bridge_refresh_request);
 TEST (attestation_requester_test_discover_device_invalid_arg);
 TEST (attestation_requester_test_discover_device_get_msg_type_request_command_failed);
+TEST (attestation_requester_test_discover_device_get_msg_type_request_response_too_short);
 TEST (attestation_requester_test_discover_device_get_msg_type_cc_fail);
 TEST (attestation_requester_test_discover_device_spdm_no_mctp_bridge);
 TEST (attestation_requester_test_discover_device_get_msg_type_unexpected_rsp);

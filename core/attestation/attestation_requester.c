@@ -68,6 +68,62 @@
 #define attestation_requester_is_version_set_selected(attestation) \
 	(attestation->state->txn.device_version_set != 0)
 
+/**
+ * Unified message transport request and response handler for all protocols.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param transport The Message transport instance used to send the messages.
+ * @param request Request to process.
+ * @param response The response container received.
+ * @param command Requested command to send out.
+ * @param timeout_ms Timeout in milliseconds for the request.
+ *
+ * @return 0 if success or an error code.
+ */
+static int attestation_requester_send_msg_transport_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command,
+	uint32_t timeout_ms)
+{
+	int device_state;
+	int status;
+
+	attestation->state->txn.requested_command = command;
+
+	status = transport->send_request_message (transport, request, timeout_ms, response);
+	if (status != 0) {
+		if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
+			device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
+				request->target_eid);
+
+			if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
+			}
+			else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
+			}
+			else {
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+			}
+		}
+		else if ((status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) ||
+			(status == MSG_TRANSPORT_RESPONSE_TOO_LARGE) ||
+			(status == MSG_TRANSPORT_RESPONSE_TOO_SHORT)) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
+				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+		}
+		else {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
+				DEVICE_MANAGER_ATTESTATION_FAILED);
+		}
+	}
+
+	return status;
+}
+
 #if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
 /**
  * Cerberus get digest response post processing function.
@@ -77,7 +133,7 @@
  *
  * @return Completion status, 0 if success or an error code otherwise.
  */
-static int attestation_requester_get_digest_rsp_post_processing (
+static int attestation_requester_get_digest_cerberus_rsp_post_processing (
 	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
 {
 	struct cerberus_protocol_get_certificate_digest_response *digest_rsp =
@@ -98,7 +154,7 @@ static int attestation_requester_get_digest_rsp_post_processing (
  *
  * @return Completion status, 0 if success or an error code otherwise.
  */
-static int attestation_requester_challenge_rsp_post_processing (
+static int attestation_requester_challenge_cerberus_rsp_post_processing (
 	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
 {
 	struct cerberus_protocol_challenge_response *challenge_rsp =
@@ -176,6 +232,60 @@ static int attestation_requester_get_certificate_cerberus_rsp_post_processing (
 }
 
 /**
+ * Validate Cerberus protocol response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int attestation_requester_process_cerberus_protocol_response (
+	const struct attestation_requester *attestation, struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_header *resp_header =
+		(struct cerberus_protocol_header*) response->payload;
+	int status;
+
+	if (attestation_requester_check_cerberus_unexpected_rsp (attestation, resp_header->command)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_CERBERUS << 8) | resp_header->command));
+
+		return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+	}
+
+	switch (attestation->state->txn.requested_command) {
+		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
+			/* No post-processing needed for capabilities. */
+			status = 0;
+			break;
+
+		case CERBERUS_PROTOCOL_GET_DIGEST:
+			status = attestation_requester_get_digest_cerberus_rsp_post_processing (attestation,
+				response);
+			break;
+
+		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
+			status =
+				attestation_requester_get_certificate_cerberus_rsp_post_processing (attestation,
+				response);
+			break;
+
+		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
+			status = attestation_requester_challenge_cerberus_rsp_post_processing (attestation,
+				response);
+			break;
+
+		default:
+			return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+	}
+
+	return status;
+}
+
+/**
  * Send Cerberus message transport request command and get response for Cerberus control.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -186,90 +296,22 @@ static int attestation_requester_get_certificate_cerberus_rsp_post_processing (
  *
  * @return Initialization status, 0 if success or an error code.
  */
-static int attestation_requester_send_cerberus_msg_transport_request_and_get_response (
+static int attestation_requester_send_cerberus_request_and_get_response (
 	const struct attestation_requester *attestation, const struct msg_transport *transport,
 	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command)
 {
-	uint32_t timeout_ms;
-	int device_state;
+	uint32_t timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
 	int status;
-	struct cerberus_protocol_header *resp_header;
 
-	timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
-	attestation->state->txn.requested_command = command;
-
-	status = transport->send_request_message (transport, request, timeout_ms, response);
+	status = attestation_requester_send_msg_transport_request_and_get_response (attestation,
+		transport, request, response, command, timeout_ms);
 	if (status != 0) {
-		if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
-			device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
-				request->target_eid);
-
-			if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr,
-					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
-			}
-			else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr,
-					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
-			}
-			else {
-				device_manager_update_device_state_by_eid (attestation->device_mgr,
-					request->target_eid, DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
-			}
-		}
-		else if ((status == MSG_TRANSPORT_RESPONSE_TOO_LARGE) ||
-			(status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) ||
-			(status == MSG_TRANSPORT_RESPONSE_TOO_SHORT)) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
-				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-		}
-
 		return status;
 	}
 
-	resp_header = (struct cerberus_protocol_header*) response->payload;
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation, resp_header->command)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol <<
-					24) | (attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS << 8) | resp_header->command));
-		device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
-			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-
-		return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
-	}
-
-	// Process response based on command type
-	switch (attestation->state->txn.requested_command) {
-		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			// No post-processing needed for capabilities
-			status = 0;
-			break;
-
-		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = attestation_requester_get_digest_rsp_post_processing (attestation, response);
-			break;
-
-		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			status =
-				attestation_requester_get_certificate_cerberus_rsp_post_processing (attestation,
-				response);
-			break;
-
-		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = attestation_requester_challenge_rsp_post_processing (attestation, response);
-			break;
-
-		default:
-			status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
-			break;
-	}
-
+	status = attestation_requester_process_cerberus_protocol_response (attestation, response);
 	if (status != 0) {
-		device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
+		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
 			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 	}
 
@@ -1265,81 +1307,15 @@ static int attestation_requester_spdm_get_measurements_rsp_post_processing (
 }
 
 /**
- * Send MCTP message transport request command and get response for MCTP control.
- *
- * @param attestation Attestation requester instance to utilize.
- * @param transport The Message transport instance used to send the messages.
- * @param request Request to process.
- * @param response The response container received.
- * @param command Requested command to send out.
- *
- * @return Initialization status, 0 if success or an error code.
- */
-static int attestation_requester_send_mctp_control_msg_transport_request_and_get_response (
-	const struct attestation_requester *attestation, const struct msg_transport *transport,
-	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command)
-{
-	struct mctp_control_protocol_resp_header *resp_header;
-	uint32_t timeout_ms;
-	int device_state;
-	int status;
-
-	timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
-	attestation->state->txn.requested_command = command;
-
-	status = transport->send_request_message (transport, request, timeout_ms, response);
-	if (status != 0) {
-		if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
-			device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
-				request->target_eid);
-
-			if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr,
-					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
-			}
-			else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr,
-					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
-			}
-			else {
-				device_manager_update_device_state_by_eid (attestation->device_mgr,
-					request->target_eid, DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
-			}
-		}
-		else if (status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
-				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-		}
-
-		return status;
-	}
-
-	resp_header = (struct mctp_control_protocol_resp_header*) response->payload;
-	if ((resp_header->completion_code != MCTP_CONTROL_PROTOCOL_SUCCESS) ||
-		(attestation->state->txn.requested_command != resp_header->header.command_code)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16)) | (255 << 8) |
-				resp_header->header.command_code);
-		device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
-			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-
-		return ATTESTATION_REQUEST_FAILED;
-	}
-
-	return status;
-}
-
-/**
  * Process SPDM response not ready error from a responder device.
  * Extracts delay token and calculates sleep duration for retry handling.
  *
  * @param attestation Attestation requester instance to utilize.
  * @param response The response container received containing the ResponseNotReady error.
+ *
+ * @return 0 if completed successfully or an error code.
  */
-static void attestation_requester_spdm_response_not_ready (
+static int attestation_requester_spdm_response_not_ready (
 	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
 {
 	struct spdm_error_response *rsp = (struct spdm_error_response*) response->payload;
@@ -1388,22 +1364,44 @@ static void attestation_requester_spdm_response_not_ready (
 
 	attestation->state->txn.sleep_duration_ms = 1 + ((1 << rdt_exponent) / 1000);
 	attestation->state->txn.respond_if_ready_token = rsp_not_ready->token;
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
 
-	return;
+	return 0;
 
 fail:
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
+
+	return ATTESTATION_REQUEST_FAILED;
 }
 
-static int attestation_requester_spdm_process_response (
-	const struct attestation_requester *attestation, struct cmd_interface_msg *response)
+/**
+ * Validate and process SPDM protocol response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ * @param command The expected command code for the response.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int attestation_requester_process_spdm_protocol_response (
+	const struct attestation_requester *attestation, struct cmd_interface_msg *response,
+	uint8_t command)
 {
 	uint8_t rsp_code;
 	int status;
 
 	if ((attestation == NULL) || (response == NULL)) {
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	if (attestation_requester_check_spdm_unexpected_rsp (attestation, command)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) | command));
+		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+
+		return ATTESTATION_REQUEST_FAILED;
 	}
 
 	status = spdm_get_command_id (response, &rsp_code);
@@ -1446,29 +1444,22 @@ static int attestation_requester_spdm_process_response (
 					(struct spdm_error_response*) response->payload;
 
 				if (error_msg->error_code == SPDM_ERROR_RESPONSE_NOT_READY) {
-					attestation_requester_spdm_response_not_ready (attestation, response);
-
-					return 0;
+					status = attestation_requester_spdm_response_not_ready (attestation, response);
 				}
 				else {
 					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
 						DEBUG_LOG_COMPONENT_ATTESTATION, ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,
 						((error_msg->error_code << 24) | (response->source_eid << 16) |
 									(response->target_eid << 8)), error_msg->error_data);
+					status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
 				}
 			}
-
-			return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+			break;
 
 		default:
-			return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+			status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+			break;
 	}
-
-	if (status != 0) {
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-	}
-
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
 
 	return status;
 }
@@ -1484,7 +1475,7 @@ static int attestation_requester_spdm_process_response (
  *
  * @return Initialization status, 0 if success or an error code.
  */
-static int attestation_requester_send_spdm_msg_transport_request_and_get_response (
+static int attestation_requester_send_spdm_protocol_request_and_get_response (
 	const struct attestation_requester *attestation, struct cmd_interface_msg *request,
 	uint8_t dest_eid, bool crypto_timeout, uint8_t command)
 {
@@ -1493,7 +1484,6 @@ static int attestation_requester_send_spdm_msg_transport_request_and_get_respons
 	uint32_t max_rsp_not_ready_timeout_ms;
 	uint8_t max_rsp_not_ready_retries;
 	size_t request_len;
-	int device_state;
 	bool rsp_ready = false;
 	int status;
 
@@ -1517,57 +1507,20 @@ static int attestation_requester_send_spdm_msg_transport_request_and_get_respons
 			return status;
 		}
 
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
-		attestation->state->txn.requested_command = command;
-
-		status = attestation->spdm_transport->send_request_message (attestation->spdm_transport,
-			request, timeout_ms, &response);
-		if (status != 0) {
-			if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
-				device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
-					dest_eid);
-
-				if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
-					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-						DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
-				}
-				else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
-					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-						DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
-				}
-				else {
-					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-						DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
-				}
-			}
-			else if (status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-			}
-
-			return status;
-		}
-
-		if (attestation_requester_check_spdm_unexpected_rsp (attestation, command)) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response.source_eid,
-				((attestation->state->txn.protocol << 24) |
-							(attestation->state->txn.requested_command << 16) |
-							(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
-
-			return ATTESTATION_REQUEST_FAILED;
-		}
-
-		status = attestation_requester_spdm_process_response (attestation, &response);
+		// Use unified handler for the core send/receive logic
+		status = attestation_requester_send_msg_transport_request_and_get_response (attestation,
+			attestation->spdm_transport, request, &response, command, timeout_ms);
 		if (status != 0) {
 			return status;
 		}
 
-		if (attestation->state->txn.request_status != ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL) {
+		status = attestation_requester_process_spdm_protocol_response (attestation, &response,
+			command);
+		if (ROT_IS_ERROR (status)) {
 			device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
 				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 
-			return ATTESTATION_REQUEST_FAILED;
+			return status;
 		}
 
 		/* If SPDM, responder might send a ResponseNotReady error. The ResponseNotReady notification
@@ -1633,7 +1586,7 @@ static int attestation_requester_send_spdm_msg_transport_request_and_get_respons
  *
  * @return 0 if successful or error code otherwise
  */
-static int attestation_requester_send_spdm_request_and_get_response (
+static int attestation_requester_send_spdm_command_request (
 	const struct attestation_requester *attestation, struct cmd_interface_msg *request,
 	size_t request_len, uint8_t dest_eid, bool crypto_timeout, uint8_t command)
 {
@@ -1659,7 +1612,7 @@ static int attestation_requester_send_spdm_request_and_get_response (
 
 	cmd_interface_msg_set_message_payload_length (request, request_len);
 
-	status = attestation_requester_send_spdm_msg_transport_request_and_get_response (attestation,
+	status = attestation_requester_send_spdm_protocol_request_and_get_response (attestation,
 		request, dest_eid, crypto_timeout, command);
 	if (ROT_IS_ERROR (status)) {
 		return status;
@@ -1949,7 +1902,7 @@ static int attestation_requester_send_cerberus_get_device_capabilities (
 	}
 
 	status =
-		attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+		attestation_requester_send_cerberus_request_and_get_response (attestation,
 		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES);
 	if (status != 0) {
 		return status;
@@ -1998,7 +1951,7 @@ static int attestation_requester_send_cerberus_get_digest (
 	}
 
 	status =
-		attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+		attestation_requester_send_cerberus_request_and_get_response (attestation,
 		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_DIGEST);
 	if (status != 0) {
 		return status;
@@ -2062,7 +2015,7 @@ static int attestation_requester_send_and_verify_cerberus_challenge (
 	}
 
 	status =
-		attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+		attestation_requester_send_cerberus_request_and_get_response (attestation,
 		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE);
 	if (status != 0) {
 		return status;
@@ -2125,7 +2078,7 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
 		}
 
 		status =
-			attestation_requester_send_cerberus_msg_transport_request_and_get_response (attestation,
+			attestation_requester_send_cerberus_request_and_get_response (attestation,
 			&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_CERTIFICATE);
 		if (status != 0) {
 			attestation->primary_hash->cancel (attestation->primary_hash);
@@ -2298,8 +2251,8 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 		return rq_len;
 	}
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, &request,
-		rq_len, eid, false, SPDM_REQUEST_GET_VERSION);
+	status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len, eid,
+		false, SPDM_REQUEST_GET_VERSION);
 	if (status != 0) {
 		return status;
 	}
@@ -2317,8 +2270,8 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 		return rq_len;
 	}
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, &request,
-		rq_len, eid, false, SPDM_REQUEST_GET_CAPABILITIES);
+	status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len, eid,
+		false, SPDM_REQUEST_GET_CAPABILITIES);
 	if (status != 0) {
 		return status;
 	}
@@ -2402,8 +2355,8 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 		return rq_len;
 	}
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, &request,
-		rq_len, eid, false, SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
+	status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len, eid,
+		false, SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
 	if (status != 0) {
 		return status;
 	}
@@ -2606,8 +2559,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 			attestation->state->txn.measurement_operation_requested =
 				SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS;
 
-			status = attestation_requester_send_spdm_request_and_get_response (attestation,
-				&request, rq_len, eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
+			status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len,
+				eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
 			if (status != 0) {
 				return status;
 			}
@@ -2643,8 +2596,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 	attestation->state->txn.raw_bitstream_requested = raw_bitstream_requested;
 	attestation->state->txn.measurement_operation_requested = measurement_operation;
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, &request,
-		rq_len, eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
+	status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len, eid,
+		true, SPDM_REQUEST_GET_MEASUREMENTS);
 	if (status != 0) {
 		return status;
 	}
@@ -3264,8 +3217,8 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 			goto exit;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation, &request,
-			rq_len, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
+		status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len,
+			eid, true, SPDM_REQUEST_GET_CERTIFICATE);
 		if (status != 0) {
 			goto exit;
 		}
@@ -3528,8 +3481,8 @@ static int attestation_requester_attest_device_spdm (
 			goto hash_cancel;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation, &request,
-			rq_len, eid, true, SPDM_REQUEST_GET_DIGESTS);
+		status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len,
+			eid, true, SPDM_REQUEST_GET_DIGESTS);
 		if (status != 0) {
 			goto hash_cancel;
 		}
@@ -3568,8 +3521,8 @@ static int attestation_requester_attest_device_spdm (
 			goto hash_cancel;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation, &request,
-			rq_len, eid, true, SPDM_REQUEST_CHALLENGE);
+		status = attestation_requester_send_spdm_command_request (attestation, &request, rq_len,
+			eid, true, SPDM_REQUEST_CHALLENGE);
 		if (status != 0) {
 			goto hash_cancel;
 		}
@@ -3906,6 +3859,67 @@ static int attestation_requester_discover_device_spdm_protocol (
 #endif
 
 /**
+ * Validate MCTP Control protocol response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int attestation_requester_process_mctp_control_response (
+	const struct attestation_requester *attestation, struct cmd_interface_msg *response)
+{
+	struct mctp_control_protocol_resp_header *resp_header =
+		(struct mctp_control_protocol_resp_header*) response->payload;
+
+	if ((resp_header->completion_code != MCTP_CONTROL_PROTOCOL_SUCCESS) ||
+		(attestation->state->txn.requested_command != resp_header->header.command_code)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16)) | (255 << 8) |
+				resp_header->header.command_code);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	return 0;
+}
+
+/**
+ * Send MCTP message transport request command and get response for MCTP control.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param transport The Message transport instance used to send the messages.
+ * @param request Request to process.
+ * @param response The response container received.
+ * @param command Requested command to send out.
+ *
+ * @return Initialization status, 0 if success or an error code.
+ */
+static int attestation_requester_send_mctp_control_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command)
+{
+	uint32_t timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
+	int status;
+
+	status = attestation_requester_send_msg_transport_request_and_get_response (attestation,
+		transport, request, response, command, timeout_ms);
+	if (status != 0) {
+		return status;
+	}
+
+	status = attestation_requester_process_mctp_control_response (attestation, response);
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+	}
+
+	return status;
+}
+
+/**
  * Get Message Type support to a provided device using MCTP control message transport.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -3948,7 +3962,7 @@ int attestation_requester_get_message_type (const struct attestation_requester *
 	}
 
 	status =
-		attestation_requester_send_mctp_control_msg_transport_request_and_get_response (attestation,
+		attestation_requester_send_mctp_control_request_and_get_response (attestation,
 		attestation->mctp_control, request, response, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
 	if (status != 0) {
 		return status;
@@ -4090,8 +4104,8 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 		}
 
 		status =
-			attestation_requester_send_mctp_control_msg_transport_request_and_get_response (
-			attestation, attestation->mctp_control, &request, &response,
+			attestation_requester_send_mctp_control_request_and_get_response (attestation,
+			attestation->mctp_control, &request, &response,
 			MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES);
 		if (status != 0) {
 			return status;

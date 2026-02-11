@@ -26,39 +26,29 @@
 #define	ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN			7
 
 /**
- * Attestation requester request transaction state
- */
-enum attestation_requester_request_state {
-	ATTESTATION_REQUESTER_REQUEST_IDLE = 0,		/**< Start of a transaction or no response received yet */
-	ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL,	/**< Successful response received */
-	ATTESTATION_REQUESTER_REQUEST_RSP_FAIL,		/**< Failed response received */
-};
-
-/**
  * Context related to a attestation or discovery transaction
  */
 struct attestation_requester_transaction_state {
-	uint8_t msg_buffer[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN];		/**< Buffer to be used for request generation and response processing. */
-	size_t msg_buffer_len;										/**< Length of data in message buffer */
-	enum attestation_requester_request_state request_status;	/**< Response processing status. */
-	enum attestation_protocol protocol;							/**< Attestation protocol utilized with this device. */
-	enum attestation_spdm_minor_version spdm_minor_version;		/**< Attestation spdm minor version utilized with this device. */
-	uint32_t sleep_duration_ms;									/**< Duration in milliseconds to sleep while waiting for response. */
-	uint16_t device_version_set;								/**< Version set selected for device. */
-	uint8_t requested_command;									/**< Command awaiting response for. */
-	uint8_t measurement_operation_requested;					/**< Measurement operation requested from device. */
-	uint8_t slot_num;											/**< Slot number selected for device currently being attested. */
-	uint8_t num_certs;											/**< Number of certificates in certificate chain. */
-	uint8_t respond_if_ready_token;								/**< Token to pass to responder in RESPOND_IF_READY requests. */
-	size_t cert_total_len;										/**< Total certificate chain length to read back from device. */
-	size_t alias_signature_len;									/**< Length of a signature component signed by device alias key. */
-	enum hash_type transcript_hash_type;						/**< Cryptographic hashing algorithm utilized in attestation transcript hashing. */
-	enum hash_type measurement_hash_type;						/**< Cryptographic hashing algorithm utilized in measurement hashing. */
-	bool hash_finish;											/**< Transcript hashing completed. */
-	bool challenge_supported;									/**< Challenge command supported. */
-	bool raw_bitstream_requested;								/**< Requested raw measurement data from device. */
-	bool device_discovery;										/**< Performing device discovery. */
-	bool cert_supported;										/**< Certificate command supported. */
+	uint8_t msg_buffer[MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN];	/**< Buffer to be used for request generation and response processing. */
+	size_t msg_buffer_len;									/**< Length of data in message buffer */
+	enum attestation_protocol protocol;						/**< Attestation protocol utilized with this device. */
+	enum attestation_spdm_minor_version spdm_minor_version;	/**< Attestation spdm minor version utilized with this device. */
+	uint32_t sleep_duration_ms;								/**< Duration in milliseconds to sleep while waiting for response. */
+	uint16_t device_version_set;							/**< Version set selected for device. */
+	uint8_t requested_command;								/**< Command awaiting response for. */
+	uint8_t measurement_operation_requested;				/**< Measurement operation requested from device. */
+	uint8_t slot_num;										/**< Slot number selected for device currently being attested. */
+	uint8_t num_certs;										/**< Number of certificates in certificate chain. */
+	uint8_t respond_if_ready_token;							/**< Token to pass to responder in RESPOND_IF_READY requests. */
+	size_t cert_total_len;									/**< Total certificate chain length to read back from device. */
+	size_t alias_signature_len;								/**< Length of a signature component signed by device alias key. */
+	enum hash_type transcript_hash_type;					/**< Cryptographic hashing algorithm utilized in attestation transcript hashing. */
+	enum hash_type measurement_hash_type;					/**< Cryptographic hashing algorithm utilized in measurement hashing. */
+	bool hash_finish;										/**< Transcript hashing completed. */
+	bool challenge_supported;								/**< Challenge command supported. */
+	bool raw_bitstream_requested;							/**< Requested raw measurement data from device. */
+	bool device_discovery;									/**< Performing device discovery. */
+	bool cert_supported;									/**< Certificate command supported. */
 };
 
 /**
