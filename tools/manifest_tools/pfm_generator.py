@@ -9,9 +9,11 @@ import os
 import copy
 import ctypes
 import argparse
+import itertools
 import manifest_types
 import manifest_common
 import pfm_generator_v1
+import warnings
 
 
 PFM_CONFIG_FILENAME = "pfm_generator.config"
@@ -150,22 +152,60 @@ def generate_permutations (src_list):
     :return A list of all possible permutations
     """
 
-    new_list = list (src_list)
-    fw_type = new_list.pop (0)
+    # Each element in src_list is a list of versions for a firmware type
+    # Each version is a list of regions
+    # itertools.product will generate all possible combinations (one version per firmware type)
+    all_combinations = itertools.product(*src_list)
+    
+    # For each combination, flatten the regions from each selected version into a single list
     total_permutations = []
-
-    for version in fw_type:
-        if not new_list:
-            total_permutations.append (list (version))
-        else:
-            permutations = generate_permutations (new_list)
-
-            for permutation in permutations:
-                permutation.extend (version)
-
-            total_permutations.extend (permutations)
-
+    
+    for combo in all_combinations:
+        flat = []
+        
+        for version in combo:
+            flat.extend(version)
+        
+        total_permutations.append(flat)
+    
     return total_permutations
+
+def deduplicate_src_list(src_list):
+    """
+    Remove duplicate region lists within each firmware type in src_list
+
+    :param src_list: List of FW types, with a list of FW versions per FW type, and a list of regions
+        per FW version
+
+    :return A new src_list with duplicates removed per firmware type
+    """
+    
+    deduplicated_list = []
+
+    for fw_type in src_list:
+
+        seen = set()
+        unique_versions = []
+        
+        for version in fw_type:
+            
+            # Convert version (list of lists) to tuple of tuples for hashing
+            version_tuple = tuple(tuple(region) for region in version)
+            version_tuple = tuple(sorted(version_tuple))  # Sort to ensure order doesn't affect uniqueness
+
+            if version_tuple not in seen:
+                seen.add(version_tuple)
+                unique_versions.append(version)
+        
+        # Remove firmware types where all unique versions are empty lists
+        if not (len(unique_versions) == 1 and unique_versions[0] == []):
+        
+            # Only add if at least one version is not an empty list
+            # (or if there are multiple unique versions, at least one must be non-empty)
+            if any(len(v) > 0 for v in unique_versions):
+                deduplicated_list.append(unique_versions)
+    
+    return deduplicated_list
 
 def check_max_rw_sections (all_rw_regions, max_rw_sections):
     """
@@ -179,7 +219,9 @@ def check_max_rw_sections (all_rw_regions, max_rw_sections):
     rw_regions_set = set()
     raise_error = False
     section_count = 0
-    all_rw_permutations = generate_permutations (all_rw_regions)
+
+    de_duplicated_rw_regions = deduplicate_src_list(all_rw_regions)
+    all_rw_permutations = generate_permutations (de_duplicated_rw_regions)
 
     for permutation in all_rw_permutations:
         permutation_copy = copy.deepcopy (permutation)
@@ -305,6 +347,7 @@ def output_overlap_warning_file (output, overlaps):
     output = os.path.split(output)[0]
     output = os.path.join(output, 'overlap_warning.txt')
 
+    os.makedirs(os.path.dirname(output), exist_ok=True)
     with open (output, 'wt') as fh:
         fh.write ("      ***   Warning:  ignore_overlap flag is set to TRUE.  PFM has been generated anyway.   ***\n")
         fh.write ("      ***   If overlapping regions are found, they will be listed below.                    ***\n")
@@ -426,14 +469,16 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections, ignore_ov
             version_addr, version_id.encode ('utf-8'), padding, rw_regions_buf, signed_imgs_buf)
 
         for prev_version_id, prev_fw_version in fw_version_list[fw_type].items ():
+
             if prev_version_id == version_id:
                 raise KeyError (
                     "Failed to generate PFM: Duplicate version ID - {0} in FW type {1}".format (
                         version_id, fw_type))
+            
             elif prev_version_id.startswith(version_id) or version_id.startswith(prev_version_id):
-                raise ValueError (
-                    "Failed to generate PFM: Ambiguous version ID - {0}, {1} in FW type {2}".format (
-                        prev_version_id, version_id, fw_type))
+                warnings.warn (
+                    "Ambiguous version ID - {0}, {1} in FW type {2}".format (
+                        prev_version_id, version_id, fw_type), UserWarning)
 
         fw_version_list[fw_type].update ({version_id: fw_version})
 
@@ -592,12 +637,12 @@ if xml_version == manifest_types.VERSION_2:
         toc_list.extend (fw_toc_entries)
         hash_list.extend (fw_hashes)
 
+        if args.ignore_overlap:
+            output_overlap_warning_file (output, overlaps)
+
     manifest_common.generate_manifest (hash_engine, hash_type, pfm_id, manifest_types.PFM,
         xml_version, sign, key, key_size, key_type, toc_list, hash_list, elements_list, pfm_len,
         output)
-
-    if args.ignore_overlap:
-        output_overlap_warning_file (output, overlaps)
 
 else:
     pfm_generator_v1.generate_v1_pfm (pfm_id, key_size, hash_type, key_type, processed_xml,
