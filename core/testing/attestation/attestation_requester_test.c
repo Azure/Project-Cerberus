@@ -391,7 +391,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 
 	status = device_manager_init (&testing->device_mgr, 1 + !no_mctp_bridge, !no_mctp_bridge,
 		!no_mctp_bridge, DEVICE_MANAGER_PA_ROT_MODE, DEVICE_MANAGER_MASTER_AND_SLAVE_BUS_ROLE, 10,
-		10, 10, 10, 0, 0, 0);
+		20, 10, 10, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_update_not_attestable_device_entry (&testing->device_mgr, 0,
@@ -9172,6 +9172,23 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Second call to update PCR before get_routing_table */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -39742,10 +39759,19 @@ attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, HASH_ENGINE_START_SHA256_FAILED);
 
+	/* Second call to update PCR before get_routing_table - also fails */
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, HASH_ENGINE_START_SHA256_FAILED);
+
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry2)));
 
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	/* Second PCR update error log for the call before get_routing_table */
 	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
 		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
@@ -39928,6 +39954,23 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Second call to update PCR before get_routing_table */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -40345,6 +40388,21 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
+	/* First pcr_store_update_versioned_buffer call after first device attestation */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_ANY, MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -40414,6 +40472,24 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
+	/* Second pcr_store_update_versioned_buffer call after second device attestation */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Third call to update PCR before get_routing_table */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -40890,6 +40966,23 @@ static void attestation_requester_test_discovery_and_attestation_loop_no_pending
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
+	/* Second call to update PCR before get_routing_table */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
 	pcr_cfm_valid_measured_data.type = PCR_DATA_TYPE_MEMORY;
 	pcr_cfm_valid_measured_data.data.memory.buffer = testing.device_mgr.attestation_status;
 	pcr_cfm_valid_measured_data.data.memory.length = sizeof (attestation_status_expected);
@@ -40956,6 +41049,8 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 	uint8_t *attestation_status;
 	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
 	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	uint8_t version[4] = {0};
+	uint8_t event = 0;
 
 	size_t i;
 	const struct pcr_config pcr_config[1] = {
@@ -40964,9 +41059,6 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 			.measurement_algo = HASH_TYPE_SHA256
 		}
 	};
-
-	uint8_t version[4] = {0};
-	uint8_t event = 0;
 
 	for (i = 0; i < sizeof (digest); ++i) {
 		digest[i] = i * 3;
@@ -41190,6 +41282,8 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 	status = device_manager_update_device_ids (&testing.device_mgr, 3, 0xAB, 0xBC, 0xCD, 0xDE);
 	CuAssertIntEquals (test, 0, status);
 
+	/* No devices will be attested inside the loop, but we still call pcr_store_update_versioned_buffer
+	 * once at the end of the attestation loop. */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -41199,9 +41293,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0,
-		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
-		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+		&testing.primary_hash, 0, MOCK_ARG_ANY, MOCK_ARG (sizeof (attestation_status_expected)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
@@ -41657,6 +41749,21 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
+	/* First pcr_store_update_versioned_buffer call after first device force attestation */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_ANY, MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -41726,6 +41833,24 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
+	/* Second pcr_store_update_versioned_buffer call after second device force attestation */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Third call to update PCR before get_routing_table */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -41984,6 +42109,21 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
+	/* First pcr_store_update_versioned_buffer call after first device force attestation */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_ANY, MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -42053,6 +42193,24 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
+	/* Second pcr_store_update_versioned_buffer call after second device force attestation */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_expected,
+		sizeof (attestation_status_expected)), MOCK_ARG (sizeof (attestation_status_expected)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Third pcr_store_update_versioned_buffer call at end of attestation loop */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,

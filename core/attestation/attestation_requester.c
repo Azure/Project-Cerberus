@@ -4152,6 +4152,40 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 #endif
 
 /**
+ * Helper function to update attestation statuses in the PCR store.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param pcr PCR store instance to utilize.
+ * @param measurement The measurement ID for attestation results.
+ * @param measurement_version The version associated with the measurement data.
+ *
+ * @return 0 if successful or an error code.
+ */
+static int attestation_requester_update_pcr_attestation_status (
+	const struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
+	uint8_t measurement_version)
+{
+	const uint8_t *attestation_status;
+	int status;
+
+	status = device_manager_get_attestation_status (attestation->device_mgr, &attestation_status);
+	if (!ROT_IS_ERROR (status)) {
+		status = pcr_store_update_versioned_buffer (pcr, attestation->primary_hash,	measurement,
+			attestation_status, status, true, measurement_version);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_PCR_UPDATE_ERROR, measurement, status);
+		}
+	}
+	else {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR, status, 0);
+	}
+
+	return status;
+}
+
+/**
  * Check to see if routing table should be retrieved from the MCTP bridge, and fetch it if so.
  *
  * @param attestation Attestation requester instance to utilize.
@@ -4163,7 +4197,6 @@ void attestation_requester_discovery_and_attestation_loop (
 	const struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
 	uint8_t measurement_version)
 {
-	const uint8_t *attestation_status;
 	int eid = 0;
 	int status;
 
@@ -4220,20 +4253,9 @@ void attestation_requester_discovery_and_attestation_loop (
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 				ATTESTATION_LOGGING_NEXT_DEVICE_ATTESTATION_ERROR, eid, 0);
 		}
-	}
 
-	status = device_manager_get_attestation_status (attestation->device_mgr, &attestation_status);
-	if (!ROT_IS_ERROR (status)) {
-		status = pcr_store_update_versioned_buffer (pcr, attestation->primary_hash, measurement,
-			attestation_status, status, true, measurement_version);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_PCR_UPDATE_ERROR, measurement, status);
-		}
-	}
-	else {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR, status, 0);
+		attestation_requester_update_pcr_attestation_status (attestation, pcr, measurement,
+			measurement_version);
 	}
 
 get_routing_table:
