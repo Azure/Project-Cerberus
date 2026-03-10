@@ -574,6 +574,23 @@ def process_cfm (root, xml_file, selection_list):
 
                 data_dict["data"].append (data_text)
 
+            # Validate that GreaterThan, LessThan, GreaterOrEqual, and LessOrEqual checks
+            # have only one data entry per allowable data element (per version set)
+            # per Cerberus specification
+            if check in [2, 3, 4, 5]:  # LessThan=2, LessOrEqual=3, GreaterThan=4, GreaterOrEqual=5
+                if len(data_dict["data"]) > 1:
+                    check_names = {2: "LessThan", 3: "LessOrEqual", 4: "GreaterThan", 5: "GreaterOrEqual"}
+                    error_msg = (
+                        "ERROR: Allowable Data with check type '{0}' has {1} data entries in PMR {2}, "
+                        "measurement {3} for component {4} in manifest {5}. "
+                        "Per Cerberus specification, for {0} checks, there should be only a single data entry "
+                        "in the Allowable Data element per version_set identifier. "
+                        "Only Equal and NotEqual checks can have multiple data entries."
+                    ).format(check_names[check], len(data_dict["data"]), pmr_id, measurement_id, 
+                            component_type, xml_file)
+                    print(error_msg)
+                    raise ValueError(error_msg)
+
             component["measurement_data"][pmr_id][measurement_id]["allowable_data"].append (
                 data_dict)
 

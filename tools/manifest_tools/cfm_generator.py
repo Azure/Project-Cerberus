@@ -600,65 +600,147 @@ def generate_comp_device (comp_device_type, num_pmr_digests, num_measurement, nu
 
     return comp_device, comp_device_toc_entry, comp_device_hash
 
-def group_measurements_into_version_sets (xml_parsed_dict, component_key, components):
+def group_measurements_into_version_sets (xml_parsed_dict, component_key, components, version_number):
     """
-    groups the measurements allowable digests into version sets. The first xml file's entries are
-    added to the component dictionary, the rest of the xml entries are compared with the existing entries.
-    When new pmr id does not existis, a new entry is created with version_set as 1. If pmr_id is already
-    present, measurement_id is compared, when the allowable_digests are same for the same measurement id,
-    the entry is ignored and version set forced to 0, if not, the new entry is added by incrementing the
-    version_set number by 1
+    groups the measurements allowable digests into version sets. Version sets correspond to component 
+    version numbers (Ver1 -> Version Set 1, Ver2 -> Version Set 2, etc.). When all versions have 
+    identical hashes for a measurement, they are consolidated into Version Set 0.
 
     :param xml_parsed_dict: the dictionary that is created by load_xmls function by parsing the
                            xml files
     :param component_key: type string - The platform for component attesatation
     :param components: dictionary updated with version_set grouping, with old entries
+    :param version_number: The version number of this component (1, 2, 3, etc.)
 
     :return components dictionary updated with version_set grouping, with new entries
     """
+
+    if not "measurements" in components[component_key]:
+        components[component_key]["measurements"] = {}
 
     for pmr_id, pmr_entries in xml_parsed_dict["measurements"].items ():
         if not pmr_id in components[component_key]["measurements"]:
             components[component_key]["measurements"][pmr_id] = {}
 
-            for measurement_id, measurement_entries in pmr_entries.items ():
-                components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set":{}}
-                components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][1] = measurement_entries
+        for measurement_id, measurement_entries in pmr_entries.items ():
+            if measurement_id not in components[component_key]["measurements"].get(pmr_id, {}):
+                # Initialize measurement entry if it doesn't exist
+                components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set": {}}
 
-        else:
-            for measurement_id, measurement_entries in pmr_entries.items ():
+            # Add this version's measurement to its corresponding version set
+            components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][version_number] = measurement_entries
 
-                if measurement_id in components[component_key]["measurements"][pmr_id]:
+    return components
 
-                    existing_version_sets = components[component_key]["measurements"] \
-                        [pmr_id][measurement_id]["version_set"].copy ()
+def consolidate_identical_measurements(components):
+    """
+    After all versions are processed, consolidate measurements that have identical hashes 
+    across all versions of EACH COMPONENT into Version Set 0, and remove the individual version sets.
+    This is done per component, not globally.
+    """
+    for component_key, component_data in components.items():
+        if "measurements" not in component_data:
+            continue
+            
+        for pmr_id, pmr_data in component_data["measurements"].items():
+            for measurement_id, measurement_data in pmr_data.items():
+                version_sets = measurement_data["version_set"]
+                
+                if len(version_sets) <= 1:
+                    continue  # Skip if only one version or no versions
 
-                    version_set_not_contain_digest = []
-                    for digest in measurement_entries["allowable_digests"]:
+                # If the number of version sets for this measurement doesn't match the
+                # number of component versions processed, skip consolidation.
+                comp_ver_count = component_version_tracker.get(component_key)
+                if comp_ver_count is not None and len(version_sets) != comp_ver_count:
+                    continue
 
-                        for version_set, version_set_dict in existing_version_sets.items ():
-                            if not digest in version_set_dict["allowable_digests"]:
-                                version_set_not_contain_digest.append (version_set)
+                # Get all digests from all version sets for this component
+                all_digests = []
+                version_set_keys = list(version_sets.keys())
+                
+                for version_set_key in version_set_keys:
+                    version_digests = set(version_sets[version_set_key]["allowable_digests"])
+                    all_digests.append(version_digests)
+                
+                # Check if all versions of this component have identical digests
+                if len(all_digests) > 1 and all(all_digests[0] == digest_set for digest_set in all_digests):
+                    # All versions of this component have identical digests - consolidate to version set 0
+                    first_version_set_key = version_set_keys[0]
+                    consolidated_entry = version_sets[first_version_set_key].copy()
+                    
+                    # Clear all version sets and add consolidated entry as version set 0
+                    version_sets.clear()
+                    version_sets[0] = consolidated_entry
+    
+    return components
 
-                    if len (version_set_not_contain_digest) != 0:
-                        if (existing_version_sets):
-                            new_version_set = list (existing_version_sets.keys ())[-1] + 1
-                        else:
-                            new_version_set = 1
+def consolidate_identical_measurement_data(components):
+    """
+    After all versions are processed, consolidate measurement data that have identical data 
+    and check types across all versions of EACH COMPONENT into Version Set 0, and remove
+    the individual version sets. This is done per component, not globally.
+    Note: Data elements with different check types are kept separate.
+    """
+    for component_key, component_data in components.items():
+        if "measurement_data" not in component_data:
+            continue
+            
+        for pmr_id, pmr_data in component_data["measurement_data"].items():
+            for measurement_id, measurement_data in pmr_data.items():
+                allowable_data_list = measurement_data["allowable_data"]
+                
+                if not allowable_data_list:
+                    continue
 
-                        components[component_key]["measurements"][pmr_id][measurement_id] \
-                        ["version_set"].update ({new_version_set:measurement_entries})
+                # Build the set of all observed version_set identifiers for this measurement
+                total_versions = set()
+                for de in allowable_data_list:
+                    if "data" in de and "version_set" in de["data"]:
+                        total_versions.update(de["data"]["version_set"].keys())
 
-                    else:
-                        if (existing_version_sets):
-                            old_version_set = list (existing_version_sets.keys ())[-1]
-                            components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][0] = \
-                            components[component_key]["measurements"][pmr_id][measurement_id]["version_set"].pop(old_version_set)
+                # Process each allowable data element
+                for data_element in allowable_data_list:
+                    if "data" not in data_element or "version_set" not in data_element["data"]:
+                        continue
+                        
+                    version_sets = data_element["data"]["version_set"]
+                    
+                    if len(version_sets) <= 1:
+                        continue  # Skip if only one version or no versions
 
-                else:
-                    components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set":{}}
-                    components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][1] = measurement_entries
+                    # If the number of version sets for this data element doesn't match the
+                    # number of component versions processed, skip consolidation.
+                    comp_ver_count = component_version_tracker.get(component_key)
+                    if comp_ver_count is not None and len(version_sets) != comp_ver_count:
+                        continue
 
+                    # Only consider consolidation to version_set 0 if this element actually covers
+                    # all observed versions for this measurement. This avoids collapsing entries
+                    # when other AllowableData elements exist for other checks/versions.
+                    version_keys_set = set(version_sets.keys())
+                    if version_keys_set != total_versions:
+                        continue
+
+                    # Get all data from all version sets for this component
+                    all_data_sets = []
+                    version_set_keys = list(version_sets.keys())
+                    
+                    for version_set_key in version_set_keys:
+                        version_data = set(version_sets[version_set_key])
+                        all_data_sets.append(version_data)
+                    
+                    # Check if all versions of this component have identical data
+                    # Only consolidate if check types are already the same (handled by grouping function)
+                    if len(all_data_sets) > 1 and all(all_data_sets[0] == data_set for data_set in all_data_sets):
+                        # All versions of this component have identical data - consolidate to version set 0
+                        first_version_set_key = version_set_keys[0]
+                        consolidated_data = version_sets[first_version_set_key].copy()
+                        
+                        # Clear all version sets and add consolidated data as version set 0
+                        version_sets.clear()
+                        version_sets[0] = consolidated_data
+    
     return components
 
 def set_data_list_in_version_set_dict (allowable_data_list, version_set_num):
@@ -687,71 +769,55 @@ def set_data_list_in_version_set_dict (allowable_data_list, version_set_num):
 
     return data_list
 
-def group_measurement_data_into_version_sets (component_dict, component_key, components):
+def group_measurement_data_into_version_sets (component_dict, component_key, components, version_number):
     """
-    groups the measurement_data allowable_data into version sets. The first xml file's entries are
-    added to the component dictionary, the rest of the xml entries are compared with the existing entries.
-    When new pmr id does not existis, a new entry is created with version_set as 1. If pmr_id is already
-    present, measurement_id is compared, when the allowable_data are same for the same measurement id,
-    the enry is ignored, if not the new entry is added by incrementing the version_set number by 1
+    groups the measurement_data allowable_data into version sets using version numbers.
+    If check types differ between versions, separate allowable_data elements are created.
 
     :param component_dict: the dictionary that is created by load_xmls function by parsing the
                            xml files
     :param component_key: type string - The platform for component attesatation
     :param components: dictionary updated with version_set grouping, with old entries
+    :param version_number: The version number of this component (1, 2, 3, etc.)
 
     :return components dictionary updated with version_set grouping, with new entries
     """
 
+    if not "measurement_data" in components[component_key]:
+        components[component_key]["measurement_data"] = {}
+
     for pmr_id, pmr_entries in component_dict["measurement_data"].items ():
         if not pmr_id in components[component_key]["measurement_data"]:
-            components[component_key][element_key][pmr_id] = {}
+            components[component_key]["measurement_data"][pmr_id] = {}
 
-            for measurement_id, measurement_entries in pmr_entries.items ():
-                data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], 1)
-                components[component_key][element_key][pmr_id][measurement_id]= \
-                    {"allowable_data" : data_list_to_append}
-        else:
-            # compare the data value to see if its same for same measurement id
-            for measurement_id, measurement_data_entries in pmr_entries.items ():
-                if measurement_id in components[component_key]["measurement_data"][pmr_id]:
-                    available_allowable_data_list = components[component_key]["measurement_data"] \
-                        [pmr_id][measurement_id]["allowable_data"]
-                    new_allowable_data_list = measurement_data_entries["allowable_data"]
+        for measurement_id, measurement_entries in pmr_entries.items ():
+            if measurement_id not in components[component_key]["measurement_data"].get(pmr_id, {}):
+                # Initialize measurement_id entry if it doesn't exist
+                components[component_key]["measurement_data"][pmr_id][measurement_id] = {"allowable_data": []}
 
-                    for index in range (0, len (new_allowable_data_list)):
-                        new_data_entries = []
-                        duplicate_data = []
-                        version_set_count = 0
-                        new_data_list_len = len (new_allowable_data_list[index]["data"])
+            data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], version_number)
+            # Merge with existing data or add new data for this version
+            if not components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"]:
+                components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"] = data_list_to_append
+            else:
+                # Add this version's data to existing structure
+                for new_data_element in data_list_to_append:
+                    # Find matching existing element based on check type, bitmask, and endianness
+                    matching_element_found = False
 
-                        for new_data in new_allowable_data_list[index]["data"]:
-                            new_data_entries.append (new_data)
-                            available_version_sets = available_allowable_data_list[index]["data"]["version_set"]
+                    for existing_element in components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"]:
+                        # Check if all attributes match (check, endianness, bitmask)
+                        if (existing_element.get("check") == new_data_element.get("check") and
+                            existing_element.get("bitmask") == new_data_element.get("bitmask") and
+                            existing_element.get("endianness") == new_data_element.get("endianness")):
+                            # Matching element found - merge version sets
+                            existing_element["data"]["version_set"].update(new_data_element["data"]["version_set"])
+                            matching_element_found = True
+                            break
 
-                            for version_set_id, available_data_list in available_version_sets.items ():
-                                version_set_count += 1
-                                if new_data in available_data_list:
-                                    duplicate_entry_dict = {"version_set": version_set_id, "data": new_data}
-                                    duplicate_data.append (duplicate_entry_dict)
-                                    break
-
-                        components_data = components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"] \
-                            [index]["data"]["version_set"]
-                        if len (duplicate_data) == new_data_list_len:
-                            if all (ele["version_set"] == duplicate_data[0]["version_set"] for ele in duplicate_data):
-                                new_data_entries.clear ()
-                                old_version_set = list (available_version_sets.keys ())[-1]
-                                components_data[0] = components_data.pop(old_version_set)
-                                continue
-
-                        new_version_set = list (available_version_sets.keys ())[-1] + 1
-                        components_data.update ({new_version_set:new_data_entries})
-                else:
-                    components[component_key]["measurement_data"][pmr_id][measurement_id] = {}
-                    data_list_to_append = set_data_list_in_version_set_dict (measurement_data_entries["allowable_data"], 1)
-                    components[component_key][element_key][pmr_id][measurement_id] = \
-                        {"allowable_data" : data_list_to_append}
+                    if not matching_element_found:
+                        # No matching element found - add as new allowable_data element
+                        components[component_key]["measurement_data"][pmr_id][measurement_id]["allowable_data"].append(new_data_element)
 
     return components
 
@@ -775,8 +841,19 @@ elements_list = []
 toc_list = []
 hash_list = []
 
+# Track version numbers per component
+component_version_tracker = {}
+
 for xml_key, xml_dict in processed_xml.items ():
     for component_key, component_dict in xml_dict.items ():
+        # Get the next version number for this specific component
+        if component_key not in component_version_tracker:
+            component_version_tracker[component_key] = 1
+        else:
+            component_version_tracker[component_key] += 1
+        
+        component_version_number = component_version_tracker[component_key]
+        
         if component_key in components:
             if "root_ca_digests" in component_dict:
                 for digest in component_dict["root_ca_digests"]["allowable_digests"]:
@@ -784,11 +861,11 @@ for xml_key, xml_dict in processed_xml.items ():
                         components[component_key]["root_ca_digests"]["allowable_digests"].append (digest)
 
             if "measurements" in component_dict:
-                components = group_measurements_into_version_sets (component_dict, component_key, components)
+                components = group_measurements_into_version_sets (component_dict, component_key, components, component_version_number)
 
             if "measurement_data" in component_dict:
                 components = group_measurement_data_into_version_sets (component_dict, component_key, \
-                    components)
+                    components, component_version_number)
 
         else:
             components.update ({component_key:{}})
@@ -806,7 +883,7 @@ for xml_key, xml_dict in processed_xml.items ():
 
                         for measurement_id, measurement_entries in pmr_entries.items ():
                             components[component_key][element_key][pmr_id][measurement_id] = {"version_set":{}}
-                            components[component_key][element_key][pmr_id][measurement_id]["version_set"][1] = measurement_entries
+                            components[component_key][element_key][pmr_id][measurement_id]["version_set"][component_version_number] = measurement_entries
 
                 if element_key == "measurement_data":
                     components[component_key][element_key] = {}
@@ -815,9 +892,15 @@ for xml_key, xml_dict in processed_xml.items ():
                         components[component_key][element_key][pmr_id] = {}
 
                         for measurement_id, measurement_entries in pmr_entries.items ():
-                            data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], 1)
+                            data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], component_version_number)
                             components[component_key][element_key][pmr_id][measurement_id] = \
                                 {"allowable_data" : data_list_to_append}
+
+# After processing all XML files, consolidate identical measurements into Version Set 0
+components = consolidate_identical_measurements(components)
+
+# After processing all XML files, consolidate identical measurement data into Version Set 0
+components = consolidate_identical_measurement_data(components)
 
 platform_id, platform_id_toc_entry, platform_id_hash = \
     manifest_common.generate_platform_id_buf ({"platform_id": platform_id}, hash_engine)
