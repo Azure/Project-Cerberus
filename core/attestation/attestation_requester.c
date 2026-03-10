@@ -1089,7 +1089,10 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 
 	if ((rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_256) &&
 		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_384) &&
-		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_512)) {
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_512) &&
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA3_256) &&
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA3_384) &&
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA3_512)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_HASHING_MEAS_ALGORITHM_UNSUPPORTED, device_eid,
 			rsp->measurement_hash_algo);
@@ -1118,6 +1121,12 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_384) &&
 			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA384)) ||
 			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_512) &&
+			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA512)) ||
+			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA3_256) &&
+			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA256)) ||
+			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA3_384) &&
+			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA384)) ||
+			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA3_512) &&
 			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA512))) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 				ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP, device_eid,
