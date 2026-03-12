@@ -140,7 +140,7 @@ static int attestation_requester_get_digest_cerberus_rsp_post_processing (
 		(struct cerberus_protocol_get_certificate_digest_response*) response->payload;
 
 	attestation->state->txn.msg_buffer_len = SHA256_HASH_LENGTH * digest_rsp->num_digests;
-	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate_digests (digest_rsp),
+	memmove (attestation->state->txn.msg_buffer, cerberus_protocol_certificate_digests (digest_rsp),
 		SHA256_HASH_LENGTH * digest_rsp->num_digests);
 
 	return 0;
@@ -187,7 +187,7 @@ static int attestation_requester_challenge_cerberus_rsp_post_processing (
 		return ATTESTATION_REQUEST_FAILED;
 	}
 
-	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
+	memmove (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
 	attestation->state->txn.msg_buffer_len = response->payload_length;
 
 	return 0;
@@ -224,7 +224,7 @@ static int attestation_requester_get_certificate_cerberus_rsp_post_processing (
 		return ATTESTATION_REQUEST_FAILED;
 	}
 
-	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate (rsp),
+	memmove (attestation->state->txn.msg_buffer, cerberus_protocol_certificate (rsp),
 		cert_portion_len);
 	attestation->state->txn.msg_buffer_len = cert_portion_len;
 
