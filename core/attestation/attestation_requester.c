@@ -3480,7 +3480,7 @@ static int attestation_requester_attest_device_spdm (
 			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
 			&request);
 		if (status != 0) {
-			return status;
+			goto hash_cancel;
 		}
 
 		rq_len = spdm_generate_get_digests_request (request.payload,
@@ -3519,7 +3519,7 @@ static int attestation_requester_attest_device_spdm (
 			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
 			&request);
 		if (status != 0) {
-			return status;
+			goto hash_cancel;
 		}
 
 		rq_len = spdm_generate_challenge_request (request.payload,
