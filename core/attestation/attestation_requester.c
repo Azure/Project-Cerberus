@@ -3134,6 +3134,310 @@ static int attestation_requester_get_and_verify_cfm_contents (
 	return status;
 }
 
+/*
+ * Get corresponding TCG log digest for a measurement entry from the CFM, then compare
+ * to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param measurement CFM measurement entry.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or an error code	otherwise
+ */
+static int attestation_requester_get_and_verify_tcg_measurement (
+	const struct attestation_requester *attestation, struct cfm_measurement_digest *measurement,
+	struct pcr_store *pcr)
+{
+	size_t i_allowable_digests;
+	uint32_t log_event;
+	struct pcr_measurement pcr_measurement;
+	int status = 0;
+	int pcr_count;
+	int measurement_count;
+	int pcr_index;
+	int i_pcr;
+	int digest_length;
+	int hash_type;
+	uint16_t measurement_type = 0;
+
+	if (measurement->measurement_id == 0) {
+		return PCR_INVALID_PCR;
+	}
+
+	/* CFM measurement id starts at offset 1; PCR index starts at 0. */
+	pcr_index = measurement->measurement_id - 1;
+	pcr_count = pcr_store_get_num_pcrs (pcr);
+
+	/* Convert measurement id into a PCR_MEASUREMENT field.
+	 * If measurement id / current index is larger than current PCR's total measurement entries,
+	 * then subtract those entries and continue search in next PCR.
+	 * Once index is determined, convert it into 8 bit PCR || 8 bit index value. */
+	for (i_pcr = 0; i_pcr < pcr_count; i_pcr++) {
+		measurement_count = pcr_store_get_num_pcr_measurements (pcr, i_pcr);
+		if (measurement_count <= pcr_index) {
+			pcr_index -= measurement_count;
+		}
+		else {
+			break;
+		}
+	}
+
+	measurement_type = PCR_MEASUREMENT (i_pcr, pcr_index);
+
+	digest_length = pcr_store_get_measurement (pcr, measurement_type, &pcr_measurement);
+	if (ROT_IS_ERROR (digest_length)) {
+		return digest_length;
+	}
+
+	switch (digest_length) {
+		case SHA256_HASH_LENGTH:
+			hash_type = HASH_TYPE_SHA256;
+			break;
+
+		case SHA384_HASH_LENGTH:
+			hash_type = HASH_TYPE_SHA384;
+			break;
+
+		case SHA512_HASH_LENGTH:
+			hash_type = HASH_TYPE_SHA512;
+			break;
+
+		default:
+			return ATTESTATION_CFM_INVALID_ATTESTATION;
+	}
+
+	for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+		++i_allowable_digests) {
+		/* If device version set selected, and allowable digest has a non-zero version set which
+		 * does not match that of device, then digest not permitted for this device in its current
+		 * state.  If there are no allowable digests with matching version sets to device, then
+		 * measurement comparison is not applicable to device in its current state and will be
+		 * skipped without failing attestation. */
+		if (attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set != 0) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set !=
+			attestation->state->txn.device_version_set)) {
+			continue;
+		}
+
+		/* If device version set not selected, then this should be a measurement used for version
+		 * set selection with only allowable digests unique to a single version set. */
+		if (!attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set == 0)) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID,
+				((measurement->pmr_id << 8) | (measurement->measurement_id)), i_allowable_digests);
+
+			return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
+		}
+
+		status = attestation_requester_verify_digest_in_allowable_list (attestation,
+			&measurement->allowable_digests[i_allowable_digests].digests,
+			&pcr_measurement.digest[0], hash_type);
+
+		if (status == 0) {
+			// If device version set still not selected, then set it
+			if (!attestation_requester_is_version_set_selected (attestation)) {
+				attestation->state->txn.device_version_set =
+					measurement->allowable_digests[i_allowable_digests].version_set;
+			}
+
+			break;
+		}
+	}
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,
+			((measurement->pmr_id << 8) | (measurement->measurement_id)), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_INVALID_ATTESTATION:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED;
+					break;
+
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				log_event, ((measurement->pmr_id << 8) | (measurement->measurement_id)),
+				((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
+		}
+	}
+
+	return status;
+}
+
+/*
+ * Get corresponding TCG log measured data for a measurement data entry from the CFM, then
+ * compare to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param data CFM measurement data entry.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or an error code	otherwise
+ */
+static int attestation_requester_get_and_verify_tcg_measurement_data (
+	const struct attestation_requester *attestation, struct cfm_measurement_data *data,
+	struct pcr_store *pcr)
+{
+	uint32_t log_event;
+	int status;
+	int pcr_count;
+	int measurement_count;
+	int measured_data_length = 0;
+	uint16_t measurement_type = 0;
+	int pcr_index;
+	int i_pcr;
+
+	if (data->measurement_id == 0) {
+		return PCR_INVALID_PCR;
+	}
+
+	/* CFM measurement id starts at offset 1; PCR index starts at 0. */
+	pcr_index = data->measurement_id - 1;
+	pcr_count = pcr_store_get_num_pcrs (pcr);
+
+	/* Convert measurement id into a PCR_MEASUREMENT field.
+	 * If measurement id / current index is larger than current PCR's total measurement entries,
+	 * then subtract those entries and continue search in next PCR.
+	 * Once index is determined, convert it into 8 bit PCR || 8 bit index value. */
+	for (i_pcr = 0; i_pcr < pcr_count; i_pcr++) {
+		measurement_count = pcr_store_get_num_pcr_measurements (pcr, i_pcr);
+		if (measurement_count <= pcr_index) {
+			pcr_index -= measurement_count;
+		}
+		else {
+			break;
+		}
+	}
+
+	measurement_type = PCR_MEASUREMENT (i_pcr, pcr_index);
+
+	measured_data_length = pcr_store_get_measurement_data (pcr, measurement_type, 0,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
+	if (ROT_IS_ERROR (measured_data_length)) {
+		return measured_data_length;
+	}
+
+	attestation->state->txn.msg_buffer_len = measured_data_length;
+
+	status = attestation_requester_verify_data_in_allowable_list (attestation, data->data_checks,
+		data->data_checks_count, data->pmr_id, data->measurement_id, 0);
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,
+			((data->pmr_id << 8) | (data->measurement_id)), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				case ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET:
+					log_event = ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET;
+					break;
+
+				case ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID:
+					/* no action required since this is handled elsewhere */
+					log_event = 0;
+					break;
+
+				case ATTESTATION_BITMASK_TOO_SMALL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_BITMASK_TOO_SMALL;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			if (log_event > 0) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					log_event, ((data->pmr_id << 8) | (data->measurement_id)),
+					((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
+			}
+		}
+	}
+
+	return status;
+}
+
+/**
+ * For each measurement or measurement data entry in CFM, get corresponding measurement from
+ * TCG log and compare to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_num The device entry's number in device_manager.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component ID of the device.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or no measurement entries in CFM, or an error code
+ * 	otherwise
+ */
+static int attestation_requester_get_and_verify_cfm_contents_tcg (
+	const struct attestation_requester *attestation, int device_num, const struct cfm *active_cfm,
+	uint32_t component_id, struct pcr_store *pcr)
+{
+	struct cfm_measurement_container container;
+	bool first = true;
+	int status = 0;
+
+	while (status == 0) {
+		status = active_cfm->get_next_measurement_or_measurement_data (active_cfm, component_id,
+			&container, first);
+		if (status == 0) {
+			if (container.measurement_type == CFM_MEASUREMENT_TYPE_DIGEST) {
+				status = attestation_requester_get_and_verify_tcg_measurement (attestation,
+					&container.measurement.digest, pcr);
+			}
+			else {
+				status =
+					attestation_requester_get_and_verify_tcg_measurement_data (attestation,
+					&container.measurement.data, pcr);
+			}
+
+			first = false;
+		}
+	}
+
+	active_cfm->free_measurement_container (active_cfm, &container);
+
+	if (status == CFM_ENTRY_NOT_FOUND) {
+		return 0;
+	}
+
+	if (status != 0) {
+		device_manager_update_device_state (attestation->device_mgr, device_num,
+			DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
+	}
+
+	return status;
+}
+
 /**
  * Process incoming SPDM challenge response.
  *
@@ -3582,6 +3886,32 @@ clear_cert_chain:
 	return status;
 }
 #endif
+
+/**
+ * Perform an attestation cycle on a local RoT component.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_num Number of the device to attest.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component ID of the device.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or an error code otherwise
+ */
+int attestation_requester_attest_device_tcg (const struct attestation_requester *attestation,
+	int device_num, const struct cfm *active_cfm, uint32_t component_id, struct pcr_store *pcr)
+{
+	int status;
+
+	if ((attestation == NULL) || (pcr == NULL) || (active_cfm == NULL)) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	status = attestation_requester_get_and_verify_cfm_contents_tcg (attestation, device_num,
+		active_cfm, component_id, pcr);
+
+	return status;
+}
 
 /**
  * Perform an attestation cycle on a provided device using requested protocol.

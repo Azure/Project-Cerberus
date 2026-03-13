@@ -102,6 +102,8 @@ void attestation_requester_deinit (const struct attestation_requester *ctrl);
 
 int attestation_requester_attest_device (const struct attestation_requester *attestation,
 	uint8_t eid);
+int attestation_requester_attest_device_tcg (const struct attestation_requester *attestation,
+	int device_num, const struct cfm *active_cfm, uint32_t component_id, struct pcr_store *pcr);
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 int attestation_requester_discover_device (const struct attestation_requester *attestation,

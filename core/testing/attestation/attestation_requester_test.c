@@ -38103,6 +38103,672 @@ attestation_requester_test_attest_device_spdm_measurement_only_measurement_data_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+static void attestation_requester_test_attest_device_tcg_only_measurement (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 1;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = digest;
+
+	pcr_store_update_digest (&testing.store, 0, digest, sizeof (digest));
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_only_measurement_data (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t pcr_measurement[SHA256_HASH_LENGTH];
+	struct pcr_measured_data pcr_test_data;
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	data.allowable_data = &data_entry;
+
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (digest);
+	data.allowable_data[0].data = digest;
+	data.allowable_data[0].version_set = 1;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 1;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
+
+	for (uint8_t i = 0; i < sizeof (digest); ++i) {
+		pcr_measurement[i] = i;
+		digest[i] = i;
+	}
+
+	pcr_test_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_test_data.data.memory.buffer = pcr_measurement;
+	pcr_test_data.data.memory.length = sizeof (pcr_measurement);
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_test_data);
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_2_measurement_blocks (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_measurement_container container2;
+	struct cfm_allowable_digests allowable_digests;
+	struct cfm_allowable_digests allowable_digests2;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	uint8_t digest2[SHA256_HASH_LENGTH] = {0x35, 0xa1, 0xf1, 0xc9, 0x7f, 0xf2, 0x12, 0x76, 0x81, 0xb3, 0x51, 0x80, 0xb1, 0x92,
+		0x64, 0xd6, 0x21, 0x60, 0xb4, 0x07, 0xc1, 0xca, 0x06, 0x73, 0x96, 0x46, 0x35, 0xf4, 0x2c, 0x3a, 0x65, 0x83};
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+	container2.measurement.digest.allowable_digests = &allowable_digests2;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 1;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = digest;
+
+	container2.measurement.digest.pmr_id = 0;
+	container2.measurement.digest.measurement_id = 2;
+	container2.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container2.measurement.digest.allowable_digests_count = 1;
+	container2.measurement.digest.allowable_digests[0].version_set = 1;
+	container2.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container2.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container2.measurement.digest.allowable_digests[0].digests.digests = digest2;
+
+	pcr_store_update_digest (&testing.store, 0, digest, sizeof (digest));
+	pcr_store_update_digest (&testing.store, 1, digest2, sizeof (digest2));
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container2,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_data_2_data_blocks (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_measurement_container container2;
+	struct cfm_allowable_data data;
+	struct cfm_allowable_data data2;
+	struct cfm_allowable_data_entry data_entry;
+	struct cfm_allowable_data_entry data_entry2;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t pcr_measurement[SHA256_HASH_LENGTH];
+	uint8_t pcr_measurement2[SHA256_HASH_LENGTH];
+	struct pcr_measured_data pcr_test_data;
+	struct pcr_measured_data pcr_test_data2;
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	data.allowable_data = &data_entry;
+	data2.allowable_data = &data_entry2;
+
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (digest);
+	data.allowable_data[0].data = digest;
+	data.allowable_data[0].version_set = 1;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 1;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
+
+	data2.bitmask = NULL;
+	data2.bitmask_length = 0;
+	data2.check = CFM_CHECK_EQUAL;
+	data2.big_endian = false;
+	data2.data_count = 1;
+	data2.allowable_data[0].data_len = sizeof (digest2);
+	data2.allowable_data[0].data = digest2;
+	data2.allowable_data[0].version_set = 1;
+
+	container2.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container2.measurement.data.pmr_id = 0;
+	container2.measurement.data.measurement_id = 2;
+	container2.measurement.data.data_checks = &data2;
+	container2.measurement.data.data_checks_count = 1;
+
+	for (uint8_t i = 0; i < sizeof (digest); ++i) {
+		pcr_measurement[i] = i;
+		digest[i] = i;
+		pcr_measurement2[i] = i + 1;
+		digest2[i] = i + 1;
+	}
+
+	pcr_test_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_test_data.data.memory.buffer = pcr_measurement;
+	pcr_test_data.data.memory.length = sizeof (pcr_measurement);
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_test_data);
+
+	pcr_test_data2.type = PCR_DATA_TYPE_MEMORY;
+	pcr_test_data2.data.memory.buffer = pcr_measurement2;
+	pcr_test_data2.data.memory.length = sizeof (pcr_measurement2);
+	pcr_store_set_measurement_data (&testing.store, 1, &pcr_test_data2);
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container2,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, 0, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_invalid_arg (CuTest *test)
+{
+	int status;
+	const struct attestation_requester attestation = {0};
+	const struct cfm active = {0};
+	struct pcr_store pcr = {0};
+
+	TEST_START;
+
+	status = attestation_requester_attest_device_tcg (NULL, 1, &active, 0, &pcr);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation_requester_attest_device_tcg (&attestation, 1, NULL, 0, &pcr);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	status = attestation_requester_attest_device_tcg (&attestation, 1, &active, 0, NULL);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+}
+
+static void attestation_requester_test_attest_device_tcg_get_next_measurement_or_measurement_data_fail
+(CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 65;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, CFM_NO_MEMORY,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selector_invalid
+(CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 0;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = digest;
+
+	pcr_store_update_digest (&testing.store, 0, digest, sizeof (digest));
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selection_fail
+(CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	uint8_t invalid_digest[SHA256_HASH_LENGTH] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 1;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = digest;
+
+	pcr_store_update_digest (&testing.store, 0, invalid_digest, sizeof (invalid_digest));
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_get_measurement_fail
+(CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 254;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 1;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = digest;
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	container.measurement.digest.measurement_id = 0;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	container.measurement.digest.measurement_id = 13;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_data_get_measurement_data_fail
+(CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	data.allowable_data = &data_entry;
+
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (digest);
+	data.allowable_data[0].data = digest;
+	data.allowable_data[0].version_set = 1;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 254;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
+
+	for (uint8_t i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i;
+	}
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	container.measurement.digest.measurement_id = 0;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	container.measurement.digest.measurement_id = 13;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selector_invalid
+(CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	data.allowable_data = &data_entry;
+
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (digest);
+	data.allowable_data[0].data = digest;
+	data.allowable_data[0].version_set = 0;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 1;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
+
+	for (uint8_t i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i;
+	}
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selection_fail
+(CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct cfm_measurement_container container;
+	struct cfm_allowable_data data;
+	struct cfm_allowable_data_entry data_entry;
+	uint32_t component_id = 65;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t pcr_measurement[SHA256_HASH_LENGTH];
+	struct pcr_measured_data pcr_test_data;
+	int status;
+
+	setup_attestation_requester_mock_test (test, &testing, true, true, true);
+
+	data.allowable_data = &data_entry;
+
+	data.bitmask = NULL;
+	data.bitmask_length = 0;
+	data.check = CFM_CHECK_EQUAL;
+	data.big_endian = false;
+	data.data_count = 1;
+	data.allowable_data[0].data_len = sizeof (digest);
+	data.allowable_data[0].data = digest;
+	data.allowable_data[0].version_set = 1;
+
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DATA;
+	container.measurement.data.pmr_id = 0;
+	container.measurement.data.measurement_id = 2;
+	container.measurement.data.data_checks = &data;
+	container.measurement.data.data_checks_count = 1;
+
+	for (uint8_t i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i;
+		pcr_measurement[i] = i;
+	}
+
+	pcr_test_data.type = PCR_DATA_TYPE_MEMORY;
+	pcr_test_data.data.memory.buffer = pcr_measurement;
+	pcr_test_data.data.memory.length = sizeof (pcr_measurement);
+	pcr_store_set_measurement_data (&testing.store, 0, &pcr_test_data);
+
+	TEST_START;
+
+	status = mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (component_id), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	CuAssertIntEquals (test, 0, status);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 static void attestation_requester_test_attest_device_update_routing_table (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -43128,6 +43794,18 @@ TEST (attestation_requester_test_attest_device_spdm_measurement_data_raw_request
 TEST (attestation_requester_test_attest_device_spdm_measurement_data_num_blocks_in_rsp_not_one);
 TEST (attestation_requester_test_attest_device_spdm_measurement_data_unexpected_measurement_block);
 TEST (attestation_requester_test_attest_device_spdm_measurement_only_measurement_data_version_set_selector_invalid);
+TEST (attestation_requester_test_attest_device_tcg_only_measurement);
+TEST (attestation_requester_test_attest_device_tcg_only_measurement_data);
+TEST (attestation_requester_test_attest_device_tcg_measurement_2_measurement_blocks);
+TEST (attestation_requester_test_attest_device_tcg_measurement_data_2_data_blocks);
+TEST (attestation_requester_test_attest_device_tcg_invalid_arg);
+TEST (attestation_requester_test_attest_device_tcg_get_next_measurement_or_measurement_data_fail);
+TEST (attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selector_invalid);
+TEST (attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selection_fail);
+TEST (attestation_requester_test_attest_device_tcg_measurement_get_measurement_fail);
+TEST (attestation_requester_test_attest_device_tcg_measurement_data_get_measurement_data_fail);
+TEST (attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selector_invalid);
+TEST (attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selection_fail);
 TEST (attestation_requester_test_attest_device_update_routing_table);
 TEST (attestation_requester_test_attest_device_update_routing_table_bridge_refresh_request);
 TEST (attestation_requester_test_attest_device_unknown_device);

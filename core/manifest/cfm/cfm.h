@@ -18,6 +18,7 @@
 enum cfm_attestation_type {
 	CFM_ATTESTATION_CERBERUS_PROTOCOL = 0x00,	/**< Cerberus challenge protocol. */
 	CFM_ATTESTATION_DMTF_SPDM = 0x01,			/**< DMTF SPDM protocol. */
+	CFM_ATTESTATION_TCG = 0x02,					/**< TCG protocol. */
 };
 
 /**
