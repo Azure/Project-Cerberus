@@ -128,6 +128,7 @@ PCD_INTERFACE_I2C_MODE_MM = "MultiMaster"
 PCD_INTERFACE_I2C_MODE_MS = "MasterSlave"
 PCD_COMPONENT_CONNECTION_DIRECT = "Direct"
 PCD_COMPONENT_CONNECTION_MCTP_BRIDGE = "MCTPBridge"
+PCD_COMPONENT_CONNECTION_TCG_LOG = "TCGLog"
 PCD_ENABLED = "Enabled"
 PCD_DISABLED = "Disabled"
 
@@ -413,6 +414,8 @@ def process_cfm (root, xml_file, selection_list):
         component["attestation_protocol"] = 0
     elif result.lower () == "spdm":
         component["attestation_protocol"] = 1
+    elif result.lower () == "tcglog":
+        component["attestation_protocol"] = 2
     else:
         raise ValueError ("Component {0} has unknown attestation protocol '{1}' in {2}".format (
             component_type, result, xml_file))
@@ -918,6 +921,8 @@ def process_pcd (root, xml_file):
                 result["subvendorid"] = int (result["subvendorid"], 16)
 
                 curr_component.update (result)
+            elif cnxn_type == PCD_COMPONENT_CONNECTION_TCG_LOG:
+                curr_component.update ({"connection":PCD_COMPONENT_CONNECTION_TCG_LOG})
             else:
                 raise ValueError ("Unknown component {0} connection type: {1}".format (
                     curr_component["type"], cnxn_type))

@@ -450,6 +450,64 @@ def generate_mctp_bridge_component_buf (xml_component, component_map, component_
 
     return component, component_toc_entry, component_hash, timeouts
 
+def generate_tcg_log_component_buf (xml_component, component_map, component_map_file, hash_engine):
+    """
+    Create a TCG log component object from parsed XML list. Create new component type to ID
+    mapping in provided component map file if a mapping doesn't exist.
+
+    :param xml_component: List of parsed XML of component to be included in TCG log component
+        object
+    :param component_map: Dictionary mapping component types to component IDs
+    :param component_map_file: Component map file to add mapping to
+
+    :return Instance of a component object, component's TOC entry, component hash, dictionary of
+        component's timeouts
+    """
+
+    timeouts = {}
+
+    policy = int (manifest_common.get_key_from_dict (xml_component, "policy",
+        "TCG Log Component"))
+    powerctrl_reg = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "register",
+        "TCG Log Component"))
+    powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
+        "TCG Log Component"))
+    component_type = manifest_common.get_key_from_dict (xml_component, "type",
+        "TCG Log Component")
+    timeouts["attestation_success_retry"] = int (manifest_common.get_key_from_dict (xml_component,
+        "attestation_success_retry", "TCG Log Component"))
+    timeouts["attestation_fail_retry"] = int (manifest_common.get_key_from_dict (xml_component,
+        "attestation_fail_retry", "TCG Log Component"))
+    timeouts["attestation_rsp_not_ready_max_retry"] = int (manifest_common.get_key_from_dict (
+        xml_component, "attestation_rsp_not_ready_max_retry", "TCG Log Component"))
+    timeouts["attestation_rsp_not_ready_max_duration"] = int (
+        manifest_common.get_key_from_dict (xml_component, "attestation_rsp_not_ready_max_duration",
+        "TCG Log Component"))
+
+    component_id = component_map.get (component_type)
+    if component_id is None:
+        component_id = manifest_common.add_component_mapping (component_type, component_map_file)
+
+    class pcd_tcg_log_component_element (ctypes.LittleEndianStructure):
+        _pack_ = 1
+        _fields_ = [('policy', ctypes.c_ubyte),
+                    ('power_ctrl_reg', ctypes.c_ubyte),
+                    ('power_ctrl_mask', ctypes.c_ubyte),
+                    ('reserved', ctypes.c_ubyte),
+                    ('component_id', ctypes.c_int32)]
+
+    component = pcd_tcg_log_component_element (policy, powerctrl_reg, powerctrl_mask, 0,
+        int (component_id))
+    component_len = ctypes.sizeof (component)
+
+    component_toc_entry = manifest_common.manifest_toc_entry (
+        manifest_common.PCD_V2_TCG_LOG_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 2,
+        0, 0, component_len)
+
+    component_hash = manifest_common.generate_hash (component, hash_engine)
+
+    return component, component_toc_entry, component_hash, timeouts
+
 def generate_components (xml_components, hash_engine, component_map, component_map_file):
     """
     Create a buffer of component section struct instances from parsed XML list
@@ -499,6 +557,9 @@ def generate_components (xml_components, hash_engine, component_map, component_m
             timeout_mctp_bridge["discovery_fail_retry"] = \
                 get_lower_timeout (timeout_mctp_bridge["discovery_fail_retry"],
                     curr_timeouts["discovery_fail_retry"])
+        elif connection is manifest_parser.PCD_COMPONENT_CONNECTION_TCG_LOG:
+            component_buf, component_toc_entry, component_hash, curr_timeouts = \
+                generate_tcg_log_component_buf (component, component_map, component_map_file, hash_engine)
         else:
             raise ValueError ("Unsupported component connection type: {0}".format (connection))
 

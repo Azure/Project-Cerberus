@@ -39,6 +39,7 @@ PCD_V2_SPI_FLASH_PORT_TYPE_ID = int ("0x41", 16)
 PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID = int ("0x42", 16)
 PCD_V2_DIRECT_COMPONENT_TYPE_ID = int ("0x43", 16)
 PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID = int ("0x44", 16)
+PCD_V2_TCG_LOG_COMPONENT_TYPE_ID = int ("0x45", 16)
 
 CFM_V2_COMPONENT_DEVICE_TYPE_ID = int ("0x70", 16)
 CFM_V2_PMR_TYPE_ID = int ("0x71", 16)
@@ -426,7 +427,9 @@ def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output
         manifest_hash_buf = (ctypes.c_ubyte * manifest_length) ()
         ctypes.memmove (ctypes.addressof (manifest_hash_buf), ctypes.addressof (manifest),
             manifest_length)
-        h = sha_algo.new (manifest_hash_buf)
+        # Convert ctypes array to bytes to avoid TypeError with PyCrypto
+        manifest_hash_bytes = bytes(manifest_hash_buf)
+        h = sha_algo.new (manifest_hash_bytes)
 
         if key_type == 1:
             signer = DSS.new (key, 'fips-186-3', 'der')

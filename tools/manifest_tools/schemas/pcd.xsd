@@ -68,6 +68,7 @@
         <xs:restriction base="xs:string">
             <xs:enumeration value="Direct"/>
             <xs:enumeration value="MCTPBridge"/>
+            <xs:enumeration value="TCGLog"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -254,15 +255,67 @@
         <xs:attribute name="type" type="InterfaceType" use="required"/>
     </xs:complexType>
 
-    <xs:complexType name="Component">
+    <xs:complexType name="BaseComponent">
         <xs:annotation>
             <xs:documentation>A single component's attestation information.</xs:documentation>
         </xs:annotation>
-        <xs:sequence>
+        <xs:all>
             <xs:element name="Policy" type="PolicyType"/>
-            <xs:choice>
-                <xs:element name="Interface" type="Interface"/>
-                <xs:sequence>
+            <xs:element name="PwrCtrl" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>Component power control information.</xs:documentation>
+                </xs:annotation>
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="Register" type="HexByte">
+                            <xs:annotation>
+                                <xs:documentation>Power control register address.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                        <xs:element name="Mask" type="HexByte">
+                            <xs:annotation>
+                                <xs:documentation>Power control bitmask.</xs:documentation>
+                            </xs:annotation>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:all>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+        <xs:attribute name="connection" type="ConnectionType" use="required">
+            <xs:annotation>
+                <xs:documentation>Component connection type.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="attestation_success_retry" type="xs:unsignedInt">
+            <xs:annotation>
+                <xs:documentation>Duration in milliseconds after device succeeds attestation to wait before reattesting.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="attestation_fail_retry" type="xs:unsignedInt">
+            <xs:annotation>
+                <xs:documentation>Duration in milliseconds after device fails attestation to wait before reattesting.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="attestation_rsp_not_ready_max_retry" type="xs:unsignedInt">
+            <xs:annotation>
+                <xs:documentation>Maximum number of SPDM ResponseNotReady retries permitted for the device.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+        <xs:attribute name="attestation_rsp_not_ready_max_duration" type="xs:unsignedInt">
+            <xs:annotation>
+                <xs:documentation>Maximum wait time between retries after receiving an SPDM ResponseNotReady error.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <xs:complexType name="MctpComponent">
+        <xs:annotation>
+            <xs:documentation>A single component's attestation information.</xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="BaseComponent">
+                <xs:all>
                     <xs:element name="DeviceID" type="HexInteger16">
                         <xs:annotation>
                             <xs:documentation>Device ID. See the device discovery description.</xs:documentation>
@@ -288,69 +341,24 @@
                             <xs:documentation>Device MCTP EID.</xs:documentation>
                         </xs:annotation>
                     </xs:element>
-                </xs:sequence>
-            </xs:choice>
-            <xs:element name="PwrCtrl" minOccurs="0">
-                <xs:annotation>
-                    <xs:documentation>Component power control information.</xs:documentation>
-                </xs:annotation>
-                <xs:complexType>
-                    <xs:sequence>
-                        <xs:element name="Register" type="HexByte">
-                            <xs:annotation>
-                                <xs:documentation>Power control register address.</xs:documentation>
-                            </xs:annotation>
-                        </xs:element>
-                        <xs:element name="Mask" type="HexByte">
-                            <xs:annotation>
-                                <xs:documentation>Power control bitmask.</xs:documentation>
-                            </xs:annotation>
-                        </xs:element>
-                    </xs:sequence>
-                </xs:complexType>
-            </xs:element>
-        </xs:sequence>
-        <xs:attribute name="type" type="xs:string" use="required"/>
-        <xs:attribute name="connection" type="ConnectionType" use="required">
-            <xs:annotation>
-                <xs:documentation>Component connection type.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="count" type="xs:unsignedByte">
-            <xs:annotation>
-                <xs:documentation>Number of identical components this element describes.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="attestation_success_retry" type="xs:unsignedInt">
-            <xs:annotation>
-                <xs:documentation>Duration in milliseconds after device succeeds attestation to wait before reattesting.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="attestation_fail_retry" type="xs:unsignedInt">
-            <xs:annotation>
-                <xs:documentation>Duration in milliseconds after device fails attestation to wait before reattesting.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="discovery_fail_retry" type="xs:unsignedInt">
-            <xs:annotation>
-                <xs:documentation>Duration in milliseconds after device fails a discovery step to wait before retrying.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="mctp_bridge_additional_timeout" type="xs:unsignedInt">
-            <xs:annotation>
-                <xs:documentation>Time in milliseconds to wait in addition to device timeout period due to MCTP bridge.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="attestation_rsp_not_ready_max_retry" type="xs:unsignedInt">
-            <xs:annotation>
-                <xs:documentation>Maximum number of SPDM ResponseNotReady retries permitted for the device.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
-        <xs:attribute name="attestation_rsp_not_ready_max_duration" type="xs:unsignedInt">
-            <xs:annotation>
-                <xs:documentation>Maximum wait time between retries after receiving an SPDM ResponseNotReady error.</xs:documentation>
-            </xs:annotation>
-        </xs:attribute>
+                </xs:all>
+                <xs:attribute name="count" type="xs:unsignedByte">
+                    <xs:annotation>
+                        <xs:documentation>Number of identical components this element describes.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="discovery_fail_retry" type="xs:unsignedInt">
+                    <xs:annotation>
+                        <xs:documentation>Duration in milliseconds after device fails a discovery step to wait before retrying.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="mctp_bridge_additional_timeout" type="xs:unsignedInt">
+                    <xs:annotation>
+                        <xs:documentation>Time in milliseconds to wait in addition to device timeout period due to MCTP bridge.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:complexContent>
     </xs:complexType>
 
     <xs:complexType name="PCDBase">
@@ -387,7 +395,10 @@
                         </xs:annotation>
                         <xs:complexType>
                             <xs:sequence>
-                                <xs:element name="Component" type="Component" minOccurs="0" maxOccurs="255"/>
+                                <xs:element name="Component" minOccurs="0" maxOccurs="255">
+                                    <xs:alternative type="MctpComponent" test="@connection = 'MCTPBridge'"/>
+                                    <xs:alternative type="BaseComponent"/>
+                                </xs:element>
                             </xs:sequence>
                         </xs:complexType>
                     </xs:element>
