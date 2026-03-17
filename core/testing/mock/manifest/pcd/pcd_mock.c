@@ -153,6 +153,19 @@ static int pcd_mock_get_power_controller_info (const struct pcd *pcd,
 	MOCK_RETURN (&mock->mock, pcd_mock_get_power_controller_info, pcd, MOCK_ARG_PTR_CALL (info));
 }
 
+static int pcd_mock_get_next_tcg_log_component (const struct pcd *pcd,
+	struct pcd_tcg_log_components_info *component, bool first)
+{
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, pcd_mock_get_next_tcg_log_component, pcd,
+		MOCK_ARG_PTR_CALL (component), MOCK_ARG_CALL (first));
+}
+
 static int pcd_mock_func_arg_count (void *func)
 {
 	if (func == pcd_mock_verify) {
@@ -162,7 +175,8 @@ static int pcd_mock_func_arg_count (void *func)
 		return 3;
 	}
 	else if ((func == pcd_mock_get_platform_id) || (func == pcd_mock_get_signature) ||
-		(func == pcd_mock_get_next_mctp_bridge_component) || (func == pcd_mock_get_port_info)) {
+		(func == pcd_mock_get_next_mctp_bridge_component) || (func == pcd_mock_get_port_info) ||
+		(func == pcd_mock_get_next_tcg_log_component)) {
 		return 2;
 	}
 	else if ((func == pcd_mock_get_id) || (func == pcd_mock_free_platform_id) ||
@@ -211,6 +225,9 @@ static const char* pcd_mock_func_name_map (void *func)
 	}
 	else if (func == pcd_mock_get_power_controller_info) {
 		return "get_power_controller_info";
+	}
+	else if (func == pcd_mock_get_next_tcg_log_component) {
+		return "get_next_tcg_log_component";
 	}
 	else {
 		return "unknown";
@@ -318,6 +335,15 @@ static const char* pcd_mock_arg_name_map (void *func, int arg)
 				return "info";
 		}
 	}
+	else if (func == pcd_mock_get_next_tcg_log_component) {
+		switch (arg) {
+			case 0:
+				return "component";
+
+			case 1:
+				return "first";
+		}
+	}
 
 	return "unknown";
 }
@@ -359,6 +385,7 @@ int pcd_mock_init (struct pcd_mock *mock)
 	mock->base.get_rot_info = pcd_mock_get_rot_info;
 	mock->base.get_port_info = pcd_mock_get_port_info;
 	mock->base.get_power_controller_info = pcd_mock_get_power_controller_info;
+	mock->base.get_next_tcg_log_component = pcd_mock_get_next_tcg_log_component;
 
 	mock->mock.func_arg_count = pcd_mock_func_arg_count;
 	mock->mock.func_name_map = pcd_mock_func_name_map;

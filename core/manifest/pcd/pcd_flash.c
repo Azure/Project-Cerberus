@@ -328,15 +328,58 @@ int pcd_flash_get_next_mctp_bridge_component (const struct pcd *pcd,
 	return 0;
 }
 
+int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
+	struct pcd_tcg_log_components_info *component, bool first)
+{
+	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
+	struct pcd_tcg_log_component_element tcg_log_component;
+	uint8_t *element_ptr = (uint8_t*) &tcg_log_component;
+	uint8_t *start_ptr;
+	int status;
+
+	if ((pcd_flash == NULL) || (component == NULL)) {
+		return PCD_INVALID_ARGUMENT;
+	}
+
+	if (!pcd_flash->base_flash.state->manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	start_ptr = &component->index;
+
+	if (first) {
+		*start_ptr = 0;
+	}
+
+	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
+		PCD_COMPONENT_TCG_LOG, *start_ptr, MANIFEST_NO_PARENT, 0, start_ptr, NULL, NULL,
+		&element_ptr, sizeof (struct pcd_tcg_log_component_element));
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+	if ((size_t) status < (sizeof (struct pcd_tcg_log_component_element))) {
+		return PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT;
+	}
+
+	*start_ptr = *start_ptr + 1;
+
+	component->component_id = tcg_log_component.component.component_id;
+	component->components_count = 1;
+
+	return 0;
+}
+
 int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset, size_t length,
 	uint8_t *pcd_component_ids)
 {
 	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_rot_info rot_info;
 	struct pcd_mctp_bridge_components_info component;
+	struct pcd_tcg_log_components_info tcg_log_component;
 	struct pcd_supported_component supported_component;
 	size_t i_components = 0;
 	size_t component_len = 0;
+	bool first_tcg = true;
 	int status;
 
 	if ((pcd_flash == NULL) || (pcd_component_ids == NULL) || (length == 0)) {
@@ -354,12 +397,22 @@ int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset,
 
 	while ((i_components < rot_info.components_count) && (length > 0)) {
 		status = pcd_flash_get_next_mctp_bridge_component (pcd, &component, (i_components == 0));
-		if (status != 0) {
+		if (status == 0) {
+			supported_component.component_id = component.component_id;
+			supported_component.component_count = component.components_count;
+		}
+		else if (status == MANIFEST_ELEMENT_NOT_FOUND) {
+			status = pcd_flash_get_next_tcg_log_component (pcd, &tcg_log_component, first_tcg);
+			if (status != 0) {
+				return status;
+			}
+			first_tcg = false;
+			supported_component.component_id = tcg_log_component.component_id;
+			supported_component.component_count = tcg_log_component.components_count;
+		}
+		else {
 			return status;
 		}
-
-		supported_component.component_id = component.component_id;
-		supported_component.component_count = component.components_count;
 
 		component_len += buffer_copy ((uint8_t*) &supported_component, sizeof (supported_component),
 			&offset, &length, &pcd_component_ids[component_len]);
@@ -420,6 +473,7 @@ int pcd_flash_init (struct pcd_flash *pcd, struct pcd_flash_state *state, const 
 	pcd->base.get_port_info = pcd_flash_get_port_info;
 	pcd->base.get_rot_info = pcd_flash_get_rot_info;
 	pcd->base.get_power_controller_info = pcd_flash_get_power_controller_info;
+	pcd->base.get_next_tcg_log_component = pcd_flash_get_next_tcg_log_component;
 
 	return 0;
 }

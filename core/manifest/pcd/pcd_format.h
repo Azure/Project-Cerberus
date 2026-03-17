@@ -18,6 +18,7 @@ enum pcd_element_type {
 	PCD_POWER_CONTROLLER = 0x42,		/**< Information about power controller utilized by RoT. */
 	PCD_COMPONENT_DIRECT = 0x43,		/**< A single component connected directly to RoT. */
 	PCD_COMPONENT_MCTP_BRIDGE = 0x44,	/**< A components connected to RoT through an MCTP bridge. */
+	PCD_COMPONENT_TCG_LOG = 0x45,		/**< Components self-attested by the RoT's own TCG Log. */
 };
 
 /**
@@ -227,6 +228,13 @@ struct pcd_mctp_bridge_component_connection {
 struct pcd_mctp_bridge_component_element {
 	struct pcd_component_common component;					/**< Common component configuration. */
 	struct pcd_mctp_bridge_component_connection connection;	/**< Component connection information. */
+};
+
+/**
+ * Element for a component defined in RoT TCG Log.
+ */
+struct pcd_tcg_log_component_element {
+	struct pcd_component_common component;	/**< Common component configuration. */
 };
 
 

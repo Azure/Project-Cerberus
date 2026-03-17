@@ -142,6 +142,15 @@ struct pcd_supported_component {
 	uint8_t component_count;	/**< Number of identical components this element describes. */
 };
 
+/**
+ * Container for TCG Log components info.
+ */
+struct pcd_tcg_log_components_info {
+	uint8_t index;				/**< Relative index of the component element in the PCD. */
+	uint32_t component_id;		/**< Unique identifier for component type defined in RoT TCG Log */
+	uint8_t components_count;	/**< Number of identical components this element describes. */
+};
+
 #pragma pack(pop)
 
 /**
@@ -218,6 +227,21 @@ struct pcd {
 	 */
 	int (*get_power_controller_info) (const struct pcd *pcd,
 		struct pcd_power_controller_info *info);
+
+	/**
+	 * Get next TCG Log component from PCD.
+	 *
+	 * @param pcd The PCD to query.
+	 * @param component A container to be updated with the component information.  If first is not
+	 * 	true, then same container that was passed previously needs to be passed in.  Instances never
+	 * 	passed to this function need to have first set to true.
+	 * @param first Fetch first TCG Log component from PCD, or next TCG Log component since last
+	 * 	call.
+	 *
+	 * @return 0 if a component was found or an error code.
+	 */
+	int (*get_next_tcg_log_component) (const struct pcd *pcd,
+		struct pcd_tcg_log_components_info *component, bool first);
 };
 
 
@@ -235,6 +259,7 @@ enum {
 	PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT = PCD_ERROR (0x05),	/**< PCD direct i2c component element too short. */
 	PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT = PCD_ERROR (0x06),		/**< PCD bridge component element too short. */
 	PCD_MALFORMED_PORT_ELEMENT = PCD_ERROR (0x07),					/**< PCD port element too short. */
+	PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT = PCD_ERROR (0x08),		/**< PCD TCG log element too short. */
 };
 
 

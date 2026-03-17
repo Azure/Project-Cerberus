@@ -26,6 +26,8 @@ int pcd_flash_get_next_mctp_bridge_component (const struct pcd *pcd,
 	struct pcd_mctp_bridge_components_info *component, bool first);
 int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset, size_t length,
 	uint8_t *pcd_component_ids);
+int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
+	struct pcd_tcg_log_components_info *component, bool first);
 
 
 /**
@@ -46,6 +48,7 @@ int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset,
 		.get_port_info = pcd_flash_get_port_info, \
 		.get_rot_info = pcd_flash_get_rot_info, \
 		.get_power_controller_info = pcd_flash_get_power_controller_info, \
+		.get_next_tcg_log_component = pcd_flash_get_next_tcg_log_component, \
 	}
 
 
