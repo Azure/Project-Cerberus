@@ -40,10 +40,21 @@ int cmd_interface_rma_process_response (const struct cmd_interface *intf,
  * There is no validation done on the arguments.
  *
  * @param device_manager_ptr Manager for known devices.
+ * @param vendor_id_val Device vendor ID.
+ * @param device_id_val Device ID.
+ * @param subsystem_vid_val Subsystem vendor ID.
+ * @param subsystem_id_val Subsystem ID.
  */
-#define	cmd_interface_rma_static_init(device_manager_ptr) { \
+#define	cmd_interface_rma_static_init(device_manager_ptr, vendor_id_val, device_id_val, \
+	subsystem_vid_val, subsystem_id_val) { \
 		.base = CMD_INTERFACE_RMA_API_INIT, \
 		.device_manager = device_manager_ptr, \
+		.device_id = { \
+			.vendor_id = (vendor_id_val), \
+			.device_id = (device_id_val), \
+			.subsystem_vid = (subsystem_vid_val), \
+			.subsystem_id = (subsystem_id_val), \
+		}, \
 	}
 
 
