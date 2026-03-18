@@ -1567,10 +1567,8 @@ static void device_manager_test_update_attestation_summary_prev_state (CuTest *t
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_AUTHENTICATED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_attestation_summary_prev_state (&manager, 1);
+	status = device_manager_update_attestation_summary_prev_state (&manager, 1,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_attestation_summary_prev_state (&manager, 1);
@@ -1589,10 +1587,8 @@ static void device_manager_test_update_attestation_summary_prev_state_init_ac_ro
 	status = device_manager_init_ac_rot (&manager, 2, DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_AUTHENTICATED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_attestation_summary_prev_state (&manager, 1);
+	status = device_manager_update_attestation_summary_prev_state (&manager, 1,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_attestation_summary_prev_state (&manager, 1);
@@ -1612,7 +1608,8 @@ static void device_manager_test_update_attestation_summary_prev_state_invalid_ar
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_attestation_summary_prev_state (NULL, 0);
+	status = device_manager_update_attestation_summary_prev_state (NULL, 0,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	device_manager_release (&manager);
@@ -1629,10 +1626,12 @@ static void device_manager_test_update_attestation_summary_prev_state_invalid_de
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_attestation_summary_prev_state (&manager, 2);
+	status = device_manager_update_attestation_summary_prev_state (&manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	status = device_manager_update_attestation_summary_prev_state (&manager, -1);
+	status = device_manager_update_attestation_summary_prev_state (&manager, -1,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -1652,10 +1651,8 @@ static void device_manager_test_update_attestation_summary_prev_state_by_eid (Cu
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_AUTHENTICATED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_attestation_summary_prev_state_by_eid (&manager, 0xAA);
+	status = device_manager_update_attestation_summary_prev_state_by_eid (&manager, 0xAA,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&manager, 0xAA);
@@ -1678,10 +1675,8 @@ static void device_manager_test_update_attestation_summary_prev_state_by_eid_ini
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_AUTHENTICATED);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_attestation_summary_prev_state_by_eid (&manager, 0xAA);
+	status = device_manager_update_attestation_summary_prev_state_by_eid (&manager, 0xAA,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_attestation_summary_prev_state_by_eid (&manager, 0xAA);
@@ -1702,7 +1697,8 @@ static void device_manager_test_update_attestation_summary_prev_state_by_eid_inv
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_attestation_summary_prev_state_by_eid (NULL, 0);
+	status = device_manager_update_attestation_summary_prev_state_by_eid (NULL, 0,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	device_manager_release (&manager);
@@ -1720,7 +1716,8 @@ static void device_manager_test_update_attestation_summary_prev_state_by_eid_inv
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_attestation_summary_prev_state_by_eid (&manager, 2);
+	status = device_manager_update_attestation_summary_prev_state_by_eid (&manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);

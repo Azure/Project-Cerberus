@@ -3930,6 +3930,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 	enum cfm_attestation_type attestation_protocol;
 	struct device_manager_attestation_summary_event_counters event_counters;
 	int device_addr;
+	int device_prev_state;
 	int device_state;
 	int status;
 
@@ -3964,6 +3965,11 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 		return ATTESTATION_NO_CFM;
 	}
 
+	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
+
+	/* Store the previous device state before starting attestation */
+	device_prev_state = device_state;
+
 	status = active_cfm->get_component_device (active_cfm, component_id, &component_device);
 	if (status != 0) {
 		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
@@ -3979,11 +3985,6 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 	attestation_protocol = component_device.attestation_protocol;
 
 	active_cfm->free_component_device (active_cfm, &component_device);
-
-	/* update previous attestation state in device manager attestation event */
-	device_manager_update_attestation_summary_prev_state_by_eid (attestation->device_mgr, eid);
-
-	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
 
 	if (!(device_state == DEVICE_MANAGER_AUTHENTICATED) ||
 		(device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
@@ -4022,6 +4023,10 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 free_cfm:
 	attestation->cfm_manager->free_cfm (attestation->cfm_manager, active_cfm);
+
+	/* update previous attestation state in device manager attestation event */
+	device_manager_update_attestation_summary_prev_state_by_eid (attestation->device_mgr, eid,
+		device_prev_state);
 
 	if (status == 0) {
 		if (attestation_protocol == CFM_ATTESTATION_DMTF_SPDM) {

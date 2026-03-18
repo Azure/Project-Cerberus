@@ -453,9 +453,9 @@ int device_manager_get_attestation_summary_prev_state_by_eid (struct device_mana
 	uint8_t eid);
 
 int device_manager_update_attestation_summary_prev_state (struct device_manager *mgr,
-	int device_num);
+	int device_num, enum device_manager_device_state previous_state);
 int device_manager_update_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
-	uint8_t eid);
+	uint8_t eid, enum device_manager_device_state previous_state);
 
 int device_manager_get_attestation_summary_event_counters (struct device_manager *mgr,
 	int device_num, struct device_manager_attestation_summary_event_counters *event_counters);

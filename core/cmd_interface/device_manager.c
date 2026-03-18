@@ -1289,11 +1289,12 @@ int device_manager_get_attestation_summary_prev_state_by_eid (struct device_mana
  *
  * @param mgr Device manager instance to utilize.
  * @param device_num Device table entry to update.
+ * @param previous_state Previous state to set in the attestation summary.
  *
  * @return Completion status, 0 if success or an error code.
  */
 int device_manager_update_attestation_summary_prev_state (struct device_manager *mgr,
-	int device_num)
+	int device_num, enum device_manager_device_state previous_state)
 {
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
@@ -1303,7 +1304,7 @@ int device_manager_update_attestation_summary_prev_state (struct device_manager 
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
-	mgr->entries[device_num].summary.prev_state = mgr->entries[device_num].state;
+	mgr->entries[device_num].summary.prev_state = previous_state;
 
 	return 0;
 }
@@ -1313,12 +1314,12 @@ int device_manager_update_attestation_summary_prev_state (struct device_manager 
  *
  * @param mgr Device manager instance to utilize.
  * @param eid EID of device to update.
- * @param prev_state Device state.
+ * @param previous_state Previous state to set in the attestation summary.
  *
  * @return Completion status, 0 if success or an error code.
  */
-int device_manager_update_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
-	uint8_t eid)
+int device_manager_update_attestation_summary_prev_state_by_eid (
+	struct device_manager *mgr, uint8_t eid, enum device_manager_device_state previous_state)
 {
 	int device_num;
 
@@ -1327,7 +1328,7 @@ int device_manager_update_attestation_summary_prev_state_by_eid (struct device_m
 		return device_num;
 	}
 
-	return device_manager_update_attestation_summary_prev_state (mgr, device_num);
+	return device_manager_update_attestation_summary_prev_state (mgr, device_num, previous_state);
 }
 
 /**
