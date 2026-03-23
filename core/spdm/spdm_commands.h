@@ -369,7 +369,7 @@ struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_algorithm_request {
  * @param curr_alg_struct_table_entry Current algorithm struct table entry.
 */
 #define spdm_negotiate_algorithms_get_next_alg_struct_table_entry(curr_alg_struct_table_entry) ( \
-	(struct spdm_algorithm_request*)((size_t) curr_alg_struct_table_entry + \
+	(struct spdm_algorithm_request*)((uint8_t*) curr_alg_struct_table_entry + \
 	sizeof (struct spdm_algorithm_request) + \
 	sizeof (struct spdm_extended_algorithm) * curr_alg_struct_table_entry->ext_alg_count))
 

@@ -8708,6 +8708,7 @@ static void spdm_test_process_negotiate_algorithms_response_1_0_non_zero_alg_tab
 	memset (&msg, 0, sizeof (msg));
 	msg.data = buf;
 	msg.payload = (uint8_t*) resp;
+	msg.payload_length = sizeof (*resp);
 
 	resp->header.spdm_minor_version = 0;
 

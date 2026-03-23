@@ -1265,6 +1265,7 @@ void cfm_flash_free_manifest (const struct cfm *cfm, struct cfm_manifest *manife
 		platform_free (manifest->check);
 		platform_free ((void*) manifest->platform_id);
 
+		manifest->check_count = 0;
 		manifest->check = NULL;
 		manifest->platform_id = NULL;
 	}

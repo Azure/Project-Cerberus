@@ -1458,7 +1458,7 @@ static int attestation_requester_process_spdm_protocol_response (
 				else {
 					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
 						DEBUG_LOG_COMPONENT_ATTESTATION, ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,
-						((error_msg->error_code << 24) | (response->source_eid << 16) |
+						(((uint32_t) error_msg->error_code << 24) | (response->source_eid << 16) |
 									(response->target_eid << 8)), error_msg->error_data);
 					status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
 				}

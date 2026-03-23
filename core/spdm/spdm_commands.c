@@ -2262,10 +2262,14 @@ int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *respon
 	struct spdm_negotiate_algorithms_response *resp;
 	struct spdm_algorithm_request *algstruct_table;
 	size_t i_algstruct;
-	size_t offset;
+	uint8_t *end;
 
 	if (response == NULL) {
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	if (response->payload_length < sizeof (struct spdm_negotiate_algorithms_response)) {
+		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
 
 	resp = (struct spdm_negotiate_algorithms_response*) response->payload;
@@ -2275,25 +2279,27 @@ int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *respon
 		}
 	}
 
-	if ((response->payload_length < sizeof (struct spdm_negotiate_algorithms_response)) ||
-		(response->payload_length != resp->length) ||
+	if ((response->payload_length != resp->length) ||
 		(response->payload_length < spdm_negotiate_algorithms_min_rsp_length (resp))) {
 		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
 
 	algstruct_table = spdm_negotiate_algorithms_rsp_algstruct_table (resp);
-	offset = spdm_negotiate_algorithms_min_rsp_length (resp);
+	end = response->payload + response->payload_length;
 
 	for (i_algstruct = 0; i_algstruct < resp->num_alg_structure_tables; ++i_algstruct) {
 		/* TODO: Maybe macro for length check. */
-		if (response->payload_length <
-			(offset + algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm))) {
+		if ((uint8_t*) algstruct_table + sizeof (struct spdm_algorithm_request) > end) {
 			return CMD_HANDLER_SPDM_BAD_LENGTH;
 		}
 
-		algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-			(algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm)));
-		offset += (algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm));
+		if ((uint8_t*) algstruct_table + sizeof (struct spdm_algorithm_request) +
+			(algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm)) > end) {
+			return CMD_HANDLER_SPDM_BAD_LENGTH;
+		}
+
+		algstruct_table =
+			spdm_negotiate_algorithms_get_next_alg_struct_table_entry (algstruct_table);
 	}
 
 	return 0;
@@ -3497,9 +3503,9 @@ int spdm_process_get_measurements_response (struct cmd_interface_msg *response)
 
 	resp = (struct spdm_get_measurements_response*) response->payload;
 
-	if (((response->payload_length < sizeof (struct spdm_get_measurements_response)) ||
-		(response->payload_length < (sizeof (struct spdm_get_measurements_response) +
-		spdm_get_measurements_resp_measurement_record_len (resp) + SPDM_NONCE_LEN))) ||
+	if ((response->payload_length < SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH) ||
+		(response->payload_length < SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH +
+		spdm_get_measurements_resp_measurement_record_len (resp)) ||
 		(response->payload_length < spdm_get_measurements_resp_length (resp))) {
 		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
