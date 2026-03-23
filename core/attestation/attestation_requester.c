@@ -1792,11 +1792,17 @@ int attestation_requester_init (struct attestation_requester *attestation,
 {
 	if ((attestation == NULL) || (state == NULL) || (mctp == NULL) || (channel == NULL) ||
 		(primary_hash == NULL) || (ecc == NULL) || (x509 == NULL) || (rng == NULL) ||
-		(riot == NULL) || (device_mgr == NULL) || (cfm_manager == NULL) || (mctp_control == NULL)) {
+		(riot == NULL) || (device_mgr == NULL) || (cfm_manager == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-#if defined (ATTESTATION_SUPPORT_SPDM)
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
+	if (mctp_control == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+#endif
+
+#if defined (CMD_ENABLE_ISSUE_REQUEST) && defined (ATTESTATION_SUPPORT_SPDM)
 	if (spdm_transport == NULL) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
@@ -4339,7 +4345,8 @@ int attestation_requester_discover_device (const struct attestation_requester *a
 	size_t msg_type_rsp_len = sizeof (struct mctp_control_get_message_type_response);
 	int status;
 
-	if (attestation == NULL) {
+	if ((attestation == NULL) || (attestation->mctp_control == NULL) ||
+		(attestation->spdm_transport == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
@@ -4407,7 +4414,7 @@ int attestation_requester_get_mctp_routing_table (const struct attestation_reque
 	int request_len;
 	int status;
 
-	if (attestation == NULL) {
+	if ((attestation == NULL) || (attestation->mctp_control == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 

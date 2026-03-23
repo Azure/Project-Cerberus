@@ -444,8 +444,7 @@ static void setup_attestation_requester_mock_test (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&testing->mctp, &testing->mctp_state, &testing->req_handler,
-		&testing->device_mgr, &testing->channel.base, &testing->cmd_cerberus.base,
-		&testing->cmd_mctp.base, &testing->cmd_spdm.base);
+		&testing->device_mgr, &testing->channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	if (init_attestation) {
@@ -5189,8 +5188,7 @@ static void attestation_requester_test_init_state (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
-		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
+		&testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init_state (&attestation);
@@ -28648,8 +28646,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
-		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
+		&testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
@@ -38957,8 +38954,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
-		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
+		&testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
@@ -39239,11 +39235,24 @@ static void attestation_requester_test_attest_device_invalid_component_device (C
 
 static void attestation_requester_test_discover_device_invalid_arg (CuTest *test)
 {
+	struct attestation_requester attestation;
+	struct msg_transport transport;
 	int status;
 
 	TEST_START;
 
 	status = attestation_requester_discover_device (NULL, 0xAA);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	memset (&attestation, 0, sizeof (struct attestation_requester));
+
+	status = attestation_requester_discover_device (&attestation, 0xAA);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	memset (&transport, 0, sizeof (struct msg_transport));
+	attestation.mctp_control = &transport;
+
+	status = attestation_requester_discover_device (&attestation, 0xAA);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 }
 
@@ -40529,11 +40538,17 @@ static void attestation_requester_test_get_routing_table_table_bridge_refresh_re
 
 static void attestation_requester_test_get_routing_table_invalid_arg (CuTest *test)
 {
+	struct attestation_requester attestation;
 	int status;
 
 	TEST_START;
 
 	status = attestation_requester_get_mctp_routing_table (NULL);
+	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+
+	memset (&attestation, 0, sizeof (struct attestation_requester));
+
+	status = attestation_requester_get_mctp_routing_table (&attestation);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 }
 
@@ -41343,8 +41358,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
-		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
+		&testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
@@ -42304,8 +42318,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&testing.mctp, &testing.mctp_state, &testing.req_handler,
-		&testing.device_mgr, &testing.channel.base, &testing.cmd_cerberus.base,
-		&testing.cmd_mctp.base, &testing.cmd_spdm.base);
+		&testing.device_mgr, &testing.channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing.max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;
@@ -42621,8 +42634,7 @@ static void attestation_requester_setup_attestation_loop (
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&testing->mctp, &testing->mctp_state, &testing->req_handler,
-		&testing->device_mgr, &testing->channel.base, &testing->cmd_cerberus.base,
-		&testing->cmd_mctp.base, &testing->cmd_spdm.base);
+		&testing->device_mgr, &testing->channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	testing->max_cert_buffer_portion = SPDM_GET_CERTIFICATE_MAX_CERT_BUFFER;

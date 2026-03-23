@@ -89,7 +89,7 @@ static void setup_mock_cmd_channel_test (CuTest *test, struct cmd_channel_testin
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&channel->mctp, &channel->mctp_state, &channel->req_handler.base,
-		&channel->device_mgr, &channel->test.base, &channel->cmd_cerberus.base, NULL, NULL);
+		&channel->device_mgr, &channel->test.base);
 	CuAssertIntEquals (test, 0, status);
 }
 

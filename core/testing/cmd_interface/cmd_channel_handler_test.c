@@ -77,7 +77,7 @@ static void cmd_channel_handler_testing_init_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&handler->mctp, &handler->mctp_state, &handler->req_handler.base,
-		&handler->device_mgr, &handler->channel.base, &handler->cmd_cerberus.base, NULL, NULL);
+		&handler->device_mgr, &handler->channel.base);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -192,7 +192,7 @@ static void cmd_channel_handler_test_prepare_1 (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = mctp_interface_init (&handler->mctp, &handler->mctp_state, &handler->req_handler.base,
-		&handler->device_mgr, &handler->channel.base, &handler->cmd_cerberus.base, NULL, NULL);
+		&handler->device_mgr, &handler->channel.base);
 	CuAssertIntEquals (test, 0, status);
 
 	status = cmd_channel_handler_init (&handler->test, &handler->channel.base, &handler->mctp,

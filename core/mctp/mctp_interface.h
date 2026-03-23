@@ -18,14 +18,11 @@
  * MCTP interface state for transactions started by device
  */
 enum mctp_interface_response_state {
-	MCTP_INTERFACE_RESPONSE_IDLE,				/**< No active transaction started by device. */
-	MCTP_INTERFACE_RESPONSE_WAITING,			/**< Request sent, waiting for a response. */
-	MCTP_INTERFACE_RESPONSE_PENDING,			/**< Request sent, not waiting for a response. */
-	MCTP_INTERFACE_RESPONSE_TOO_BIG,			/**< Received response was too large for the buffer. */
-	MCTP_INTERFACE_RESPONSE_SUCCESS,			/**< Successfully received response from the target. */
-	MCTP_INTERFACE_RESPONSE_WAITING_DEPRECATED,	/**< Using the deprecated workflow to wait for a response. */
-	MCTP_INTERFACE_RESPONSE_ERROR_DEPRECATED,	/**< Deprecated indication of an error response. */
-	MCTP_INTERFACE_RESPONSE_FAIL_DEPRECATED,	/**< Deprecated indication of a response processing failure. */
+	MCTP_INTERFACE_RESPONSE_IDLE,		/**< No active transaction started by device. */
+	MCTP_INTERFACE_RESPONSE_WAITING,	/**< Request sent, waiting for a response. */
+	MCTP_INTERFACE_RESPONSE_PENDING,	/**< Request sent, not waiting for a response. */
+	MCTP_INTERFACE_RESPONSE_TOO_BIG,	/**< Received response was too large for the buffer. */
+	MCTP_INTERFACE_RESPONSE_SUCCESS,	/**< Successfully received response from the target. */
 };
 
 /**
@@ -64,9 +61,6 @@ struct mctp_interface {
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	struct msg_transport base;								/**< Base transport API for sending requests. */
 	const struct cmd_channel *channel;						/**< Command channel to use for sending requests. */
-	const struct cmd_interface *cmd_cerberus;				/**< Deprecated handler for Cerberus responses. */
-	const struct cmd_interface *cmd_mctp;					/**< Deprecated handler for MCTP responses. */
-	const struct cmd_interface *cmd_spdm;					/**< Deprecated handler for SPDM responses. */
 #endif
 	struct mctp_interface_state *state;						/**< Variable context for the handler. */
 	const struct cmd_interface_multi_handler *req_handler;	/**< Handler for processing MCTP requests. */
@@ -76,8 +70,7 @@ struct mctp_interface {
 
 int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_state *state,
 	const struct cmd_interface_multi_handler *req_handler, struct device_manager *device_mgr,
-	const struct cmd_channel *channel, const struct cmd_interface *cmd_cerberus,
-	const struct cmd_interface *cmd_mctp, const struct cmd_interface *cmd_spdm);
+	const struct cmd_channel *channel);
 int mctp_interface_init_state (const struct mctp_interface *mctp);
 void mctp_interface_release (const struct mctp_interface *mctp);
 
@@ -85,12 +78,6 @@ int mctp_interface_set_channel_id (const struct mctp_interface *mctp, int channe
 
 int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd_packet *rx_packet,
 	struct cmd_message **tx_message);
-
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int mctp_interface_issue_request (const struct mctp_interface *mctp,
-	const struct cmd_channel *channel, uint8_t dest_addr, uint8_t dest_eid, uint8_t *request,
-	size_t length, uint8_t *msg_buffer, size_t max_buffer, uint32_t timeout_ms);
-#endif
 
 
 #endif	/* MCTP_INTERFACE_H_ */
