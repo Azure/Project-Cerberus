@@ -133,6 +133,15 @@ struct pcd_mctp_bridge_components_info {
 	uint8_t components_count;	/**< Number of identical components this element describes. */
 };
 
+/**
+ * Container for TCG Log components info.
+ */
+struct pcd_tcg_log_components_info {
+	int index;					/**< Relative index of the component element in the PCD. */
+	uint32_t component_id;		/**< Unique identifier for component type defined in RoT TCG Log */
+	uint8_t components_count;	/**< Number of identical components this element describes. */
+};
+
 #pragma pack(push, 1)
 /**
  * Details for a single component type supported by a PCD.
@@ -140,15 +149,6 @@ struct pcd_mctp_bridge_components_info {
 struct pcd_supported_component {
 	uint32_t component_id;		/**< Unique identifier for component type supported by PCD. */
 	uint8_t component_count;	/**< Number of identical components this element describes. */
-};
-
-/**
- * Container for TCG Log components info.
- */
-struct pcd_tcg_log_components_info {
-	uint8_t index;				/**< Relative index of the component element in the PCD. */
-	uint32_t component_id;		/**< Unique identifier for component type defined in RoT TCG Log */
-	uint8_t components_count;	/**< Number of identical components this element describes. */
 };
 
 #pragma pack(pop)

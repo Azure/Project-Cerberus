@@ -32,6 +32,7 @@ static void add_all_manifest_tests (CuSuite *suite)
 	!defined TESTING_SKIP_MANIFEST_FLASH_SUITE
 	TESTING_RUN_SUITE (manifest_flash);
 	TESTING_RUN_SUITE (manifest_flash_v2);
+	TESTING_RUN_SUITE (manifest_flash_v3);
 #endif
 #if (defined TESTING_RUN_MANIFEST_MANAGER_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \

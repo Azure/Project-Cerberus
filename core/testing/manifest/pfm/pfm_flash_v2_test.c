@@ -6948,8 +6948,8 @@ static void pfm_flash_v2_test_verify_flash_device_element_read_error (CuTest *te
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
-		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.manifest.hash.base,
@@ -6972,8 +6972,8 @@ static void pfm_flash_v2_test_verify_flash_device_element_read_error_v2_init (Cu
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
-		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.manifest.hash.base,
@@ -7008,7 +7008,13 @@ static void pfm_flash_v2_test_verify_flash_device_element_bad_length (CuTest *te
 	manifest_flash_v2_testing_verify_manifest_mocked_hash (test, &pfm.manifest, &PFM_V2.manifest, 0,
 		0);
 
-	status = mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, PFM_V2.manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
 		&pfm.manifest.hash_mock, 0);
 	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.update,
 		&pfm.manifest.hash_mock, 0,
@@ -7182,8 +7188,8 @@ static void pfm_flash_v2_test_get_id_after_verify_flash_device_element_read_erro
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
-		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.manifest.hash.base,
@@ -7211,8 +7217,8 @@ static void pfm_flash_v2_test_get_id_after_verify_flash_device_element_read_erro
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
-		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm.test.base.base.verify (&pfm.test.base.base, &pfm.manifest.hash.base,
@@ -7251,7 +7257,13 @@ static void pfm_flash_v2_test_get_id_after_verify_flash_device_element_bad_lengt
 	manifest_flash_v2_testing_verify_manifest_mocked_hash (test, &pfm.manifest, &PFM_V2.manifest, 0,
 		0);
 
-	status = mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, PFM_V2.manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
 		&pfm.manifest.hash_mock, 0);
 	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.update,
 		&pfm.manifest.hash_mock, 0,
@@ -7982,6 +7994,12 @@ static void pfm_flash_v2_test_get_firmware_read_element_error (CuTest *test)
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -8007,6 +8025,12 @@ static void pfm_flash_v2_test_get_firmware_read_element_error_v2_init (CuTest *t
 	pfm_flash_v2_testing_v2_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -8048,7 +8072,13 @@ static void pfm_flash_v2_test_get_firmware_bad_firmware_element_length_less_than
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -8131,7 +8161,13 @@ static void pfm_flash_v2_test_get_firmware_bad_firmware_element_length_less_than
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -8742,8 +8778,8 @@ static void pfm_flash_v2_test_get_supported_versions_find_firmware_error (CuTest
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
-		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
+		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pfm.test.base.get_supported_versions (&pfm.test.base, test_pfm->fw[fw_index].fw_id_str,
@@ -8768,6 +8804,12 @@ static void pfm_flash_v2_test_get_supported_versions_read_element_error (CuTest 
 	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE * (test_pfm->fw[fw_index].fw_entry + 1)));
@@ -8810,7 +8852,13 @@ static void pfm_flash_v2_test_get_supported_versions_bad_firmware_element_length
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -8894,7 +8942,13 @@ static void pfm_flash_v2_test_get_supported_versions_bad_firmware_element_length
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -8980,7 +9034,13 @@ static void pfm_flash_v2_test_get_supported_versions_bad_fw_version_element_leng
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -9069,7 +9129,13 @@ static void pfm_flash_v2_test_get_supported_versions_bad_fw_version_element_leng
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -9158,7 +9224,13 @@ static void pfm_flash_v2_test_get_supported_versions_bad_fw_version_element_leng
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -9917,6 +9989,12 @@ static void pfm_flash_v2_test_get_read_write_regions_find_firmware_error (CuTest
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -9991,6 +10069,12 @@ static void pfm_flash_v2_test_get_read_write_regions_find_version_error (CuTest 
 	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE * (test_pfm->fw[fw_index].fw_entry + 1)));
@@ -10041,6 +10125,12 @@ static void pfm_flash_v2_test_get_read_write_regions_additional_element_read_err
 	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, fw_index, ver_index);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE *
@@ -10085,7 +10175,13 @@ static void pfm_flash_v2_test_get_read_write_regions_bad_firmware_element_length
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -10170,7 +10266,13 @@ static void pfm_flash_v2_test_get_read_write_regions_bad_firmware_element_length
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -10257,7 +10359,13 @@ static void pfm_flash_v2_test_get_read_write_regions_bad_fw_version_element_leng
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -10347,7 +10455,13 @@ static void pfm_flash_v2_test_get_read_write_regions_bad_fw_version_element_leng
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -10437,7 +10551,13 @@ static void pfm_flash_v2_test_get_read_write_regions_bad_fw_version_element_leng
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -11867,6 +11987,12 @@ static void pfm_flash_v2_test_get_firmware_images_find_firmware_error (CuTest *t
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -11919,6 +12045,12 @@ static void pfm_flash_v2_test_get_firmware_images_find_version_error (CuTest *te
 	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE * (test_pfm->fw[fw_index].fw_entry + 1)));
@@ -12022,6 +12154,12 @@ static void pfm_flash_v2_test_get_firmware_images_additional_element_read_error 
 	pfm_flash_v2_testing_find_version_entry (test, &pfm, test_pfm, fw_index, ver_index);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE *
@@ -12065,6 +12203,12 @@ static void pfm_flash_v2_test_get_firmware_images_bad_firmware_element_length_le
 	bad_entry.length = read_len;
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
 
 	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
@@ -12150,6 +12294,12 @@ static void pfm_flash_v2_test_get_firmware_images_bad_firmware_element_length_le
 	bad_entry.length = read_len;
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
 
 	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
@@ -12238,7 +12388,13 @@ static void pfm_flash_v2_test_get_firmware_images_bad_fw_version_element_length_
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -12327,7 +12483,13 @@ static void pfm_flash_v2_test_get_firmware_images_bad_fw_version_element_length_
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -12417,7 +12579,13 @@ static void pfm_flash_v2_test_get_firmware_images_bad_fw_version_element_length_
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -12508,7 +12676,13 @@ static void pfm_flash_v2_test_get_firmware_images_bad_fw_version_element_length_
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -12599,7 +12773,13 @@ static void pfm_flash_v2_test_get_firmware_images_bad_fw_version_element_length_
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -12688,7 +12868,13 @@ pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw_version_ele
 
 	pfm_flash_v2_testing_find_version_entry_mocked_hash (test, &pfm, test_pfm, fw_index, ver_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -12765,7 +12951,13 @@ pfm_flash_v2_test_get_firmware_images_additional_element_read_bad_fw_version_ele
 
 	pfm_flash_v2_testing_find_version_entry_mocked_hash (test, &pfm, test_pfm, fw_index, ver_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -13651,6 +13843,12 @@ static void pfm_flash_v2_test_buffer_supported_versions_find_firmware_error (CuT
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -13678,6 +13876,12 @@ static void pfm_flash_v2_test_buffer_supported_versions_read_element_error (CuTe
 	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE * (test_pfm->fw[fw_index].fw_entry + 1)));
@@ -13719,6 +13923,12 @@ static void pfm_flash_v2_test_buffer_supported_versions_bad_firmware_element_len
 	bad_entry.length = read_len;
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
 
 	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
@@ -13804,7 +14014,13 @@ static void pfm_flash_v2_test_buffer_supported_versions_bad_firmware_element_len
 
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -13891,7 +14107,13 @@ static void pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_l
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -13979,6 +14201,12 @@ pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_length_less_t
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, true, 0);
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
+
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
 
 	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
@@ -14069,7 +14297,13 @@ static void pfm_flash_v2_test_buffer_supported_versions_bad_fw_version_element_l
 
 	pfm_flash_v2_testing_find_firmware_entry_mocked_hash (test, &pfm, test_pfm, fw_index);
 
-	status = mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.start_sha256,
 		&manifest->hash_mock, 0);
 	status |= mock_expect (&manifest->hash_mock.mock, manifest->hash_mock.base.update,
 		&manifest->hash_mock, 0, MOCK_ARG_PTR_CONTAINS (data->toc, MANIFEST_V2_TOC_HEADER_SIZE),
@@ -14136,6 +14370,12 @@ static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_fw_list
 	pfm_flash_v2_testing_init_and_verify (test, &pfm, 0x10000, test_pfm, 0, false, 0);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
@@ -14167,6 +14407,12 @@ static void pfm_flash_v2_test_buffer_supported_versions_null_firmware_id_read_el
 	pfm_flash_v2_testing_find_firmware_entry (test, &pfm, test_pfm, fw_index);
 
 	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, test_pfm->manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
 		&pfm.manifest.flash, FLASH_READ_FAILED,
 		MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET), MOCK_ARG_NOT_NULL,
 		MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE * (test_pfm->fw[fw_index].fw_entry + 1)));

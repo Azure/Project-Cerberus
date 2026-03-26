@@ -22,6 +22,7 @@ void hash_mock_release (struct hash_engine_mock *mock);
 
 int hash_mock_validate_and_release (struct hash_engine_mock *mock);
 
+int hash_mock_expect_hash_start (struct hash_engine_mock *mock, enum hash_type hash_algo);
 int hash_mock_expect_hmac_init (struct hash_engine_mock *mock, const uint8_t *key,
 	size_t key_length, enum hash_type hmac_algo);
 int hash_mock_expect_hmac_finish (struct hash_engine_mock *mock, const uint8_t *key,

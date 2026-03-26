@@ -17,15 +17,17 @@
  * Variable context for common handling of manifests on flash.
  */
 struct manifest_flash_state {
-	struct manifest_header header;			/**< The manifest header data. */
-	struct manifest_toc_header toc_header;	/**< The table of contents header data. */
-	uint8_t toc_hash[HASH_MAX_HASH_LEN];	/**< Hash of the manifest table of contents. */
-	enum hash_type toc_hash_type;			/**< The type of hash used in the table of contents. */
-	size_t toc_hash_length;					/**< Length of the table of contents hash. */
-	uint8_t hash_cache[HASH_MAX_HASH_LEN];	/**< Cache for the manifest hash. */
-	size_t hash_length;						/**< Length of the manifest hash. */
-	bool cache_valid;						/**< Flag indicating if the cached hash is valid. */
-	bool manifest_valid;					/**< Flag indicating there is a validated manifest. */
+	struct manifest_header header;				/**< The manifest header data. */
+	int entry_count;							/**< Count of entries in manifest, including elements in ToC extension elements and
+													ToC extension elements themselves. */
+	uint8_t root_toc_hash[HASH_MAX_HASH_LEN];	/**< Hash of the manifest root table of contents. */
+	enum hash_type toc_hash_type;				/**< The type of hash used in the table of contents. */
+	size_t toc_hash_length;						/**< Length of the table of contents and it's entries hash. */
+	uint8_t hash_cache[HASH_MAX_HASH_LEN];		/**< Cache for the manifest hash (hash of the manifest content without signature). */
+	size_t hash_length;							/**< Length of the manifest hash. */
+	bool cache_valid;							/**< Flag indicating if the cached hash is valid. */
+	bool manifest_valid;						/**< Flag indicating there is a validated manifest. */
+	bool extensions_allowed;					/**< Flag indicating the ToC extensions are allowed (for v3 manifests). */
 };
 
 /**
@@ -41,6 +43,7 @@ struct manifest_flash {
 	uint32_t addr;						/**< The starting address in flash of the manifest. */
 	uint16_t magic_num_v1;				/**< The magic number identifying a v1 manifest. */
 	uint16_t magic_num_v2;				/**< The magic number identifying a v2 manifest. */
+	uint16_t magic_num_v3;				/**< The magic number identifying a v3 manifest. */
 	uint8_t *signature;					/**< Buffer to hold the manifest signature. */
 	size_t max_signature;				/**< Maximum supported signature length. */
 	char *platform_id;					/**< Buffer to hold the platform ID. */
@@ -55,6 +58,10 @@ int manifest_flash_v2_init (struct manifest_flash *manifest, struct manifest_fla
 	const struct flash *flash, const struct hash_engine *hash, uint32_t base_addr,
 	uint16_t magic_num_v1, uint16_t magic_num_v2, uint8_t *signature_cache, size_t max_signature,
 	uint8_t *platform_id_cache, size_t max_platform_id);
+int manifest_flash_v3_init (struct manifest_flash *manifest, struct manifest_flash_state *state,
+	const struct flash *flash, const struct hash_engine *hash, uint32_t base_addr,
+	uint16_t magic_num_v1, uint16_t magic_num_v2, uint16_t magic_num_v3, uint8_t *signature_cache,
+	size_t max_signature, uint8_t *platform_id_cache, size_t max_platform_id);
 int manifest_flash_init_state (const struct manifest_flash *manifest);
 void manifest_flash_release (const struct manifest_flash *manifest);
 
@@ -62,8 +69,6 @@ int manifest_flash_read_header (const struct manifest_flash *manifest,
 	struct manifest_header *header);
 
 int manifest_flash_verify (const struct manifest_flash *manifest, const struct hash_engine *hash,
-	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
-int manifest_flash_v2_verify (const struct manifest_flash *manifest, const struct hash_engine *hash,
 	const struct signature_verification *verification, uint8_t *hash_out, size_t hash_length);
 
 int manifest_flash_get_id (const struct manifest_flash *manifest, uint32_t *id);
@@ -75,13 +80,13 @@ int manifest_flash_get_signature (const struct manifest_flash *manifest, uint8_t
 	size_t length);
 
 int manifest_flash_read_element_data (const struct manifest_flash *manifest,
-	const struct hash_engine *hash, uint8_t type, int start, uint8_t parent_type,
-	uint32_t read_offset, uint8_t *found, uint8_t *format, size_t *total_len, uint8_t **element,
-	size_t length);
+	const struct hash_engine *hash, uint8_t type, int start_entry_index, uint8_t parent_type,
+	uint32_t read_offset, int *found_entry_index, uint8_t *format, size_t *total_len,
+	uint8_t **element, size_t length);
 
 int manifest_flash_get_child_elements_info (const struct manifest_flash *manifest,
-	const struct hash_engine *hash, int entry, uint8_t type, uint8_t parent_type,
-	uint8_t child_type, size_t *child_len, int *child_count, int *first_entry);
+	const struct hash_engine *hash, int start_entry_index, uint8_t type, uint8_t parent_type,
+	uint8_t child_type, size_t *child_len, int *child_count, int *first_entry_index);
 
 uint32_t manifest_flash_get_addr (const struct manifest_flash *manifest);
 const struct flash* manifest_flash_get_flash (const struct manifest_flash *manifest);

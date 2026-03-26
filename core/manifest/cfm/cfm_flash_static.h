@@ -79,8 +79,8 @@ void cfm_flash_free_manifest (const struct cfm *cfm, struct cfm_manifest *manife
 
 
 /**
- * Initialize a static interface to a CFM residing in flash memory.  CFMs only support manifest
- * version 2.
+ * Initialize a static interface to a CFM residing in flash memory.  CFMs support manifest
+ * version 2 and 3.
  *
  * There is no validation done on the arguments.
  *
@@ -99,9 +99,9 @@ void cfm_flash_free_manifest (const struct cfm *cfm, struct cfm_manifest *manife
 #define	cfm_flash_static_init(state_ptr, flash_ptr, hash_ptr, base_addr_arg, signature_cache_ptr, \
 	max_signature_arg, platform_id_cache_ptr, max_platform_id_arg)	{ \
 		.base = CFM_FLASH_API_INIT, \
-		.base_flash = manifest_flash_v2_static_init (&(state_ptr)->base, flash_ptr, hash_ptr, \
-			base_addr_arg, MANIFEST_NOT_SUPPORTED, CFM_V2_MAGIC_NUM, signature_cache_ptr, \
-			max_signature_arg, platform_id_cache_ptr, max_platform_id_arg), \
+		.base_flash = manifest_flash_v3_static_init (&(state_ptr)->base, flash_ptr, hash_ptr, \
+			base_addr_arg, MANIFEST_NOT_SUPPORTED, CFM_V2_MAGIC_NUM, CFM_V3_MAGIC_NUM, \
+			signature_cache_ptr, max_signature_arg, platform_id_cache_ptr, max_platform_id_arg), \
 	}
 
 

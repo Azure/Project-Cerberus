@@ -39,6 +39,7 @@ XML_SLOT_NUM_ATTRIB = "slot_num"
 XML_TRANSCRIPT_HASH_TYPE_ATTRIB = "transcript_hash_type"
 XML_TYPE_ATTRIB = "type"
 XML_VERSION_ATTRIB = "version"
+XML_FORMAT_VERSION_ATTRIB = "format_version"
 
 XML_ACTIVE_TAG = "Active"
 XML_ADDRESS_TAG = "Address"
@@ -376,13 +377,14 @@ def process_cfm_allowable_manifest (root, manifest_name, component_type, xml_fil
 
     return output
 
-def process_cfm (root, xml_file, selection_list):
+def process_cfm (root, xml_file, selection_list, format):
     """
     Process CFM XML and generate list of element and attribute values.
 
     :param root: XML to utilize
     :param xml_file: Filename of XML
     :param selection_list: List of component types to include
+    :param format: expected manifest format version
 
     :return List of CFM values, manifest version, boolean for whether manifest is for an empty CFM
     """
@@ -393,7 +395,7 @@ def process_cfm (root, xml_file, selection_list):
     component_type = component_type.strip ('\"')
 
     if component_type not in selection_list:
-        return None, manifest_types.VERSION_2, False
+        return None, format, False
 
     xml[component_type] = {}
     component = xml[component_type]
@@ -634,7 +636,7 @@ def process_cfm (root, xml_file, selection_list):
             component_type, xml_file)
         component["allowable_pcd"]["platform"] = platform
 
-    return xml, manifest_types.VERSION_2, False
+    return xml, format, False
 
 def process_pcd (root, xml_file):
     """
@@ -977,7 +979,8 @@ def load_and_process_xml (xml_file, xml_type, selection_list=None):
     elif xml_type is manifest_types.CFM:
         schema = xmlschema.XMLSchema11(schemas_path / "cfm.xsd")
         schema.validate(root)
-        return process_cfm (root, xml_file, selection_list["selection"])
+        return process_cfm (root, xml_file, selection_list["selection"], 
+                            selection_list["format"])
     elif xml_type is manifest_types.PCD:
         schema = xmlschema.XMLSchema11(schemas_path / "pcd.xsd")
         schema.validate(root)
@@ -1000,6 +1003,9 @@ def load_and_process_selection_xml (xml_file):
 
     result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
     result_dict.update ({"platform_id":result})
+
+    format = xml_extract_attrib (root, XML_FORMAT_VERSION_ATTRIB, False, xml_file, False)
+    result_dict["format"] = int (format) if format else manifest_types.VERSION_2
 
     result_dict["selection"] = []
 

@@ -59,6 +59,9 @@ int flash_noncontiguous_contents_verification_at_offset (const struct flash *fla
 	enum hash_type type, const struct signature_verification *verification,
 	const uint8_t *signature, size_t sig_length, uint8_t *hash_out, size_t hash_length);
 
+int flash_read_and_hash_update_contents (const struct flash *flash, uint32_t start_addr,
+	uint8_t *data, size_t length, const struct hash_engine *hash);
+
 int flash_hash_contents (const struct flash *flash, uint32_t start_addr, size_t length,
 	const struct hash_engine *hash, enum hash_type type, uint8_t *hash_out, size_t hash_length);
 int flash_hash_noncontiguous_contents (const struct flash *flash,

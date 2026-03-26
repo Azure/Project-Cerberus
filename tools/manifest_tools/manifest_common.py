@@ -10,6 +10,7 @@ import sys
 import os
 import traceback
 import json
+import itertools
 from Crypto.PublicKey import RSA
 from Crypto.PublicKey import ECC
 from Crypto.Signature import PKCS1_v1_5
@@ -26,9 +27,11 @@ CFM_MAGIC_NUM = int ("0xA592", 16)
 PCD_MAGIC_NUM = int ("0x1029", 16)
 
 PFM_V2_MAGIC_NUM = int ("0x706D", 16)
+CFM_V3_MAGIC_NUM = int ("0xA5A3", 16)
 
 V2_BASE_TYPE_ID = int ("0xff", 16)
 V2_PLATFORM_TYPE_ID = int ("0x00", 16)
+V2_TOC_EXTENSION_TYPE_ID = int ("0x01", 16)
 
 PFM_V2_FLASH_DEVICE_TYPE_ID = int ("0x10", 16)
 PFM_V2_FW_TYPE_ID = int ("0x11", 16)
@@ -98,6 +101,7 @@ def get_key_from_dict (dictionary, key, group, required=True):
             return None
     else:
         return dictionary[key]
+
 
 def load_config (config_file):
     """
@@ -252,17 +256,24 @@ def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, k
     :return Instance of a manifest header
     """
 
-    if manifest_type == manifest_types.PFM:
-        if manifest_version == manifest_types.VERSION_1:
+    match (manifest_type, manifest_version):
+        case (manifest_types.PFM, manifest_types.VERSION_1):
             magic_num = PFM_MAGIC_NUM
-        else:
+
+        case (manifest_types.PFM, manifest_types.VERSION_2):
             magic_num = PFM_V2_MAGIC_NUM
-    elif manifest_type == manifest_types.CFM:
-        magic_num = CFM_MAGIC_NUM
-    elif manifest_type == manifest_types.PCD:
-        magic_num = PCD_MAGIC_NUM
-    else:
-        raise ValueError ("Unknown manifest type: {0}".format (manifest_type))
+
+        case (manifest_types.PCD, manifest_types.VERSION_2):
+            magic_num = PCD_MAGIC_NUM
+        
+        case (manifest_types.CFM, manifest_types.VERSION_2):
+            magic_num = CFM_MAGIC_NUM
+
+        case (manifest_types.CFM, manifest_types.VERSION_3):
+            magic_num = CFM_V3_MAGIC_NUM
+
+        case _:
+            raise ValueError ("Unknown manifest type: {0}".format (manifest_type))
 
     sig_len = 0
     sig_type = 0
@@ -295,7 +306,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     :return list of XML elements, boolean indicating whether to sign output or not, key size,
         key to use for signing, output ID, output filename and manifest xml version, boolean for
         whether XML is for an empty manifest, number of non-contiguous RW sections supported,
-        selection list, component type to ID map, component map file
+        selection list, component type to ID map, component map file, toc extensions allowed flag
     """
 
     config = load_config (config_filename)
@@ -394,8 +405,7 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
     return processed_xml, sign, key_size, key, key_type, hash_type, manifest_id, config["output"], \
         xml_version, empty, max_rw_sections, selection_list, component_map, component_map_file
 
-def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output_filename,
-    manifest_length, sig_length):
+def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output_filename, sig_length):
     """
     Write manifest generated to provided path.
 
@@ -406,16 +416,11 @@ def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output
     :param key_size: Size of key used for signing
     :param key_type: Type of Key used for signing
     :param output_filename: Name to use for output file
-    :param manifest_length: The manifest length
     :param sig_length: Signature length
 
     """
 
-    check_maximum (ctypes.sizeof (manifest), 65535 - sig_length, "Manifest length")
-
-    if ctypes.sizeof (manifest) != manifest_length:
-        raise ValueError ("Manifest doesn't match output size")
-
+    check_maximum (len (manifest), 65535 - sig_length, "Manifest length")
     check_maximum (key_type, 1, "Key type")
 
     sha_algo = SHA512 if key_size == 512 else SHA384 if key_size == 384 else SHA256
@@ -423,13 +428,10 @@ def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output
     if xml_version == manifest_types.VERSION_1 and key_type == 1:
         raise ValueError ("Manifest Signing key type not supported for version 1 xml")
 
+    manifest_bytes = bytearray(manifest)
+
     if sign:
-        manifest_hash_buf = (ctypes.c_ubyte * manifest_length) ()
-        ctypes.memmove (ctypes.addressof (manifest_hash_buf), ctypes.addressof (manifest),
-            manifest_length)
-        # Convert ctypes array to bytes to avoid TypeError with PyCrypto
-        manifest_hash_bytes = bytes(manifest_hash_buf)
-        h = sha_algo.new (manifest_hash_bytes)
+        h = sha_algo.new (manifest_bytes)
 
         if key_type == 1:
             signer = DSS.new (key, 'fips-186-3', 'der')
@@ -437,47 +439,14 @@ def write_manifest (xml_version, sign, manifest, key, key_size, key_type, output
             signer = PKCS1_v1_5.new (key)
 
         signature = signer.sign (h)
-        signature_buf_len = len (signature) if len (signature) < sig_length else sig_length
-        signature_buf = (ctypes.c_ubyte * signature_buf_len).from_buffer_copy (signature)
-
-        manifest_buf = (ctypes.c_char * (manifest_length + sig_length)) ()
-        ctypes.memset (manifest_buf, 0, manifest_length + sig_length)
-        ctypes.memmove (ctypes.byref (manifest_buf, manifest_length),
-            ctypes.addressof (signature_buf), signature_buf_len)
-    else:
-        manifest_buf = (ctypes.c_char * (manifest_length)) ()
+        manifest_bytes += signature
 
     out_dir = os.path.dirname (os.path.abspath (output_filename))
     if not os.path.exists (out_dir):
         os.makedirs (out_dir)
 
     with open (output_filename, 'wb') as fh:
-        ctypes.memmove (ctypes.byref (manifest_buf), ctypes.addressof (manifest), manifest_length)
-        fh.write (manifest_buf)
-
-def generate_manifest_toc_header (fw_id_list, hash_type, empty):
-    """
-    Create a manifest table of contents header
-
-    :param fw_id_list: List of FW elements that have different IDs
-    :param hash_type: Hash to be used
-    :param empty: flag indicating if empty manifest
-
-    :return Instance of a manifest table of contents header
-    """
-
-    entries = 1
-
-    if hash_type is None or hash_type > 2:
-        raise ValueError ("Invalid manifest hash type: {0}".format (hash_type))
-
-    if not empty:
-        entries += 1
-
-        for count in fw_id_list.values ():
-            entries += (count + 1)
-
-    return manifest_toc_header (entries, entries, hash_type, 0)
+        fh.write (manifest_bytes)
 
 def generate_hash (element, hash_engine):
     """
@@ -489,20 +458,9 @@ def generate_hash (element, hash_engine):
     :return Buffer with digest
     """
 
-    # Copy the element instance to a bytearray. Passing element directly to the hash API
-    # gives TypeError: Object type <class> cannot be passed to C code.
-    element_size = ctypes.sizeof (element)
-    element_buf = (ctypes.c_ubyte * element_size) ()
-
-    ctypes.memmove (ctypes.addressof (element_buf), ctypes.addressof (element), element_size)
-
-    # Convert ctypes array to bytes to avoid TypeError with PyCrypto
-    element_bytes = bytes(element_buf)
-
+    element_bytes = bytes(element)
     hash_object = hash_engine.new (element_bytes)
-    hash_buf = (ctypes.c_ubyte * hash_object.digest_size).from_buffer_copy (hash_object.digest ())
-
-    return hash_buf
+    return hash_object.digest ()
 
 def get_platform_id_from_xml_list (xml_list):
     """
@@ -568,12 +526,11 @@ def get_hash_len (hash_type):
     else:
         raise ValueError ("Invalid manifest hash type: {0}".format (hash_type))
 
-def generate_platform_id_buf (xml_platform_id, hash_engine):
+def generate_platform_id (xml_platform_id):
     """
     Create a platform ID object from parsed XML list
 
     :param xml_platform_id: List of parsed XML of platform id to be included in the object
-    :param hash_engine: Hashing engine
 
     :return Instance of a platform ID object, object's TOC entry, object hash
     """
@@ -602,74 +559,74 @@ def generate_platform_id_buf (xml_platform_id, hash_engine):
 
     platform_id_toc_entry = manifest_toc_entry (V2_PLATFORM_TYPE_ID, V2_BASE_TYPE_ID, 1, 0, 0,
         platform_id_len)
+    
+    return (platform_id, platform_id_toc_entry)
 
-    platform_id_hash = generate_hash (platform_id, hash_engine)
-
-    return platform_id, platform_id_toc_entry, platform_id_hash
-
-def generate_toc (hash_engine, hash_type, toc_list, hash_list):
+def generate_manifest_content (hash_engine, hash_type, base_offset, entries, is_first = True):
     """
-    Create manifest table of contents from list of pregenerated TOC entries and hash list for all
-    elements
+    Create a manifest content (ToC, entries, ToC extensions) from the list of entries
 
     :param hash_engine: Hashing engine
     :param hash_type: Hashing algorithm
-    :param toc_list: List of TOC entries to be included in the TOC
-    :param hash_list: List of hashes for all elements in manifest. Hash list ordering must match
-        toc_list's
+    :param base_offset: The offset in the binary where ToC starts
+    :param entries: List of entries (tuples of (element, toc_entry))
+    :param is_first: True if the manifest ToC is the first within that manifest
 
-    :return TOC buffer
+    :return Manifest content bytes, length of ToC, ToC hash
     """
 
-    if len (toc_list) != len (hash_list):
-        raise ValueError ("toc_list and hash_list lengths dont match: {0} vs {1}".format (
-            len (toc_list), len (hash_list)))
-    check_maximum (len (toc_list), 255, "Number of ToC elements")
-
-    num_entries = len (toc_list)
     hash_len = hash_engine.digest_size
 
-    toc_len = ctypes.sizeof (manifest_toc_header) + \
-        (ctypes.sizeof (manifest_toc_entry) + hash_len) * num_entries
-    toc = (ctypes.c_ubyte * toc_len) ()
+    # Split entries (special case: exactly 255 = no extension)
+    current, next = (entries, []) if len(entries) == 255 else (entries[:254], entries[254:])
 
-    toc_header_len = ctypes.sizeof (manifest_toc_header)
-    toc_header = manifest_toc_header (num_entries, num_entries, hash_type, 0)
-    ctypes.memmove (ctypes.addressof (toc), ctypes.addressof (toc_header), toc_header_len)
+    toc_len = (
+        ctypes.sizeof(manifest_toc_header)
+        + (ctypes.sizeof(manifest_toc_entry) + hash_len) * (len(current) + (1 if next else 0))
+        + (hash_len if is_first else 0)
+    )
+    
+    toc_entries, toc_hashes, elements = [], [], []
+    offset = base_offset + toc_len
 
-    offset = ctypes.sizeof (manifest_header) + toc_len + hash_len
-    hash_id = 0
-    toc_entry_len = ctypes.sizeof (manifest_toc_entry)
-    toc_offset = toc_header_len
+    idx = 0
+    for idx, (element, toc_entry) in enumerate(current):
+        toc_entry.offset = offset
+        toc_entry.hash_id = idx
 
-    for entry in toc_list:
-        entry.offset = offset
-        offset += entry.length
+        toc_entries.append(toc_entry)
+        toc_hashes.append(generate_hash(element, hash_engine))
+        elements.append(element)
+        offset += toc_entry.length
 
-        entry.hash_id = hash_id
-        hash_id += 1
 
-        ctypes.memmove (ctypes.addressof (toc) + toc_offset, ctypes.addressof (entry),
-            toc_entry_len)
-        toc_offset += toc_entry_len
+    if next:
+        ext_data, ext_toc_len, ext_hash = generate_manifest_content (hash_engine, hash_type, offset, next, False)
+        ext_toc_entry = manifest_toc_entry (
+            V2_TOC_EXTENSION_TYPE_ID, V2_BASE_TYPE_ID, 0, idx + 1, offset, ext_toc_len
+        )
+        
+        toc_entries.append(ext_toc_entry)
+        toc_hashes.append(ext_hash)
+        elements.append(ext_data)
 
-    for hash_entry in hash_list:
-        ctypes.memmove (ctypes.addressof (toc) + toc_offset, ctypes.addressof (hash_entry),
-            hash_len)
-        toc_offset += hash_len
+    toc_header = manifest_toc_header (len(toc_entries), len(toc_hashes), hash_type, 0)
+    toc = bytearray(toc_header)
+    toc.extend(b"".join(toc_entries))
+    toc.extend(b"".join(toc_hashes))
 
-    table_hash = generate_hash (toc, hash_engine)
+    toc_hash = generate_hash(toc, hash_engine)
+    if is_first:
+        toc += toc_hash
 
-    toc_w_hash = (ctypes.c_ubyte * (toc_len + hash_len)) ()
+    data = bytearray(toc)
+    data.extend(b"".join(elements))
+    
+    return data, len(toc), toc_hash
 
-    ctypes.memmove (ctypes.addressof (toc_w_hash), ctypes.addressof (toc), toc_len)
-    ctypes.memmove (ctypes.addressof (toc_w_hash) + toc_offset, ctypes.addressof (table_hash),
-        hash_len)
-
-    return toc_w_hash
 
 def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_version, sign, key,
-    key_size, key_type, toc_list, hash_list, elements_list, elements_len, output):
+    key_size, key_type, elements, output):
     """
     Generate manifest from element, hash, and toc entries list
 
@@ -682,46 +639,25 @@ def generate_manifest (hash_engine, hash_type, manifest_id, manifest_type, xml_v
     :param key: Key to use for signing
     :param key_size: Size of signing key, optional
     :param key_type: Signing key algorithm, optional
-    :param toc_list: List of TOC entries to be included in the TOC
-    :param hash_list: List of hashes for all elements in manifest. Hash list ordering must match
-        toc_list's
     :param elements_list: List of elements to be included in manifest
-    :param elements_len: Length of all elements' buffers
     :param output: Output filename
     """
 
-    manifest_len = elements_len
+    if len (elements) > 255 and xml_version < manifest_types.VERSION_3:
+        raise ValueError (
+            f"""Failed to generate manifest: contains {len(elements)} > 255 elements,
+                but ToC extensions not allowed for this manifest version""")
 
     manifest_header = generate_manifest_header (manifest_id, key_size, manifest_type, hash_type,
         key_type, xml_version)
     manifest_header_len = ctypes.sizeof (manifest_header)
-    manifest_len += manifest_header_len
+    
+    data, *_ = generate_manifest_content (hash_engine, hash_type, ctypes.sizeof (manifest_header), elements, True)
 
-    toc = generate_toc (hash_engine, hash_type, toc_list, hash_list)
-    toc_len = ctypes.sizeof (toc)
-    manifest_len += toc_len
+    manifest_header.length = manifest_header_len + len(data) + manifest_header.sig_length
 
-    manifest_header.length = manifest_len + manifest_header.sig_length
-
-    manifest_buf = (ctypes.c_ubyte * manifest_len) ()
-    offset = 0
-
-    ctypes.memmove (ctypes.addressof (manifest_buf) + offset, ctypes.addressof (manifest_header),
-        manifest_header_len)
-    offset += manifest_header_len
-
-    ctypes.memmove (ctypes.addressof (manifest_buf) + offset, ctypes.addressof (toc), toc_len)
-    offset += toc_len
-
-    for element in elements_list:
-        element_len = ctypes.sizeof (element)
-        ctypes.memmove (ctypes.addressof (manifest_buf) + offset, ctypes.addressof (element),
-            element_len)
-
-        offset += element_len
-
-    write_manifest (xml_version, sign, manifest_buf, key, key_size, key_type, output,
-        manifest_header.length - manifest_header.sig_length, manifest_header.sig_length)
+    full_manifest = bytes(manifest_header) + data
+    write_manifest (xml_version, sign, full_manifest, key, key_size, key_type, output, manifest_header.sig_length)
 
 def check_maximum (value, maximum, value_name):
     """

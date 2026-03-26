@@ -3328,8 +3328,8 @@ static void pcd_flash_test_get_next_mctp_bridge_component_component_read_error (
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
 
 	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
@@ -3349,17 +3349,8 @@ static void pcd_flash_test_get_next_mctp_bridge_component_no_components (CuTest 
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_COMPONENTS_TESTING, 0, false,
 		0);
 
-	for (int i = 0; i < PCD_NO_COMPONENTS_TESTING.manifest.toc_entries; ++i) {
-		status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-			&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET +
-			i * MANIFEST_V2_TOC_ENTRY_SIZE), MOCK_ARG_NOT_NULL,
-			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-		status |= mock_expect_output (&pcd.manifest.flash.mock, 1,
-			(struct manifest_toc_entry*) (PCD_NO_COMPONENTS_TESTING.manifest.raw +
-				MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * i),
-			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
-	}
-	CuAssertIntEquals (test, 0, status);
+	manifest_flash_v2_testing_iterate_manifest_toc_no_verify (test, &pcd.manifest,
+		&PCD_NO_COMPONENTS_TESTING.manifest, 0,	PCD_NO_COMPONENTS_TESTING.manifest.toc_entries - 1);
 
 	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
@@ -3560,8 +3551,8 @@ static void pcd_flash_test_get_rot_info_rot_read_error (CuTest *test)
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
 
 	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.get_rot_info (&pcd.test.base, &info);
@@ -3926,8 +3917,8 @@ static void pcd_flash_test_get_port_info_rot_read_error (CuTest *test)
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
 
 	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
@@ -3958,19 +3949,20 @@ static void pcd_flash_test_get_port_info_no_parent (CuTest *test)
 		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
 		PCD_TESTING.rot_len, 0);
 
+	status = flash_mock_expect_read_and_hash (&pcd.manifest.flash, NULL,
+		pcd.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET, PCD_TESTING.manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE);
+
 	/* Read TOC data with bad TOC entry. */
-	status = flash_mock_expect_verify_flash (&pcd.manifest.flash,
+	status |= flash_mock_expect_verify_flash (&pcd.manifest.flash,
 		pcd.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET,
 		PCD_TESTING.manifest.raw + MANIFEST_V2_TOC_ENTRY_OFFSET,
 		PCD_TESTING.port_entry * MANIFEST_V2_TOC_ENTRY_SIZE);
-	// *INDENT-OFF*
-	status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET +\
-		(PCD_TESTING.port_entry * MANIFEST_V2_TOC_ENTRY_SIZE)),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-	// *INDENT-ON*
-	status |= mock_expect_output (&pcd.manifest.flash.mock, 1, &bad_entry,
-		MANIFEST_V2_TOC_ENTRY_SIZE, 2);
+
+	status |= flash_mock_expect_read_and_hash (&pcd.manifest.flash, NULL,
+		pcd.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET +
+		(PCD_TESTING.port_entry * MANIFEST_V2_TOC_ENTRY_SIZE), (uint8_t*) &bad_entry,
+		MANIFEST_V2_TOC_ENTRY_SIZE);
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.get_port_info (&pcd.test.base, 0, &info);
@@ -4163,8 +4155,8 @@ static void pcd_flash_test_get_power_controller_info_power_controller_read_error
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
 
 	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.get_power_controller_info (&pcd.test.base, &info);
@@ -4325,8 +4317,8 @@ static void pcd_flash_test_get_next_tcg_log_component_component_read_error (CuTe
 		false, 0);
 
 	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
@@ -4346,17 +4338,8 @@ static void pcd_flash_test_get_next_tcg_log_component_no_components (CuTest *tes
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_COMPONENTS_TESTING, 0, false,
 		0);
 
-	for (int i = 0; i < PCD_NO_COMPONENTS_TESTING.manifest.toc_entries; ++i) {
-		status |= mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-			&pcd.manifest.flash, 0, MOCK_ARG (pcd.manifest.addr + MANIFEST_V2_TOC_ENTRY_OFFSET +
-			i * MANIFEST_V2_TOC_ENTRY_SIZE), MOCK_ARG_NOT_NULL,
-			MOCK_ARG (MANIFEST_V2_TOC_ENTRY_SIZE));
-		status |= mock_expect_output (&pcd.manifest.flash.mock, 1,
-			(struct manifest_toc_entry*) (PCD_NO_COMPONENTS_TESTING.manifest.raw +
-				MANIFEST_V2_TOC_ENTRY_OFFSET + MANIFEST_V2_TOC_ENTRY_SIZE * i),
-			MANIFEST_V2_TOC_ENTRY_SIZE, 2);
-	}
-	CuAssertIntEquals (test, 0, status);
+	manifest_flash_v2_testing_iterate_manifest_toc_no_verify (test, &pcd.manifest,
+		&PCD_NO_COMPONENTS_TESTING.manifest, 0,	PCD_NO_COMPONENTS_TESTING.manifest.toc_entries - 1);
 
 	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
 	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
@@ -4744,8 +4727,8 @@ static void pcd_flash_test_buffer_supported_components_rot_element_read_fail (Cu
 	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
 
 	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_ENTRY_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (0x08));
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
 	CuAssertIntEquals (test, 0, status);
 
 	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,

@@ -144,7 +144,7 @@ int pfm_flash_verify_v2_only (const struct manifest *pfm, const struct hash_engi
 		return PFM_INVALID_ARGUMENT;
 	}
 
-	status = manifest_flash_v2_verify (&pfm_flash->base_flash, hash, verification, hash_out,
+	status = manifest_flash_verify (&pfm_flash->base_flash, hash, verification, hash_out,
 		hash_length);
 	if (status != 0) {
 		return status;
@@ -304,7 +304,7 @@ static int pfm_flash_get_firmware_v1 (const struct pfm_flash *pfm, struct pfm_fi
  *
  * @return 0 if the element was successfully read or an error code.
  */
-static int pfm_flash_read_firmware_element_v2 (const struct pfm_flash *pfm, uint8_t *entry,
+static int pfm_flash_read_firmware_element_v2 (const struct pfm_flash *pfm, int *entry,
 	struct pfm_firmware_element *fw_element)
 {
 	uint8_t *element = (uint8_t*) fw_element;
@@ -345,7 +345,7 @@ static int pfm_flash_read_firmware_element_v2 (const struct pfm_flash *pfm, uint
 static int pfm_flash_get_firmware_v2 (const struct pfm_flash *pfm, struct pfm_firmware *fw)
 {
 	struct pfm_firmware_element fw_element;
-	uint8_t last = 0;
+	int last = 0;
 	size_t i;
 	int status;
 
@@ -549,7 +549,7 @@ error:
  * @return 0 if the firmware element was found or an error code.
  */
 static int pfm_flash_find_firmware_element_v2 (const struct pfm_flash *pfm, const char *fw,
-	struct pfm_firmware_element *fw_element, uint8_t *entry)
+	struct pfm_firmware_element *fw_element, int *entry)
 {
 	int status;
 
@@ -582,7 +582,7 @@ static int pfm_flash_find_firmware_element_v2 (const struct pfm_flash *pfm, cons
  *
  * @return 0 if the element was successfully read or an error code.
  */
-static int pfm_flash_read_firmware_version_element_v2 (const struct pfm_flash *pfm, uint8_t *entry,
+static int pfm_flash_read_firmware_version_element_v2 (const struct pfm_flash *pfm, int *entry,
 	struct pfm_firmware_version_element *ver_element, size_t *element_len)
 {
 	uint8_t *element = (uint8_t*) ver_element;
@@ -641,7 +641,7 @@ static int pfm_flash_get_supported_versions_v2 (const struct pfm_flash *pfm, con
 		struct pfm_firmware_version_element ver_element;
 	} buffer;
 	struct pfm_firmware_version *version_list = NULL;
-	uint8_t entry;
+	int entry;
 	int i;
 	int count;
 	int status;
@@ -1093,7 +1093,7 @@ error:
  * @return 0 if the firmware version element was found or an error code.
  */
 static int pfm_flash_find_firmware_version_element_v2 (const struct pfm_flash *pfm,
-	const char *version, uint8_t *entry, struct pfm_firmware_version_element *ver_element,
+	const char *version, int *entry, struct pfm_firmware_version_element *ver_element,
 	size_t *element_len)
 {
 	uint8_t temp;
@@ -1143,7 +1143,7 @@ static int pfm_flash_get_read_write_regions_v2 (const struct pfm_flash *pfm, con
 	struct flash_region *region_list;
 	struct pfm_read_write *prop_list;
 	uint8_t *element;
-	uint8_t entry;
+	int entry;
 	size_t i;
 	int version_pad;
 	int rw_len;
@@ -1496,7 +1496,7 @@ static int pfm_flash_get_firmware_images_v2 (const struct pfm_flash *pfm, const 
 	struct pfm_image_hash *images;
 	struct flash_region *region_list;
 	uint8_t *element;
-	uint8_t entry;
+	int entry;
 	size_t element_len;
 	int version_pad;
 	uint32_t offset;

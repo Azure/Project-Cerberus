@@ -20,6 +20,7 @@
 #define	PFM_V2_MAGIC_NUM			0x706D
 #define	CFM_V2_MAGIC_NUM			0xA592
 #define	PCD_V2_MAGIC_NUM			0x1029
+#define CFM_V3_MAGIC_NUM			0xA5A3
 
 /**
  * Identifier for the hash algorithm used for signatures and other verification hashes in
@@ -83,6 +84,7 @@ struct manifest_header {
  */
 enum manifest_element_type {
 	MANIFEST_PLATFORM_ID = 0,	/**< The manifest platform identifier. */
+	MANIFEST_TOC_EXTENSION = 1,	/**< The table of contents extension. */
 };
 
 /**
@@ -104,9 +106,14 @@ enum manifest_element_type {
 #define	MANIFEST_NO_HASH			0xff
 
 /**
- * The maximum number of entries possible in a table of contents.
+ * The maximum number of entries possible in a single table of contents.
  */
-#define	MANIFEST_MAX_ENTRIES		0xff
+#define	MANIFEST_TOC_MAX_ENTRIES		0xff
+
+/**
+ * The only allowed index within ToC to hold ToC extension element.
+ */
+#define MANIFEST_TOC_EXTENSION_ENTRY (MANIFEST_TOC_MAX_ENTRIES - 1)
 
 /**
  * The header for a manifest table of contents.
@@ -130,13 +137,26 @@ struct manifest_toc_entry {
 	uint16_t length;	/**< Length of the element data. */
 };
 
+
+/**
+ * Calculate length of the table of contents.
+ *
+ * @param entry_count Entries count in the ToC.
+ * @param hash_count Hashes count in the ToC.
+ * @param hash_len Length of single hash in ToC.
+ */
+#define manifest_toc_calculate_length(entry_count, hash_count, hash_len) \
+	(sizeof (struct manifest_toc_header) + \
+	(entry_count * sizeof (struct manifest_toc_entry)) + \
+	(hash_count * hash_len))
+
 /**
  * Table of contents structure of the statically sized components (i.e. excludes all hashes).  This
  * is the maximum size for table of contents entries.
  */
 struct manifest_toc_max_entries {
-	struct manifest_toc_header header;							/**< The table of contents header. */
-	struct manifest_toc_entry entries[MANIFEST_MAX_ENTRIES];	/**< List of elements contained in the manifest. */
+	struct manifest_toc_header header;								/**< The table of contents header. */
+	struct manifest_toc_entry entries[MANIFEST_TOC_MAX_ENTRIES];	/**< List of elements contained in the manifest. */
 };
 
 /**

@@ -289,6 +289,41 @@ int flash_noncontiguous_contents_verification_at_offset (const struct flash *fla
 }
 
 /**
+ * Read and update hash for contiguous block of data stored in a flash device.
+ *
+ * The hash context must already be started prior to this call.  The hashing context will not be
+ * canceled on failure.
+ *
+ * @param flash The flash device that contains the data to read and hash.
+ * @param start_addr The first address of the data that should be read and hashed.
+ * @param data The buffer to hold the data that has been read.
+ * @param length The number of bytes to read and hash.
+ * @param hash The hashing engine to use to generate the hash.
+ *
+ * @return 0 if the read and updated hash successfully or an error code.
+ */
+int flash_read_and_hash_update_contents (const struct flash *flash, uint32_t start_addr,
+	uint8_t *data, size_t length, const struct hash_engine *hash)
+{
+	int status;
+
+	if ((flash == NULL) || (hash == NULL) || (data == NULL)) {
+		return FLASH_UTIL_INVALID_ARGUMENT;
+	}
+
+	if (length == 0) {
+		return 0;
+	}
+
+	status = flash->read (flash, start_addr, data, length);
+	if (status != 0) {
+		return status;
+	}
+
+	return hash->update (hash, data, length);
+}
+
+/**
  * Generate a hash for a contiguous block of data stored in a flash device.
  *
  * @param flash The flash device that contains the data to hash.

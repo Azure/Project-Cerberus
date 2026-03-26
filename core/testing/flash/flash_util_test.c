@@ -18398,6 +18398,339 @@ static void flash_hash_update_noncontiguous_contents_at_offset_test_hash_update_
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void flash_read_and_hash_update_contents_test_sha256 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
+	uint8_t read_buf[sizeof (data)];
+	uint8_t hash_expected[] = {
+		0x03,0xac,0x67,0x42,0x16,0xf3,0xe1,0x5c,0x76,0x1e,0xe1,0xa5,0xe2,0x55,0xf0,0x67,
+		0x95,0x36,0x23,0xc8,0xb3,0x88,0xb4,0x45,0x9e,0x13,0xf9,0x78,0xd7,0xc8,0x46,0xf4
+	};
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x1122),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (4));
+	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.start_sha256 (&hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, read_buf, 4, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (data, read_buf, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.finish (&hash.base, hash_actual, sizeof (hash_actual));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (hash_expected, hash_actual, sizeof (hash_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void flash_read_and_hash_update_contents_test_sha1 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
+	uint8_t read_buf[sizeof (data)];
+	uint8_t hash_expected[] = {
+		0x71,0x10,0xed,0xa4,0xd0,0x9e,0x06,0x2a,0xa5,0xe4,0xa3,0x90,0xb0,0xa5,0x72,0xac,
+		0x0d,0x2c,0x02,0x20
+	};
+	uint8_t hash_actual[SHA1_HASH_LENGTH];
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x12345),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (4));
+	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.start_sha1 (&hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x12345, read_buf, 4, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (data, read_buf, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.finish (&hash.base, hash_actual, sizeof (hash_actual));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (hash_expected, hash_actual, sizeof (hash_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void flash_read_and_hash_update_contents_test_sha384 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
+	uint8_t read_buf[sizeof (data)];
+	uint8_t hash_expected[] = {
+		0x50,0x4f,0x00,0x8c,0x8f,0xcf,0x8b,0x2e,0xd5,0xdf,0xcd,0xe7,0x52,0xfc,0x54,0x64,
+		0xab,0x8b,0xa0,0x64,0x21,0x5d,0x9c,0x5b,0x5f,0xc4,0x86,0xaf,0x3d,0x9a,0xb8,0xc8,
+		0x1b,0x14,0x78,0x51,0x80,0xd2,0xad,0x7c,0xee,0x1a,0xb7,0x92,0xad,0x44,0x79,0x8c
+	};
+	uint8_t hash_actual[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x1122),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (4));
+	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.start_sha384 (&hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, read_buf, 4, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (data, read_buf, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.finish (&hash.base, hash_actual, sizeof (hash_actual));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (hash_expected, hash_actual, sizeof (hash_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void flash_read_and_hash_update_contents_test_sha512 (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
+	uint8_t read_buf[sizeof (data)];
+	uint8_t hash_expected[] = {
+		0xd4,0x04,0x55,0x9f,0x60,0x2e,0xab,0x6f,0xd6,0x02,0xac,0x76,0x80,0xda,0xcb,0xfa,
+		0xad,0xd1,0x36,0x30,0x33,0x5e,0x95,0x1f,0x09,0x7a,0xf3,0x90,0x0e,0x9d,0xe1,0x76,
+		0xb6,0xdb,0x28,0x51,0x2f,0x2e,0x00,0x0b,0x9d,0x04,0xfb,0xa5,0x13,0x3e,0x8b,0x1c,
+		0x6e,0x8d,0xf5,0x9d,0xb3,0xa8,0xab,0x9d,0x60,0xbe,0x4b,0x97,0xcc,0x9e,0x81,0xdb
+	};
+	uint8_t hash_actual[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x1122),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (4));
+	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.start_sha512 (&hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, read_buf, 4, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (data, read_buf, sizeof (data));
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.finish (&hash.base, hash_actual, sizeof (hash_actual));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (hash_expected, hash_actual, sizeof (hash_expected));
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void flash_read_and_hash_update_contents_test_zero_length (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	int status;
+	uint8_t read_buf[4];
+	uint8_t hash_actual[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.start_sha256 (&hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, read_buf, 0, &hash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash.base.finish (&hash.base, hash_actual, sizeof (hash_actual));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_EMPTY_BUFFER_HASH, hash_actual, SHA256_HASH_LENGTH);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void flash_read_and_hash_update_contents_test_null (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct flash_mock flash;
+	int status;
+	uint8_t read_buf[4];
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (NULL, 0x1122, read_buf, 4, &hash.base);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, NULL, 4, &hash.base);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, read_buf, 4, NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_read_and_hash_update_contents (NULL, 0x1122, NULL, 4, &hash.base);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, NULL, 4, NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_read_and_hash_update_contents (NULL, 0x1122, NULL, 4, NULL);
+	CuAssertIntEquals (test, FLASH_UTIL_INVALID_ARGUMENT, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void flash_read_and_hash_update_contents_test_read_error (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	int status;
+	uint8_t read_buf[4];
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, FLASH_READ_FAILED,
+		MOCK_ARG (0x1122), MOCK_ARG_NOT_NULL, MOCK_ARG (4));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, read_buf, 4, &hash.base);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void flash_read_and_hash_update_contents_test_hash_update_error (CuTest *test)
+{
+	struct hash_engine_mock hash;
+	struct flash_mock flash;
+	int status;
+	uint8_t data[] = {0x31, 0x32, 0x33, 0x34};
+	uint8_t read_buf[sizeof (data)];
+
+	TEST_START;
+
+	status = hash_mock_init (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&flash.mock, flash.base.read, &flash, 0, MOCK_ARG (0x1122),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (4));
+	status |= mock_expect_output (&flash.mock, 1, data, sizeof (data), 2);
+
+	status |= mock_expect (&hash.mock, hash.base.update, &hash, HASH_ENGINE_UPDATE_FAILED,
+		MOCK_ARG_PTR_CONTAINS (data, sizeof (data)), MOCK_ARG (sizeof (data)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_read_and_hash_update_contents (&flash.base, 0x1122, read_buf, 4, &hash.base);
+	CuAssertIntEquals (test, HASH_ENGINE_UPDATE_FAILED, status);
+
+	status = flash_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = hash_mock_validate_and_release (&hash);
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START  (flash_util);
@@ -18834,6 +19167,14 @@ TEST (flash_hash_update_noncontiguous_contents_at_offset_test_read_error);
 TEST (flash_hash_update_noncontiguous_contents_at_offset_test_multiple_blocks_read_error);
 TEST (flash_hash_update_noncontiguous_contents_at_offset_test_multiple_regions_read_error);
 TEST (flash_hash_update_noncontiguous_contents_at_offset_test_hash_update_error);
+TEST (flash_read_and_hash_update_contents_test_sha256);
+TEST (flash_read_and_hash_update_contents_test_sha1);
+TEST (flash_read_and_hash_update_contents_test_sha384);
+TEST (flash_read_and_hash_update_contents_test_sha512);
+TEST (flash_read_and_hash_update_contents_test_zero_length);
+TEST (flash_read_and_hash_update_contents_test_null);
+TEST (flash_read_and_hash_update_contents_test_read_error);
+TEST (flash_read_and_hash_update_contents_test_hash_update_error);
 
 TEST_SUITE_END;
 // *INDENT-ON*

@@ -140,6 +140,8 @@ enum {
 	MANIFEST_WRONG_PARENT = MANIFEST_ERROR (0x16),				/**< Parent element is not of the correct type. */
 	MANIFEST_CHILD_NOT_FOUND = MANIFEST_ERROR (0x17),			/**< A child element was not found in the manifest. */
 	MANIFEST_CHECK_EMPTY_FAILED = MANIFEST_ERROR (0x18),		/**< Failed to determine if the manifest was empty. */
+	MANIFEST_TOC_EXTENSION_INVALID = MANIFEST_ERROR (0x19),		/**< The table of contents extension failed validation. */
+	MANIFEST_TOC_HASH_ALGO_MISMATCH = MANIFEST_ERROR (0x1a),	/**< The hash in the ToC or extensions is not the same. */
 };
 
 

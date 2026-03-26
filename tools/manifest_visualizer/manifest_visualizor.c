@@ -241,7 +241,7 @@ int32_t visualize_pfm_v1 (uint8_t *pfm)
 	return (pointer - pfm);
 }
 
-int32_t visualize_toc (uint8_t *start)
+int32_t visualize_toc (uint8_t *start, bool is_extension)
 {
 	struct manifest_toc_header *toc_header = (struct manifest_toc_header*) start;
 	uint8_t *pointer = start + sizeof (struct manifest_toc_header);
@@ -255,8 +255,8 @@ int32_t visualize_toc (uint8_t *start)
 	printf ("\treserved: %i\n", toc_header->reserved);
 
 	entry_count = toc_header->entry_count;
-	element_types = malloc (sizeof (uint8_t) * entry_count);
-	element_formats = malloc (sizeof (uint8_t) * entry_count);
+	element_types = realloc (element_types, sizeof (uint8_t) * entry_count);
+	element_formats = realloc (element_formats, sizeof (uint8_t) * entry_count);
 
 	switch (toc_header->hash_type) {
 		case MANIFEST_HASH_SHA256:
@@ -318,17 +318,19 @@ int32_t visualize_toc (uint8_t *start)
 		printf ("\t\t}\n");
 	}
 
-	printf ("\t\tTable Hash\n");
-	printf ("\t\t{");
-	for (int i = 0; i < hash_len; ++i, ++pointer) {
-		if ((i % 32) == 0) {
-			printf ("\n\t\t\t");
-		}
+	if (!is_extension) {
+		printf ("\t\tTable Hash\n");
+		printf ("\t\t{");
+		for (int i = 0; i < hash_len; ++i, ++pointer) {
+			if ((i % 32) == 0) {
+				printf ("\n\t\t\t");
+			}
 
-		printf ("%02x", *pointer);
+			printf ("%02x", *pointer);
+		}
+		printf ("\n");
+		printf ("\t\t}\n");
 	}
-	printf ("\n");
-	printf ("\t\t}\n");
 
 	printf ("\t]\n");
 
@@ -1233,7 +1235,7 @@ int32_t visualize_pfm (uint8_t *start)
 	uint8_t *pointer = start;
 	int32_t offset;
 
-	offset = visualize_toc (pointer);
+	offset = visualize_toc (pointer, false);
 	if (offset == -1) {
 		return offset;
 	}
@@ -1269,13 +1271,18 @@ int32_t visualize_pfm (uint8_t *start)
 	return (pointer - start);
 }
 
-int32_t visualize_cfm (uint8_t *start)
+int32_t visualize_cfm (uint8_t *start, int extension_idx, uint8_t *measurement_hash_type_in)
 {
 	uint8_t *pointer = start;
 	int32_t offset;
 	uint8_t measurement_hash_type = SHA256_HASH_LENGTH;
+	int entry;
 
-	offset = visualize_toc (pointer);
+	if (measurement_hash_type_in) {
+		measurement_hash_type = *measurement_hash_type_in;
+	}
+
+	offset = visualize_toc (pointer, (extension_idx != 0));
 	if (offset == -1) {
 		return offset;
 	}
@@ -1283,53 +1290,60 @@ int32_t visualize_cfm (uint8_t *start)
 	pointer += offset;
 
 	for (int i = 0; i < entry_count; ++i) {
+		entry = (extension_idx * 255) + i;
+
 		switch (element_types[i]) {
 			case CFM_COMPONENT_DEVICE:
-				offset = visualize_cfm_component_device (pointer, "", i, &measurement_hash_type);
+				offset = visualize_cfm_component_device (pointer, "", entry,
+					&measurement_hash_type);
 				break;
 
 			case CFM_PMR_DIGEST:
-				offset = visualize_cfm_pmr_digest (pointer, "", i, measurement_hash_type);
+				offset = visualize_cfm_pmr_digest (pointer, "", entry, measurement_hash_type);
 				break;
 
 			case CFM_MEASUREMENT:
-				offset = visualize_cfm_measurement (pointer, "", i, measurement_hash_type);
+				offset = visualize_cfm_measurement (pointer, "", entry, measurement_hash_type);
 				break;
 
 			case CFM_MEASUREMENT_DATA:
-				offset = visualize_cfm_measurement_data (pointer, "", i);
+				offset = visualize_cfm_measurement_data (pointer, "", entry);
 				break;
 
 			case CFM_ALLOWABLE_DATA:
-				offset = visualize_cfm_allowable_data (pointer, "", i);
+				offset = visualize_cfm_allowable_data (pointer, "", entry);
 				break;
 
 			case CFM_ALLOWABLE_PFM:
-				offset = visualize_cfm_allowable_pfm (pointer, "", i);
+				offset = visualize_cfm_allowable_pfm (pointer, "", entry);
 				break;
 
 			case CFM_ALLOWABLE_CFM:
-				offset = visualize_cfm_allowable_cfm (pointer, "", i);
+				offset = visualize_cfm_allowable_cfm (pointer, "", entry);
 				break;
 
 			case CFM_ALLOWABLE_PCD:
-				offset = visualize_cfm_allowable_pcd (pointer, "", i);
+				offset = visualize_cfm_allowable_pcd (pointer, "", entry);
 				break;
 
 			case CFM_ALLOWABLE_ID:
-				offset = visualize_cfm_allowable_id (pointer, "", i);
+				offset = visualize_cfm_allowable_id (pointer, "", entry);
 				break;
 
 			case CFM_ROOT_CA:
-				offset = visualize_cfm_root_ca_digests (pointer, "", i, measurement_hash_type);
+				offset = visualize_cfm_root_ca_digests (pointer, "", entry, measurement_hash_type);
 				break;
 
 			case CFM_PMR:
-				offset = visualize_cfm_pmr (pointer, "", i, measurement_hash_type);
+				offset = visualize_cfm_pmr (pointer, "", entry, measurement_hash_type);
+				break;
+
+			case MANIFEST_TOC_EXTENSION:
+				offset = visualize_cfm (pointer, extension_idx + 1, &measurement_hash_type);
 				break;
 
 			default:
-				offset = visualize_common_element (element_types[i], pointer, "", i);
+				offset = visualize_common_element (element_types[i], pointer, "", entry);
 				break;
 		}
 
@@ -1348,7 +1362,7 @@ int32_t visualize_pcd (uint8_t *start)
 	uint8_t *pointer = start;
 	int32_t offset;
 
-	offset = visualize_toc (pointer);
+	offset = visualize_toc (pointer, false);
 	if (offset == -1) {
 		return offset;
 	}
@@ -1449,7 +1463,8 @@ int main (int argc, char **argv)
 			break;
 
 		case CFM_V2_MAGIC_NUM:
-			offset = visualize_cfm (manifest + sizeof (struct manifest_header));
+		case CFM_V3_MAGIC_NUM:
+			offset = visualize_cfm (manifest + sizeof (struct manifest_header), 0, NULL);
 			break;
 
 		case PCD_V2_MAGIC_NUM:

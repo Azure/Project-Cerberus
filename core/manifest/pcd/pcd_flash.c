@@ -23,8 +23,7 @@ int pcd_flash_verify (const struct manifest *pcd, const struct hash_engine *hash
 		return PCD_INVALID_ARGUMENT;
 	}
 
-	/* PCD only supports v2 manifests. */
-	return manifest_flash_v2_verify (&pcd_flash->base_flash, hash, verification, hash_out,
+	return manifest_flash_verify (&pcd_flash->base_flash, hash, verification, hash_out,
 		hash_length);
 }
 
@@ -94,7 +93,7 @@ int pcd_flash_is_empty (const struct manifest *pcd)
 	}
 
 	/* Every PCD must have a platform ID.  If that is all we have, then it is an empty manifest. */
-	return (pcd_flash->base_flash.state->toc_header.entry_count == 1);
+	return (pcd_flash->base_flash.state->entry_count == 1);
 }
 
 /**
@@ -108,7 +107,7 @@ int pcd_flash_is_empty (const struct manifest *pcd)
  * @return 0 if completed successfully or an error code.
  */
 static int pcd_flash_get_rot_element_ptr (const struct pcd *pcd, uint8_t *rot_element_ptr,
-	uint8_t *found, uint8_t *format)
+	int *found, uint8_t *format)
 {
 	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	int status;
@@ -189,7 +188,7 @@ int pcd_flash_get_port_info (const struct pcd *pcd, uint8_t port_id, struct pcd_
 	struct pcd_port_element port_element;
 	uint8_t *port_element_ptr = (uint8_t*) &port_element;
 	struct pcd_rot_element_v2 rot_element;
-	uint8_t found;
+	int found;
 	uint8_t rot_element_format;
 	int start = 0;
 	int i_port;
@@ -287,7 +286,7 @@ int pcd_flash_get_next_mctp_bridge_component (const struct pcd *pcd,
 	struct pcd_mctp_bridge_component_element bridge_component;
 	struct pcd_mctp_bridge_component_connection *connection;
 	uint8_t *element_ptr = (uint8_t*) &bridge_component;
-	uint8_t *start_ptr;
+	int *start_ptr;
 	int status;
 
 	if ((pcd_flash == NULL) || (component == NULL)) {
@@ -298,7 +297,7 @@ int pcd_flash_get_next_mctp_bridge_component (const struct pcd *pcd,
 		return MANIFEST_NO_MANIFEST;
 	}
 
-	start_ptr = (uint8_t*) &component->context;
+	start_ptr = (int*) &component->context;
 
 	if (first) {
 		*start_ptr = 0;
@@ -334,7 +333,7 @@ int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
 	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_tcg_log_component_element tcg_log_component;
 	uint8_t *element_ptr = (uint8_t*) &tcg_log_component;
-	uint8_t *start_ptr;
+	int *start_ptr;
 	int status;
 
 	if ((pcd_flash == NULL) || (component == NULL)) {

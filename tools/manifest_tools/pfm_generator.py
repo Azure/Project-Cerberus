@@ -376,16 +376,15 @@ def output_overlap_warning_file (output, overlaps):
 
     print ("Outputting overlap warning file ({0})".format(output))
 
-def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections, ignore_overlap = False):
+def generate_fw_versions_list (xml_list, max_rw_sections, ignore_overlap = False):
     """
     Create a list of FW version struct instances for each FW type from parsed XML list
 
     :param xml_list: List of parsed XML of FW versions to be included in PFM
-    :param hash_engine: Hashing engine
     :param max_rw_sections: Maximum number of non-contiguous RW sections supported
     :param ignore_overlap:  Bool - Flag to ignore overlapping regions.
 
-    :return FW buffer, number of FW, list of FW TOC entries, list of FW hashes, Unused byte,
+    :return FW version list, runtime update list, Unused byte,
             (all_regions_overlap, rw_regions_overlap)
     """
 
@@ -496,29 +495,25 @@ def generate_fw_versions_list (xml_list, hash_engine, max_rw_sections, ignore_ov
 
     return fw_version_list, runtime_update_list, unused_byte, (all_regions_overlap, rw_regions_overlap)
 
-def generate_fw_buf (xml_list, hash_engine, max_rw_sections, ignore_overlap = False):
+def generate_fw (xml_list, max_rw_sections, ignore_overlap = False):
     """
     Create a buffer of FW struct instances from parsed XML list
 
     :param xml_list: List of parsed XML of FW to be included in PFM
-    :param hash_engine: Hashing engine
     :param max_rw_sections: Maximum number of non-contiguous RW sections supported
     :param ignore_overlap:  Bool - Flag to ignore overlapping regions.
 
-    :return FW buffer, number of FW, list of FW TOC entries, list of FW hashes, Unused byte, overlaps
+    :return List of (FW, FW TOC entry), number of FW, Unused byte, overlaps
     """
 
     if xml_list is None or len (xml_list) < 1:
         return None, 0, None, None, 0
 
     fw_list = []
-    fw_toc_list = []
-    fw_hash_list = []
     num_fw = 0
-    fw_len = 0
 
     fw_version_list, runtime_update_list, unused_byte, overlaps = generate_fw_versions_list (xml_list,
-        hash_engine, max_rw_sections, ignore_overlap)
+        max_rw_sections, ignore_overlap)
 
     for fw_id, fw_versions in fw_version_list.items ():
         fw_id_len = len (fw_id)
@@ -538,41 +533,27 @@ def generate_fw_buf (xml_list, hash_engine, max_rw_sections, ignore_overlap = Fa
         fw = pfm_fw (len (fw_versions), fw_id_len, fw_flags, 0, fw_id.encode ('utf-8'), padding)
         fw_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PFM_V2_FW_TYPE_ID,
             manifest_common.V2_BASE_TYPE_ID, 1, 0, 0, ctypes.sizeof (fw))
-        fw_hash = manifest_common.generate_hash (fw, hash_engine)
 
-        fw_list.append (fw)
-        fw_toc_list.append (fw_toc_entry)
-        fw_hash_list.append (fw_hash)
-        fw_len += ctypes.sizeof (fw)
+        fw_list.append ((fw, fw_toc_entry))
 
         for version_id, fw_version in fw_versions.items ():
-            fw_list.append (fw_version)
-            fw_len += ctypes.sizeof (fw_version)
-
             fw_version_toc_entry = manifest_common.manifest_toc_entry (
                 manifest_common.PFM_V2_FW_VERSION_TYPE_ID, manifest_common.PFM_V2_FW_TYPE_ID, 1,
                 0, 0, ctypes.sizeof (fw_version))
-            fw_toc_list.append (fw_version_toc_entry)
-
-            fw_version_hash = manifest_common.generate_hash (fw_version, hash_engine)
-            fw_hash_list.append (fw_version_hash)
+            fw_list.append ((fw_version, fw_version_toc_entry))
 
         num_fw += 1
 
-    fw_buffer = (ctypes.c_ubyte * fw_len) ()
-    fw_buffer_len = manifest_common.move_list_to_buffer (fw_buffer, 0, fw_list)
+    return fw_list, num_fw, unused_byte, overlaps
 
-    return fw_buffer, num_fw, fw_toc_list, fw_hash_list, unused_byte, overlaps
-
-def generate_flash_device_buf (hash_engine, unused_byte, fw_count):
+def generate_flash_device (unused_byte, fw_count):
     """
     Create a buffer of FW struct instances from parsed XML list
 
-    :param hash_engine: Hashing engine
     :param unused_byte: Unused byte
     :param fw_count: Number of FW types in flash device
 
-    :return Flash device buffer, Flash device TOC entry, Flash device hash
+    :return (Flash device, Flash device TOC entry)
     """
 
     class pfm_flash_device (ctypes.LittleEndianStructure):
@@ -585,9 +566,8 @@ def generate_flash_device_buf (hash_engine, unused_byte, fw_count):
     flash_device_toc_entry = manifest_common.manifest_toc_entry (
         manifest_common.PFM_V2_FLASH_DEVICE_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 0, 0, 0,
         ctypes.sizeof (flash_device))
-    flash_device_hash = manifest_common.generate_hash (flash_device, hash_engine)
 
-    return flash_device, flash_device_toc_entry, flash_device_hash
+    return (flash_device, flash_device_toc_entry)
 
 #*************************************** Start of Script ***************************************
 
@@ -606,43 +586,28 @@ processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_ver
 
 if xml_version == manifest_types.VERSION_2:
     elements_list = []
-    toc_list = []
-    hash_list = []
 
     hash_engine = manifest_common.get_hash_engine (hash_type)
 
     platform_id = manifest_common.get_platform_id_from_xml_list (processed_xml)
-    platform_id, platform_id_toc_entry, platform_id_hash = \
-        manifest_common.generate_platform_id_buf ({"platform_id": platform_id}, hash_engine)
+    platform_id = manifest_common.generate_platform_id ({"platform_id": platform_id})
 
-    pfm_len = ctypes.sizeof (platform_id)
     elements_list.append (platform_id)
-    toc_list.append (platform_id_toc_entry)
-    hash_list.append (platform_id_hash)
 
     if not args.bypass:
-        fw, num_fw, fw_toc_entries, fw_hashes, unused_byte, overlaps = generate_fw_buf (processed_xml,
-            hash_engine, max_rw_sections, args.ignore_overlap)
+        fw, num_fw, unused_byte, overlaps = generate_fw (processed_xml, 
+                                                        max_rw_sections, args.ignore_overlap)
 
-        flash_device, flash_device_toc_entry, flash_device_hash = generate_flash_device_buf (
-            hash_engine, unused_byte, num_fw)
+        flash_device = generate_flash_device (unused_byte, num_fw)
 
-        pfm_len += ctypes.sizeof (flash_device)
         elements_list.append (flash_device)
-        toc_list.append (flash_device_toc_entry)
-        hash_list.append (flash_device_hash)
-
-        pfm_len += ctypes.sizeof (fw)
-        elements_list.append (fw)
-        toc_list.extend (fw_toc_entries)
-        hash_list.extend (fw_hashes)
+        elements_list.extend (fw)
 
         if args.ignore_overlap:
             output_overlap_warning_file (output, overlaps)
 
     manifest_common.generate_manifest (hash_engine, hash_type, pfm_id, manifest_types.PFM,
-        xml_version, sign, key, key_size, key_type, toc_list, hash_list, elements_list, pfm_len,
-        output)
+        xml_version, sign, key, key_size, key_type, elements_list, output)
 
 else:
     pfm_generator_v1.generate_v1_pfm (pfm_id, key_size, hash_type, key_type, processed_xml,

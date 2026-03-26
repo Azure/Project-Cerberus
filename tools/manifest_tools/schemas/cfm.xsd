@@ -19,6 +19,11 @@
                     <xs:documentation>String identifier for the platform configuration. This becomes the platform ID.</xs:documentation>
                 </xs:annotation>
             </xs:attribute>
+            <xs:attribute name="format_version" type="CFMVersion" use="optional" default="2">
+                <xs:annotation>
+                    <xs:documentation>Manifest binary format version.</xs:documentation>
+                </xs:annotation>
+            </xs:attribute>
         </xs:complexType>
     </xs:element>
 
@@ -147,6 +152,13 @@
     </xs:element>
 
     <!-- Simple type definitions -->
+
+    <xs:simpleType name="CFMVersion">
+        <xs:restriction base="xs:unsignedByte">
+            <xs:minInclusive value="2"/>
+            <xs:maxInclusive value="3"/>
+        </xs:restriction>
+    </xs:simpleType>
 
     <xs:simpleType name="DataValue">
         <xs:union memberTypes="xs:hexBinary xs:string"/>

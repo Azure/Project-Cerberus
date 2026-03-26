@@ -1658,7 +1658,13 @@ static void pfm_manager_flash_test_init_flash_device_element_bad_length (CuTest 
 	manifest_flash_v2_testing_verify_manifest_mocked_hash (test, &pfm.manifest, &PFM_V2.manifest, 0,
 		0);
 
-	status = mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, PFM_V2.manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
 		&pfm.manifest.hash_mock, 0);
 	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.update,
 		&pfm.manifest.hash_mock, 0,
@@ -3238,7 +3244,13 @@ static void pfm_manager_flash_test_static_init_flash_device_element_bad_length (
 	manifest_flash_v2_testing_verify_manifest_mocked_hash (test, &pfm.manifest, &PFM_V2.manifest, 0,
 		0);
 
-	status = mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
+	status = mock_expect (&pfm.manifest.flash.mock, pfm.manifest.flash.base.read,
+		&pfm.manifest.flash, 0, MOCK_ARG (pfm.manifest.addr + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	status |= mock_expect_output (&pfm.manifest.flash.mock, 1, PFM_V2.manifest.toc,
+		MANIFEST_V2_TOC_HEADER_SIZE, 2);
+
+	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.start_sha256,
 		&pfm.manifest.hash_mock, 0);
 	status |= mock_expect (&pfm.manifest.hash_mock.mock, pfm.manifest.hash_mock.base.update,
 		&pfm.manifest.hash_mock, 0,

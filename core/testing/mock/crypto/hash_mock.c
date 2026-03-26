@@ -389,6 +389,48 @@ int hash_mock_validate_and_release (struct hash_engine_mock *mock)
 }
 
 /**
+ * Add expectations to start hash.
+ *
+ * @param mock The mock to use for the HMAC.
+ * @param hash_algo The hash algorithm to use for the HMAC.
+ *
+ * @return 0 if the expectations were added successfully or an error code.
+ */
+int hash_mock_expect_hash_start (struct hash_engine_mock *mock, enum hash_type hash_algo)
+{
+	int status;
+
+	switch (hash_algo) {
+#ifdef HASH_ENABLE_SHA1
+		case HASH_TYPE_SHA1:
+			status = mock_expect (&mock->mock, mock->base.start_sha1, mock, 0);
+			break;
+#endif
+
+		case HASH_TYPE_SHA256:
+			status = mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
+			break;
+
+#ifdef HASH_ENABLE_SHA384
+		case HASH_TYPE_SHA384:
+			status = mock_expect (&mock->mock, mock->base.start_sha384, mock, 0);
+			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HASH_TYPE_SHA512:
+			status = mock_expect (&mock->mock, mock->base.start_sha512, mock, 0);
+			break;
+#endif
+
+		default:
+			return HASH_ENGINE_UNKNOWN_HASH;
+	}
+
+	return status;
+}
+
+/**
  * Add expectations to initialize an HMAC.
  *
  * @param mock The mock to use for the HMAC.
