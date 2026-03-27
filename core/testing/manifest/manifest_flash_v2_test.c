@@ -423,8 +423,8 @@ static void manifest_flash_v2_testing_init_and_verify (CuTest *test,
 void manifest_flash_v2_testing_read_element_common (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-	uint32_t read_offset, bool use_mocked_hash, struct manifest_toc_entry *element_entry,
-	uint8_t *element_data)
+	uint32_t read_offset, bool use_mocked_hash, const struct manifest_toc_entry *element_entry,
+	const uint8_t *element_data)
 {
 	struct hash_engine_mock *hash_mock = use_mocked_hash ? &manifest->hash_mock : NULL;
 
@@ -436,7 +436,7 @@ void manifest_flash_v2_testing_read_element_common (CuTest *test,
 
 	bool element_found = false;
 
-	uint32_t hash_offset;
+	uint32_t hash_offset = UINT32_MAX;
 
 	const struct manifest_toc_entry *toc_entries =
 		(const struct manifest_toc_entry*) (data->raw + toc_entry_offset);
@@ -673,7 +673,8 @@ void manifest_flash_v2_testing_read_element_mocked_hash (CuTest *test,
 void manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-	uint32_t read_offset, struct manifest_toc_entry *element_entry, uint8_t *element_data)
+	uint32_t read_offset, const struct manifest_toc_entry *element_entry,
+	const uint8_t *element_data)
 {
 	uint8_t element_data_arr[length];
 

@@ -816,6 +816,8 @@ int x509_openssl_load_certificate (const struct x509_engine *engine, struct x509
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
+	cert->context = NULL;
+
 	ERR_clear_error ();
 
 	bio = BIO_new_mem_buf (der, length);

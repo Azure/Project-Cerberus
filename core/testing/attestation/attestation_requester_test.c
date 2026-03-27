@@ -4790,7 +4790,6 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 	uint8_t dest_eid = 0x0A;
 	uint32_t timeout = device_manager_get_mctp_ctrl_timeout (&testing->device_mgr);
 	int status = 0;
-	size_t offset;
 
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct mctp_control_get_routing_table_entries));
@@ -4853,20 +4852,14 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 	response->num_entries = 2;
 	response->next_entry_handle = testing->second_response[0] ? 0xFF : 1;
 
-	offset = sizeof (struct mctp_control_get_routing_table_entries_response);
-
 	if (!testing->second_response[0]) {
 		entry->eid_range_size = 2;
 		entry->starting_eid = 0xAA;
 
 		++entry;
 
-		offset += sizeof (struct mctp_control_routing_table_entry);
-
 		entry->eid_range_size = 1;
 		entry->starting_eid = 0xBB;
-
-		offset += sizeof (struct mctp_control_routing_table_entry);
 	}
 	else {
 		entry->eid_range_size = 1;
@@ -4874,12 +4867,8 @@ static void attestation_requester_testing_send_and_receive_mctp_get_routing_tabl
 
 		++entry;
 
-		offset += sizeof (struct mctp_control_routing_table_entry);
-
 		entry->eid_range_size = 2;
 		entry->starting_eid = 0xDD;
-
-		offset += sizeof (struct mctp_control_routing_table_entry);
 	}
 
 	resp_expected->payload_length = sizeof (*response) + response->num_entries * sizeof (*entry);
