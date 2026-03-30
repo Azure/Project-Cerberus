@@ -577,8 +577,9 @@ hash_engine = manifest_common.get_hash_engine (hash_type)
 
 processed_xml = list (processed_xml.items())[0][1]
 
-num_components = 0
-num_ports = 0
+components = []
+ports = []
+
 elements_list = []
 timeouts_dict = {}
 
@@ -592,18 +593,15 @@ if not empty:
         elements_list.append (power_controller)
 
     if "components" in processed_xml:
-        components, timeouts_dict = \
-            generate_components (processed_xml["components"], component_map,
+        components, timeouts_dict = generate_components (processed_xml["components"], component_map,
                 component_map_file)
 
-        elements_list.extend (components)
-
     if "ports" in processed_xml["rot"]:
-        ports = generate_ports (
-            processed_xml["rot"]["ports"])
+        ports = generate_ports (processed_xml["rot"]["ports"])
 
-    rot = generate_rot (processed_xml["rot"], num_components, num_ports, timeouts_dict)
+    rot = generate_rot (processed_xml["rot"], len(components), len(ports), timeouts_dict)
 
+    elements_list.extend (components)
     elements_list.append (rot)
     elements_list.extend (ports)
 
