@@ -596,14 +596,18 @@ if not empty:
         components, timeouts_dict = generate_components (processed_xml["components"], component_map,
                 component_map_file)
 
+        if (len (components) > 255):
+            raise ValueError ("Number of components cannot exceed 255, current number of components: {0}"
+                .format (len (components)))
+
     if "ports" in processed_xml["rot"]:
         ports = generate_ports (processed_xml["rot"]["ports"])
+        elements_list.extend (ports)
 
     rot = generate_rot (processed_xml["rot"], len(components), len(ports), timeouts_dict)
 
     elements_list.extend (components)
     elements_list.append (rot)
-    elements_list.extend (ports)
 
 manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version,
     sign, key, key_size, key_type, elements_list, output)

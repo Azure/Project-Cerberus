@@ -650,6 +650,12 @@ def process_pcd (root, xml_file):
 
     xml = {}
 
+    format = xml_extract_attrib (root, XML_FORMAT_VERSION_ATTRIB, True, xml_file, False)
+    if (format == "3"):
+        format = manifest_types.VERSION_3
+    else:
+        format = manifest_types.VERSION_2
+
     result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
     xml.update ({"platform_id":result})
 
@@ -658,7 +664,7 @@ def process_pcd (root, xml_file):
 
     result = xml_extract_attrib (root, XML_EMPTY_ATTRIB, True, xml_file, False)
     if result and result.lower () == "true":
-        return xml, manifest_types.VERSION_2, True
+        return xml, format, True
 
     rot = xml_find_single_tag (root, XML_ROT_TAG, xml_file)
 
@@ -954,7 +960,7 @@ def process_pcd (root, xml_file):
 
             xml["components"].append (curr_component)
 
-    return xml, manifest_types.VERSION_2, False
+    return xml, format, False
 
 def load_and_process_xml (xml_file, xml_type, selection_list=None):
     """

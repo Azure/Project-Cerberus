@@ -19,8 +19,9 @@
 #define PFM_MAGIC_NUM				0x504D
 #define	PFM_V2_MAGIC_NUM			0x706D
 #define	CFM_V2_MAGIC_NUM			0xA592
-#define	PCD_V2_MAGIC_NUM			0x1029
 #define CFM_V3_MAGIC_NUM			0xA5A3
+#define	PCD_V2_MAGIC_NUM			0x1029
+#define	PCD_V3_MAGIC_NUM			0x58A3
 
 /**
  * Identifier for the hash algorithm used for signatures and other verification hashes in

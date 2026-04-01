@@ -53,8 +53,8 @@ int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
 
 
 /**
- * Initialize a static interface to a PCD residing in flash memory.  PCDs only support manifest
- * version 2.
+ * Initialize a static interface to a PCD residing in flash memory.  PCDs support manifests
+ * version 2 and 3.
  *
  * There is no validation done on the arguments.
  *
@@ -73,9 +73,9 @@ int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
 #define	pcd_flash_static_init(state_ptr, flash_ptr, hash_ptr, base_addr_arg, signature_cache_ptr, \
 	max_signature_arg, platform_id_cache_ptr, max_platform_id_arg)	{ \
 		.base = PCD_FLASH_API_INIT, \
-		.base_flash = manifest_flash_v2_static_init (&(state_ptr)->base, flash_ptr, hash_ptr, \
-			base_addr_arg, MANIFEST_NOT_SUPPORTED, PCD_V2_MAGIC_NUM, signature_cache_ptr, \
-			max_signature_arg, platform_id_cache_ptr, max_platform_id_arg), \
+		.base_flash = manifest_flash_v3_static_init (&(state_ptr)->base, flash_ptr, hash_ptr, \
+			base_addr_arg, MANIFEST_NOT_SUPPORTED, PCD_V2_MAGIC_NUM, PCD_V3_MAGIC_NUM, \
+			signature_cache_ptr, max_signature_arg, platform_id_cache_ptr, max_platform_id_arg), \
 	}
 
 

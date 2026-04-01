@@ -23,11 +23,11 @@ import manifest_parser
 
 
 PFM_MAGIC_NUM = int ("0x504D", 16)
-CFM_MAGIC_NUM = int ("0xA592", 16)
-PCD_MAGIC_NUM = int ("0x1029", 16)
-
 PFM_V2_MAGIC_NUM = int ("0x706D", 16)
+CFM_MAGIC_NUM = int ("0xA592", 16)
 CFM_V3_MAGIC_NUM = int ("0xA5A3", 16)
+PCD_MAGIC_NUM = int ("0x1029", 16)
+PCD_V3_MAGIC_NUM = int ("0x58A3", 16)
 
 V2_BASE_TYPE_ID = int ("0xff", 16)
 V2_PLATFORM_TYPE_ID = int ("0x00", 16)
@@ -265,7 +265,10 @@ def generate_manifest_header (manifest_id, key_size, manifest_type, hash_type, k
 
         case (manifest_types.PCD, manifest_types.VERSION_2):
             magic_num = PCD_MAGIC_NUM
-        
+
+        case (manifest_types.PCD, manifest_types.VERSION_3):
+            magic_num = PCD_V3_MAGIC_NUM
+
         case (manifest_types.CFM, manifest_types.VERSION_2):
             magic_num = CFM_MAGIC_NUM
 

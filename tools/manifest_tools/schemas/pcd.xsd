@@ -12,6 +12,13 @@
 
     <!-- Simple type definitions -->
 
+    <xs:simpleType name="PCDVersion">
+        <xs:restriction base="xs:unsignedByte">
+            <xs:minInclusive value="2"/>
+            <xs:maxInclusive value="3"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <xs:simpleType name="RoTType">
         <xs:restriction base="xs:string">
             <xs:enumeration value="PA-RoT"/>
@@ -369,6 +376,11 @@
         </xs:attribute>
         <xs:attribute name="version" type="HexInteger" use="required"/>
         <xs:attribute name="empty" type="xs:boolean"/>
+        <xs:attribute name="format_version" type="PCDVersion" use="optional" default="2">
+            <xs:annotation>
+                <xs:documentation>Manifest binary format version.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
 
     <xs:complexType name="PCDEmpty">

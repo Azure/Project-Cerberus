@@ -423,8 +423,8 @@ int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset,
 }
 
 /**
- * Initialize the interface to a PCD residing in flash memory.  PCDs only support manifest version
- * 2.
+ * Initialize the interface to a PCD residing in flash memory.  PCDs support manifest versions
+ * 2 and 3.
  *
  * @param pcd The PCD instance to initialize.
  * @param state Variable context for the PCD instance.  This must be uninitialized.
@@ -452,9 +452,9 @@ int pcd_flash_init (struct pcd_flash *pcd, struct pcd_flash_state *state, const 
 
 	memset (pcd, 0, sizeof (struct pcd_flash));
 
-	status = manifest_flash_v2_init (&pcd->base_flash, &state->base, flash, hash, base_addr,
-		MANIFEST_NOT_SUPPORTED, PCD_V2_MAGIC_NUM, signature_cache, max_signature, platform_id_cache,
-		max_platform_id);
+	status = manifest_flash_v3_init (&pcd->base_flash, &state->base, flash, hash, base_addr,
+		MANIFEST_NOT_SUPPORTED, PCD_V2_MAGIC_NUM, PCD_V3_MAGIC_NUM, signature_cache, max_signature,
+		platform_id_cache, max_platform_id);
 	if (status != 0) {
 		return status;
 	}

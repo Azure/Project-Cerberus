@@ -158,7 +158,7 @@ void manifest_flash_v3_testing_init_common (CuTest *test,
 }
 
 /**
- * Set expectations on mocks for v2 manifest verification.
+ * Set expectations on mocks for v3 manifest verification.
  *
  * @param test The testing framework.
  * @param manifest The components for the test.
