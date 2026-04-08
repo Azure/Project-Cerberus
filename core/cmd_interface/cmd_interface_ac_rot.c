@@ -98,17 +98,6 @@ int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	UNUSED (intf);
-	UNUSED (response);
-
-	return CMD_HANDLER_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize a minimal AC-RoT command handler.
  *
@@ -154,9 +143,6 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_ac_rot_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_ac_rot_process_response;
-#endif
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;

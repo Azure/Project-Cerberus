@@ -845,6 +845,7 @@ static void complete_attestation_requester_mock_test (CuTest *test,
 	X509_TESTING_ENGINE_RELEASE (&testing->x509);
 }
 
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
 /**
  * Generate packets for full MCTP message from payload
  *
@@ -2010,7 +2011,6 @@ static void attestation_requester_testing_verify_cerberus_alias_with_mocks (CuTe
 		CuAssertIntEquals (test, 0, status);
 	}
 }
-
 /**
  * Helper function which sends and receives a successful Cerberus Protocol Get Certificate, and sets
  * up hashing mock.
@@ -2079,6 +2079,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 	attestation_requester_testing_verify_cerberus_alias_with_mocks (test, testing, x509_mock,
 		RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN, out_digest, key_type);
 }
+#endif 
 
 /**
  * Generate and process a MCTP protocol Set Endpoint ID request
@@ -5034,6 +5035,7 @@ static void attestation_requester_test_init_invalid_arg (CuTest *test)
 		&testing.mctp_control.base, &testing.spdm_transport.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
+#if defined(CMD_ENABLE_ISSUE_REQUEST)
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
 		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr,
@@ -5045,6 +5047,7 @@ static void attestation_requester_test_init_invalid_arg (CuTest *test)
 		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr,
 		&testing.cfm_manager.base, &testing.mctp_control.base, NULL);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
+#endif
 
 	complete_attestation_requester_mock_test (test, &testing, false);
 }
@@ -5205,6 +5208,7 @@ static void attestation_requester_test_deinit_null (CuTest *test)
 	attestation_requester_deinit (NULL);
 }
 
+#if defined(CMD_ENABLE_ISSUE_REQUEST)
 static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -9043,6 +9047,7 @@ static void attestation_requester_test_attest_device_cerberus_no_pmr0_digest_mat
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
+#endif
 static void attestation_requester_test_attest_device_spdm_different_measurement_hash_algo (
 	CuTest *test)
 {
@@ -43463,6 +43468,7 @@ TEST (attestation_requester_test_init_invalid_arg);
 TEST (attestation_requester_test_init_state);
 TEST (attestation_requester_test_init_state_invalid_arg);
 TEST (attestation_requester_test_deinit_null);
+#if defined(CMD_ENABLE_ISSUE_REQUEST)
 TEST (attestation_requester_test_attest_device_cerberus_ecc);
 TEST (attestation_requester_test_attest_device_cerberus_ecc_vendor_root_ca);
 TEST (attestation_requester_test_attest_device_cerberus_ecc_untrusted_root_ca);
@@ -43531,6 +43537,7 @@ TEST (attestation_requester_test_attest_device_cerberus_challenge_no_rsp_already
 TEST (attestation_requester_test_attest_device_cerberus_get_component_pmr_digest_fail);
 TEST (attestation_requester_test_attest_device_cerberus_pmr0_digest_invalid_len);
 TEST (attestation_requester_test_attest_device_cerberus_no_pmr0_digest_match);
+#endif
 TEST (attestation_requester_test_attest_device_spdm_different_measurement_hash_algo);
 TEST (attestation_requester_test_attest_device_spdm_sha256_only_challenge);
 TEST (attestation_requester_test_attest_device_spdm_sha256_1_1_only_challenge);

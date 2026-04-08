@@ -21,23 +21,9 @@ static int cmd_interface_mock_process_request (const struct cmd_interface *intf,
 		MOCK_ARG_PTR_CALL (request));
 }
 
-static int cmd_interface_mock_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	struct cmd_interface_mock *mock = (struct cmd_interface_mock*) intf;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, cmd_interface_mock_process_response, intf,
-		MOCK_ARG_PTR_CALL (response));
-}
-
 static int cmd_interface_mock_func_arg_count (void *func)
 {
-	if ((func == cmd_interface_mock_process_request) ||
-		(func == cmd_interface_mock_process_response)) {
+	if (func == cmd_interface_mock_process_request) {
 		return 1;
 	}
 	else {
@@ -50,9 +36,6 @@ static const char* cmd_interface_mock_func_name_map (void *func)
 	if (func == cmd_interface_mock_process_request) {
 		return "process_request";
 	}
-	else if (func == cmd_interface_mock_process_response) {
-		return "process_response";
-	}
 	else {
 		return "unknown";
 	}
@@ -64,12 +47,6 @@ static const char* cmd_interface_mock_arg_name_map (void *func, int arg)
 		switch (arg) {
 			case 0:
 				return "request";
-		}
-	}
-	else if (func == cmd_interface_mock_process_response) {
-		switch (arg) {
-			case 0:
-				return "response";
 		}
 	}
 
@@ -101,7 +78,6 @@ int cmd_interface_mock_init (struct cmd_interface_mock *mock)
 	mock_set_name (&mock->mock, "cmd_interface");
 
 	mock->base.process_request = cmd_interface_mock_process_request;
-	mock->base.process_response = cmd_interface_mock_process_response;
 
 	mock->mock.func_arg_count = cmd_interface_mock_func_arg_count;
 	mock->mock.func_name_map = cmd_interface_mock_func_name_map;

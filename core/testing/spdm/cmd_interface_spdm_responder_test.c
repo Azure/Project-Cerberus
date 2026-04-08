@@ -344,7 +344,6 @@ static void cmd_interface_spdm_responder_test_static_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, spdm_responder.base.process_request);
-	CuAssertPtrNotNull (test, spdm_responder.base.process_response);
 
 	cmd_interface_spdm_responder_deinit (&spdm_responder);
 
@@ -372,7 +371,6 @@ static void cmd_interface_spdm_responder_test_static_init_non_secure (CuTest *te
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, spdm_responder.base.process_request);
-	CuAssertPtrNotNull (test, spdm_responder.base.process_response);
 
 	cmd_interface_spdm_responder_deinit (&spdm_responder);
 
@@ -834,7 +832,6 @@ static void cmd_interface_spdm_responder_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
-	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_response);
 
 	cmd_interface_spdm_responder_deinit (&testing.spdm_responder);
 
@@ -859,7 +856,6 @@ static void cmd_interface_spdm_responder_test_init_non_secure (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_request);
-	CuAssertPtrNotNull (test, testing.spdm_responder.base.process_response);
 
 	cmd_interface_spdm_responder_deinit (&testing.spdm_responder);
 
@@ -3491,24 +3487,6 @@ static void cmd_interface_spdm_responder_test_process_request_unsupported_reques
 	cmd_interface_spdm_responder_testing_release (test, &testing);
 }
 
-static void cmd_interface_spdm_responder_test_process_response (
-	CuTest *test)
-{
-	int status;
-	struct cmd_interface_spdm_responder_testing testing;
-
-	TEST_START;
-
-	cmd_interface_spdm_responder_testing_init (test, &testing);
-
-	status =
-		testing.spdm_responder.base.process_response ((const struct cmd_interface*) (0xDEADBEEF),
-		(struct cmd_interface_msg*) (0xBAADF00D));
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_spdm_responder_testing_release (test, &testing);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_spdm_responder);
@@ -3561,7 +3539,6 @@ TEST (cmd_interface_spdm_responder_test_process_request_vdm_fail);
 TEST (cmd_interface_spdm_responder_test_process_request_invalid_arg);
 TEST (cmd_interface_spdm_responder_test_process_request_spdm_get_command_id_failure_short_payload);
 TEST (cmd_interface_spdm_responder_test_process_request_unsupported_request_code);
-TEST (cmd_interface_spdm_responder_test_process_response);
 
 TEST_SUITE_END;
 // *INDENT-ON*

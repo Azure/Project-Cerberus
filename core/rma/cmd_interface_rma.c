@@ -41,18 +41,6 @@ int cmd_interface_rma_process_request (const struct cmd_interface *intf,
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_rma_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	if ((intf == NULL) || (response == NULL)) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	return CMD_HANDLER_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize a minimal command handler to support RMA workflows.
  *
@@ -75,9 +63,6 @@ int cmd_interface_rma_init (struct cmd_interface_rma *intf, struct device_manage
 	memset (intf, 0, sizeof (struct cmd_interface_rma));
 
 	intf->base.process_request = cmd_interface_rma_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_rma_process_response;
-#endif
 
 	intf->device_manager = device_manager;
 	intf->device_id.vendor_id = vendor_id;

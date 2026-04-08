@@ -59,17 +59,6 @@ exit:
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_ide_responder_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	UNUSED (intf);
-	UNUSED (response);
-
-	return CMD_INTERFACE_IDE_RESPONDER_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize the IDE responder instance.
  *
@@ -92,7 +81,6 @@ int cmd_interface_ide_responder_init (struct cmd_interface_ide_responder *ide_re
 	ide_responder->ide_driver = ide_driver;
 
 	ide_responder->base.process_request = cmd_interface_ide_responder_process_request;
-	ide_responder->base.process_response = cmd_interface_ide_responder_process_response;
 
 exit:
 

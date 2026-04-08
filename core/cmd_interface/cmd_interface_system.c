@@ -328,17 +328,6 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_system_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	UNUSED (intf);
-	UNUSED (response);
-
-	return CMD_HANDLER_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize System command interface instance
  *
@@ -446,9 +435,6 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_system_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_system_process_response;
-#endif
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;

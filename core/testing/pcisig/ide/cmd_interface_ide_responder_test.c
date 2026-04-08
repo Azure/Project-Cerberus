@@ -102,7 +102,6 @@ static void cmd_interface_ide_responder_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, ide_responder.base.process_request);
-	CuAssertPtrNotNull (test, ide_responder.base.process_response);
 }
 
 static void cmd_interface_ide_responder_test_init (CuTest *test)
@@ -119,7 +118,6 @@ static void cmd_interface_ide_responder_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, testing.ide_responder.base.process_request);
-	CuAssertPtrNotNull (test, testing.ide_responder.base.process_response);
 
 	cmd_interface_ide_responder_testing_release (test, &testing);
 }
@@ -641,27 +639,6 @@ static void cmd_interface_ide_responder_test_process_request_unkown_command (CuT
 	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_UNKNOWN_COMMAND, status);
 }
 
-static void cmd_interface_ide_responder_test_process_response (CuTest *test)
-{
-	int status;
-	struct cmd_interface_ide_responder *ide_responder;
-	struct cmd_interface_ide_responder_testing testing;
-
-	TEST_START;
-
-	cmd_interface_ide_responder_testing_init (test, &testing);
-
-	ide_responder = &testing.ide_responder;
-
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	status = ide_responder->base.process_response ((const struct cmd_interface*) 0xDEADBEEF,
-		(struct cmd_interface_msg*) 0xBAADB00F);
-	CuAssertIntEquals (test, CMD_INTERFACE_IDE_RESPONDER_UNSUPPORTED_OPERATION, status);
-#else
-	UNUSED (status);
-#endif
-	cmd_interface_ide_responder_testing_release (test, &testing);
-}
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_ide_responder);
@@ -681,7 +658,6 @@ TEST (cmd_interface_ide_responder_test_process_request_key_set_stop_fail);
 TEST (cmd_interface_ide_responder_test_process_request_invalid_params);
 TEST (cmd_interface_ide_responder_test_process_request_invalid_msg_size);
 TEST (cmd_interface_ide_responder_test_process_request_unkown_command);
-TEST (cmd_interface_ide_responder_test_process_response);
 
 TEST_SUITE_END;
 // *INDENT-ON*

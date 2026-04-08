@@ -19,35 +19,6 @@
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 
 
-void cerberus_protocol_master_commands_testing_process_response_get_certificate_digest (
-	CuTest *test, struct cmd_interface *cmd, struct cmd_interface_msg *response);
-void
-cerberus_protocol_master_commands_testing_process_response_get_certificate_digest_invalid_buf_len (
-	CuTest *test, struct cmd_interface *cmd);
-
-void cerberus_protocol_master_commands_testing_process_response_get_certificate (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_interface_msg *response);
-void cerberus_protocol_master_commands_testing_process_response_get_certificate_invalid_buf_len (
-	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_response_get_certificate_unsupported_slot (
-	CuTest *test, struct cmd_interface *cmd);
-
-void cerberus_protocol_master_commands_testing_process_response_challenge_response (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_interface_msg *response);
-void cerberus_protocol_master_commands_testing_process_response_challenge_invalid_buf_len (
-	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_response_challenge_unsupported_slot (
-	CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_response_challenge_rsvd_not_zero (
-	CuTest *test, struct cmd_interface *cmd);
-
-void cerberus_protocol_master_commands_testing_process_response_device_capabilities (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_interface_msg *response);
-void cerberus_protocol_master_commands_testing_process_response_device_capabilities_invalid_buf_len
-	(CuTest *test, struct cmd_interface *cmd);
-void cerberus_protocol_master_commands_testing_process_response_device_capabilities_rsvd_not_zero (
-	CuTest *test, struct cmd_interface *cmd);
-
 void cerberus_protocol_master_commands_testing_process_cfm_update_init (CuTest *test,
 	struct cmd_interface *cmd, struct manifest_cmd_interface_mock *cfm);
 void cerberus_protocol_master_commands_testing_process_cfm_update_init_invalid_len (CuTest *test,

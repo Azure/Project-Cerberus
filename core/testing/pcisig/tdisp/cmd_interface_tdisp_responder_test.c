@@ -127,7 +127,6 @@ static void cmd_interface_tdisp_responder_test_static_init (CuTest *test)
 	cmd_interface_tdisp_responder_testing_init_dependencies (test, &testing);
 
 	CuAssertPtrNotNull (test, tdisp_responder.base.process_request);
-	CuAssertPtrNotNull (test, tdisp_responder.base.process_response);
 
 	cmd_interface_tdisp_responder_release (&tdisp_responder);
 
@@ -150,7 +149,6 @@ static void cmd_interface_tdisp_responder_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, testing.tdisp_responder.base.process_request);
-	CuAssertPtrNotNull (test, testing.tdisp_responder.base.process_response);
 
 	cmd_interface_tdisp_responder_testing_release (test, &testing);
 }
@@ -808,28 +806,6 @@ static void cmd_interface_tdisp_responder_test_process_request_payload_lt_min_le
 	cmd_interface_tdisp_responder_testing_release (test, &testing);
 }
 
-static void cmd_interface_tdisp_responder_test_process_response (CuTest *test)
-{
-	int status;
-	struct cmd_interface_tdisp_responder *tdisp_responder;
-	struct cmd_interface_tdisp_responder_testing testing;
-
-	TEST_START;
-
-	cmd_interface_tdisp_responder_testing_init (test, &testing);
-
-	tdisp_responder = &testing.tdisp_responder;
-
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	status = tdisp_responder->base.process_response ((const struct cmd_interface*) 0xDEADBEEF,
-		(struct cmd_interface_msg*) 0xBAADB00F);
-	CuAssertIntEquals (test, CMD_INTERFACE_TDISP_RESPONDER_UNSUPPORTED_OPERATION, status);
-#else
-	UNUSED (status);
-#endif
-	cmd_interface_tdisp_responder_testing_release (test, &testing);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_tdisp_responder);
@@ -849,7 +825,6 @@ TEST (cmd_interface_tdisp_responder_test_process_request_stop_interface);
 TEST (cmd_interface_tdisp_responder_test_process_request_invalid_params);
 TEST (cmd_interface_tdisp_responder_test_process_request_payload_lt_min_length);
 TEST (cmd_interface_tdisp_responder_test_process_request_unsupported_message_type);
-TEST (cmd_interface_tdisp_responder_test_process_response);
 
 TEST_SUITE_END;
 // *INDENT-ON*

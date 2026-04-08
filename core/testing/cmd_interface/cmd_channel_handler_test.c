@@ -152,6 +152,7 @@ static void cmd_channel_handler_testing_validate_and_release (CuTest *test,
 	cmd_channel_handler_release (&handler->test);
 }
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 static void cmd_channel_handler_test_prepare_1 (CuTest *test,
 	struct cmd_channel_handler_testing *handler, struct msg_transport_mctp_message *mctp_message,
 	struct cmd_interface_protocol_mctp *mctp_protocol, struct cmd_packet *tx_packet)
@@ -236,6 +237,7 @@ static void cmd_channel_handler_test_prepare_1 (CuTest *test,
 		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, tx_packet, sizeof (*tx_packet)));
 	CuAssertIntEquals (test, 0, status);
 }
+#endif
 
 /*******************
  * Test cases
@@ -286,8 +288,10 @@ static void cmd_channel_handler_test_init_null (CuTest *test)
 		&handler.mctp_control.base);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
 
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
 	status = cmd_channel_handler_init (&handler.test, &handler.channel.base, &handler.mctp, NULL);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+#endif
 
 	cmd_channel_handler_testing_release_dependencies (test, &handler);
 }
@@ -337,9 +341,11 @@ static void cmd_channel_handler_test_init_notify_null_eid_null (CuTest *test)
 		&handler.mctp_control.base);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
 
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
 	status = cmd_channel_handler_init_notify_null_eid (&handler.test, &handler.channel.base,
 		&handler.mctp, NULL);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+#endif
 
 	cmd_channel_handler_testing_release_dependencies (test, &handler);
 }
@@ -394,6 +400,7 @@ static void cmd_channel_handler_test_release_null (CuTest *test)
 	cmd_channel_handler_release (NULL);
 }
 
+#ifdef CMD_ENABLE_ISSUE_REQUEST
 static void cmd_channel_handler_test_send_discovery_notify_no_response (
 	CuTest *test, struct cmd_channel_handler_testing *hanlder, uint8_t bridge_eid)
 {
@@ -441,8 +448,6 @@ static void cmd_channel_handler_test_send_discovery_notify_no_response (
 	CuAssertIntEquals (test, 0, status);
 }
 
-
-#ifdef CMD_ENABLE_ISSUE_REQUEST
 static void cmd_channel_handler_test_prepare (CuTest *test)
 {
 	struct cmd_channel_handler_testing handler;
@@ -1132,8 +1137,8 @@ TEST (cmd_channel_handler_test_prepare);
 TEST (cmd_channel_handler_test_prepare_notify_null_eid);
 TEST (cmd_channel_handler_test_prepare_static_init);
 TEST (cmd_channel_handler_test_prepare_static_init_notify_null_eid);
-#endif
 TEST (cmd_channel_handler_test_prepare_stack);
+#endif
 TEST (cmd_channel_handler_test_get_next_execution);
 TEST (cmd_channel_handler_test_get_next_execution_notify_null_eid);
 TEST (cmd_channel_handler_test_get_next_execution_static_init);

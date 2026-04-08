@@ -67,7 +67,6 @@ static void cmd_interface_spdm_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
-	CuAssertPtrNotNull (test, interface.base.process_response);
 
 	cmd_interface_spdm_deinit (&interface);
 }
@@ -105,21 +104,6 @@ static void cmd_interface_spdm_test_process_request (CuTest *test)
 	complete_cmd_interface_spdm_mock_test (test, &cmd);
 }
 
-static void cmd_interface_spdm_test_process_response (CuTest *test)
-{
-	struct cmd_interface_spdm_testing cmd;
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	setup_cmd_interface_spdm_mock_test (test, &cmd);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION, status);
-
-	complete_cmd_interface_spdm_mock_test (test, &cmd);
-}
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_spdm);
@@ -128,7 +112,6 @@ TEST (cmd_interface_spdm_test_init);
 TEST (cmd_interface_spdm_test_init_invalid_arg);
 TEST (cmd_interface_spdm_test_deinit_invalid_arg);
 TEST (cmd_interface_spdm_test_process_request);
-TEST (cmd_interface_spdm_test_process_response);
 
 TEST_SUITE_END;
 // *INDENT-ON*

@@ -165,7 +165,6 @@ static void cmd_interface_multi_handler_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, cmd.test.base.process_request);
-	CuAssertPtrNotNull (test, cmd.test.base.process_response);
 
 	CuAssertPtrNotNull (test, cmd.test.is_message_type_supported);
 
@@ -208,7 +207,6 @@ static void cmd_interface_multi_handler_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, cmd.test.base.process_request);
-	CuAssertPtrNotNull (test, cmd.test.base.process_response);
 
 	CuAssertPtrNotNull (test, cmd.test.is_message_type_supported);
 
@@ -1372,70 +1370,6 @@ cmd_interface_multi_handler_test_process_request_unknown_message_type_no_respons
 	cmd_interface_multi_handler_testing_release (test, &cmd);
 }
 
-static void cmd_interface_multi_handler_test_process_response (CuTest *test)
-{
-	struct cmd_interface_multi_handler_testing cmd;
-	uint8_t response_data[64];
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	memset (&response, 0, sizeof (response));
-	memset (response_data, 0, sizeof (response_data));
-	response.data = response_data;
-
-	response.length = sizeof (response_data);
-	response.payload = response_data;
-	response.payload_length = sizeof (response_data);
-	response.max_response = sizeof (response_data);
-	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response.source_addr = 0x55;
-	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	response.crypto_timeout = false;
-	response.channel_id = 4;
-
-	cmd_interface_multi_handler_testing_init (test, &cmd);
-
-	status = cmd.test.base.process_response (&cmd.test.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_multi_handler_testing_release (test, &cmd);
-}
-
-static void cmd_interface_multi_handler_test_process_response_static_init (CuTest *test)
-{
-	struct cmd_interface_multi_handler_testing cmd = {
-		.test = cmd_interface_multi_handler_static_init (&cmd.protocol.base, cmd.msg_type, 3)
-	};
-	uint8_t response_data[64];
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	memset (&response, 0, sizeof (response));
-	memset (response_data, 0, sizeof (response_data));
-	response.data = response_data;
-
-	response.length = sizeof (response_data);
-	response.payload = response_data;
-	response.payload_length = sizeof (response_data);
-	response.max_response = sizeof (response_data);
-	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response.source_addr = 0x55;
-	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-	response.crypto_timeout = false;
-	response.channel_id = 4;
-
-	cmd_interface_multi_handler_testing_init_dependencies (test, &cmd);
-
-	status = cmd.test.base.process_response (&cmd.test.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_multi_handler_testing_release (test, &cmd);
-}
-
 static void cmd_interface_multi_handler_test_is_message_type_supported (CuTest *test)
 {
 	struct cmd_interface_multi_handler_testing cmd;
@@ -1544,8 +1478,6 @@ TEST (cmd_interface_multi_handler_test_process_request_fail_no_response_handling
 TEST (cmd_interface_multi_handler_test_process_request_unknown_message_type_with_error_response);
 TEST (cmd_interface_multi_handler_test_process_request_unknown_message_type_without_error_response);
 TEST (cmd_interface_multi_handler_test_process_request_unknown_message_type_no_response_handling);
-TEST (cmd_interface_multi_handler_test_process_response);
-TEST (cmd_interface_multi_handler_test_process_response_static_init);
 TEST (cmd_interface_multi_handler_test_is_message_type_supported);
 TEST (cmd_interface_multi_handler_test_is_message_type_supported_static_init);
 TEST (cmd_interface_multi_handler_test_is_message_type_supported_null);

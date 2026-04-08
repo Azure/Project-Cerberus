@@ -660,7 +660,6 @@ static void cmd_interface_system_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
-	CuAssertPtrNotNull (test, interface.base.process_response);
 
 	status = firmware_update_control_mock_validate_and_release (&update);
 	CuAssertIntEquals (test, 0, status);
@@ -8639,21 +8638,6 @@ static void cmd_interface_system_test_supports_all_required_commands (CuTest *te
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
-static void cmd_interface_system_test_process_response_unsupported_operation (CuTest *test)
-{
-	struct cmd_interface_system_testing cmd;
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
-		true, true, true);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	complete_cmd_interface_system_mock_test (test, &cmd);
-}
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_system);
@@ -9169,7 +9153,6 @@ TEST (cmd_interface_system_test_process_set_host_flash_configuration_invalid_nex
 TEST (cmd_interface_system_test_process_set_host_flash_configuration_invalid_apply_next_flash);
 TEST (cmd_interface_system_test_process_set_host_flash_configuration_error);
 TEST (cmd_interface_system_test_supports_all_required_commands);
-TEST (cmd_interface_system_test_process_response_unsupported_operation);
 /* Tear down after the tests in this suite have run. */
 TEST (cmd_interface_system_testing_suite_tear_down);
 

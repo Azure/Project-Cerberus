@@ -3537,43 +3537,6 @@ void cerberus_protocol_required_commands_testing_process_reset_counter_invalid_c
 	CuAssertIntEquals (test, false, request.crypto_timeout);
 }
 
-void cerberus_protocol_master_commands_testing_process_error_response (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_interface_msg *response)
-{
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) response->data;
-	int status;
-
-	error->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	error->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	error->header.command = CERBERUS_PROTOCOL_ERROR;
-
-	response->length = sizeof (struct cerberus_protocol_error);
-	response->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response->target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	status = cmd->process_response (cmd, response);
-	CuAssertIntEquals (test, CMD_HANDLER_ERROR_MESSAGE, status);
-}
-
-void cerberus_protocol_master_commands_testing_process_error_response_invalid_len (CuTest *test,
-	struct cmd_interface *cmd, struct cmd_interface_msg *response)
-{
-	struct cerberus_protocol_error *error = (struct cerberus_protocol_error*) response->data;
-	int status;
-
-	error->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	error->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	error->header.command = CERBERUS_PROTOCOL_ERROR;
-
-	response->length = sizeof (struct cerberus_protocol_error) - 1;
-	response->source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response->target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	status = cmd->process_response (cmd, response);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ERROR_MSG, status);
-}
-
-
 /*******************
  * Test cases
  *******************/

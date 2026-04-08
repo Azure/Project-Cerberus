@@ -272,7 +272,6 @@ static void cmd_interface_recovery_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
-	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
 
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
@@ -417,7 +416,6 @@ static void cmd_interface_recovery_test_static_init (CuTest *test)
 		FW_VERSION_COUNT);
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
-	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
 
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
@@ -1890,73 +1888,6 @@ static void cmd_interface_recovery_test_supports_all_required_commands (CuTest *
 	complete_cmd_interface_recovery_mock_test (test, &cmd);
 }
 
-static void cmd_interface_recovery_test_process_response (CuTest *test)
-{
-	struct cmd_interface_recovery_testing cmd;
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	complete_cmd_interface_recovery_mock_test (test, &cmd);
-}
-
-static void cmd_interface_recovery_test_process_response_static_init (CuTest *test)
-{
-	struct cmd_interface_recovery_testing cmd = {
-		.handler = cmd_interface_recovery_static_init (&cmd.device_manager, &cmd.update.base,
-			&cmd.fw_version, cmd_interface_recovery_test_vendor_id,
-			cmd_interface_recovery_test_device_id, cmd_interface_recovery_test_subsystem_vid,
-			cmd_interface_recovery_test_subsystem_id, &cmd.attestation.base, &cmd.riot,
-			&cmd.background.base, &cmd.cmd_device.base)
-	};
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	setup_cmd_interface_recovery_mock_test_init (test, &cmd);
-	setup_cmd_interface_recovery_mock_test_init_device_id (&cmd);
-
-	setup_cmd_interface_recovery_mock_test_init_fw_version (&cmd, RECOVERY_FW_VERSION,
-		FW_VERSION_COUNT);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	status = cmd.handler.base.process_response (NULL, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	complete_cmd_interface_recovery_mock_test (test, &cmd);
-}
-
-static void cmd_interface_recovery_test_process_response_null (CuTest *test)
-{
-	struct cmd_interface_recovery_testing cmd;
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	setup_cmd_interface_recovery_mock_test (test, &cmd);
-
-	status = cmd.handler.base.process_response (NULL, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	complete_cmd_interface_recovery_mock_test (test, &cmd);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_recovery);
@@ -2065,9 +1996,6 @@ TEST (cmd_interface_recovery_test_process_stack_stats_invalid_len);
 TEST (cmd_interface_recovery_test_process_stack_stats_fail);
 #endif
 TEST (cmd_interface_recovery_test_supports_all_required_commands);
-TEST (cmd_interface_recovery_test_process_response);
-TEST (cmd_interface_recovery_test_process_response_static_init);
-TEST (cmd_interface_recovery_test_process_response_null);
 
 /* Tear down after the tests in this suite have run. */
 TEST (cmd_interface_recovery_testing_suite_tear_down);

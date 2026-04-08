@@ -127,17 +127,6 @@ exit:
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_tdisp_responder_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	UNUSED (intf);
-	UNUSED (response);
-
-	return CMD_INTERFACE_TDISP_RESPONDER_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize the TDISP responder instance.
  *
@@ -172,9 +161,6 @@ int cmd_interface_tdisp_responder_init (struct cmd_interface_tdisp_responder *td
 	tdisp_responder->rng_engine = rng_engine;
 
 	tdisp_responder->base.process_request = cmd_interface_tdisp_responder_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	tdisp_responder->base.process_response = cmd_interface_tdisp_responder_process_response;
-#endif
 
 exit:
 

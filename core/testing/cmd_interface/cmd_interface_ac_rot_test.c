@@ -253,7 +253,6 @@ static void cmd_interface_ac_rot_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
-	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
 
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
@@ -312,7 +311,6 @@ static void cmd_interface_ac_rot_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, interface.base.process_request);
-	CuAssertPtrNotNull (test, interface.base.process_response);
 
 	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
 
@@ -2300,46 +2298,6 @@ static void cmd_interface_ac_rot_test_supports_all_required_commands (CuTest *te
 	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
 }
 
-static void cmd_interface_ac_rot_test_process_response (CuTest *test)
-{
-	struct cmd_interface_ac_rot_testing cmd;
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	setup_cmd_interface_ac_rot_mock_test (test, &cmd);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	complete_cmd_interface_ac_rot_mock_test (test, &cmd);
-}
-
-static void cmd_interface_ac_rot_test_process_response_static_init (CuTest *test)
-{
-	struct cmd_interface_ac_rot_testing cmd;
-	struct cmd_interface_ac_rot test_static =
-		cmd_interface_ac_rot_static_init (&cmd.attestation.base, &cmd.device_manager,
-		&cmd.background.base, &cmd.fw_version, &cmd.riot, &cmd.cmd_device.base, 0x1234, 20, 0x5678,
-		40, &cmd.session.base);
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	cmd_interface_ac_rot_testing_init_dependencies (test, &cmd);
-
-	setup_cmd_interface_ac_rot_mock_test_init_fw_version (&cmd, CERBERUS_FW_VERSION,
-		RIOT_CORE_VERSION, FW_VERSION_COUNT);
-
-	status = test_static.base.process_response (&test_static.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_ac_rot_testing_release_dependencies (test, &cmd);
-	cmd_interface_ac_rot_deinit (&test_static);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_ac_rot);
@@ -2452,8 +2410,6 @@ TEST (cmd_interface_ac_rot_test_process_session_sync_fail);
 TEST (cmd_interface_ac_rot_test_process_session_sync_unencrypted);
 TEST (cmd_interface_ac_rot_test_process_session_sync_invalid_len);
 TEST (cmd_interface_ac_rot_test_supports_all_required_commands);
-TEST (cmd_interface_ac_rot_test_process_response);
-TEST (cmd_interface_ac_rot_test_process_response_static_init);
 
 TEST_SUITE_END;
 // *INDENT-ON*

@@ -89,8 +89,6 @@ void cmd_interface_system_deinit (struct cmd_interface_system *intf);
 /* Internal functions for use by derived types. */
 int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request);
-int cmd_interface_system_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response);
 
 
 #endif	/* CMD_INTERFACE_SYSTEM_H_ */

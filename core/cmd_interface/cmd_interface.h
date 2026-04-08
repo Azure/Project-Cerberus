@@ -130,22 +130,6 @@ struct cmd_interface {
 	 */
 	int (*process_request) (const struct cmd_interface *intf, struct cmd_interface_msg *request);
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	/**
-	 * Process a received response.
-	 *
-	 * TODO:  Likely remove this function from this interface.  The request issuing flow using
-	 * msg_transport does not rely on this type of response handling.  Removing this would make this
-	 * interface cleaner (i.e. remove the need for the #ifdef).
-	 *
-	 * @param intf The command interface that will process the response.
-	 * @param response The response data to process.
-	 *
-	 * @return 0 if the response was successfully processed or an error code.
-	 */
-	int (*process_response) (const struct cmd_interface *intf, struct cmd_interface_msg *response);
-#endif
-
 	/* TODO:  Now that the cmd_interface is used for more than Cerberus messages, this should get
 	 * refactored out of the base interface and into some Cerberus specific handling, like the
 	 * protocol handlers. */

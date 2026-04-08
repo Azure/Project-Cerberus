@@ -124,7 +124,7 @@ static int attestation_requester_send_msg_transport_request_and_get_response (
 	return status;
 }
 
-#if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
+#if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE) && defined (CMD_ENABLE_ISSUE_REQUEST)
 /**
  * Cerberus get digest response post processing function.
  *
@@ -1878,7 +1878,7 @@ void attestation_requester_deinit (const struct attestation_requester *attestati
 	}
 }
 
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
+#if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE) && defined (CMD_ENABLE_ISSUE_REQUEST)
 /**
  * Send Cerberus get device capabilities request and receive response.
  *
@@ -2229,7 +2229,7 @@ clear_cert_chain:
 
 	return status;
 }
-#endif
+#endif	/* ATTESTATION_SUPPORT_CERBERUS_CHALLENGE && CMD_ENABLE_ISSUE_REQUEST */
 
 #ifdef ATTESTATION_SUPPORT_SPDM
 /**
@@ -4002,7 +4002,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 	}
 
 	switch (attestation_protocol) {
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
+#if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE) && defined (CMD_ENABLE_ISSUE_REQUEST)
 		case CFM_ATTESTATION_CERBERUS_PROTOCOL:
 			status = attestation_requester_attest_device_cerberus_protocol (attestation, eid,
 				device_addr, active_cfm, component_id);
@@ -4067,7 +4067,7 @@ free_cfm:
 }
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
+#if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE) && defined (CMD_ENABLE_ISSUE_REQUEST)
 /**
  * Perform discovery on a provided device using the Cerberus protocol.
  *
@@ -4367,7 +4367,7 @@ int attestation_requester_discover_device (const struct attestation_requester *a
 		msg_type = &response.payload[msg_type_rsp_len] + i_type;
 
 		switch (*msg_type) {
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
+#if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE) && defined (CMD_ENABLE_ISSUE_REQUEST)
 			case MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF:
 				status = attestation_requester_discover_device_cerberus_protocol (attestation, eid);
 				goto done;

@@ -124,18 +124,6 @@ int cmd_interface_recovery_process_request (const struct cmd_interface *intf,
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_recovery_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	if ((intf == NULL) || (response == NULL)) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	return CMD_HANDLER_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize Recovery command interface instance
  *
@@ -182,9 +170,6 @@ int cmd_interface_recovery_init (struct cmd_interface_recovery *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_recovery_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_recovery_process_response;
-#endif
 
 	return 0;
 }

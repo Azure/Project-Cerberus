@@ -21,17 +21,6 @@ static int cmd_interface_spdm_process_request (const struct cmd_interface *intf,
 	return CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-static int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	UNUSED (intf);
-	UNUSED (response);
-
-	return CMD_HANDLER_SPDM_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize SPDM command interface instance
  *
@@ -55,9 +44,6 @@ int cmd_interface_spdm_init (struct cmd_interface_spdm *intf)
 	}
 
 	intf->base.process_request = cmd_interface_spdm_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_spdm_process_response;
-#endif
 
 	return 0;
 }

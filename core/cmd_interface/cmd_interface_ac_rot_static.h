@@ -7,21 +7,6 @@
 #include "cmd_interface_ac_rot.h"
 
 
-/* Internal functions declared to allow for static initialization. */
-int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response);
-
-
-/**
- * Constant initializer for response handling.
- */
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	CMD_INTERFACE_AC_ROT_RESPONSE_API   \
-	.process_response = cmd_interface_ac_rot_process_response,
-#else
-#define	CMD_INTERFACE_AC_ROT_RESPONSE_API
-#endif
-
 /**
  * Constant initializer for the command interface API.
  *
@@ -29,7 +14,6 @@ int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
  */
 #define	CMD_INTERFACE_AC_ROT_API_INIT(session_ptr) { \
 		.process_request = cmd_interface_ac_rot_process_request, \
-		CMD_INTERFACE_AC_ROT_RESPONSE_API \
 		.session = session_ptr, \
 	}
 

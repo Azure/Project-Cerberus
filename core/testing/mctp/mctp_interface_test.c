@@ -188,6 +188,7 @@ static void mctp_interface_testing_release (CuTest *test, struct mctp_interface_
 	mctp_interface_testing_release_dependencies (test, mctp);
 }
 
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
 /**
  * Callback function which sends an MCTP response message to process_packet
  *
@@ -213,6 +214,7 @@ static int64_t mctp_interface_testing_process_packet_callback (const struct mock
 
 	return 0;
 }
+#endif
 
 /*******************
  * Test cases

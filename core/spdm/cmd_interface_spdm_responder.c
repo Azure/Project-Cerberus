@@ -178,25 +178,6 @@ exit:
 }
 
 /**
- * Process an SPDM protocol response.
- *
- * @param intf SPDM command responder interface.
- * @param response SPDM response message.
- *
- * @return 0 if the message was successfully processed or an error code.
- */
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_spdm_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	UNUSED (intf);
-	UNUSED (response);
-
-	return CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_OPERATION;
-}
-#endif
-
-/**
  * Initialize the SPDM responder instance.
  *
  * @param spdm_responder SPDM responder instance.
@@ -261,9 +242,6 @@ int cmd_interface_spdm_responder_init (struct cmd_interface_spdm_responder *spdm
 	spdm_responder->spdm_context = spdm_context;
 
 	spdm_responder->base.process_request = cmd_interface_spdm_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	spdm_responder->base.process_response = cmd_interface_spdm_process_response;
-#endif
 
 	status = cmd_interface_spdm_responder_init_state (spdm_responder);
 	if (status != 0) {

@@ -30,7 +30,6 @@ static void cmd_interface_null_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, cmd.base.process_request);
-	CuAssertPtrNotNull (test, cmd.base.process_response);
 
 	cmd_interface_null_release (&cmd);
 }
@@ -52,7 +51,6 @@ static void cmd_interface_null_test_static_init (CuTest *test)
 	TEST_START;
 
 	CuAssertPtrNotNull (test, cmd.base.process_request);
-	CuAssertPtrNotNull (test, cmd.base.process_response);
 
 	cmd_interface_null_release (&cmd);
 }
@@ -160,100 +158,6 @@ static void cmd_interface_null_test_init_process_request_null (CuTest *test)
 	cmd_interface_null_release (&cmd);
 }
 
-static void cmd_interface_null_test_init_process_response (CuTest *test)
-{
-	struct cmd_interface_null cmd;
-	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_msg response;
-	struct cerberus_protocol_get_fw_version_response *resp =
-		(struct cerberus_protocol_get_fw_version_response*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&response, 0, sizeof (response));
-	memset (data, 0, sizeof (data));
-	response.data = data;
-	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	resp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	resp->header.command = CERBERUS_PROTOCOL_GET_FW_VERSION;
-
-	response.length = sizeof (struct cerberus_protocol_get_fw_version_response);
-	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	status = cmd_interface_null_init (&cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.base.process_response (&cmd.base, &response);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_interface_null_release (&cmd);
-}
-
-static void cmd_interface_null_test_init_process_response_static_init (CuTest *test)
-{
-	struct cmd_interface_null cmd = cmd_interface_null_static_init;
-	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_msg response;
-	struct cerberus_protocol_get_fw_version_response *resp =
-		(struct cerberus_protocol_get_fw_version_response*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&response, 0, sizeof (response));
-	memset (data, 0, sizeof (data));
-	response.data = data;
-	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	resp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	resp->header.command = CERBERUS_PROTOCOL_GET_FW_VERSION;
-
-	response.length = sizeof (struct cerberus_protocol_get_fw_version_response);
-	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	status = cmd.base.process_response (&cmd.base, &response);
-	CuAssertIntEquals (test, 0, status);
-
-	cmd_interface_null_release (&cmd);
-}
-
-static void cmd_interface_null_test_init_process_response_null (CuTest *test)
-{
-	struct cmd_interface_null cmd;
-	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
-	struct cmd_interface_msg response;
-	struct cerberus_protocol_get_fw_version_response *resp =
-		(struct cerberus_protocol_get_fw_version_response*) data;
-	int status;
-
-	TEST_START;
-
-	memset (&response, 0, sizeof (response));
-	memset (data, 0, sizeof (data));
-	response.data = data;
-	resp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
-	resp->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
-	resp->header.command = CERBERUS_PROTOCOL_GET_FW_VERSION;
-
-	response.length = sizeof (struct cerberus_protocol_get_fw_version_response);
-	response.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
-	response.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
-
-	status = cmd_interface_null_init (&cmd);
-	CuAssertIntEquals (test, 0, status);
-
-	status = cmd.base.process_response (NULL, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd.base.process_response (&cmd.base, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	cmd_interface_null_release (&cmd);
-}
-
-
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_null);
 
@@ -264,9 +168,6 @@ TEST (cmd_interface_null_test_release_null);
 TEST (cmd_interface_null_test_init_process_request);
 TEST (cmd_interface_null_test_init_process_request_static_init);
 TEST (cmd_interface_null_test_init_process_request_null);
-TEST (cmd_interface_null_test_init_process_response);
-TEST (cmd_interface_null_test_init_process_response_static_init);
-TEST (cmd_interface_null_test_init_process_response_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

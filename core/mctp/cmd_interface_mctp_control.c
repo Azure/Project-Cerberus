@@ -120,53 +120,6 @@ static int cmd_interface_mctp_control_process_request (const struct cmd_interfac
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-static int cmd_interface_mctp_control_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	struct cmd_interface_mctp_control *interface = (struct cmd_interface_mctp_control*) intf;
-	uint8_t command_id;
-	int status;
-
-	if (response == NULL) {
-		return CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT;
-	}
-
-	status = cmd_interface_mctp_control_process_mctp_protocol_message (interface, response,
-		&command_id);
-	if (status != 0) {
-		return status;
-	}
-
-	switch (command_id) {
-		case MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT:
-			status = mctp_control_protocol_process_get_vendor_def_msg_support_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct mctp_control_protocol_observer,
-					on_get_vendor_def_msg_response), response);
-			}
-
-		case MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY:
-			status = mctp_control_protocol_process_discovery_notify_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct mctp_control_protocol_observer, on_discovery_notify_response),
-					response);
-			}
-
-		default:
-			return CMD_HANDLER_MCTP_CTRL_UNKNOWN_RESPONSE;
-	}
-}
-#endif
-
 /**
  * Initialize MCTP control command interface instance
  *
@@ -199,9 +152,6 @@ int cmd_interface_mctp_control_init (struct cmd_interface_mctp_control *intf,
 	intf->protocol_version = protocol_version;
 
 	intf->base.process_request = cmd_interface_mctp_control_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_mctp_control_process_response;
-#endif
 
 	return 0;
 }
