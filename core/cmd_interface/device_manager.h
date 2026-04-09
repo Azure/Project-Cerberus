@@ -137,6 +137,8 @@ enum device_manager_device_state {
 	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT,	/**< Authenticated without certs with timeout */
 	DEVICE_MANAGER_ATTESTATION_INTERRUPTED,						/**< Communication with device is interrupted */
 	DEVICE_MANAGER_NOT_PRESENT,									/**< Device is not present in the system */
+	DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT,			/**< Authenticated with SPDM transient */
+
 
 	DEVICE_MANAGER_ATTESTATION_INVALID_VERSION = 0x10,			/**< Previous attestation attempt failed due to invalid version */
 	DEVICE_MANAGER_ATTESTATION_INVALID_CAPS,					/**< Previous attestation attempt failed due to invalid capabilities */
@@ -164,7 +166,8 @@ enum device_manager_device_state {
 	(((state) == DEVICE_MANAGER_AUTHENTICATED) || \
 	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
 	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT) || \
-	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT))
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT))
 
 /**
  * Device hierarchy roles as defined in the Cerberus protocol.

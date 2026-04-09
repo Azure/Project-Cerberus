@@ -51,6 +51,7 @@
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT) || \
+	(state == DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT) || \
 	(state == DEVICE_MANAGER_NEVER_ATTESTED))
 
 /**
@@ -1204,6 +1205,7 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 
 	mgr->entries[device_num].state = state;
 
+	/* Default behavior is to set timeout to 0 except for the state conditions below. */
 	if ((state == DEVICE_MANAGER_AUTHENTICATED) ||
 		(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
 		timeout = mgr->authenticated_cadence_ms;
@@ -1212,9 +1214,6 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 		(device_manager_is_device_unauthenticated (prev_state) ||
 		(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
 		timeout = mgr->unauthenticated_cadence_ms;
-	}
-	else if (state == DEVICE_MANAGER_NEVER_ATTESTED) {
-		timeout = 0;
 	}
 
 	return platform_init_timeout (timeout, &mgr->entries[device_num].attestation_timeout);
@@ -1411,6 +1410,7 @@ int device_manager_update_attestation_summary_event_counters (struct device_mana
 
 		case DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT:
 		case DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT:
+		case DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT:
 			event_counters->status_success_timeout_count =
 				common_math_saturating_increment_u16 (event_counters->status_success_timeout_count);
 			break;

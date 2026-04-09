@@ -1794,7 +1794,9 @@ static void device_manager_test_update_attestation_summary_event_counters (CuTes
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	for (device_state = 0; device_state <= DEVICE_MANAGER_NOT_PRESENT; ++device_state) {
+	for (device_state = 0;
+		device_state <= DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT;
+		++device_state) {
 		if (device_state == DEVICE_MANAGER_NOT_ATTESTABLE) {
 			continue;
 		}
@@ -1809,7 +1811,7 @@ static void device_manager_test_update_attestation_summary_event_counters (CuTes
 	status = device_manager_get_attestation_summary_event_counters (&manager, 1, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
-	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 3, event_counters.status_success_timeout_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
@@ -1831,7 +1833,7 @@ static void device_manager_test_update_attestation_summary_event_counters (CuTes
 	status = device_manager_get_attestation_summary_event_counters (&manager, 1, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
-	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 3, event_counters.status_success_timeout_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
@@ -1853,7 +1855,7 @@ static void device_manager_test_update_attestation_summary_event_counters (CuTes
 	status = device_manager_get_attestation_summary_event_counters (&manager, 1, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
-	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 3, event_counters.status_success_timeout_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
@@ -1874,7 +1876,9 @@ static void device_manager_test_update_attestation_summary_event_counters_init_a
 	status = device_manager_init_ac_rot (&manager, 2, DEVICE_MANAGER_SLAVE_BUS_ROLE);
 	CuAssertIntEquals (test, 0, status);
 
-	for (device_state = 0; device_state <= DEVICE_MANAGER_NOT_PRESENT; ++device_state) {
+	for (device_state = 0;
+		device_state <= DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT;
+		++device_state) {
 		if (device_state == DEVICE_MANAGER_NOT_ATTESTABLE) {
 			continue;
 		}
@@ -1889,7 +1893,7 @@ static void device_manager_test_update_attestation_summary_event_counters_init_a
 	status = device_manager_get_attestation_summary_event_counters (&manager, 1, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
-	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 3, event_counters.status_success_timeout_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
@@ -1911,7 +1915,7 @@ static void device_manager_test_update_attestation_summary_event_counters_init_a
 	status = device_manager_get_attestation_summary_event_counters (&manager, 1, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
-	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 3, event_counters.status_success_timeout_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);
@@ -1933,7 +1937,7 @@ static void device_manager_test_update_attestation_summary_event_counters_init_a
 	status = device_manager_get_attestation_summary_event_counters (&manager, 1, &event_counters);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, 2, event_counters.status_success_count);
-	CuAssertIntEquals (test, 2, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 3, event_counters.status_success_timeout_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
 	CuAssertIntEquals (test, 1, event_counters.status_fail_timeout_count);
 	CuAssertIntEquals (test, 8, event_counters.status_fail_invalid_response_count);

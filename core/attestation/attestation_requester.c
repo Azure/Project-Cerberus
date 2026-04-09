@@ -1395,7 +1395,8 @@ static int attestation_requester_process_spdm_protocol_response (
 	uint8_t command)
 {
 	uint8_t rsp_code;
-	int status;
+	int status = 0;
+	int device_state;
 
 	if ((attestation == NULL) || (response == NULL)) {
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
@@ -1407,15 +1408,13 @@ static int attestation_requester_process_spdm_protocol_response (
 			((attestation->state->txn.protocol << 24) |
 						(attestation->state->txn.requested_command << 16) |
 						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) | command));
-		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
-			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-
-		return ATTESTATION_REQUEST_FAILED;
+		status = ATTESTATION_REQUEST_FAILED;
+		goto exit;
 	}
 
 	status = spdm_get_command_id (response, &rsp_code);
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	switch (rsp_code) {
@@ -1454,20 +1453,41 @@ static int attestation_requester_process_spdm_protocol_response (
 
 				if (error_msg->error_code == SPDM_ERROR_RESPONSE_NOT_READY) {
 					status = attestation_requester_spdm_response_not_ready (attestation, response);
+					break;
 				}
-				else {
-					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR,
-						DEBUG_LOG_COMPONENT_ATTESTATION, ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,
-						(((uint32_t) error_msg->error_code << 24) | (response->source_eid << 16) |
-									(response->target_eid << 8)), error_msg->error_data);
-					status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+				else if (error_msg->error_code == SPDM_ERROR_BUSY) {
+					device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
+						response->source_eid);
+					if (ROT_IS_ERROR (device_state)) {
+						status = device_state;
+						goto exit;
+					}
+
+					if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
+						device_manager_update_device_state_by_eid (attestation->device_mgr,
+							response->source_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT);
+
+						return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+					}
 				}
+
+				status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,
+					(((uint32_t) error_msg->error_code << 24) | (response->source_eid << 16) |
+								(response->target_eid << 8)), error_msg->error_data);
 			}
 			break;
 
 		default:
 			status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
 			break;
+	}
+
+exit:
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 	}
 
 	return status;
@@ -1526,9 +1546,6 @@ static int attestation_requester_send_spdm_protocol_request_and_get_response (
 		status = attestation_requester_process_spdm_protocol_response (attestation, &response,
 			command);
 		if (ROT_IS_ERROR (status)) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-
 			return status;
 		}
 
@@ -3992,8 +4009,8 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 	active_cfm->free_component_device (active_cfm, &component_device);
 
-	if (!(device_state == DEVICE_MANAGER_AUTHENTICATED) ||
-		(device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
+	if (!((device_state == DEVICE_MANAGER_AUTHENTICATED) ||
+		(device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS))) {
 		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_READY_FOR_ATTESTATION);
 		if (status != 0) {
