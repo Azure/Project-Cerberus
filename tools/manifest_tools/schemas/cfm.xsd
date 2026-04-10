@@ -107,8 +107,8 @@
             </xs:attribute>
 
             <xs:assert test="
-                every $digest in (.//RootCADigest/Digest | .//Measurement/Digest | .//PMR/InitialValue) 
-                satisfies string-length(normalize-space(xs:string($digest))) = 
+                every $digest in (.//RootCADigest/Digest | .//Measurement/Digest | .//PMR/InitialValue)
+                satisfies string-length(normalize-space(xs:string($digest))) =
                 (
                     if (@measurement_hash_type = 'SHA256') then 64
                     else if (@measurement_hash_type = 'SHA384') then 96

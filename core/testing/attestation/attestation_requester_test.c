@@ -2801,10 +2801,12 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	request->base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256 |
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
 
-	request->base_hash_algo = testing->hashing_alg_requested;
-
-	if (testing->meas_hashing_alg_requested != testing->hashing_alg_requested) {
-		request->base_hash_algo |= testing->meas_hashing_alg_requested;
+	if (testing->spdm_discovery) {
+		request->base_hash_algo = SPDM_TPM_ALG_SHA_256 | SPDM_TPM_ALG_SHA_384 |
+			SPDM_TPM_ALG_SHA_512;
+	}
+	else {
+		request->base_hash_algo = testing->hashing_alg_requested;
 	}
 	/* Request contruction ends. */
 
@@ -2920,10 +2922,6 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	req.base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256 |
 		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384 | SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
 	req.base_hash_algo = testing->hashing_alg_requested;
-
-	if (testing->meas_hashing_alg_requested != testing->hashing_alg_requested) {
-		req.base_hash_algo |= testing->meas_hashing_alg_requested;
-	}
 
 	rsp.header.spdm_minor_version = testing->spdm_version;
 	rsp.header.spdm_major_version = SPDM_MAJOR_VERSION;
@@ -9200,6 +9198,7 @@ static void attestation_requester_test_attest_device_spdm_different_measurement_
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_384;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
@@ -41161,6 +41160,7 @@ attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
@@ -41359,6 +41359,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_single_dev
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
@@ -41792,6 +41793,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
@@ -41875,6 +41877,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.second_device = true;
 	testing.next_cert_req = 0;
 
@@ -42354,6 +42357,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_no_pending
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
@@ -43151,6 +43155,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		0, MOCK_ARG_SAVED_ARG (0));
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
@@ -43234,6 +43239,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		0, MOCK_ARG_SAVED_ARG (2));
 	CuAssertIntEquals (test, 0, status);
 
+	testing.spdm_discovery = false;
 	testing.second_device = true;
 	testing.next_cert_req = 0;
 
@@ -43513,6 +43519,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 
 	testing.meas_hashing_alg_requested = SPDM_TPM_ALG_SHA_256;
 
+	testing.spdm_discovery = false;
 	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
 		false, &testing);
 	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,

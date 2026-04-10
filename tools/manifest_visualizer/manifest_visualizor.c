@@ -845,6 +845,7 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char *prefix, int entry
 	struct cfm_measurement_element *measurement = (struct cfm_measurement_element*) pointer;
 	struct cfm_allowable_digest_element *allowable_digest =
 		(struct cfm_allowable_digest_element*) (pointer + sizeof (struct cfm_measurement_element));
+	uint8_t hash_type;
 	int hash_len;
 
 	pointer += sizeof (struct cfm_measurement_element);
@@ -856,25 +857,6 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char *prefix, int entry
 	printf ("%s\tallowable_digest_count: %i\n", prefix, measurement->allowable_digest_count);
 	printf ("%s\treserved: %i\n", prefix, measurement->reserved);
 
-	switch (measurement_hash_type) {
-		case MANIFEST_HASH_SHA256:
-			hash_len = SHA256_HASH_LENGTH;
-			break;
-
-		case MANIFEST_HASH_SHA384:
-			hash_len = SHA384_HASH_LENGTH;
-			break;
-
-		case MANIFEST_HASH_SHA512:
-			hash_len = SHA512_HASH_LENGTH;
-			break;
-
-		default:
-			printf ("Unsupported measurement hash type: %i\n", measurement_hash_type);
-
-			return -1;
-	}
-
 	printf ("%s\tHashes:\n", prefix);
 	printf ("%s\t[\n", prefix);
 
@@ -883,7 +865,31 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char *prefix, int entry
 
 		printf ("%s\t\t\tversion_set: %i\n", prefix, allowable_digest->version_set);
 		printf ("%s\t\t\tdigest_count: %i\n", prefix, allowable_digest->digest_count);
-		printf ("%s\t\t\treserved: %i\n", prefix, allowable_digest->reserved);
+		printf ("%s\t\t\thash_type_override: %i\n", prefix, allowable_digest->hash_type_override);
+		printf ("%s\t\t\thash_type: %i\n", prefix, allowable_digest->hash_type);
+
+		// Determine hash length: use per-element hash_type if specified, otherwise component default
+		hash_type = (allowable_digest->hash_type_override != 0) ?
+				allowable_digest->hash_type : measurement_hash_type;
+
+		switch (hash_type) {
+			case MANIFEST_HASH_SHA256:
+				hash_len = SHA256_HASH_LENGTH;
+				break;
+
+			case MANIFEST_HASH_SHA384:
+				hash_len = SHA384_HASH_LENGTH;
+				break;
+
+			case MANIFEST_HASH_SHA512:
+				hash_len = SHA512_HASH_LENGTH;
+				break;
+
+			default:
+				printf ("Unsupported measurement hash type: %i\n", hash_type);
+
+				return -1;
+		}
 
 		pointer += sizeof (struct cfm_allowable_digest_element);
 

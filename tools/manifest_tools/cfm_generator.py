@@ -143,13 +143,12 @@ def generate_measurements (xml_measurements, measurement_hash_type):
     Create a buffer of measurements section struct instances from parsed XML list
 
     :param xml_measurements: List of parsed XML of measurements to be included in CFM
-    :param measurement_hash_type: Hash type for measurement digests
+    :param measurement_hash_type: Default hash type for measurement digests (component-level)
 
     :return List of (Measurement element, ToC entry) tuples
     """
 
     measurements_list = []
-    digest_len = manifest_common.get_hash_len (measurement_hash_type)
 
     for pmr_id, measurement_entries_dict in xml_measurements.items ():
         for measurement_id, version_sets in measurement_entries_dict.items ():
@@ -157,6 +156,13 @@ def generate_measurements (xml_measurements, measurement_hash_type):
             allowable_digest_len = 0
             entries = 0
             for version_set, measurements_dict in version_sets["version_set"].items ():
+                if "hash_type" not in measurements_dict:
+                    raise KeyError (
+                        "Version set {0} for PMR {1} measurement {2} is missing required 'hash_type'".format (
+                            version_set, pmr_id, measurement_id))
+                vs_hash_type = measurements_dict["hash_type"]
+                digest_len = manifest_common.get_hash_len (vs_hash_type)
+
                 num_digests = len (measurements_dict["allowable_digests"])
                 digests_buf = (ctypes.c_ubyte * (digest_len * num_digests)) ()
                 digests_len = 0
@@ -164,21 +170,27 @@ def generate_measurements (xml_measurements, measurement_hash_type):
                 for digest in measurements_dict["allowable_digests"]:
                     if len (digest) != digest_len:
                         raise ValueError ("Hash of type '{0}' has unexpected length {1} vs {2}".format (
-                            measurement_hash_type, len (digest), digest_len))
+                            vs_hash_type, len (digest), digest_len))
 
                     digest_arr = (ctypes.c_ubyte * digest_len).from_buffer_copy (digest)
                     ctypes.memmove (ctypes.addressof (digests_buf) + digests_len, digest_arr,
                         digest_len)
                     digests_len += digest_len
 
+                # Encode hash type override: flag + manifest_hash_type value
+                hash_type_override = 0 if vs_hash_type == measurement_hash_type else 1
+                hash_type_field = vs_hash_type if hash_type_override else 0
+
                 class cfm_allowable_digest_element (ctypes.LittleEndianStructure):
                     _pack_ = 1
                     _fields_ = [('version_set', ctypes.c_uint16),
                                 ('digest_count', ctypes.c_ubyte),
-                                ('reserved', ctypes.c_ubyte),
+                                ('hash_type_override', ctypes.c_ubyte, 1),
+                                ('hash_type', ctypes.c_ubyte, 7),
                                 ('digest', ctypes.c_ubyte * digests_len)]
 
-                allowable_digest = cfm_allowable_digest_element (version_set, num_digests, 0, digests_buf)
+                allowable_digest = cfm_allowable_digest_element (version_set, num_digests,
+                    hash_type_override, hash_type_field, digests_buf)
                 allowable_digest_list.append (allowable_digest)
                 allowable_digest_len += ctypes.sizeof (allowable_digest)
 
@@ -515,7 +527,9 @@ def group_measurements_into_version_sets (xml_parsed_dict, component_key, compon
                 components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set": {}}
 
             # Add this version's measurement to its corresponding version set
-            components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][version_number] = measurement_entries
+            vs_entry = dict (measurement_entries)
+            vs_entry["hash_type"] = xml_parsed_dict["measurement_hash_type"]
+            components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][version_number] = vs_entry
 
     return components
 
@@ -767,8 +781,10 @@ for xml_key, xml_dict in processed_xml.items ():
                         components[component_key][element_key][pmr_id] = {}
 
                         for measurement_id, measurement_entries in pmr_entries.items ():
+                            vs_entry = dict (measurement_entries)
+                            vs_entry["hash_type"] = component_dict["measurement_hash_type"]
                             components[component_key][element_key][pmr_id][measurement_id] = {"version_set":{}}
-                            components[component_key][element_key][pmr_id][measurement_id]["version_set"][component_version_number] = measurement_entries
+                            components[component_key][element_key][pmr_id][measurement_id]["version_set"][component_version_number] = vs_entry
 
                 if element_key == "measurement_data":
                     components[component_key][element_key] = {}

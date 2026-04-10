@@ -554,7 +554,8 @@ static int cfm_flash_populate_digests (const struct cfm_flash *cfm_flash,
  * @param cfm_flash The CFM to query.
  * @param allowable_digests The cfm_allowable_digests container list to fill up.
  * @param digest_count The number of digests to read.
- * @param hash_type The type of digests to read.
+ * @param default_hash_type The default hash type from the component device, used when an allowable
+ * 	digest element does not specify its own hash type.
  * @param entry The entry number of the element being read.
  * @param offset The offset into the element being read the digests list is at.
  *
@@ -562,20 +563,16 @@ static int cfm_flash_populate_digests (const struct cfm_flash *cfm_flash,
  */
 static int cfm_flash_populate_allowable_digests (const struct cfm_flash *cfm_flash,
 	struct cfm_allowable_digests *allowable_digests, size_t allowable_digest_count,
-	enum hash_type hash_type, int entry, uint32_t offset)
+	enum hash_type default_hash_type, int entry, uint32_t offset)
 {
 	struct cfm_allowable_digest_element allowable_digest;
 	struct cfm_allowable_digest_element *allowable_digest_ptr = &allowable_digest;
 	struct cfm_allowable_digests *curr_allowable_digest;
+	enum hash_type hash_type;
 	size_t digests_len;
 	size_t i_allowable_digest;
 	int hash_len;
 	int status;
-
-	hash_len = hash_get_hash_length (hash_type);
-	if (ROT_IS_ERROR (hash_len)) {
-		return hash_len;
-	}
 
 	// Read each Allowable Digest and fill in allowable_digests
 	for (i_allowable_digest = 0; i_allowable_digest < allowable_digest_count;
@@ -597,6 +594,19 @@ static int cfm_flash_populate_allowable_digests (const struct cfm_flash *cfm_fla
 
 		if (status < (int) (sizeof (struct cfm_allowable_digest_element))) {
 			return CFM_MALFORMED_MEASUREMENT_ENTRY;
+		}
+
+		// Determine hash type: use per-element hash type if specified, otherwise component default
+		if (allowable_digest_ptr->hash_type_override != 0) {
+			hash_type = manifest_convert_manifest_hash_type (allowable_digest_ptr->hash_type);
+		}
+		else {
+			hash_type = default_hash_type;
+		}
+
+		hash_len = hash_get_hash_length (hash_type);
+		if (ROT_IS_ERROR (hash_len)) {
+			return hash_len;
 		}
 
 		// Get & set fields for current Allowable Digest
@@ -717,7 +727,7 @@ int cfm_flash_get_component_pmr_digest (const struct cfm *cfm, uint32_t componen
  * @return 0 if the measurement was found or an error code.
  */
 static int cfm_flash_get_next_measurement (const struct cfm *cfm,
-	struct cfm_measurement_digest *pmr_measurement, enum hash_type hash_type, int *entry)
+	struct cfm_measurement_digest *pmr_measurement, enum hash_type default_hash_type, int *entry)
 {
 	const struct cfm_flash *cfm_flash = (const struct cfm_flash*) cfm;
 	struct cfm_measurement_element measurement_element;
@@ -752,7 +762,7 @@ static int cfm_flash_get_next_measurement (const struct cfm *cfm,
 
 	// Retrieve list of cfm_allowable_digests
 	status = cfm_flash_populate_allowable_digests (cfm_flash, pmr_measurement->allowable_digests,
-		pmr_measurement->allowable_digests_count, hash_type, *entry - 1,
+		pmr_measurement->allowable_digests_count, default_hash_type, *entry - 1,
 		sizeof (struct cfm_measurement_element));
 	if (status != 0) {
 		cfm_flash_free_cfm_allowable_digests (cfm_flash, pmr_measurement->allowable_digests,

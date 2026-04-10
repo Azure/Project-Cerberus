@@ -2340,30 +2340,6 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 			default:
 				return ATTESTATION_UNSUPPORTED_ALGORITHM;
 		}
-
-		if (attestation->state->txn.transcript_hash_type !=
-			attestation->state->txn.measurement_hash_type) {
-			switch (attestation->state->txn.measurement_hash_type) {
-				case HASH_TYPE_SHA256:
-					base_hash_algo |= SPDM_TPM_ALG_SHA_256;
-					break;
-
-#ifdef HASH_ENABLE_SHA384
-				case HASH_TYPE_SHA384:
-					base_hash_algo |= SPDM_TPM_ALG_SHA_384;
-					break;
-#endif
-
-#ifdef HASH_ENABLE_SHA512
-				case HASH_TYPE_SHA512:
-					base_hash_algo |= SPDM_TPM_ALG_SHA_512;
-					break;
-#endif
-
-				default:
-					return ATTESTATION_UNSUPPORTED_ALGORITHM;
-			}
-		}
 	}
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384

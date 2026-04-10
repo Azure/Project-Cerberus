@@ -90,9 +90,10 @@ struct cfm_measurement_element {
  * CFM allowable digests.
  */
 struct cfm_allowable_digest_element {
-	uint16_t version_set;	/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
-	uint8_t digest_count;	/**< The number of allowable digests for this version set. */
-	uint8_t reserved;		/**< Reserved. */
+	uint16_t version_set;			/**< Identifier for set of measurements associated with the same device firmware version. 0 if set applies to all versions. */
+	uint8_t digest_count;			/**< The number of allowable digests for this version set. */
+	uint8_t hash_type_override:1;	/**< When set, hash_type specifies the digest hash algorithm instead of the component device default. */
+	uint8_t hash_type:7;			/**< Hash type for digests in this element, encoded as manifest_hash_type. Only valid when hash_type_override is set. */
 };
 
 /**
