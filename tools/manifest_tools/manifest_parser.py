@@ -1021,19 +1021,29 @@ def load_and_process_selection_xml (xml_file):
 
     return result_dict
 
-def get_manifest_format (xml_file):
+def get_manifest_format (xml_file, manifest_type):
     """
     Returns the xml manifest format.  Extracts the "type" attribute from the root of the parsed 
-    xml file.  Returns 1 if "type" attribute is None, otherwise returns 2.
+    xml file.  Returns 1 if "type" attribute is None and this is PFM, returns format version 3
+    if format version is 3, otherwise returns 2.
 
     :param xml_file: XML to utilize
+    :param manifest_type: Type of manifest (PFM, CFM, PCD)
 
     :return manifest_format int
     """
 
     root = et.parse (xml_file).getroot ()
     fw_type = xml_extract_attrib (root, XML_TYPE_ATTRIB, True, xml_file, False)
-    return manifest_types.VERSION_1 if fw_type is None else manifest_types.VERSION_2
+
+    if ((fw_type is None) and (manifest_type is manifest_types.PFM)):
+        return manifest_types.VERSION_1
+
+    format_version = xml_extract_attrib (root, XML_FORMAT_VERSION_ATTRIB, True, xml_file, False)
+    if (format_version == "3"):
+        return manifest_types.VERSION_3
+
+    return manifest_types.VERSION_2
 
 def get_manifest_version (xml_file):
     """
