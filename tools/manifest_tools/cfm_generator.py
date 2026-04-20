@@ -449,7 +449,7 @@ def generate_allowable_pcd (xml_list):
 
 def generate_comp_device (comp_device_type, num_pmr_digests, num_measurement, num_measurement_data,
     num_allowable_pfm, num_allowable_cfm, num_allowable_pcd, cert_slot, attestation_protocol,
-    transcript_hash_type, measurement_hash_type):
+    transcript_hash_type, measurement_hash_type, component_map, component_map_file):
     """
     Create a component device object from parsed XML list
 
@@ -464,6 +464,8 @@ def generate_comp_device (comp_device_type, num_pmr_digests, num_measurement, nu
     :param attestation_protocol: The attestation protocol this component device supports
     :param transcript_hash_type: Hash type used for SPDM transcript hashing.
     :param measurement_hash_type: Hash type used to generate measurement, PMR, and root CA digests.
+    :param component_map: Component type to ID map
+    :param component_map_file: Component map file
 
     :return Instance of a comp_device object, comp_device's TOC entry
     """
@@ -533,7 +535,7 @@ def group_measurements_into_version_sets (xml_parsed_dict, component_key, compon
 
     return components
 
-def consolidate_identical_measurements(components):
+def consolidate_identical_measurements(components, component_version_tracker):
     """
     After all versions are processed, consolidate measurements that have identical hashes 
     across all versions of EACH COMPONENT into Version Set 0, and remove the individual version sets.
@@ -576,7 +578,7 @@ def consolidate_identical_measurements(components):
     
     return components
 
-def consolidate_identical_measurement_data(components):
+def consolidate_identical_measurement_data(components, component_version_tracker):
     """
     After all versions are processed, consolidate measurement data that have identical data 
     and check types across all versions of EACH COMPONENT into Version Set 0, and remove
@@ -724,166 +726,181 @@ def group_measurement_data_into_version_sets (component_dict, component_key, com
 
 #*************************************** Start of Script ***************************************
 
-default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), CFM_CONFIG_FILENAME)
-parser = argparse.ArgumentParser (description = 'Create a CFM')
-parser.add_argument ('config', nargs = '?', default = default_config,
-    help = 'Path to configuration file')
-args = parser.parse_args ()
+def main(argv=None):
+    """
+    Usage:
+        python3 cfm_generator.py [path/to/cfm_generator.config]
 
-processed_xml, sign, key_size, key, key_type, hash_type, cfm_id, output, xml_version, empty, \
-    max_num_rw_sections, selection_list, component_map, component_map_file = \
-        manifest_common.load_xmls (args.config, None, manifest_types.CFM)
+    Required input:
+        A generator configuration file that points to one or more CFM XML inputs and output
+        settings. If no argument is provided, the local default cfm_generator.config in this
+        directory is used.
+    """
+    default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), CFM_CONFIG_FILENAME)
+    parser = argparse.ArgumentParser (description = 'Create a CFM')
+    parser.add_argument ('config', nargs = '?', default = default_config,
+        help = 'Path to configuration file')
+    args = parser.parse_args (argv)
 
-hash_engine = manifest_common.get_hash_engine (hash_type)
-platform_id = selection_list["platform_id"]
+    processed_xml, sign, key_size, key, key_type, hash_type, cfm_id, output, xml_version, empty, \
+        max_num_rw_sections, selection_list, component_map, component_map_file = \
+            manifest_common.load_xmls (args.config, None, manifest_types.CFM)
 
-components = {}
-elements_list = []
+    hash_engine = manifest_common.get_hash_engine (hash_type)
+    platform_id = selection_list["platform_id"]
 
-# Track version numbers per component
-component_version_tracker = {}
+    components = {}
+    elements_list = []
 
-for xml_key, xml_dict in processed_xml.items ():
-    for component_key, component_dict in xml_dict.items ():
-        # Get the next version number for this specific component
-        if component_key not in component_version_tracker:
-            component_version_tracker[component_key] = 1
-        else:
-            component_version_tracker[component_key] += 1
-        
-        component_version_number = component_version_tracker[component_key]
-        
-        if component_key in components:
+    # Track version numbers per component
+    component_version_tracker = {}
+
+    for xml_key, xml_dict in processed_xml.items ():
+        for component_key, component_dict in xml_dict.items ():
+            # Get the next version number for this specific component
+            if component_key not in component_version_tracker:
+                component_version_tracker[component_key] = 1
+            else:
+                component_version_tracker[component_key] += 1
+            
+            component_version_number = component_version_tracker[component_key]
+            
+            if component_key in components:
+                if "root_ca_digests" in component_dict:
+                    for digest in component_dict["root_ca_digests"]["allowable_digests"]:
+                        if not digest in components[component_key]["root_ca_digests"]["allowable_digests"]:
+                            components[component_key]["root_ca_digests"]["allowable_digests"].append (digest)
+
+                if "measurements" in component_dict:
+                    components = group_measurements_into_version_sets (component_dict, component_key, components, component_version_number)
+
+                if "measurement_data" in component_dict:
+                    components = group_measurement_data_into_version_sets (component_dict, component_key, \
+                        components, component_version_number)
+
+            else:
+                components.update ({component_key:{}})
+
+                for element_key, element_dict in component_dict.items ():
+                    if not element_key in ["measurements", "measurement_data"]:
+                        components[component_key][element_key] = element_dict
+                        continue
+
+                    if element_key == "measurements":
+                        components[component_key][element_key] = {}
+
+                        for pmr_id, pmr_entries in element_dict.items ():
+                            components[component_key][element_key][pmr_id] = {}
+
+                            for measurement_id, measurement_entries in pmr_entries.items ():
+                                vs_entry = dict (measurement_entries)
+                                vs_entry["hash_type"] = component_dict["measurement_hash_type"]
+                                components[component_key][element_key][pmr_id][measurement_id] = {"version_set":{}}
+                                components[component_key][element_key][pmr_id][measurement_id]["version_set"][component_version_number] = vs_entry
+
+                    if element_key == "measurement_data":
+                        components[component_key][element_key] = {}
+
+                        for pmr_id, pmr_entries in element_dict.items ():
+                            components[component_key][element_key][pmr_id] = {}
+
+                            for measurement_id, measurement_entries in pmr_entries.items ():
+                                data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], component_version_number)
+                                components[component_key][element_key][pmr_id][measurement_id] = \
+                                    {"allowable_data" : data_list_to_append}
+
+    # After processing all XML files, consolidate identical measurements into Version Set 0
+    components = consolidate_identical_measurements(components, component_version_tracker)
+
+    # After processing all XML files, consolidate identical measurement data into Version Set 0
+    components = consolidate_identical_measurement_data(components, component_version_tracker)
+
+    platform_id = manifest_common.generate_platform_id ({"platform_id": platform_id})
+    elements_list.append (platform_id)
+
+    if not empty:
+        for component_type, component_dict in components.items ():
+            num_pmr_digests = 0
+            num_measurements = 0
+            num_measurement_data = 0
+            num_allowable_pfm = 0
+            num_allowable_cfm = 0
+            num_allowable_pcd = 0
+
+            component_elements_list = []
+
             if "root_ca_digests" in component_dict:
-                for digest in component_dict["root_ca_digests"]["allowable_digests"]:
-                    if not digest in components[component_key]["root_ca_digests"]["allowable_digests"]:
-                        components[component_key]["root_ca_digests"]["allowable_digests"].append (digest)
+                root_ca_digests = generate_root_ca_digests (component_dict["root_ca_digests"],
+                        component_dict["measurement_hash_type"])
 
-            if "measurements" in component_dict:
-                components = group_measurements_into_version_sets (component_dict, component_key, components, component_version_number)
+                component_elements_list.append (root_ca_digests)
+
+            if "pmr" in component_dict:
+                pmr = generate_pmr (component_dict["pmr"],
+                    component_dict["measurement_hash_type"])
+
+                component_elements_list.extend (pmr)
+
+            if "pmr_digests" in component_dict:
+                pmr_digests = generate_pmr_digests (component_dict["pmr_digests"],
+                        component_dict["measurement_hash_type"])
+
+                component_elements_list.extend (pmr_digests)
+                num_pmr_digests = len(pmr_digests)
+
+            if (component_dict["unique"] == 0) and ("measurements" in component_dict):
+                measurements = generate_measurements (component_dict["measurements"],
+                        component_dict["measurement_hash_type"])
+
+                component_elements_list.extend (measurements)
+                num_measurements = len(measurements)
 
             if "measurement_data" in component_dict:
-                components = group_measurement_data_into_version_sets (component_dict, component_key, \
-                    components, component_version_number)
+                measurement_data = generate_measurement_data (
+                        component_dict["measurement_data"])
 
-        else:
-            components.update ({component_key:{}})
+                component_elements_list.extend (measurement_data)
+                num_measurement_data = len(measurement_data)
 
-            for element_key, element_dict in component_dict.items ():
-                if not element_key in ["measurements", "measurement_data"]:
-                    components[component_key][element_key] = element_dict
-                    continue
+            if (component_dict["unique"] == 1) and ("measurements" in component_dict):
+                measurements = generate_measurements (component_dict["measurements"],
+                        component_dict["measurement_hash_type"])
 
-                if element_key == "measurements":
-                    components[component_key][element_key] = {}
+                component_elements_list.extend (measurements)
+                num_measurements = len(measurements)
 
-                    for pmr_id, pmr_entries in element_dict.items ():
-                        components[component_key][element_key][pmr_id] = {}
+            if "allowable_pfm" in component_dict:
+                allowable_pfm = generate_allowable_pfm (component_dict["allowable_pfm"])
 
-                        for measurement_id, measurement_entries in pmr_entries.items ():
-                            vs_entry = dict (measurement_entries)
-                            vs_entry["hash_type"] = component_dict["measurement_hash_type"]
-                            components[component_key][element_key][pmr_id][measurement_id] = {"version_set":{}}
-                            components[component_key][element_key][pmr_id][measurement_id]["version_set"][component_version_number] = vs_entry
+                component_elements_list.extend (allowable_pfm)
+                num_allowable_pfm = len(allowable_pfm)
 
-                if element_key == "measurement_data":
-                    components[component_key][element_key] = {}
+            if "allowable_cfm" in component_dict:
+                allowable_cfm = generate_allowable_cfm (component_dict["allowable_cfm"])
 
-                    for pmr_id, pmr_entries in element_dict.items ():
-                        components[component_key][element_key][pmr_id] = {}
+                component_elements_list.extend (allowable_cfm)
+                num_allowable_cfm = len(allowable_cfm)
 
-                        for measurement_id, measurement_entries in pmr_entries.items ():
-                            data_list_to_append = set_data_list_in_version_set_dict (measurement_entries["allowable_data"], component_version_number)
-                            components[component_key][element_key][pmr_id][measurement_id] = \
-                                {"allowable_data" : data_list_to_append}
+            if "allowable_pcd" in component_dict:
+                allowable_pcd = generate_allowable_pcd (component_dict["allowable_pcd"])
+                component_elements_list.extend (allowable_pcd)
+                num_allowable_pcd = 1
 
-# After processing all XML files, consolidate identical measurements into Version Set 0
-components = consolidate_identical_measurements(components)
+            comp_device = generate_comp_device (component_type,
+                num_pmr_digests, num_measurements, num_measurement_data, num_allowable_pfm,
+                num_allowable_cfm, num_allowable_pcd, component_dict["slot_num"],
+                component_dict["attestation_protocol"],
+                component_dict["transcript_hash_type"], component_dict["measurement_hash_type"],
+                component_map, component_map_file)
 
-# After processing all XML files, consolidate identical measurement data into Version Set 0
-components = consolidate_identical_measurement_data(components)
+            elements_list.append (comp_device)
+            elements_list.extend (component_elements_list)
 
-platform_id = manifest_common.generate_platform_id ({"platform_id": platform_id})
-elements_list.append (platform_id)
+    manifest_common.generate_manifest (hash_engine, hash_type, cfm_id, manifest_types.CFM, xml_version,
+        sign, key, key_size, key_type, elements_list, output)
 
-if not empty:
-    for component_type, component_dict in components.items ():
-        num_pmr_digests = 0
-        num_measurements = 0
-        num_measurement_data = 0
-        num_allowable_pfm = 0
-        num_allowable_cfm = 0
-        num_allowable_pcd = 0
+    print ("Completed CFM generation: {0}".format (output))
 
-        component_elements_list = []
 
-        if "root_ca_digests" in component_dict:
-            root_ca_digests = generate_root_ca_digests (component_dict["root_ca_digests"],
-                    component_dict["measurement_hash_type"])
-
-            component_elements_list.append (root_ca_digests)
-
-        if "pmr" in component_dict:
-            pmr = generate_pmr (component_dict["pmr"],
-                component_dict["measurement_hash_type"])
-
-            component_elements_list.extend (pmr)
-
-        if "pmr_digests" in component_dict:
-            pmr_digests = generate_pmr_digests (component_dict["pmr_digests"],
-                    component_dict["measurement_hash_type"])
-
-            component_elements_list.extend (pmr_digests)
-            num_pmr_digests = len(pmr_digests)
-
-        if (component_dict["unique"] == 0) and ("measurements" in component_dict):
-            measurements = generate_measurements (component_dict["measurements"],
-                    component_dict["measurement_hash_type"])
-
-            component_elements_list.extend (measurements)
-            num_measurements = len(measurements)
-
-        if "measurement_data" in component_dict:
-            measurement_data = generate_measurement_data (
-                    component_dict["measurement_data"])
-
-            component_elements_list.extend (measurement_data)
-            num_measurement_data = len(measurement_data)
-
-        if (component_dict["unique"] == 1) and ("measurements" in component_dict):
-            measurements = generate_measurements (component_dict["measurements"],
-                    component_dict["measurement_hash_type"])
-
-            component_elements_list.extend (measurements)
-            num_measurements = len(measurements)
-
-        if "allowable_pfm" in component_dict:
-            allowable_pfm = generate_allowable_pfm (component_dict["allowable_pfm"])
-
-            component_elements_list.extend (allowable_pfm)
-            num_allowable_pfm = len(allowable_pfm)
-
-        if "allowable_cfm" in component_dict:
-            allowable_cfm = generate_allowable_cfm (component_dict["allowable_cfm"])
-
-            component_elements_list.extend (allowable_cfm)
-            num_allowable_cfm = len(allowable_cfm)
-
-        if "allowable_pcd" in component_dict:
-            allowable_pcd = generate_allowable_pcd (component_dict["allowable_pcd"])
-            component_elements_list.extend (allowable_pcd)
-            num_allowable_pcd = 1
-
-        comp_device = generate_comp_device (component_type,
-            num_pmr_digests, num_measurements, num_measurement_data, num_allowable_pfm,
-            num_allowable_cfm, num_allowable_pcd, component_dict["slot_num"],
-            component_dict["attestation_protocol"],
-            component_dict["transcript_hash_type"], component_dict["measurement_hash_type"])
-
-        elements_list.append (comp_device)
-        elements_list.extend (component_elements_list)
-
-manifest_common.generate_manifest (hash_engine, hash_type, cfm_id, manifest_types.CFM, xml_version,
-    sign, key, key_size, key_type, elements_list, output)
-
-print ("Completed CFM generation: {0}".format (output))
+if __name__ == '__main__':
+    main()

@@ -368,6 +368,34 @@
         </xs:complexContent>
     </xs:complexType>
 
+    <xs:complexType name="DirectComponent">
+        <xs:annotation>
+            <xs:documentation>A single component's attestation information.</xs:documentation>
+        </xs:annotation>
+        <xs:complexContent>
+            <xs:extension base="BaseComponent">
+                <xs:all>
+                    <xs:element name="Interface" type="Interface"/>
+                </xs:all>
+                <xs:attribute name="count" type="xs:unsignedByte">
+                    <xs:annotation>
+                        <xs:documentation>Number of identical components this element describes.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="discovery_fail_retry" type="xs:unsignedInt">
+                    <xs:annotation>
+                        <xs:documentation>Duration in milliseconds after device fails a discovery step to wait before retrying.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+                <xs:attribute name="mctp_bridge_additional_timeout" type="xs:unsignedInt">
+                    <xs:annotation>
+                        <xs:documentation>Time in milliseconds to wait in addition to device timeout period due to MCTP bridge.</xs:documentation>
+                    </xs:annotation>
+                </xs:attribute>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
     <xs:complexType name="PCDBase">
         <xs:attribute name="sku" type="PlatformIdSKU" use="required">
             <xs:annotation>
@@ -409,6 +437,7 @@
                             <xs:sequence>
                                 <xs:element name="Component" minOccurs="0" maxOccurs="255">
                                     <xs:alternative type="MctpComponent" test="@connection = 'MCTPBridge'"/>
+                                    <xs:alternative type="DirectComponent" test="@connection = 'Direct'"/>
                                     <xs:alternative type="BaseComponent"/>
                                 </xs:element>
                             </xs:sequence>

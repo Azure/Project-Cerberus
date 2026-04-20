@@ -571,46 +571,67 @@ def generate_flash_device (unused_byte, fw_count):
 
 #*************************************** Start of Script ***************************************
 
-default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PFM_CONFIG_FILENAME)
-parser = argparse.ArgumentParser (description = 'Create a PFM')
-parser.add_argument ('config', nargs = '?', default = default_config,
-    help = 'Path to configuration file')
-parser.add_argument ('--bypass', action = 'store_true', help = 'Create a bypass mode PFM')
-parser.add_argument ('--ignore_overlap', action = 'store_true',
-    help = 'Warn on PFM region overlaps, but output PFM anyway.')
-args = parser.parse_args ()
+def main(argv=None):
+	"""
+	Usage:
+		python3 pfm_generator.py [path/to/pfm_generator.config] [--bypass] [--ignore_overlap]
 
-processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version, empty, \
-    max_rw_sections, selection_list, component_map, component_map_file = \
-        manifest_common.load_xmls (args.config, None, manifest_types.PFM)
+	Required input:
+		A generator configuration file that specifies one or more PFM XML inputs and output
+		settings. The default pfm_generator.config in this directory is used when no file is
+		provided.
 
-if xml_version == manifest_types.VERSION_2:
-    elements_list = []
+	Optional arguments:
+		--bypass
+			Generate a bypass-mode PFM (header/platform data without FW policy sections).
+		--ignore_overlap
+			Continue generating output even if FW/RW regions overlap; overlaps are reported in
+			a warning file instead of stopping generation.
+	"""
+	default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PFM_CONFIG_FILENAME)
+	parser = argparse.ArgumentParser (description = 'Create a PFM')
+	parser.add_argument ('config', nargs = '?', default = default_config,
+		help = 'Path to configuration file')
+	parser.add_argument ('--bypass', action = 'store_true', help = 'Create a bypass mode PFM')
+	parser.add_argument ('--ignore_overlap', action = 'store_true',
+		help = 'Warn on PFM region overlaps, but output PFM anyway.')
+	args = parser.parse_args (argv)
 
-    hash_engine = manifest_common.get_hash_engine (hash_type)
+	processed_xml, sign, key_size, key, key_type, hash_type, pfm_id, output, xml_version, empty, \
+		max_rw_sections, selection_list, component_map, component_map_file = \
+			manifest_common.load_xmls (args.config, None, manifest_types.PFM)
 
-    platform_id = manifest_common.get_platform_id_from_xml_list (processed_xml)
-    platform_id = manifest_common.generate_platform_id ({"platform_id": platform_id})
+	if xml_version == manifest_types.VERSION_2:
+		elements_list = []
 
-    elements_list.append (platform_id)
+		hash_engine = manifest_common.get_hash_engine (hash_type)
 
-    if not args.bypass:
-        fw, num_fw, unused_byte, overlaps = generate_fw (processed_xml, 
-                                                        max_rw_sections, args.ignore_overlap)
+		platform_id = manifest_common.get_platform_id_from_xml_list (processed_xml)
+		platform_id = manifest_common.generate_platform_id ({"platform_id": platform_id})
 
-        flash_device = generate_flash_device (unused_byte, num_fw)
+		elements_list.append (platform_id)
 
-        elements_list.append (flash_device)
-        elements_list.extend (fw)
+		if not args.bypass:
+			fw, num_fw, unused_byte, overlaps = generate_fw (processed_xml, 
+															max_rw_sections, args.ignore_overlap)
 
-        if args.ignore_overlap:
-            output_overlap_warning_file (output, overlaps)
+			flash_device = generate_flash_device (unused_byte, num_fw)
 
-    manifest_common.generate_manifest (hash_engine, hash_type, pfm_id, manifest_types.PFM,
-        xml_version, sign, key, key_size, key_type, elements_list, output)
+			elements_list.append (flash_device)
+			elements_list.extend (fw)
 
-else:
-    pfm_generator_v1.generate_v1_pfm (pfm_id, key_size, hash_type, key_type, processed_xml,
-        args.bypass, sign, key, output)
+			if args.ignore_overlap:
+				output_overlap_warning_file (output, overlaps)
 
-print ("Completed PFM generation: {0}".format (output))
+		manifest_common.generate_manifest (hash_engine, hash_type, pfm_id, manifest_types.PFM,
+			xml_version, sign, key, key_size, key_type, elements_list, output)
+
+	else:
+		pfm_generator_v1.generate_v1_pfm (pfm_id, key_size, hash_type, key_type, processed_xml,
+			args.bypass, sign, key, output)
+
+	print ("Completed PFM generation: {0}".format (output))
+
+
+if __name__ == '__main__':
+    main()

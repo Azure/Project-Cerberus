@@ -404,6 +404,8 @@ def load_xmls (config_filename, max_num_xmls, xml_type):
 
     if len (processed_xml) == 0:
         empty = True
+        # Default to v2 for empty manifests to preserve backward compatibility
+        xml_version = 2
 
     return processed_xml, sign, key_size, key, key_type, hash_type, manifest_id, config["output"], \
         xml_version, empty, max_rw_sections, selection_list, component_map, component_map_file

@@ -563,55 +563,66 @@ def generate_components (xml_components, component_map, component_map_file):
 
 #*************************************** Start of Script ***************************************
 
-default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PCD_CONFIG_FILENAME)
-parser = argparse.ArgumentParser (description = 'Create a PCD')
-parser.add_argument ('config', nargs = '?', default = default_config,
-    help = 'Path to configuration file')
-args = parser.parse_args ()
+def main(argv=None):
+    """
+    Usage:
+        python3 pcd_generator.py [path/to/pcd_generator.config]
 
-processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty, \
-    max_num_rw_sections, selection_list, component_map, component_map_file = \
-        manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
+    Required input:
+        A generator configuration file that references the PCD XML input and output/signing
+        options. If omitted, the script uses the default pcd_generator.config beside this file.
+    """
+    default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PCD_CONFIG_FILENAME)
+    parser = argparse.ArgumentParser (description = 'Create a PCD')
+    parser.add_argument ('config', nargs = '?', default = default_config,
+        help = 'Path to configuration file')
+    args = parser.parse_args (argv)
 
-hash_engine = manifest_common.get_hash_engine (hash_type)
+    processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty, \
+        max_num_rw_sections, selection_list, component_map, component_map_file = \
+            manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
 
-processed_xml = list (processed_xml.items())[0][1]
+    hash_engine = manifest_common.get_hash_engine (hash_type)
 
-components = []
-ports = []
+    processed_xml = list (processed_xml.items())[0][1]
 
-elements_list = []
-timeouts_dict = {}
+    components = []
+    ports = []
 
-platform_id = manifest_common.generate_platform_id (processed_xml)
-elements_list.append (platform_id)
+    elements_list = []
+    timeouts_dict = {}
 
-if not empty:
-    if "power_controller" in processed_xml:
-        power_controller = generate_power_controller (processed_xml["power_controller"])
+    platform_id = manifest_common.generate_platform_id (processed_xml)
+    elements_list.append (platform_id)
 
-        elements_list.append (power_controller)
+    if not empty:
+        if "power_controller" in processed_xml:
+            power_controller = generate_power_controller (processed_xml["power_controller"])
 
-    if "components" in processed_xml:
-        components, timeouts_dict = generate_components (processed_xml["components"], component_map,
-                component_map_file)
+            elements_list.append (power_controller)
 
-        if (len (components) > 255):
-            raise ValueError ("Number of components cannot exceed 255, current number of components: {0}"
-                .format (len (components)))
+        if "components" in processed_xml:
+            components, timeouts_dict = generate_components (processed_xml["components"], component_map,
+                    component_map_file)
 
-    if "ports" in processed_xml["rot"]:
-        ports = generate_ports (processed_xml["rot"]["ports"])
-        elements_list.extend (ports)
+            if (len (components) > 255):
+                raise ValueError ("Number of components cannot exceed 255, current number of components: {0}"
+                    .format (len (components)))
 
-    rot = generate_rot (processed_xml["rot"], len(components), len(ports), timeouts_dict)
+        if "ports" in processed_xml["rot"]:
+            ports = generate_ports (processed_xml["rot"]["ports"])
+            elements_list.extend (ports)
 
-    elements_list.extend (components)
-    elements_list.append (rot)
+        rot = generate_rot (processed_xml["rot"], len(components), len(ports), timeouts_dict)
 
-manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version,
-    sign, key, key_size, key_type, elements_list, output)
+        elements_list.extend (components)
+        elements_list.append (rot)
 
-print ("Completed PCD generation: {0}".format (output))
+    manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version,
+        sign, key, key_size, key_type, elements_list, output)
+
+    print ("Completed PCD generation: {0}".format (output))
 
 
+if __name__ == '__main__':
+    main()
