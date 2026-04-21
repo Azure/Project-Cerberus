@@ -919,6 +919,93 @@ int32_t visualize_cfm_measurement (uint8_t *start, const char *prefix, int entry
 	return (pointer - start);
 }
 
+int32_t visualize_cfm_aggregated_measurement (uint8_t *start, const char *prefix, int entry)
+{
+	uint8_t *pointer = start;
+	struct cfm_aggregated_measurement_element *measurement =
+		(struct cfm_aggregated_measurement_element*) pointer;
+	struct cfm_allowable_digest_element *allowable_digest =
+		(struct cfm_allowable_digest_element*) (pointer +
+			sizeof (struct cfm_aggregated_measurement_element));
+	int hash_len;
+
+	pointer += sizeof (struct cfm_aggregated_measurement_element);
+
+	printf ("%scfm_aggregated_measurement_element (Entry %d)\n", prefix, entry);
+	printf ("%s{\n", prefix);
+	printf ("%s\tmeasurements_mask:\n", prefix);
+	printf ("%s\t{", prefix);
+
+	for (int i = 0; i < CFM_MEASUREMENT_BITMASK_SIZE; ++i) {
+		if ((i % 16) == 0) {
+			printf ("%s\n\t\t", prefix);
+		}
+
+		printf ("%02x", measurement->measurements_mask[i]);
+	}
+	printf ("%s\n\t}\n", prefix);
+	printf ("%s\tpmr_id: %i\n", prefix, measurement->pmr_id);
+	printf ("%s\thash_type: %i\n", prefix, measurement->hash_type);
+	printf ("%s\tallowable_digest_count: %i\n", prefix, measurement->allowable_digest_count);
+	printf ("%s\treserved: %i\n", prefix, measurement->reserved);
+
+	switch (measurement->hash_type) {
+		case MANIFEST_HASH_SHA256:
+			hash_len = SHA256_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA384:
+			hash_len = SHA384_HASH_LENGTH;
+			break;
+
+		case MANIFEST_HASH_SHA512:
+			hash_len = SHA512_HASH_LENGTH;
+			break;
+
+		default:
+			printf ("Unsupported aggregated measurement hash type: %i\n", measurement->hash_type);
+
+			return -1;
+	}
+
+	printf ("%s\tHashes:\n", prefix);
+	printf ("%s\t[\n", prefix);
+
+	for (int i = 0; i < measurement->allowable_digest_count; ++i) {
+		printf ("%s\t\t{\n", prefix);
+
+		printf ("%s\t\t\tversion_set: %i\n", prefix, allowable_digest->version_set);
+		printf ("%s\t\t\tdigest_count: %i\n", prefix, allowable_digest->digest_count);
+		printf ("%s\t\t\treserved: %i\n", prefix, allowable_digest->reserved);
+
+		pointer += sizeof (struct cfm_allowable_digest_element);
+
+		for (int j = 0; j < allowable_digest->digest_count; j++) {
+			printf ("%s\t\t\t{", prefix);
+
+			for (int k = 0; k < hash_len; ++k, ++pointer) {
+				if ((k % 32) == 0) {
+					printf ("%s\n\t\t\t\t", prefix);
+				}
+
+				printf ("%02x", *pointer);
+			}
+
+			printf ("%s\n\t\t\t}\n", prefix);
+		}
+		printf ("%s\n\t\t}\n", prefix);
+
+		allowable_digest = (struct cfm_allowable_digest_element*) ((char*) allowable_digest +
+			sizeof (struct cfm_allowable_digest_element) +
+			(allowable_digest->digest_count * hash_len));
+	}
+
+	printf ("%s\t]\n", prefix);
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
 int32_t visualize_cfm_measurement_data (uint8_t *start, const char *prefix, int entry)
 {
 	uint8_t *pointer = start;
@@ -1314,6 +1401,10 @@ int32_t visualize_cfm (uint8_t *start, int extension_idx, uint8_t *measurement_h
 
 			case CFM_MEASUREMENT_DATA:
 				offset = visualize_cfm_measurement_data (pointer, "", entry);
+				break;
+
+			case CFM_AGGREGATED_MEASUREMENT:
+				offset = visualize_cfm_aggregated_measurement (pointer, "", i);
 				break;
 
 			case CFM_ALLOWABLE_DATA:

@@ -8,20 +8,26 @@
 #include "manifest/manifest_format.h"
 
 /**
+ * Size in bytes of the measurement bitmask (256 bits) used to identify measurements included in an aggregated measurement.
+ */
+#define CFM_MEASUREMENT_BITMASK_SIZE	32
+
+/**
  * Type identifiers for CFM v2 elements.
  */
 enum cfm_element_type {
-	CFM_COMPONENT_DEVICE = 0x70,	/**< Information about each component to attest. */
-	CFM_PMR = 0x71,					/**< Information for PMRs that can be used for PMR generation. */
-	CFM_PMR_DIGEST = 0x72,			/**< Information about all allowable digests for a single PMR. */
-	CFM_MEASUREMENT = 0x73,			/**< Information about all allowable digests for a single measurement. */
-	CFM_MEASUREMENT_DATA = 0x74,	/**< Information about all allowable data for a single measurement. */
-	CFM_ALLOWABLE_DATA = 0x75,		/**< List of allowable data for a single measurement data check. */
-	CFM_ALLOWABLE_PFM = 0x76,		/**< Information for allowable PFM IDs. */
-	CFM_ALLOWABLE_CFM = 0x77,		/**< Information for allowable CFM IDs. */
-	CFM_ALLOWABLE_PCD = 0x78,		/**< Information for allowable PCD IDs. */
-	CFM_ALLOWABLE_ID = 0x79,		/**< List of allowable IDs for a single manifest ID check. */
-	CFM_ROOT_CA = 0x7A,				/**< Information for external Root CAs that can be used for certificate chain validation. */
+	CFM_COMPONENT_DEVICE = 0x70,		/**< Information about each component to attest. */
+	CFM_PMR = 0x71,						/**< Information for PMRs that can be used for PMR generation. */
+	CFM_PMR_DIGEST = 0x72,				/**< Information about all allowable digests for a single PMR. */
+	CFM_MEASUREMENT = 0x73,				/**< Information about all allowable digests for a single measurement. */
+	CFM_MEASUREMENT_DATA = 0x74,		/**< Information about all allowable data for a single measurement. */
+	CFM_ALLOWABLE_DATA = 0x75,			/**< List of allowable data for a single measurement data check. */
+	CFM_ALLOWABLE_PFM = 0x76,			/**< Information for allowable PFM IDs. */
+	CFM_ALLOWABLE_CFM = 0x77,			/**< Information for allowable CFM IDs. */
+	CFM_ALLOWABLE_PCD = 0x78,			/**< Information for allowable PCD IDs. */
+	CFM_ALLOWABLE_ID = 0x79,			/**< List of allowable IDs for a single manifest ID check. */
+	CFM_ROOT_CA = 0x7A,					/**< Information for external Root CAs that can be used for certificate chain validation. */
+	CFM_AGGREGATED_MEASUREMENT = 0x7B,	/**< Aggregation of multiple measurements into one allowable digest. */
 };
 
 /**
@@ -94,6 +100,17 @@ struct cfm_allowable_digest_element {
 	uint8_t digest_count;			/**< The number of allowable digests for this version set. */
 	uint8_t hash_type_override:1;	/**< When set, hash_type specifies the digest hash algorithm instead of the component device default. */
 	uint8_t hash_type:7;			/**< Hash type for digests in this element, encoded as manifest_hash_type. Only valid when hash_type_override is set. */
+};
+
+/**
+ * CFM aggregated measurement element.
+ */
+struct cfm_aggregated_measurement_element {
+	uint8_t measurements_mask[CFM_MEASUREMENT_BITMASK_SIZE];	/**< Bitmask of aggregated measurement indices. */
+	uint8_t pmr_id;												/**< PMR ID. */
+	uint8_t hash_type;											/**< Hash algorithm used for aggregation. */
+	uint8_t allowable_digest_count;								/**< Number of allowable digests. */
+	uint8_t reserved;											/**< Reserved. */
 };
 
 /**

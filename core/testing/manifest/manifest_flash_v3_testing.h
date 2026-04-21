@@ -74,6 +74,9 @@ void manifest_flash_v3_testing_iterate_manifest_toc_no_verify (CuTest *test,
 void manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (CuTest *test,
 	struct manifest_flash_v3_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int last_entry);
+void manifest_flash_v3_testing_iterate_manifest_toc_no_verify_mocked_hash (CuTest *test,
+	struct manifest_flash_v3_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int last_entry);
 
 
 #endif	/* MANIFEST_FLASH_V3_TESTING_H_ */

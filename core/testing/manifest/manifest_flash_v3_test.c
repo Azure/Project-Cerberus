@@ -1139,6 +1139,25 @@ void manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (CuTest *test,
 		last_entry, false, true);
 }
 
+/**
+ * Set expectations on mocks for iterating through manifest TOC in a v3 manifest but do not verify
+ * TOC after iteration.
+ * The mocked hashing engine will be used.
+ *
+ * @param test The testing framework.
+ * @param manifest The components for the test.
+ * @param data Manifest data for the test.
+ * @param entry The table of contents index to start searching at.
+ * @param last_entry The last entry index to check.
+ */
+void manifest_flash_v3_testing_iterate_manifest_toc_no_verify_mocked_hash (CuTest *test,
+	struct manifest_flash_v3_testing *manifest, const struct manifest_v2_testing_data *data,
+	int entry, int last_entry)
+{
+	return manifest_flash_v3_testing_iterate_manifest_toc_common (test, manifest, data, entry,
+		last_entry, true, true);
+}
+
 /*******************
  * Test cases
  *******************/

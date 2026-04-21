@@ -37,8 +37,9 @@ enum cfm_check {
  * CFM measurement entry types.
  */
 enum cfm_measurement_type {
-	CFM_MEASUREMENT_TYPE_DIGEST = 0x00,	/**< Measurement entry. */
-	CFM_MEASUREMENT_TYPE_DATA = 0x01,	/**< Measurement data entry. */
+	CFM_MEASUREMENT_TYPE_DIGEST = 0x00,		/**< Measurement entry. */
+	CFM_MEASUREMENT_TYPE_DATA = 0x01,		/**< Measurement data entry. */
+	CFM_MEASUREMENT_TYPE_AGGREGATED = 0x02,	/**< Aggregated measurements entry. */
 };
 
 /**
@@ -121,15 +122,27 @@ struct cfm_measurement_data {
 };
 
 /**
+ * Aggregated measurement element that combines multiple individual measurements.
+ */
+struct cfm_aggregated_measurement {
+	uint8_t measurements_mask[CFM_MEASUREMENT_BITMASK_SIZE];	/**< Bitmask of aggregated measurement indices. */
+	uint8_t pmr_id;												/**< PMR ID. */
+	enum hash_type hash_type;									/**< Hash algorithm type. */
+	size_t allowable_digests_count;								/**< Number of allowable digests in allowable digests list. */
+	struct cfm_allowable_digests *allowable_digests;			/**< List of allowable digest containers for PMR measurement. */
+};
+
+/**
  * Combined measurement and measurement data container.
  */
 struct cfm_measurement_container {
-	void *context;								/**< Implementation context.*/
+	void *context;										/**< Implementation context.*/
 	union {
-		struct cfm_measurement_digest digest;	/**< Measurement digest container. */
-		struct cfm_measurement_data data;		/**< Measurement data container. */
+		struct cfm_measurement_digest digest;			/**< Measurement digest container. */
+		struct cfm_measurement_data data;				/**< Measurement data container. */
+		struct cfm_aggregated_measurement aggregated;	/**< Aggregated measurements container. */
 	} measurement;
-	enum cfm_measurement_type measurement_type;	/**< Measurement entry retrieved. */
+	enum cfm_measurement_type measurement_type;			/**< Measurement entry retrieved. */
 };
 
 /**
