@@ -4317,7 +4317,7 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 		return device_addr;
 	}
 
-	status = device_manager_get_component_id (attestation->device_mgr, eid, &component_id);
+	status = device_manager_get_component_id_by_eid (attestation->device_mgr, eid, &component_id);
 	if (status != 0) {
 		return status;
 	}

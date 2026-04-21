@@ -61,6 +61,15 @@ enum {
 	ATTESTATION_LOGGING_EID_DISCOVERED,								/**< Target device EID is discovered. */
 	ATTESTATION_LOGGING_PROCESS_PENDING_ACTION_ERROR,				/**< Failed to process pending action in device manager. */
 	ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,						/**< Received SPDM response error. */
+	ATTESTATION_LOGGING_SET_EID_RECEIVED,							/**< SET EID request received, triggering discovery. */
+	ATTESTATION_LOGGING_MCTP_DISCOVERY_COMPLETE,					/**< MCTP device discovery completed successfully. */
+	ATTESTATION_LOGGING_MCTP_BRIDGE_NOT_READY,						/**< MCTP bridge not ready, skipping MCTP discovery. */
+	ATTESTATION_LOGGING_VDM_DISCOVERY_FAILED,						/**< VDM device discovery failed. */
+	ATTESTATION_LOGGING_VDM_DISCOVERY_COMPLETE,						/**< VDM device discovery completed successfully. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_FAILED,						/**< TCG device discovery failed. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_COMPLETE,						/**< TCG device discovery completed successfully. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_TRIGGERED,					/**< TCG discovery triggered by boot delay timer. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_TIMER_FAILED,					/**< Failed to start TCG discovery boot delay timer. */
 };
 
 

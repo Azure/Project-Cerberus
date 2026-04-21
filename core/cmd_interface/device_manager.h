@@ -34,6 +34,9 @@
 // Attestation status measurement version
 #define DEVICE_MANAGER_ATTESTATION_STATUS_VERSION				2
 
+// NULL EID value
+#define DEVICE_MANAGER_NULL_EID									0
+
 /**
  * Convert response timeout in milliseconds to timeout in 10ms multiples
  *
@@ -316,6 +319,7 @@ struct device_manager_entry {
 	uint8_t eid;											/**< Endpoint ID */
 	uint8_t pcd_component_index;							/**< Index of component in PCD */
 	uint8_t instance_id;									/**< Instance ID of specific device */
+	const struct attestation_discover *discover;			/**< Discovery instance used by the device */
 };
 
 /**
@@ -396,11 +400,18 @@ int device_manager_update_device_instance_id (struct device_manager *mgr, int de
 	uint8_t instance_id);
 int device_manager_update_device_instance_id_by_eid (struct device_manager *mgr, uint8_t eid,
 	uint8_t instance_id);
+int device_manager_get_instance_id_by_eid (struct device_manager *device_mgr, uint8_t eid,
+	uint8_t *instance_id);
+int device_manager_get_instance_id (struct device_manager *device_mgr, int device_num,
+	uint8_t *instance_id);
 int device_manager_update_not_attestable_device_entry (struct device_manager *mgr, int device_num,
 	uint8_t eid, uint8_t smbus_addr, uint8_t pcd_component_index);
 int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, int device_num,
 	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
 	uint8_t components_count, uint32_t component_id, uint8_t pcd_component_index);
+
+int device_manager_update_component_device_entry (struct device_manager *mgr, int device_num,
+	uint8_t components_count, const struct device_manager_entry *entry);
 
 int device_manager_get_device_capabilities (struct device_manager *mgr, int device_num,
 	struct device_manager_full_capabilities *capabilities);
@@ -475,7 +486,9 @@ int device_manager_get_device_num_of_next_device_to_attest (struct device_manage
 int device_manager_reset_authenticated_devices (struct device_manager *mgr);
 int device_manager_reset_discovered_devices (struct device_manager *mgr);
 
-int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
+int device_manager_get_component_id_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint32_t *component_id);
+int device_manager_get_component_id (struct device_manager *mgr, int device_num,
 	uint32_t *component_id);
 
 int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uint16_t pci_vid,
@@ -501,6 +514,10 @@ int device_manager_remove_unidentified_device (struct device_manager *mgr, uint8
 int device_manager_unidentified_device_timed_out (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_eid_of_next_device_to_discover (struct device_manager *mgr);
 int device_manager_restart_device_discovery (struct device_manager *mgr);
+int device_manager_restart_device_discovery_by_handler (struct device_manager *mgr,
+	const struct attestation_discover *discover);
+const struct attestation_discover* device_manager_get_discovery_object (struct device_manager *mgr,
+	int device_num);
 #endif
 
 uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr);
