@@ -63,10 +63,10 @@ def generate_ports (xml_ports):
     :return List of (Ports, port ToC entry)
     """
 
-    if xml_ports is None or len (xml_ports) < 1:
-        return None
-
     ports = []
+
+    if xml_ports is None or len (xml_ports) < 1:
+        return ports
 
     class pcd_port (ctypes.LittleEndianStructure):
         _pack_ = 1
@@ -611,12 +611,12 @@ def main(argv=None):
 
         if "ports" in processed_xml["rot"]:
             ports = generate_ports (processed_xml["rot"]["ports"])
-            elements_list.extend (ports)
 
         rot = generate_rot (processed_xml["rot"], len(components), len(ports), timeouts_dict)
 
         elements_list.extend (components)
         elements_list.append (rot)
+        elements_list.extend (ports)
 
     manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version,
         sign, key, key_size, key_type, elements_list, output)
