@@ -1,88 +1,89 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-    xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" vc:minVersion="1.1">
+    xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified"
+    vc:minVersion="1.1">
 
-    <xs:include schemaLocation="common.xsd"/>
+    <xs:include schemaLocation="common.xsd" />
 
     <!-- Root element for Platform Configuration Data -->
     <xs:element name="PCD">
-        <xs:alternative type="PCD" test="not(@empty) or @empty = false()"/>
-        <xs:alternative type="PCDEmpty" test="@empty = true()"/>
+        <xs:alternative type="PCD" test="not(@empty) or @empty = false()" />
+        <xs:alternative type="PCDEmpty" test="@empty = true()" />
     </xs:element>
 
     <!-- Simple type definitions -->
 
     <xs:simpleType name="PCDVersion">
         <xs:restriction base="xs:unsignedByte">
-            <xs:minInclusive value="2"/>
-            <xs:maxInclusive value="3"/>
+            <xs:minInclusive value="2" />
+            <xs:maxInclusive value="3" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="RoTType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="PA-RoT"/>
-            <xs:enumeration value="AC-RoT"/>
+            <xs:enumeration value="PA-RoT" />
+            <xs:enumeration value="AC-RoT" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="ResetCtrlType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="Notify"/>
-            <xs:enumeration value="Reset"/>
-            <xs:enumeration value="Pulse"/>
+            <xs:enumeration value="Notify" />
+            <xs:enumeration value="Reset" />
+            <xs:enumeration value="Pulse" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="FlashModeType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="Single"/>
-            <xs:enumeration value="Dual"/>
-            <xs:enumeration value="SingleFilteredBypass"/>
-            <xs:enumeration value="DualFilteredBypass"/>
+            <xs:enumeration value="Single" />
+            <xs:enumeration value="Dual" />
+            <xs:enumeration value="SingleFilteredBypass" />
+            <xs:enumeration value="DualFilteredBypass" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="PolicyType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="Passive"/>
-            <xs:enumeration value="Active"/>
+            <xs:enumeration value="Passive" />
+            <xs:enumeration value="Active" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="EnabledDisabledType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="Enabled"/>
-            <xs:enumeration value="Disabled"/>
+            <xs:enumeration value="Enabled" />
+            <xs:enumeration value="Disabled" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="HostResetActionType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="None"/>
-            <xs:enumeration value="ResetFlash"/>
+            <xs:enumeration value="None" />
+            <xs:enumeration value="ResetFlash" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="I2CModeType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="MultiMaster"/>
-            <xs:enumeration value="MasterSlave"/>
+            <xs:enumeration value="MultiMaster" />
+            <xs:enumeration value="MasterSlave" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="ConnectionType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="Direct"/>
-            <xs:enumeration value="MCTPBridge"/>
-            <xs:enumeration value="TCGLog"/>
+            <xs:enumeration value="Direct" />
+            <xs:enumeration value="MCTPBridge" />
+            <xs:enumeration value="TCGLog" />
         </xs:restriction>
     </xs:simpleType>
 
     <xs:simpleType name="PortId">
         <xs:restriction base="xs:integer">
-            <xs:minInclusive value="0"/>
-            <xs:maxExclusive value="255"/>
+            <xs:minInclusive value="0" />
+            <xs:maxExclusive value="255" />
         </xs:restriction>
     </xs:simpleType>
 
@@ -94,7 +95,7 @@
                 </xs:annotation>
                 <xs:complexType>
                     <xs:sequence>
-                        <xs:element name="Port" type="RoTPort" maxOccurs="255"/>
+                        <xs:element name="Port" type="RoTPort" maxOccurs="255" />
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
@@ -116,8 +117,9 @@
         </xs:attribute>
         <xs:attribute name="mctp_bridge_get_table_wait" type="xs:unsignedInt">
             <xs:annotation>
-                <xs:documentation>Duration in milliseconds to wait after RoT boots before sending a MCTP Get Routing Table Request to MCTP bridge, 
-                if MCTP bridge does not support dynamic EID assignments. If set to 0, RoT will only wait for EID assignment.</xs:documentation>
+                <xs:documentation>Duration in milliseconds to wait after RoT boots before sending a
+                    MCTP Get Routing Table Request to MCTP bridge, if MCTP bridge does not support
+                    dynamic EID assignments. If set to 0, RoT will only wait for EID assignment.</xs:documentation>
             </xs:annotation>
         </xs:attribute>
     </xs:complexType>
@@ -162,7 +164,7 @@
                     <xs:documentation>Port watchdog monitoring setting.</xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element name="HostResetAction" type="HostResetActionType" minOccurs="0"/>
+            <xs:element name="HostResetAction" type="HostResetActionType" minOccurs="0" />
         </xs:all>
         <xs:attribute name="id" type="PortId" use="required">
             <xs:annotation>
@@ -194,7 +196,7 @@
                 </xs:annotation>
             </xs:element>
         </xs:all>
-        <xs:attribute name="type" type="InterfaceType" use="required"/>
+        <xs:attribute name="type" type="InterfaceType" use="required" />
     </xs:complexType>
 
     <xs:complexType name="InterfaceMux">
@@ -215,14 +217,15 @@
         </xs:all>
         <xs:attribute name="level" type="xs:integer" use="required">
             <xs:annotation>
-                <xs:documentation>The mux level in the I2C path. 0 if the first mux, 1 is second, etc.</xs:documentation>
+                <xs:documentation>The mux level in the I2C path. 0 if the first mux, 1 is second,
+                    etc.</xs:documentation>
             </xs:annotation>
         </xs:attribute>
     </xs:complexType>
 
     <xs:simpleType name="InterfaceType">
         <xs:restriction base="xs:string">
-            <xs:enumeration value="I2C"/>
+            <xs:enumeration value="I2C" />
         </xs:restriction>
     </xs:simpleType>
 
@@ -254,12 +257,12 @@
                 </xs:annotation>
                 <xs:complexType>
                     <xs:sequence>
-                        <xs:element name="Mux" type="InterfaceMux" minOccurs="0" maxOccurs="16"/>
+                        <xs:element name="Mux" type="InterfaceMux" minOccurs="0" maxOccurs="16" />
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
         </xs:all>
-        <xs:attribute name="type" type="InterfaceType" use="required"/>
+        <xs:attribute name="type" type="InterfaceType" use="required" />
     </xs:complexType>
 
     <xs:complexType name="BaseComponent">
@@ -267,7 +270,7 @@
             <xs:documentation>A single component's attestation information.</xs:documentation>
         </xs:annotation>
         <xs:all>
-            <xs:element name="Policy" type="PolicyType"/>
+            <xs:element name="Policy" type="PolicyType" />
             <xs:element name="PwrCtrl" minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>Component power control information.</xs:documentation>
@@ -287,8 +290,32 @@
                     </xs:sequence>
                 </xs:complexType>
             </xs:element>
+            <xs:element name="ComponentTypes" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="ComponentType" minOccurs="0" maxOccurs="255">
+                            <xs:complexType>
+                                <xs:attribute name="type" use="required" />
+                                <xs:attribute name="min" type="xs:nonNegativeInteger" use="optional"
+                                    default="0" />
+                                <xs:attribute name="max" type="xs:nonNegativeInteger" use="optional"
+                                    default="0" />
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+
+                    <xs:assert
+                        test="every $c in ComponentType 
+                        satisfies (xs:integer($c/@min) le xs:integer($c/@max)) or (xs:integer($c/@min) = 0) or (xs:integer($c/@max) = 0)" />
+                </xs:complexType>
+            </xs:element>
         </xs:all>
-        <xs:attribute name="type" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="xs:string" use="required" />
+        <xs:attribute name="count" type="xs:unsignedByte">
+            <xs:annotation>
+                <xs:documentation>Number of identical components this element describes.</xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
         <xs:attribute name="connection" type="ConnectionType" use="required">
             <xs:annotation>
                 <xs:documentation>Component connection type.</xs:documentation>
@@ -296,24 +323,36 @@
         </xs:attribute>
         <xs:attribute name="attestation_success_retry" type="xs:unsignedInt">
             <xs:annotation>
-                <xs:documentation>Duration in milliseconds after device succeeds attestation to wait before reattesting.</xs:documentation>
+                <xs:documentation>Duration in milliseconds after device succeeds attestation to wait
+                    before reattesting.</xs:documentation>
             </xs:annotation>
         </xs:attribute>
         <xs:attribute name="attestation_fail_retry" type="xs:unsignedInt">
             <xs:annotation>
-                <xs:documentation>Duration in milliseconds after device fails attestation to wait before reattesting.</xs:documentation>
+                <xs:documentation>Duration in milliseconds after device fails attestation to wait
+                    before reattesting.</xs:documentation>
             </xs:annotation>
         </xs:attribute>
         <xs:attribute name="attestation_rsp_not_ready_max_retry" type="xs:unsignedInt">
             <xs:annotation>
-                <xs:documentation>Maximum number of SPDM ResponseNotReady retries permitted for the device.</xs:documentation>
+                <xs:documentation>Maximum number of SPDM ResponseNotReady retries permitted for the
+                    device.</xs:documentation>
             </xs:annotation>
         </xs:attribute>
         <xs:attribute name="attestation_rsp_not_ready_max_duration" type="xs:unsignedInt">
             <xs:annotation>
-                <xs:documentation>Maximum wait time between retries after receiving an SPDM ResponseNotReady error.</xs:documentation>
+                <xs:documentation>Maximum wait time between retries after receiving an SPDM
+                    ResponseNotReady error.</xs:documentation>
             </xs:annotation>
         </xs:attribute>
+
+        <xs:assert
+            test="if (@connection != 'MCTPBridge') then (not(@count) or xs:integer(@count) = 1) else true()">
+            <xs:annotation>
+                <xs:documentation>Multi instance components are currently supported only for MCTP
+                    bridge components.</xs:documentation>
+            </xs:annotation>
+        </xs:assert>
     </xs:complexType>
 
     <xs:complexType name="MctpComponent">
@@ -335,12 +374,14 @@
                     </xs:element>
                     <xs:element name="SubsystemDeviceID" type="HexInteger16">
                         <xs:annotation>
-                            <xs:documentation>Subsystem device ID. See the device discovery description.</xs:documentation>
+                            <xs:documentation>Subsystem device ID. See the device discovery
+                                description.</xs:documentation>
                         </xs:annotation>
                     </xs:element>
                     <xs:element name="SubsystemVendorID" type="HexInteger16">
                         <xs:annotation>
-                            <xs:documentation>Subsystem vendor ID. See the device discovery description.</xs:documentation>
+                            <xs:documentation>Subsystem vendor ID. See the device discovery
+                                description.</xs:documentation>
                         </xs:annotation>
                     </xs:element>
                     <xs:element name="EID" type="HexByte">
@@ -349,19 +390,16 @@
                         </xs:annotation>
                     </xs:element>
                 </xs:all>
-                <xs:attribute name="count" type="xs:unsignedByte">
-                    <xs:annotation>
-                        <xs:documentation>Number of identical components this element describes.</xs:documentation>
-                    </xs:annotation>
-                </xs:attribute>
                 <xs:attribute name="discovery_fail_retry" type="xs:unsignedInt">
                     <xs:annotation>
-                        <xs:documentation>Duration in milliseconds after device fails a discovery step to wait before retrying.</xs:documentation>
+                        <xs:documentation>Duration in milliseconds after device fails a discovery
+                            step to wait before retrying.</xs:documentation>
                     </xs:annotation>
                 </xs:attribute>
                 <xs:attribute name="mctp_bridge_additional_timeout" type="xs:unsignedInt">
                     <xs:annotation>
-                        <xs:documentation>Time in milliseconds to wait in addition to device timeout period due to MCTP bridge.</xs:documentation>
+                        <xs:documentation>Time in milliseconds to wait in addition to device timeout
+                            period due to MCTP bridge.</xs:documentation>
                     </xs:annotation>
                 </xs:attribute>
             </xs:extension>
@@ -375,21 +413,18 @@
         <xs:complexContent>
             <xs:extension base="BaseComponent">
                 <xs:all>
-                    <xs:element name="Interface" type="Interface"/>
+                    <xs:element name="Interface" type="Interface" />
                 </xs:all>
-                <xs:attribute name="count" type="xs:unsignedByte">
-                    <xs:annotation>
-                        <xs:documentation>Number of identical components this element describes.</xs:documentation>
-                    </xs:annotation>
-                </xs:attribute>
                 <xs:attribute name="discovery_fail_retry" type="xs:unsignedInt">
                     <xs:annotation>
-                        <xs:documentation>Duration in milliseconds after device fails a discovery step to wait before retrying.</xs:documentation>
+                        <xs:documentation>Duration in milliseconds after device fails a discovery
+                            step to wait before retrying.</xs:documentation>
                     </xs:annotation>
                 </xs:attribute>
                 <xs:attribute name="mctp_bridge_additional_timeout" type="xs:unsignedInt">
                     <xs:annotation>
-                        <xs:documentation>Time in milliseconds to wait in addition to device timeout period due to MCTP bridge.</xs:documentation>
+                        <xs:documentation>Time in milliseconds to wait in addition to device timeout
+                            period due to MCTP bridge.</xs:documentation>
                     </xs:annotation>
                 </xs:attribute>
             </xs:extension>
@@ -399,11 +434,12 @@
     <xs:complexType name="PCDBase">
         <xs:attribute name="sku" type="PlatformIdSKU" use="required">
             <xs:annotation>
-                <xs:documentation>String identifier for the platform configuration. This becomes the platform ID.</xs:documentation>
+                <xs:documentation>String identifier for the platform configuration. This becomes the
+                    platform ID.</xs:documentation>
             </xs:annotation>
         </xs:attribute>
-        <xs:attribute name="version" type="HexInteger" use="required"/>
-        <xs:attribute name="empty" type="xs:boolean"/>
+        <xs:attribute name="version" type="HexInteger" use="required" />
+        <xs:attribute name="empty" type="xs:boolean" />
         <xs:attribute name="format_version" type="PCDVersion" use="optional" default="2">
             <xs:annotation>
                 <xs:documentation>Manifest binary format version.</xs:documentation>
@@ -413,7 +449,7 @@
 
     <xs:complexType name="PCDEmpty">
         <xs:complexContent mixed="true">
-            <xs:extension base="PCDBase"/>
+            <xs:extension base="PCDBase" />
         </xs:complexContent>
     </xs:complexType>
 
@@ -421,11 +457,11 @@
         <xs:complexContent>
             <xs:extension base="PCDBase">
                 <xs:sequence>
-                    <xs:element name="RoT" type="RoT"/>
+                    <xs:element name="RoT" type="RoT" />
                     <xs:element name="PowerController" minOccurs="0">
                         <xs:complexType>
                             <xs:sequence>
-                                <xs:element name="Interface" type="Interface"/>
+                                <xs:element name="Interface" type="Interface" />
                             </xs:sequence>
                         </xs:complexType>
                     </xs:element>
@@ -436,17 +472,33 @@
                         <xs:complexType>
                             <xs:sequence>
                                 <xs:element name="Component" minOccurs="0" maxOccurs="255">
-                                    <xs:alternative type="MctpComponent" test="@connection = 'MCTPBridge'"/>
-                                    <xs:alternative type="DirectComponent" test="@connection = 'Direct'"/>
-                                    <xs:alternative type="BaseComponent"/>
+                                    <xs:alternative type="MctpComponent"
+                                        test="@connection = 'MCTPBridge'" />
+                                    <xs:alternative type="DirectComponent"
+                                        test="@connection = 'Direct'" />
+                                    <xs:alternative type="BaseComponent"
+                                        test="@connection = 'TCGLog'" />
+                                    <xs:alternative type="xs:error" />
                                 </xs:element>
                             </xs:sequence>
                         </xs:complexType>
                     </xs:element>
                 </xs:sequence>
+                <xs:assert
+                    test="if (exists(.//Component/ComponentTypes)) then (xs:integer(@format_version) ge 3) else true()">
+                    <xs:annotation>
+                        <xs:documentation>Multi-source components only supported starting 3 version
+                            of manifest.</xs:documentation>
+                    </xs:annotation>
+                </xs:assert>
+                <xs:assert
+                    test="if (exists(.//Component[@connection='TCGLog'])) then (xs:integer(@format_version) ge 3) else true()">
+                    <xs:annotation>
+                        <xs:documentation>TCG Log components only supported starting 3 version
+                            of manifest.</xs:documentation>
+                    </xs:annotation>
+                </xs:assert>
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
-
-
 </xs:schema>

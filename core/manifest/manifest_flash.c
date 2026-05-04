@@ -811,19 +811,44 @@ int manifest_flash_get_signature (const struct manifest_flash *manifest, uint8_t
 }
 
 /**
- * Find the first element of a specified type in the manifest and read the element data.
+ * Internal helper to check if the elemnt type belongs to the allowed types list.
+ *
+ * @param allowed_types Array of allowed element types.
+ * @param allowed_types_count Count of allowed types in array.
+ * @param type The element type to check.
+ *
+ * @return True if type is in the list, false otherwise.
+ */
+static bool manifest_is_type_in_list (const uint8_t *allowed_types, size_t allowed_types_count,
+	uint8_t type)
+{
+	size_t i;
+
+	for (i = 0; i < allowed_types_count; ++i) {
+		if (allowed_types[i] == type) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Find the first element of a specified (or any) type in the manifest and read the element data.
  * Everything about the operation will be validated, as appropriate.  This includes table of
  * contents and entry data hashing.
  *
  * @param manifest The manifest to read.
  * @param hash The hash engine to use for element validation.
- * @param type Identifier for the type of element to find.
+ * @param types Identifiers for the types of elements to find.
+ * @param types_count Count of types to find.
  * @param start_entry_index Index of the table of contents entry to start searching for the element.
  * @param parent_type Identifier for the type of the parent element.  If the element has no parent,
  * MANIFEST_NO_PARENT must be provided.
  * @param read_offset Offset into the element data to start reading.  The entire element is still
  * validated, but the buffer will only contain element data starting at the offset.
  * @param found_entry_index Optional output indicating which TOC entry was used for the element.
+ * @param found_type Optional output indicating found entry type.
  * @param format Optional output for the format version of the element data.
  * @param total_len Optional output for the total length of the element data.
  * @param element Optional pointer to the output buffer for the element data.  If the output buffer
@@ -837,10 +862,10 @@ int manifest_flash_get_signature (const struct manifest_flash *manifest, uint8_t
  * @return The amount of element data read or an error code.  Use ROT_IS_ERROR to check the return
  * value.
  */
-int manifest_flash_read_element_data (const struct manifest_flash *manifest,
-	const struct hash_engine *hash, uint8_t type, int start_entry_index, uint8_t parent_type,
-	uint32_t read_offset, int *found_entry_index, uint8_t *format, size_t *total_len,
-	uint8_t **element, size_t length)
+static int manifest_flash_read_element_data_common (const struct manifest_flash *manifest,
+	const struct hash_engine *hash, const uint8_t *types, size_t types_count, int start_entry_index,
+	uint8_t parent_type, uint32_t read_offset, int *found_entry_index, uint8_t *found_type,
+	uint8_t *format, size_t *total_len, uint8_t **element, size_t length)
 {
 	struct manifest_toc_header toc_header;
 	struct manifest_toc_entry toc_entry;
@@ -868,7 +893,8 @@ int manifest_flash_read_element_data (const struct manifest_flash *manifest,
 	/* Indicates if need to free *element in case of failure. */
 	bool element_data_allocated = false;
 
-	if ((manifest == NULL) || (hash == NULL) || (start_entry_index < 0)) {
+	if ((manifest == NULL) || (hash == NULL) || (types == NULL) || (types_count == 0) ||
+		(start_entry_index < 0)) {
 		return MANIFEST_INVALID_ARGUMENT;
 	}
 
@@ -965,7 +991,7 @@ int manifest_flash_read_element_data (const struct manifest_flash *manifest,
 					goto error;
 				}
 
-				if (toc_entry.type_id == type) {
+				if (manifest_is_type_in_list (types, types_count, toc_entry.type_id)) {
 					break;
 				}
 			}
@@ -973,7 +999,8 @@ int manifest_flash_read_element_data (const struct manifest_flash *manifest,
 
 		global_index += local_index;
 
-		if ((toc_entry.type_id != type) && (toc_entry.type_id != MANIFEST_TOC_EXTENSION)) {
+		if (!manifest_is_type_in_list (types, types_count, toc_entry.type_id) &&
+			(toc_entry.type_id != MANIFEST_TOC_EXTENSION)) {
 			status = (parent_type == MANIFEST_NO_PARENT) ?
 					MANIFEST_ELEMENT_NOT_FOUND : MANIFEST_CHILD_NOT_FOUND;
 			goto error;
@@ -1033,6 +1060,9 @@ int manifest_flash_read_element_data (const struct manifest_flash *manifest,
 
 	if (found_entry_index) {
 		*found_entry_index = global_index - 1;
+	}
+	if (found_type) {
+		*found_type = toc_entry.type_id;
 	}
 	if (format) {
 		*format = toc_entry.format;
@@ -1118,6 +1148,82 @@ error:
 	hash->cancel (hash);
 
 	return status;
+}
+
+
+/**
+ * Find the first element of a specified type in the manifest and read the element data.
+ * Everything about the operation will be validated, as appropriate.  This includes table of
+ * contents and entry data hashing.
+ *
+ * @param manifest The manifest to read.
+ * @param hash The hash engine to use for element validation.
+ * @param type Identifier for the type of element to find.
+ * @param start_entry_index Index of the table of contents entry to start searching for the element.
+ * @param parent_type Identifier for the type of the parent element.  If the element has no parent,
+ * MANIFEST_NO_PARENT must be provided.
+ * @param read_offset Offset into the element data to start reading.  The entire element is still
+ * validated, but the buffer will only contain element data starting at the offset.
+ * @param found_entry_index Optional output indicating which TOC entry was used for the element.
+ * @param format Optional output for the format version of the element data.
+ * @param total_len Optional output for the total length of the element data.
+ * @param element Optional pointer to the output buffer for the element data.  If the output buffer
+ * is null, a buffer will by dynamically allocated to fit the entire element. This buffer must be
+ * freed by the caller. If the pointer is null, no element data will be read.
+ * @param length Length of the element output buffer, if the buffer is not null.  If the actual
+ * element data is longer than the specified length, only the specified length will be read back and
+ * no error is generated.  This parameter is ignored when the output buffer is dynamically
+ * allocated.
+ *
+ * @return The amount of element data read or an error code.  Use ROT_IS_ERROR to check the return
+ * value.
+ */
+int manifest_flash_read_element_data (const struct manifest_flash *manifest,
+	const struct hash_engine *hash, uint8_t type, int start_entry_index, uint8_t parent_type,
+	uint32_t read_offset, int *found_entry_index, uint8_t *format, size_t *total_len,
+	uint8_t **element, size_t length)
+{
+	return manifest_flash_read_element_data_common (manifest, hash, &type, 1, start_entry_index,
+		parent_type, read_offset, found_entry_index, NULL, format, total_len, element, length);
+}
+
+/**
+ * Find the first element of any specific type in the manifest and read the element data.
+ * Everything about the operation will be validated, as appropriate.  This includes table of
+ * contents and entry data hashing.
+ *
+ * @param manifest The manifest to read.
+ * @param hash The hash engine to use for element validation.
+ * @param types Identifiers for the types of elements to find.
+ * @param types_count Count of types to find.
+ * @param start_entry_index Index of the table of contents entry to start searching for the element.
+ * @param parent_type Identifier for the type of the parent element.  If the element has no parent,
+ * MANIFEST_NO_PARENT must be provided.
+ * @param read_offset Offset into the element data to start reading.  The entire element is still
+ * validated, but the buffer will only contain element data starting at the offset.
+ * @param found_entry_index Optional output indicating which TOC entry was used for the element.
+ * @param found_type Optional output indicating found entry type.
+ * @param format Optional output for the format version of the element data.
+ * @param total_len Optional output for the total length of the element data.
+ * @param element Optional pointer to the output buffer for the element data.  If the output buffer
+ * is null, a buffer will by dynamically allocated to fit the entire element. This buffer must be
+ * freed by the caller. If the pointer is null, no element data will be read.
+ * @param length Length of the element output buffer, if the buffer is not null.  If the actual
+ * element data is longer than the specified length, only the specified length will be read back and
+ * no error is generated.  This parameter is ignored when the output buffer is dynamically
+ * allocated.
+ *
+ * @return The amount of element data read or an error code.  Use ROT_IS_ERROR to check the return
+ * value.
+ */
+int manifest_flash_read_element_data_multi_type (const struct manifest_flash *manifest,
+	const struct hash_engine *hash, const uint8_t *types, size_t types_count, int start_entry_index,
+	uint8_t parent_type, uint32_t read_offset, int *found_entry_index, uint8_t *found_type,
+	uint8_t *format, size_t *total_len, uint8_t **element, size_t length)
+{
+	return manifest_flash_read_element_data_common (manifest, hash, types, types_count,
+		start_entry_index, parent_type, read_offset, found_entry_index, found_type, format,
+		total_len, element, length);
 }
 
 /**

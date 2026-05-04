@@ -8,7 +8,9 @@
 #include "pcd_format.h"
 #include "platform_api.h"
 #include "cmd_interface/device_manager.h"
+#include "common/array_size.h"
 #include "common/buffer_util.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 #include "flash/flash_util.h"
 #include "manifest/manifest_flash.h"
@@ -279,107 +281,38 @@ int pcd_flash_get_power_controller_info (const struct pcd *pcd,
 	return 0;
 }
 
-int pcd_flash_get_next_mctp_bridge_component (const struct pcd *pcd,
-	struct pcd_mctp_bridge_components_info *component, bool first)
-{
-	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
-	struct pcd_mctp_bridge_component_element bridge_component;
-	struct pcd_mctp_bridge_component_connection *connection;
-	uint8_t *element_ptr = (uint8_t*) &bridge_component;
-	int *start_ptr;
-	int status;
+/**
+ * Component element types available in PCD manifest.
+ */
+static const uint8_t pcd_flash_component_element_types[] = {
+	PCD_COMPONENT_DIRECT,
+	PCD_COMPONENT_MCTP_BRIDGE,
+	PCD_COMPONENT_TCG_LOG,
+};
 
-	if ((pcd_flash == NULL) || (component == NULL)) {
-		return PCD_INVALID_ARGUMENT;
-	}
-
-	if (!pcd_flash->base_flash.state->manifest_valid) {
-		return MANIFEST_NO_MANIFEST;
-	}
-
-	start_ptr = (int*) &component->context;
-
-	if (first) {
-		*start_ptr = 0;
-	}
-
-	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
-		PCD_COMPONENT_MCTP_BRIDGE, *start_ptr, MANIFEST_NO_PARENT, 0, start_ptr, NULL, NULL,
-		&element_ptr, sizeof (struct pcd_mctp_bridge_component_element));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-	if ((size_t) status < (sizeof (struct pcd_mctp_bridge_component_element))) {
-		return PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
-	}
-
-	*start_ptr = *start_ptr + 1;
-
-	connection = pcd_get_mctp_bridge_component_connection (element_ptr, status);
-
-	component->component_id = bridge_component.component.component_id;
-	component->components_count = connection->components_count;
-	component->pci_device_id = connection->device_id;
-	component->pci_vid = connection->vendor_id;
-	component->pci_subsystem_id = connection->subsystem_device_id;
-	component->pci_subsystem_vid = connection->subsystem_vendor_id;
-
-	return 0;
-}
-
-int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
-	struct pcd_tcg_log_components_info *component, bool first)
-{
-	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
-	struct pcd_tcg_log_component_element tcg_log_component;
-	uint8_t *element_ptr = (uint8_t*) &tcg_log_component;
-	int *start_ptr;
-	int status;
-
-	if ((pcd_flash == NULL) || (component == NULL)) {
-		return PCD_INVALID_ARGUMENT;
-	}
-
-	if (!pcd_flash->base_flash.state->manifest_valid) {
-		return MANIFEST_NO_MANIFEST;
-	}
-
-	start_ptr = &component->index;
-
-	if (first) {
-		*start_ptr = 0;
-	}
-
-	status = manifest_flash_read_element_data (&pcd_flash->base_flash, pcd_flash->base_flash.hash,
-		PCD_COMPONENT_TCG_LOG, *start_ptr, MANIFEST_NO_PARENT, 0, start_ptr, NULL, NULL,
-		&element_ptr, sizeof (struct pcd_tcg_log_component_element));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-	if ((size_t) status < (sizeof (struct pcd_tcg_log_component_element))) {
-		return PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT;
-	}
-
-	*start_ptr = *start_ptr + 1;
-
-	component->component_id = tcg_log_component.component.component_id;
-	component->components_count = 1;
-
-	return 0;
-}
 
 int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset, size_t length,
 	uint8_t *pcd_component_ids)
 {
 	const struct pcd_flash *pcd_flash = (const struct pcd_flash*) pcd;
 	struct pcd_rot_info rot_info;
-	struct pcd_mctp_bridge_components_info component;
-	struct pcd_tcg_log_components_info tcg_log_component;
 	struct pcd_supported_component supported_component;
+
+	/* To avoid unnecessary allocations do not read the whole entry for each element, only
+	 * portion that is enough to get component ids and instance counts. */
+	union {
+		struct pcd_component_common_v3 common_v3;				/** Common part for v3 components. */
+		struct pcd_component_common_v2 common_v2;				/** Common part for v2 components. */
+		struct pcd_mctp_bridge_component_element_v2 mctp_v2;	/** MCTP Bridge component (special case) */
+	} component_data;
+	uint8_t *element_data_ptr = (uint8_t*) &component_data;
+
 	size_t i_components = 0;
 	size_t component_len = 0;
-	bool first_tcg = true;
 	int status;
+	int current_start_entry = 0;
+	uint8_t element_type = 0xff;
+	uint8_t element_format = 0;
 
 	if ((pcd_flash == NULL) || (pcd_component_ids == NULL) || (length == 0)) {
 		return PCD_INVALID_ARGUMENT;
@@ -390,27 +323,61 @@ int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset,
 	}
 
 	status = pcd_flash_get_rot_info (pcd, &rot_info);
-	if (status != 0) {
+	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
 
 	while ((i_components < rot_info.components_count) && (length > 0)) {
-		status = pcd_flash_get_next_mctp_bridge_component (pcd, &component, (i_components == 0));
-		if (status == 0) {
-			supported_component.component_id = component.component_id;
-			supported_component.component_count = component.components_count;
-		}
-		else if (status == MANIFEST_ELEMENT_NOT_FOUND) {
-			status = pcd_flash_get_next_tcg_log_component (pcd, &tcg_log_component, first_tcg);
-			if (status != 0) {
-				return status;
-			}
-			first_tcg = false;
-			supported_component.component_id = tcg_log_component.component_id;
-			supported_component.component_count = tcg_log_component.components_count;
-		}
-		else {
+		status = manifest_flash_read_element_data_multi_type (&pcd_flash->base_flash,
+			pcd_flash->base_flash.hash, pcd_flash_component_element_types,
+			ARRAY_SIZE (pcd_flash_component_element_types),	current_start_entry, MANIFEST_NO_PARENT,
+			0, &current_start_entry, &element_type, &element_format, NULL, &element_data_ptr,
+			sizeof (component_data));
+		if (ROT_IS_ERROR (status)) {
 			return status;
+		}
+
+		current_start_entry += 1;
+
+		switch (element_type) {
+			case PCD_COMPONENT_DIRECT:
+				if ((size_t) status < sizeof (struct pcd_direct_i2c_component_element_v2)) {
+					return PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT;
+				}
+
+				[[fallthrough]];
+
+			case PCD_COMPONENT_TCG_LOG:
+				if ((size_t) status < sizeof (struct pcd_tcg_log_component_element_v2)) {
+					return PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT;
+				}
+
+				/* These components always have one instance */
+				supported_component.component_count = 1;
+				supported_component.component_id = component_data.common_v2.component_id;
+
+				break;
+
+			case PCD_COMPONENT_MCTP_BRIDGE:
+				if ((size_t) status < sizeof (struct pcd_mctp_bridge_component_element_v2)) {
+					return PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
+				}
+
+				supported_component.component_id = component_data.mctp_v2.component.component_id;
+
+				if (element_format <= 2) {
+					supported_component.component_count =
+						component_data.mctp_v2.connection.components_count;
+				}
+				else {
+					supported_component.component_count = component_data.common_v3.instances_count;
+				}
+
+				break;
+
+			default:
+				/* Should never happen */
+				continue;
 		}
 
 		component_len += buffer_copy ((uint8_t*) &supported_component, sizeof (supported_component),
@@ -420,6 +387,443 @@ int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset,
 	}
 
 	return component_len;
+}
+
+/**
+ * Internal context for get_next_component implementation to keep track of iteration state.
+ */
+struct pcd_flash_component_info_context {
+	int start;								/**< Starting entry for next search. */
+
+	/* This is used to keep the buffer for component types across multiple calls.
+	 * As some FreeRTOS heaps doesn't implement realloc, we need to keep the buffer around
+	 * and reallocate only if bigger buffer is needed to reduce heap fragmentation. */
+	size_t allocated_component_types_count;	/**< Number of component types allocated in component_types. */
+};
+
+
+/**
+ * Helper function to allocate or reallocate component types buffer in component info context if needed.
+ *
+ * @param component The component container to allocate buffer for.
+ * @param type_count The number of component types to allocate.
+ */
+static int pcd_flash_allocate_component_types (struct pcd_component_info *component,
+	size_t type_count)
+{
+	struct pcd_flash_component_info_context *context = component->context;
+
+	if (type_count <= context->allocated_component_types_count) {
+		/* Current buffer is big enough, no need to reallocate. */
+		return 0;
+	}
+
+	platform_free (component->component_types);
+	context->allocated_component_types_count = 0;
+
+	component->component_types = platform_calloc (type_count,
+		sizeof (struct pcd_allowed_component_type_info));
+
+	if (!component->component_types) {
+		return PCD_NO_MEMORY;
+	}
+
+	context->allocated_component_types_count = type_count;
+
+	return 0;
+}
+
+/**
+ * Reads the v2 common part of the component element and fills the component info structure with it.
+ *
+ * @param component The component container to fill.
+ * @param common_v2 The common part of the component element in v2 format.
+ *
+ * @return 0 if the common part was read and parsed successfully or an error code.
+ */
+static int pcd_flash_read_v2_component_common (struct pcd_component_info *component,
+	const struct pcd_component_common_v2 *common_v2)
+{
+	int status;
+
+	/* V2 are single source - always one type. */
+	status = pcd_flash_allocate_component_types (component, 1);
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	component->component_id = common_v2->component_id;
+	component->components_count = 1;
+	component->component_type_count = 1;
+	component->component_types[0].cfm_component_id = component->component_id;
+	component->component_types[0].max_usage = 0;
+	component->component_types[0].min_usage = 0;
+
+	return 0;
+}
+
+/**
+ * Reads the v3 common part of the component element and fills the component info structure with it.
+ *
+ * @param component The component container to fill.
+ * @param common_v3 The common part of the component element in v3 format.
+ *
+ * @return 0 if the common part was read and parsed successfully or an error code.
+ */
+static int pcd_flash_read_v3_component_common (struct pcd_component_info *component,
+	const struct pcd_component_common_v3 *common_v3)
+{
+	int status;
+	size_t i;
+
+	/* V3 are single or multi source - allocate at least one type entry. */
+	status = pcd_flash_allocate_component_types (component,
+		(common_v3->component_types_count == 0) ? 1 : common_v3->component_types_count);
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	component->component_id = common_v3->component_id;
+	component->components_count = common_v3->instances_count;
+
+	if (common_v3->component_types_count == 0) {
+		/* Single source component, fill one source. */
+		component->component_type_count = 1;
+		component->component_types[0].cfm_component_id = component->component_id;
+		component->component_types[0].max_usage = 0;
+		component->component_types[0].min_usage = 0;
+	}
+	else {
+		/* Multi-source component */
+		component->component_type_count = common_v3->component_types_count;
+
+		for (i = 0; i < component->component_type_count; ++i) {
+			component->component_types[i].cfm_component_id =
+				common_v3->component_types[i].cfm_component_id;
+			component->component_types[i].max_usage = common_v3->component_types[i].max_usage;
+			component->component_types[i].min_usage = common_v3->component_types[i].min_usage;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Function to read and parse a direct I2C component element and fill the component info structure with it.
+ *
+ * @param pcd_flash The PCD flash instance.
+ * @param component The component container to fill.
+ * @param entry_format The format version of the component element.
+ * @param entry_data The raw data of the component element read from flash.
+ * @param entry_len The length of the raw component element data.
+ *
+ * @return 0 if the component was read and parsed successfully or an error code.
+ */
+static int pcd_flash_read_direct_component (const struct pcd_flash *pcd_flash,
+	struct pcd_component_info *component, uint8_t entry_format, uint8_t *entry_data,
+	size_t entry_len)
+{
+	const struct pcd_direct_i2c_component_element_v2 *element_v2 =
+		(struct pcd_direct_i2c_component_element_v2*) entry_data;
+	const struct pcd_component_common_v3 *hdr_v3 = (struct pcd_component_common_v3*) entry_data;
+
+	const struct pcd_i2c_interface *i2c_interface = NULL;
+	int status;
+
+	component->type = PCD_COMPONENT_TYPE_DIRECT;
+
+	switch (entry_format) {
+		case 0:
+		case 1:
+		case 2:
+			if (entry_len < sizeof (*element_v2)) {
+				return PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT;
+			}
+
+			status = pcd_flash_read_v2_component_common (component, &element_v2->component);
+			if (ROT_IS_ERROR (status)) {
+				return status;
+			}
+
+			i2c_interface = pcd_get_component_v2_details (&element_v2->component);
+
+			break;
+
+		case 3:
+		default:
+			if (entry_len < sizeof (struct pcd_component_common_v3)) {
+				return PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT;
+			}
+
+			if (entry_len < pcd_component_common_v3_length (hdr_v3) + sizeof (*i2c_interface)) {
+				return PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT;
+			}
+
+			status = pcd_flash_read_v3_component_common (component, hdr_v3);
+			if (ROT_IS_ERROR (status)) {
+				return status;
+			}
+
+			i2c_interface = pcd_get_component_v3_details (hdr_v3);
+
+			break;
+	}
+
+	if (i2c_interface == NULL) {
+		return PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT;
+	}
+
+	component->details.direct.address = i2c_interface->address;
+	component->details.direct.bus = i2c_interface->bus;
+	component->details.direct.eid = i2c_interface->eid;
+	component->details.direct.i2c_mode =
+		pcd_get_i2c_interface_i2c_mode (i2c_interface);
+	component->details.direct.mux_count = i2c_interface->mux_count;
+
+	return 0;
+}
+
+
+/**
+ * Function to read and parse an MCTP bridge component element and fill the component info structure with it.
+ *
+ * @param pcd_flash The PCD flash instance.
+ * @param component The component container to fill.
+ * @param entry_format The format version of the component element.
+ * @param entry_data The raw data of the component element read from flash.
+ * @param entry_len The length of the raw component element data.
+ *
+ * @return 0 if the component was read and parsed successfully or an error code.
+ */
+static int pcd_flash_read_mctp_bridge_component (const struct pcd_flash *pcd_flash,
+	struct pcd_component_info *component, uint8_t entry_format, uint8_t *entry_data,
+	size_t entry_len)
+{
+	const struct pcd_mctp_bridge_component_element_v2 *element_v2 =
+		(struct pcd_mctp_bridge_component_element_v2*) entry_data;
+	const struct pcd_component_common_v3 *hdr_v3 = (struct pcd_component_common_v3*) entry_data;
+	const struct pcd_mctp_bridge_component_connection_v3 *connection_v3 = NULL;
+	int status;
+
+	component->type = PCD_COMPONENT_TYPE_MCTP_BRIDGE;
+
+	switch (entry_format) {
+		case 0:
+		case 1:
+		case 2:
+			if (entry_len < sizeof (*element_v2)) {
+				return PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
+			}
+
+			status = pcd_flash_read_v2_component_common (component, &element_v2->component);
+			if (ROT_IS_ERROR (status)) {
+				return status;
+			}
+
+			component->components_count = element_v2->connection.components_count;
+
+			component->details.mctp_bridge.pci_device_id = element_v2->connection.device_id;
+			component->details.mctp_bridge.pci_vid = element_v2->connection.vendor_id;
+			component->details.mctp_bridge.pci_subsystem_id =
+				element_v2->connection.subsystem_device_id;
+			component->details.mctp_bridge.pci_subsystem_vid =
+				element_v2->connection.subsystem_vendor_id;
+
+			break;
+
+		case 3:
+		default:
+			if (entry_len < sizeof (struct pcd_component_common_v3)) {
+				return PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
+			}
+
+			if (entry_len < pcd_component_common_v3_length (hdr_v3) + sizeof (*connection_v3)) {
+				return PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT;
+			}
+
+			status = pcd_flash_read_v3_component_common (component, hdr_v3);
+			if (ROT_IS_ERROR (status)) {
+				return status;
+			}
+
+			connection_v3 = pcd_get_component_v3_details (hdr_v3);
+
+			component->details.mctp_bridge.pci_device_id = connection_v3->device_id;
+			component->details.mctp_bridge.pci_vid = connection_v3->vendor_id;
+			component->details.mctp_bridge.pci_subsystem_id =
+				connection_v3->subsystem_device_id;
+			component->details.mctp_bridge.pci_subsystem_vid =
+				connection_v3->subsystem_vendor_id;
+
+			break;
+	}
+
+	return 0;
+}
+
+/**
+ * Function to read and parse a TCG log component element and fill the component info structure with it.
+ *
+ * @param pcd_flash The PCD flash instance.
+ * @param component The component container to fill.
+ * @param entry_format The format version of the component element.
+ * @param entry_data The raw data of the component element read from flash.
+ * @param entry_len The length of the raw component element data.
+ *
+ * @return 0 if the component was read and parsed successfully or an error code.
+ */
+static int pcd_flash_read_tcg_log_component (const struct pcd_flash *pcd_flash,
+	struct pcd_component_info *component, uint8_t entry_format, uint8_t *entry_data,
+	size_t entry_len)
+{
+	const struct pcd_tcg_log_component_element_v2 *element_v2 =
+		(struct pcd_tcg_log_component_element_v2*) entry_data;
+	const struct pcd_component_common_v3 *hdr_v3 = (struct pcd_component_common_v3*) entry_data;
+
+	int status;
+
+	component->type = PCD_COMPONENT_TYPE_TCG_LOG;
+
+	switch (entry_format) {
+		case 0:
+		case 1:
+		case 2:
+			/* This part is not going to be used because TCG Log components are only supported in PCD v3 and above.
+			 * However, the TCG Log component element format version 2 was defined before the v3 PCD was added,
+			 * therefore we support it here to keep consistency with the original definition of the TCG Log component element.
+			 */
+			if (entry_len < sizeof (*element_v2)) {
+				return PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT;
+			}
+
+			status = pcd_flash_read_v2_component_common (component, &element_v2->component);
+			if (ROT_IS_ERROR (status)) {
+				return status;
+			}
+			break;
+
+		case 3:
+		default:
+			if (entry_len < sizeof (struct pcd_component_common_v3)) {
+				return PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT;
+			}
+
+			if (entry_len < pcd_component_common_v3_length (hdr_v3)) {
+				return PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT;
+			}
+
+			status = pcd_flash_read_v3_component_common (component, hdr_v3);
+			if (ROT_IS_ERROR (status)) {
+				return status;
+			}
+
+			break;
+	}
+
+	return 0;
+}
+
+void pcd_flash_free_component (const struct pcd *pcd, struct pcd_component_info *component)
+{
+	if ((pcd == NULL) || (component == NULL)) {
+		return;
+	}
+
+	if (component->component_types != NULL) {
+		platform_free (component->component_types);
+		component->component_types = NULL;
+	}
+
+	component->component_type_count = 0;
+
+	platform_free (component->context);
+	component->context = NULL;
+}
+
+int pcd_flash_get_next_component (const struct pcd *pcd, struct pcd_component_info *component,
+	bool first)
+{
+	const struct pcd_flash *pcd_flash = TO_DERIVED_TYPE (pcd, const struct pcd_flash, base);
+	int status;
+	struct pcd_flash_component_info_context *context;
+
+	uint8_t *element_data = NULL;
+	uint8_t element_format;
+	size_t element_total_len;
+	uint8_t element_type;
+
+	/* For free_component to be safely called even in case of PCD_INVALID_ARGUMENT. */
+	if ((component != NULL) && first) {
+		memset (component, 0, sizeof (struct pcd_component_info));
+	}
+
+	if ((pcd_flash == NULL) || (component == NULL)) {
+		return PCD_INVALID_ARGUMENT;
+	}
+
+	if (!pcd_flash->base_flash.state->manifest_valid) {
+		return MANIFEST_NO_MANIFEST;
+	}
+
+	if (first) {
+		context = platform_calloc (1, sizeof (struct pcd_flash_component_info_context));
+		if (context == NULL) {
+			return PCD_NO_MEMORY;
+		}
+
+		component->context = context;
+	}
+
+	context = (struct pcd_flash_component_info_context*) component->context;
+
+	component->components_count = 0;
+	/* Keep the buffer allocated until free is explicitly called. */
+	component->component_type_count = 0;
+
+	/* Read to dynamically allocated buffer to be interpreted as target type. */
+	status = manifest_flash_read_element_data_multi_type (&pcd_flash->base_flash,
+		pcd_flash->base_flash.hash, pcd_flash_component_element_types,
+		ARRAY_SIZE (pcd_flash_component_element_types), context->start,	MANIFEST_NO_PARENT, 0,
+		&context->start, &element_type, &element_format, &element_total_len, &element_data, 0);
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	switch (element_type) {
+		case PCD_COMPONENT_DIRECT:
+			status = pcd_flash_read_direct_component (pcd_flash, component, element_format,
+				element_data, element_total_len);
+
+			break;
+
+		case PCD_COMPONENT_MCTP_BRIDGE:
+			status = pcd_flash_read_mctp_bridge_component (pcd_flash, component, element_format,
+				element_data, element_total_len);
+
+			break;
+
+		case PCD_COMPONENT_TCG_LOG:
+			status = pcd_flash_read_tcg_log_component (pcd_flash, component, element_format,
+				element_data, element_total_len);
+
+			break;
+
+		default:
+			/* Should never happen */
+			break;
+	}
+
+	platform_free (element_data);
+
+	if (!ROT_IS_ERROR (status)) {
+		context->start = context->start + 1;
+	}
+	else if (first) {
+		/* Free the component container if this is the first element and an error occurred. */
+		pcd_flash_free_component (pcd, component);
+	}
+
+	return status;
 }
 
 /**
@@ -468,11 +872,11 @@ int pcd_flash_init (struct pcd_flash *pcd, struct pcd_flash_state *state, const 
 	pcd->base.base.is_empty = pcd_flash_is_empty;
 
 	pcd->base.buffer_supported_components = pcd_flash_buffer_supported_components;
-	pcd->base.get_next_mctp_bridge_component = pcd_flash_get_next_mctp_bridge_component;
 	pcd->base.get_port_info = pcd_flash_get_port_info;
 	pcd->base.get_rot_info = pcd_flash_get_rot_info;
 	pcd->base.get_power_controller_info = pcd_flash_get_power_controller_info;
-	pcd->base.get_next_tcg_log_component = pcd_flash_get_next_tcg_log_component;
+	pcd->base.get_next_component = pcd_flash_get_next_component;
+	pcd->base.free_component = pcd_flash_free_component;
 
 	return 0;
 }

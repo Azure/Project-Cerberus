@@ -121,25 +121,64 @@ struct pcd_mux_info {
 };
 
 /**
- * Container for MCTP bridge components info.
+ * Allowed component type IDs structure for V3 multi-source components.
  */
-struct pcd_mctp_bridge_components_info {
-	void *context;				/**< Implementation context. */
-	uint32_t component_id;		/**< Unique identifier for component type connected to bridge */
+struct pcd_allowed_component_type_info {
+	uint32_t cfm_component_id;	/**< Component ID to match component policy from CFM. */
+	uint8_t min_usage;			/**< Minimum number of device instances to use this policy. 0 – no enforcement. */
+	uint8_t max_usage;			/**< Maximum number of device instances to use this policy. 0 – no enforcement. */
+};
+
+
+/**
+ * Component types for pcd_component_info container.
+ */
+enum pcd_component_type {
+	PCD_COMPONENT_TYPE_DIRECT = 0,
+	PCD_COMPONENT_TYPE_MCTP_BRIDGE,
+	PCD_COMPONENT_TYPE_TCG_LOG,
+};
+
+/**
+ * Direct component connection info.
+ */
+struct pcd_direct_connection_info {
+	uint8_t mux_count;			/**< Number of muxes in I2C path from RoT to device. */
+	enum pcd_i2c_mode i2c_mode;	/**< I2C mode */
+	uint8_t bus;				/**< I2C bus device is on. */
+	uint8_t address;			/**< Device I2C slave address. */
+	uint8_t eid;				/**< Device MCTP EID, 0x00 if not utilizing MCTP. */
+};
+
+/**
+ * MCTP bridge component connection info.
+ */
+struct pcd_mctp_bridge_connection_info {
 	uint16_t pci_vid;			/**< PCI Vendor ID */
 	uint16_t pci_device_id;		/**< PCI Device ID */
 	uint16_t pci_subsystem_vid;	/**< PCI Subsystem Vendor ID */
 	uint16_t pci_subsystem_id;	/**< PCI Subsystem ID */
-	uint8_t components_count;	/**< Number of identical components this element describes. */
 };
 
+
 /**
- * Container for TCG Log components info.
+ * Container for PCD component connection info.
  */
-struct pcd_tcg_log_components_info {
-	int index;					/**< Relative index of the component element in the PCD. */
-	uint32_t component_id;		/**< Unique identifier for component type defined in RoT TCG Log */
-	uint8_t components_count;	/**< Number of identical components this element describes. */
+struct pcd_component_info {
+	void *context;												/**< Implementation context. */
+
+	enum pcd_component_type type;								/**< Component type. */
+
+	uint32_t component_id;										/**< Unique identifier for component type. */
+	uint8_t components_count;									/**< Number of identical components this element describes. */
+	uint8_t component_type_count;								/**< Count of allowed component types. */
+	struct pcd_allowed_component_type_info *component_types;	/**< List of allowed component types. */
+
+	union {
+		struct pcd_direct_connection_info direct;				/**< Direct I2C component connection info. */
+		struct pcd_mctp_bridge_connection_info mctp_bridge;		/**< MCTP bridge component connection info. */
+		/**< TCG log component doesn't have connection info. */
+	} details;
 };
 
 #pragma pack(push, 1)
@@ -179,24 +218,6 @@ struct pcd {
 		uint8_t *pcd_component_ids);
 
 	/**
-	 * Get next MCTP bridge component from PCD.
-	 *
-	 * @param pcd The PCD to query.
-	 * @param component A container to be updated with the component information.  If first is not
-	 * 	true, then same container that was passed previously needs to be passed in.  Instances never
-	 * 	passed to this function need to have first set to true.
-	 * @param first Fetch first MCTP bridge component from PCD, or next MCTP component since last
-	 * 	call.
-	 *
-	 * @return 0 if a component was found or an error code.
-	 */
-	int (*get_next_mctp_bridge_component) (const struct pcd *pcd,
-		struct pcd_mctp_bridge_components_info *component, bool first);
-
-	/* TODO Implement a similar function to get_next_mctp_bridge_component for direct connection
-		components */
-
-	/**
 	 * Get RoT info.
 	 *
 	 * @param pcd The PCD to query.
@@ -229,20 +250,80 @@ struct pcd {
 		struct pcd_power_controller_info *info);
 
 	/**
-	 * Get next TCG Log component from PCD.
+	 * Get next component from PCD.
+	 *
+	 * Currently supported component types are Direct I2C, MCTP Bridge and TCG Log.
+	 *
+	 * It is necessary to call free_component on the output container before making another
+	 * call with `first` set to true. The exception is when a call with `first` set to true
+	 * fails. In this case, free_component can still safely be called, but is not strictly required.
+	 *
+	 * @note see the usage recommendations below.
 	 *
 	 * @param pcd The PCD to query.
 	 * @param component A container to be updated with the component information.  If first is not
 	 * 	true, then same container that was passed previously needs to be passed in.  Instances never
 	 * 	passed to this function need to have first set to true.
-	 * @param first Fetch first TCG Log component from PCD, or next TCG Log component since last
+	 * @param first Fetch first component from PCD, or next component since last
 	 * 	call.
 	 *
 	 * @return 0 if a component was found or an error code.
 	 */
-	int (*get_next_tcg_log_component) (const struct pcd *pcd,
-		struct pcd_tcg_log_components_info *component, bool first);
+	int (*get_next_component) (const struct pcd *pcd, struct pcd_component_info *component,
+		bool first);
+
+	/**
+	 * Free content within a component container.  Calls to this function when a container has
+	 * already been freed are allowed.
+	 *
+	 * @param pcd The PCD instance that provided the manifest.
+	 * @param component The component container with content to free.
+	 */
+	void (*free_component) (const struct pcd *pcd, struct pcd_component_info *component);
 };
+
+/**
+ * Regarding the usage of `get_next_component`/`free_component` API:
+ *
+ * The PCD module initializes internal context when `get_next_component`
+ * is called with `first = true`. This context is then reused by all subsequent
+ * calls with `first = false`.
+ *
+ * Each call with `first = false` operates on the same `struct pcd_component_info`
+ * instance that was initialized during the corresponding `first = true` call.
+ *
+ * The `free_component` function must be called exactly once for each
+ * `first = true` call to release resources associated with this context.
+ *
+ * It is safe to call `free_component` even if the initial `get_next_component(..., true)`
+ * call fails.
+ *
+ * Suggested patterns of usage:
+ *
+ * bool first = true;
+ * int status = 0;
+ * struct pcd_component_info info;
+ *
+ * while (!ROT_IS_ERROR(status)) {
+ *     status = pcd.get_next_component (&pcd, &info, first);
+ *     // process component info
+ *     first = false;
+ * }
+ * pcd.free_component(&pcd, &info);
+ *
+ *
+ * int status;
+ * struct pcd_component_info info;
+ *
+ * for (status = pcd.get_next_component(&pcd, &info, true);
+ *     !ROT_IS_ERROR(status);
+ *     status = pcd.get_next_component(&pcd, &info, false))
+ * {
+ *     // process component
+ * }
+ * pcd.free_component(&pcd, &info);
+ *
+ */
 
 
 #define	PCD_ERROR(code)		ROT_ERROR (ROT_MODULE_PCD, code)

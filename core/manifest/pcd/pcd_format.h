@@ -193,7 +193,7 @@ struct pcd_power_controller_element {
 /**
  * Container for fields common to component elements.
  */
-struct pcd_component_common {
+struct pcd_component_common_v2 {
 	uint8_t policy;				/**< Component attestation policy. */
 	uint8_t power_ctrl_reg;		/**< Power control register. */
 	uint8_t power_ctrl_mask;	/**< Power control mask. */
@@ -202,51 +202,116 @@ struct pcd_component_common {
 };
 
 /**
- * Element for a component with direct I2C connection to RoT.
+ * Allowed component types for multi-source PCD.
  */
-struct pcd_direct_i2c_component_element {
-	struct pcd_component_common component;	/**< Common component configuration. */
-	struct pcd_i2c_interface i2c;			/**< Component I2C interface. */
+struct pcd_allowed_component_type {
+	uint32_t cfm_component_id;	/**< Component ID to match component policy from CFM. */
+	uint8_t min_usage;			/**< Minimum number of device instances to use this policy. 0 – no enforcement. */
+	uint8_t max_usage;			/**< Maximum number of device instances to use this policy. 0 – no enforcement. */
+	uint8_t reserved[2];		/**< Unused. */
 };
 
 /**
- * Container for connection information for a component with connection to RoT through MCTP bridge.
+ * Container for fields common to component elements (v2).
+ *
+ * `component_id` field repesents generic component ID.
  */
-struct pcd_mctp_bridge_component_connection {
+struct pcd_component_common_v3 {
+	uint8_t policy;											/**< Component attestation policy. */
+	uint8_t power_ctrl_reg;									/**< Power control register. */
+	uint8_t power_ctrl_mask;								/**< Power control mask. */
+	uint8_t instances_count;								/**< Number of identical components this element describes. */
+	uint32_t component_id;									/**< Component ID. */
+	uint8_t component_types_count;							/**< Count of allowed component types. */
+	uint8_t reserved[3];									/**< Unused. */
+	struct pcd_allowed_component_type component_types[];	/**< List of allowed component types. */
+};
+
+/**
+ * Element for a component with direct I2C connection to RoT.
+ */
+struct pcd_direct_i2c_component_element_v2 {
+	struct pcd_component_common_v2 component;	/**< Common component configuration. */
+	struct pcd_i2c_interface i2c;				/**< Component I2C interface. */
+};
+
+/**
+ * Container for connection information for a component with connection to RoT through MCTP bridge (V2).
+ */
+struct pcd_mctp_bridge_component_connection_v2 {
 	uint16_t device_id;				/**< Device ID. */
 	uint16_t vendor_id;				/**< Vendor ID. */
 	uint16_t subsystem_device_id;	/**< Subsystem device ID. */
 	uint16_t subsystem_vendor_id;	/**< Subsystem vendor ID. */
 	uint8_t components_count;		/**< Number of identical components this element describes. */
 	uint8_t eid;					/**< Default EID to use if cannot retrieve EID table from MCTP bridge. */
-	uint16_t reserved;				/**< Unused. */
+	uint16_t reserved2;				/**< Unused. */
+};
+
+/**
+ * Container for connection information for a component with connection to RoT through MCTP bridge (V3).
+ *
+ * @note: V3 PCD components have instance count field in the common part, so in this struct this
+ * field is changed to reserved.
+ */
+struct pcd_mctp_bridge_component_connection_v3 {
+	uint16_t device_id;				/**< Device ID. */
+	uint16_t vendor_id;				/**< Vendor ID. */
+	uint16_t subsystem_device_id;	/**< Subsystem device ID. */
+	uint16_t subsystem_vendor_id;	/**< Subsystem vendor ID. */
+	uint8_t reserved1;				/**< Unused. */
+	uint8_t eid;					/**< Default EID to use if cannot retrieve EID table from MCTP bridge. */
+	uint16_t reserved2;				/**< Unused. */
 };
 
 /**
  * Element for a component with connection to RoT through MCTP bridge.
  */
-struct pcd_mctp_bridge_component_element {
-	struct pcd_component_common component;					/**< Common component configuration. */
-	struct pcd_mctp_bridge_component_connection connection;	/**< Component connection information. */
+struct pcd_mctp_bridge_component_element_v2 {
+	struct pcd_component_common_v2 component;					/**< Common component configuration. */
+	struct pcd_mctp_bridge_component_connection_v2 connection;	/**< Component connection information. */
 };
 
 /**
  * Element for a component defined in RoT TCG Log.
  */
-struct pcd_tcg_log_component_element {
-	struct pcd_component_common component;	/**< Common component configuration. */
+struct pcd_tcg_log_component_element_v2 {
+	struct pcd_component_common_v2 component;	/**< Common component configuration. */
 };
 
+#pragma pack(pop)
 
 /**
- * Get component connection portion from a MCTP bridge component element container.
+ * Get component connection portion from v2 component element container.
+ * Caller is responsible for checking the buffer sizes.
  *
- * @param component Pointer to a buffer containing a pcd_mctp_bridge_component_element element.
- * @param len Length of buffer
+ * @param component_v3 Pointer to a buffer containing a pcd_component_common_v2 element.
  */
-#define	pcd_get_mctp_bridge_component_connection(component, len) ((struct pcd_mctp_bridge_component_connection*) \
-	((component) + len - sizeof (struct pcd_mctp_bridge_component_connection)))
-#pragma pack(pop)
+#define pcd_component_common_v3_length(component_v3) \
+	(sizeof (struct pcd_component_common_v3) + \
+	((component_v3)->component_types_count * sizeof(struct pcd_allowed_component_type)))
+
+/**
+ * Get component connection portion from v2 component element container.
+ * Caller is responsible for checking the buffer sizes.
+ *
+ * @param component_v2 Pointer to a buffer containing a pcd_component_common_v2 element.
+ */
+#define pcd_get_component_v2_details(component_v2) \
+	((void *) ((uint8_t*) component_v2 + sizeof (struct pcd_component_common_v2)))
+
+/**
+ * Get component details portion from v3 component element container.
+ * Caller is responsible for checking the buffer sizes.
+ *
+ * @param component_v3 Pointer to a buffer containing a pcd_component_common_v3 element.
+ */
+static inline const void* pcd_get_component_v3_details (
+	const struct pcd_component_common_v3 *component_v3)
+{
+	return (void*) ((uint8_t*) component_v3 + offsetof (struct pcd_component_common_v3,
+		component_types[component_v3->component_types_count]));
+}
 
 
 #endif	/* PCD_FORMAT_H_ */

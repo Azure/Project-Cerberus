@@ -5555,6 +5555,63 @@ static void manifest_flash_v2_test_read_element_data_static_init (CuTest *test)
 	manifest_flash_v2_testing_validate_and_release (test, &manifest);
 }
 
+static void manifest_flash_v2_test_read_element_data_multi_type (CuTest *test)
+{
+	struct manifest_flash_v2_testing manifest;
+	int status;
+	uint8_t buffer[1024];
+	uint8_t *element = buffer;
+	size_t total = 0;
+	uint8_t type = 0xff;
+	uint8_t format = 0xff;
+	int found = -1;
+	uint8_t allowed_types[] = {
+		MANIFEST_PLATFORM_ID,
+		CFM_COMPONENT_DEVICE,
+	};
+
+	TEST_START;
+
+	manifest_flash_v2_testing_init_and_verify (test, &manifest, 0x10000, MANIFEST_NOT_SUPPORTED,
+		CFM_V2_MAGIC_NUM, &CFM_TESTING.manifest, 0, false, 0);
+
+	manifest_flash_v2_testing_read_element (test, &manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.manifest.plat_id_entry, 0, CFM_TESTING.manifest.plat_id_hash,
+		CFM_TESTING.manifest.plat_id_offset, CFM_TESTING.manifest.plat_id_len, sizeof (buffer), 0);
+
+	manifest_flash_v2_testing_read_element (test, &manifest, &CFM_TESTING.manifest,
+		CFM_TESTING.component_device1_entry, 1, CFM_TESTING.component_device1_hash,
+		CFM_TESTING.component_device1_offset, CFM_TESTING.component_device1_len, sizeof (buffer),
+		0);
+
+	status = manifest_flash_read_element_data_multi_type (&manifest.test, &manifest.hash.base,
+		allowed_types, ARRAY_SIZE (allowed_types), 0, MANIFEST_NO_PARENT, 0, &found, &type, &format,
+		&total, &element, sizeof (buffer));
+	CuAssertIntEquals (test, CFM_TESTING.manifest.plat_id_len, status);
+	CuAssertIntEquals (test, MANIFEST_PLATFORM_ID, type);
+	CuAssertIntEquals (test, CFM_TESTING.manifest.plat_id_entry, found);
+	CuAssertIntEquals (test, 1, format);
+	CuAssertIntEquals (test, CFM_TESTING.manifest.plat_id_len, total);
+
+	status = testing_validate_array (CFM_TESTING.manifest.plat_id, buffer, status);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_read_element_data_multi_type (&manifest.test, &manifest.hash.base,
+		allowed_types, ARRAY_SIZE (allowed_types), 1, MANIFEST_NO_PARENT, 0, &found, &type, &format,
+		&total, &element, sizeof (buffer));
+	CuAssertIntEquals (test, CFM_TESTING.component_device1_len, status);
+	CuAssertIntEquals (test, CFM_COMPONENT_DEVICE, type);
+	CuAssertIntEquals (test, CFM_TESTING.component_device1_entry, found);
+	CuAssertIntEquals (test, 0, format);
+	CuAssertIntEquals (test, CFM_TESTING.component_device1_len, total);
+
+	status = testing_validate_array (CFM_TESTING.manifest.raw +
+		CFM_TESTING.component_device1_offset, buffer, status);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_v2_testing_validate_and_release (test, &manifest);
+}
+
 static void manifest_flash_v2_test_read_element_data_null (CuTest *test)
 {
 	struct manifest_flash_v2_testing manifest;
@@ -8786,6 +8843,7 @@ TEST (manifest_flash_v2_test_read_element_data_with_read_offset_equal_to_element
 TEST (manifest_flash_v2_test_read_element_data_read_zero_length);
 TEST (manifest_flash_v2_test_read_element_data_read_null_element);
 TEST (manifest_flash_v2_test_read_element_data_static_init);
+TEST (manifest_flash_v2_test_read_element_data_multi_type);
 TEST (manifest_flash_v2_test_read_element_data_null);
 TEST (manifest_flash_v2_test_read_element_data_negative_start);
 TEST (manifest_flash_v2_test_read_element_data_verify_never_run);

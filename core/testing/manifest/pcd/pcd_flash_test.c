@@ -272,6 +272,143 @@ const struct pcd_testing_data PCD_TESTING = {
 };
 
 /**
+ * PCD with ID 0x1A for testing.
+ *
+ * PCD file: pcd_v3.xml
+ *
+ * python3 pcd_generator.py pcd_generator.config
+ * to_array.sh <output pcd bin>
+ */
+const uint8_t PCD_TESTING_V3_DATA[] = {
+	0x4c, 0x03, 0xa3, 0x58, 0x1a, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x09, 0x09, 0x00, 0x00,
+	0x00, 0xff, 0x01, 0x00, 0x98, 0x01, 0x08, 0x00, 0x42, 0xff, 0x01, 0x01, 0xa0, 0x01, 0x0c, 0x00,
+	0x43, 0xff, 0x03, 0x02, 0xac, 0x01, 0x14, 0x00, 0x44, 0xff, 0x03, 0x03, 0xc0, 0x01, 0x18, 0x00,
+	0x44, 0xff, 0x03, 0x04, 0xd8, 0x01, 0x30, 0x00, 0x45, 0xff, 0x03, 0x05, 0x08, 0x02, 0x0c, 0x00,
+	0x40, 0xff, 0x02, 0x06, 0x14, 0x02, 0x28, 0x00, 0x41, 0x40, 0x01, 0x07, 0x3c, 0x02, 0x08, 0x00,
+	0x41, 0x40, 0x01, 0x08, 0x44, 0x02, 0x08, 0x00, 0x13, 0xe9, 0x1c, 0x16, 0x0e, 0xcf, 0xd2, 0xbb,
+	0x3a, 0x86, 0x83, 0xb6, 0x01, 0xc4, 0xba, 0xcb, 0x04, 0xf0, 0xa5, 0x18, 0x9b, 0x97, 0xd9, 0x2d,
+	0x67, 0xf4, 0x6d, 0x69, 0xea, 0x1e, 0x25, 0x36, 0x4d, 0x9a, 0x65, 0x85, 0x38, 0xe7, 0x61, 0xba,
+	0xbb, 0xb3, 0xdc, 0x6a, 0x01, 0x3f, 0xb4, 0x11, 0x77, 0x16, 0x30, 0x68, 0x93, 0x9c, 0xc5, 0x89,
+	0xf1, 0xd1, 0x9a, 0x66, 0xab, 0xc9, 0x09, 0x7f, 0x96, 0x99, 0xc2, 0x19, 0x91, 0x86, 0xac, 0xca,
+	0x5a, 0x31, 0x34, 0x5a, 0x38, 0x53, 0xb1, 0x9e, 0xd8, 0x8d, 0x29, 0x21, 0x12, 0xaf, 0xad, 0x35,
+	0xb8, 0xef, 0x24, 0x40, 0x6c, 0x86, 0x18, 0xd1, 0x1e, 0xe3, 0xc8, 0x87, 0xf3, 0x08, 0x03, 0x87,
+	0x84, 0x0c, 0x1b, 0xd9, 0x3b, 0xb8, 0x52, 0x1d, 0xb2, 0x74, 0x1e, 0xaa, 0x5a, 0xdd, 0x38, 0xcf,
+	0xd9, 0xb7, 0x89, 0x6b, 0x77, 0x10, 0xed, 0x71, 0x0f, 0xff, 0x56, 0xe1, 0xc4, 0xb0, 0xe2, 0xb7,
+	0x18, 0x6b, 0xc3, 0xac, 0xa9, 0x61, 0xb9, 0x15, 0xb6, 0xa4, 0xe5, 0x5a, 0x9a, 0xe0, 0x41, 0x60,
+	0x69, 0xb8, 0xde, 0x83, 0x5d, 0x8b, 0x99, 0xca, 0xd6, 0xf4, 0x6f, 0xaa, 0x2f, 0x38, 0x28, 0x55,
+	0x1a, 0x92, 0x5f, 0xbd, 0x81, 0x31, 0x0c, 0x3c, 0x73, 0x43, 0xf0, 0x93, 0x12, 0xef, 0xcd, 0xa8,
+	0xa0, 0x55, 0x91, 0x8c, 0xe0, 0x0f, 0x55, 0x45, 0x57, 0x0f, 0x3b, 0xff, 0x0c, 0xf2, 0xbd, 0xc6,
+	0x41, 0xfe, 0x9a, 0xd8, 0x32, 0x5b, 0x7b, 0xec, 0xbc, 0x14, 0x98, 0xae, 0xf6, 0x21, 0x55, 0xe5,
+	0xc1, 0x45, 0x2c, 0x1c, 0xb9, 0x7d, 0x7d, 0x36, 0x40, 0x70, 0x82, 0x5f, 0x31, 0x32, 0x8b, 0xb4,
+	0xc1, 0x45, 0x5e, 0x9f, 0x9d, 0x37, 0x2a, 0x83, 0xf0, 0x22, 0x12, 0x84, 0x05, 0x1a, 0xf9, 0xc4,
+	0xb2, 0xd1, 0x41, 0x9d, 0xf4, 0x0b, 0x12, 0x2e, 0x1a, 0x12, 0xc0, 0x2d, 0x58, 0x70, 0x5e, 0x4c,
+	0xc1, 0x0a, 0x6f, 0xff, 0x25, 0x23, 0x1b, 0x60, 0x26, 0x11, 0x30, 0xc1, 0x83, 0xf3, 0x08, 0x24,
+	0xdb, 0x1b, 0x97, 0x6a, 0xcd, 0xc5, 0xde, 0xa5, 0x72, 0x99, 0xb4, 0xa7, 0x1a, 0xef, 0xfc, 0x3f,
+	0x89, 0xba, 0xa8, 0xac, 0xc4, 0xb5, 0x0e, 0xaa, 0xba, 0xb1, 0x99, 0x48, 0x42, 0x53, 0x59, 0x37,
+	0xd3, 0xc8, 0x52, 0x5c, 0xff, 0xdb, 0x6a, 0x6c, 0x04, 0x00, 0x00, 0x00, 0x53, 0x4b, 0x55, 0x31,
+	0x02, 0x02, 0x22, 0x14, 0x66, 0x07, 0x00, 0x00, 0x45, 0x04, 0x00, 0x00, 0x00, 0x50, 0xe0, 0x01,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x75, 0x77, 0x55, 0x03, 0x00, 0x00,
+	0x00, 0x70, 0xf0, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x0b, 0x00,
+	0x0c, 0x00, 0x0d, 0x00, 0x02, 0x30, 0x00, 0x00, 0x00, 0x70, 0xf0, 0x02, 0x05, 0x00, 0x00, 0x00,
+	0x03, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x0d, 0x00,
+	0x0e, 0x00, 0xaa, 0x00, 0x02, 0x35, 0x00, 0x00, 0x00, 0x70, 0xf0, 0x01, 0x02, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x04, 0x41, 0x0b, 0x10, 0x0a, 0x00, 0x00, 0x5c, 0x26, 0x05,
+	0x10, 0x27, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00, 0xd0, 0x07, 0x00, 0x00, 0xb8, 0x0b, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0xe8, 0x03, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x71, 0x00, 0x00,
+	0x00, 0x48, 0xe8, 0x01, 0x01, 0x04, 0x01, 0x0a, 0x00, 0x90, 0xd0, 0x03, 0x60, 0x76, 0x7b, 0xcf,
+	0x27, 0xdb, 0xfb, 0x00, 0x35, 0x7d, 0x7a, 0xd7, 0xc1, 0x9f, 0x91, 0x87, 0x3f, 0xa1, 0x64, 0x4d,
+	0x40, 0x75, 0xec, 0x06, 0x2d, 0xd9, 0x3a, 0x62, 0xae, 0x86, 0x74, 0x04, 0x34, 0xbf, 0x6a, 0x36,
+	0x9c, 0xbd, 0xbd, 0x0f, 0xc0, 0x15, 0x63, 0x2f, 0xf4, 0xbc, 0x1a, 0xe0, 0x8c, 0x02, 0xb1, 0x07,
+	0x29, 0xed, 0x07, 0x44, 0x32, 0x54, 0x96, 0xb9, 0xac, 0x30, 0x58, 0xf5, 0x58, 0x79, 0x66, 0xe6,
+	0x15, 0xb3, 0x87, 0x9a, 0x1c, 0x8d, 0x7f, 0x8f, 0x57, 0x1c, 0x36, 0xb4, 0x34, 0x08, 0xaf, 0x36,
+	0x9e, 0x1b, 0xd6, 0x13, 0x00, 0xfd, 0x97, 0xc7, 0xa6, 0x4a, 0x49, 0x32, 0x4a, 0x3c, 0x78, 0xc1,
+	0xa6, 0x41, 0x4a, 0x20, 0xf7, 0x21, 0xe9, 0x57, 0x88, 0x60, 0xe8, 0x83, 0xca, 0x69, 0x11, 0x3e,
+	0xf8, 0x25, 0x3b, 0x06, 0x12, 0xb5, 0x89, 0xd5, 0x06, 0x7b, 0x75, 0xfc, 0xfd, 0x96, 0x79, 0x06,
+	0xc2, 0x42, 0xd7, 0x40, 0x95, 0xeb, 0xc0, 0x46, 0x25, 0xcb, 0x8e, 0xcc, 0xde, 0x37, 0x9c, 0xd0,
+	0x8b, 0x27, 0x0b, 0x41, 0xd5, 0xb7, 0xf0, 0x8f, 0x4c, 0xa8, 0x97, 0xa2, 0x28, 0x7b, 0x86, 0x2e,
+	0xcc, 0xb0, 0xed, 0xfc, 0x45, 0xb5, 0xde, 0x74, 0x99, 0x79, 0x5c, 0x8d, 0xcd, 0x47, 0xc7, 0x6e,
+	0x0c, 0x60, 0x88, 0x39, 0xd7, 0x5e, 0xd8, 0xa1, 0x21, 0x35, 0xaf, 0x77, 0x0b, 0xec, 0x65, 0xc0,
+	0xad, 0xa0, 0x3a, 0xb7, 0xfe, 0x24, 0xbf, 0xb6, 0x13, 0x55, 0x6a, 0xf1, 0x4f, 0xa4, 0xc4, 0x53,
+	0xb5, 0xf6, 0x8f, 0x2c, 0xfd, 0xd9, 0x4d, 0xc0, 0x74, 0xe6, 0x16, 0x6c, 0x21, 0x5f, 0x02, 0x29,
+	0x02, 0x3e, 0xab, 0x4e, 0xb0, 0xc3, 0x6b, 0x2c, 0x27, 0x59, 0x60, 0xbb, 0x8b, 0x3a, 0xfa, 0x17,
+	0x0f, 0x9e, 0xf3, 0x80, 0x1f, 0x05, 0x28, 0x5a, 0xa5, 0x34, 0x27, 0x81
+};
+
+/**
+ * Length of the testing PCD.
+ */
+const size_t PCD_TESTING_V3_LEN = sizeof (PCD_TESTING_V3_DATA);
+
+/**
+ * PCD_DATA hash for testing.
+ *
+ * head -c -256 <file> | openssl dgst -sha256 -binary | to_array.sh -
+ */
+const uint8_t PCD_TESTING_V3_HASH[] = {
+	0x51, 0x52, 0xa4, 0xe7, 0xfb, 0x1d, 0x28, 0x0a, 0x78, 0xf9, 0x18, 0x41, 0x33, 0x1a, 0xfa, 0x3c,
+	0x1d, 0x16, 0x57, 0xcf, 0x18, 0xe8, 0x93, 0xea, 0x96, 0xef, 0xc1, 0xef, 0x09, 0xe1, 0xb7, 0x38
+};
+
+/**
+ * Components of the test PCD.
+ */
+const struct pcd_testing_data PCD_TESTING_V3 = {
+	.manifest = {
+		.raw = PCD_TESTING_V3_DATA,
+		.length = sizeof (PCD_TESTING_V3_DATA),
+		.hash = PCD_TESTING_V3_HASH,
+		.hash_len = sizeof (PCD_TESTING_V3_HASH),
+		.id = 0x1a,
+		.signature = PCD_TESTING_V3_DATA + (sizeof (PCD_TESTING_V3_DATA) - 256),
+		.sig_len = 256,
+		.sig_offset = (sizeof (PCD_TESTING_V3_DATA) - 256),
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = PCD_TESTING_V3_DATA + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x16c,
+		.toc_hash = PCD_TESTING_V3_DATA + MANIFEST_V2_TOC_HDR_OFFSET + 0x16c,
+		.toc_hash_len = 32,
+		.toc_hash_offset = MANIFEST_V2_TOC_HDR_OFFSET + 0x16c,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 9,
+		.toc_hashes = 9,
+		.plat_id = PCD_TESTING_V3_DATA + 0x198,
+		.plat_id_len = 0x0008,
+		.plat_id_str = PCD_PLATFORM_ID,
+		.plat_id_str_len = sizeof (PCD_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0x198,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.rot_len = 0x0028,
+	.rot_offset = 0x214,
+	.rot_entry = 6,
+	.rot_hash = 6,
+	.power_ctrl_len = 0x000c,
+	.power_ctrl_offset = 0x1a0,
+	.power_ctrl_entry = 1,
+	.power_ctrl_hash = 1,
+	.bridge_component_len = 0x18,
+	.bridge_component_offset = 0x1c0,
+	.bridge_component_entry = 3,
+	.bridge_component_hash = 3,
+	.direct_component_len = 0x14,
+	.direct_component_offset = 0x1ac,
+	.direct_component_entry = 2,
+	.direct_component_hash = 2,
+	.tcg_component_len = 0xc,
+	.tcg_component_offset = 0x208,
+	.tcg_component_entry = 5,
+	.tcg_component_hash = 5,
+	.port_len = 0x0008,
+	.port_offset = 0x23c,
+	.port_entry = 7,
+	.port_hash = 7,
+	.num_optional_elements = 5,
+};
+
+/**
  * PCD with ID 0x1B, platform ID SKU1-Specific for testing.
  *
  * PCD file: pcd_sku_specific.xml
@@ -3306,11 +3443,11 @@ static void pcd_flash_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, pcd.test.base.base.is_empty);
 
 	CuAssertPtrNotNull (test, pcd.test.base.buffer_supported_components);
-	CuAssertPtrNotNull (test, pcd.test.base.get_next_mctp_bridge_component);
 	CuAssertPtrNotNull (test, pcd.test.base.get_rot_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_port_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_power_controller_info);
-	CuAssertPtrNotNull (test, pcd.test.base.get_next_tcg_log_component);
+	CuAssertPtrNotNull (test, pcd.test.base.get_next_component);
+	CuAssertPtrNotNull (test, pcd.test.base.free_component);
 
 	CuAssertIntEquals (test, 0x10000, manifest_flash_get_addr (&pcd.test.base_flash));
 	CuAssertPtrEquals (test, &pcd.manifest.flash,
@@ -3400,11 +3537,11 @@ static void pcd_flash_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, pcd.test.base.base.is_empty);
 
 	CuAssertPtrNotNull (test, pcd.test.base.buffer_supported_components);
-	CuAssertPtrNotNull (test, pcd.test.base.get_next_mctp_bridge_component);
 	CuAssertPtrNotNull (test, pcd.test.base.get_rot_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_port_info);
 	CuAssertPtrNotNull (test, pcd.test.base.get_power_controller_info);
-	CuAssertPtrNotNull (test, pcd.test.base.get_next_tcg_log_component);
+	CuAssertPtrNotNull (test, pcd.test.base.get_next_component);
+	CuAssertPtrNotNull (test, pcd.test.base.free_component);
 
 	pcd_flash_testing_init_dependencies (test, &pcd, 0x10000);
 	manifest_flash_v3_testing_init_common (test, &pcd.manifest, 0x1000);
@@ -4308,237 +4445,6 @@ static void pcd_flash_test_get_platform_id_verify_never_run (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
-static void pcd_flash_test_get_next_mctp_bridge_component (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_mctp_bridge_components_info info;
-	uint32_t component_id1 = 1;
-	uint32_t component_id2 = 2;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0,
-		false, 0);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0x0B, info.pci_vid);
-	CuAssertIntEquals (test, 0x0A, info.pci_device_id);
-	CuAssertIntEquals (test, 0x0D, info.pci_subsystem_vid);
-	CuAssertIntEquals (test, 0x0C, info.pci_subsystem_id);
-	CuAssertIntEquals (test, 0x02, info.components_count);
-	CuAssertIntEquals (test, component_id1, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0x0E, info.pci_vid);
-	CuAssertIntEquals (test, 0x0D, info.pci_device_id);
-	CuAssertIntEquals (test, 0x0A, info.pci_subsystem_vid);
-	CuAssertIntEquals (test, 0x0F, info.pci_subsystem_id);
-	CuAssertIntEquals (test, 0x01, info.components_count);
-	CuAssertIntEquals (test, component_id2, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 0,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 2, 0, 0, 0, 0, 0);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_mctp_bridge_component_static_init (CuTest *test)
-{
-	struct pcd_flash_testing pcd = {
-		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
-			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
-			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
-			sizeof (pcd.manifest.platform_id))
-	};
-	struct pcd_mctp_bridge_components_info info;
-	uint32_t component_id1 = 1;
-	uint32_t component_id2 = 2;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0, false, 0);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0x0B, info.pci_vid);
-	CuAssertIntEquals (test, 0x0A, info.pci_device_id);
-	CuAssertIntEquals (test, 0x0D, info.pci_subsystem_vid);
-	CuAssertIntEquals (test, 0x0C, info.pci_subsystem_id);
-	CuAssertIntEquals (test, 0x02, info.components_count);
-	CuAssertIntEquals (test, component_id1, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 0x0E, info.pci_vid);
-	CuAssertIntEquals (test, 0x0D, info.pci_device_id);
-	CuAssertIntEquals (test, 0x0A, info.pci_subsystem_vid);
-	CuAssertIntEquals (test, 0x0F, info.pci_subsystem_id);
-	CuAssertIntEquals (test, 0x01, info.components_count);
-	CuAssertIntEquals (test, component_id2, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 0,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 2, 0, 0, 0, 0, 0);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_mctp_bridge_component_null (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_mctp_bridge_components_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (NULL, &info, true);
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, NULL, true);
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_mctp_bridge_component_verify_never_run (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_mctp_bridge_components_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_mctp_bridge_component_component_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_mctp_bridge_components_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
-
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_mctp_bridge_component_no_components (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_mctp_bridge_components_info info;
-	int status = 0;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_COMPONENTS_TESTING, 0, false,
-		0);
-
-	manifest_flash_v3_testing_iterate_manifest_toc_no_verify (test, &pcd.manifest,
-		&PCD_NO_COMPONENTS_TESTING.manifest, 0,	PCD_NO_COMPONENTS_TESTING.manifest.toc_entries - 1);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_mctp_bridge_component_malformed_component (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_mctp_bridge_components_info info;
-	int status = 0;
-	struct manifest_toc_entry bad_entry;
-	uint8_t bad_data[3];
-
-	TEST_START;
-
-	bad_entry.type_id = PCD_COMPONENT_MCTP_BRIDGE;
-	bad_entry.parent = 0xff;
-	bad_entry.format = 2;
-	bad_entry.hash_id = PCD_TESTING.bridge_component_hash;
-	bad_entry.offset = PCD_TESTING.bridge_component_offset;
-	bad_entry.length = sizeof (bad_data);
-
-	memset (bad_data, 0x55, sizeof (bad_data));
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, true, 0);
-
-	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
-		&PCD_TESTING.manifest, PCD_TESTING.bridge_component_entry, 0,
-		PCD_TESTING.bridge_component_hash, PCD_TESTING.bridge_component_offset, bad_entry.length,
-		bad_entry.length, 0, &bad_entry, NULL);
-
-	status = pcd.test.base.get_next_mctp_bridge_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
 static void pcd_flash_test_get_rot_info (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -5314,269 +5220,47 @@ static void pcd_flash_test_get_power_controller_info_power_controller_read_error
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
-static void pcd_flash_test_get_next_tcg_log_component (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_tcg_log_components_info info;
-	uint32_t component_id1 = 0;
-	uint32_t component_id2 = 1;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_TCG_LOG_COMPONENTS_TESTING, 0,
-		false, 0);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry, 0,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_hash,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_offset,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len, 0);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, component_id1, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry + 1,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry + 1,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_hash + 1,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_offset +
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len, 0);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, component_id2, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.manifest, 0,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry + 2, 0, 0, 0, 0, 0);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_tcg_log_component_static_init (CuTest *test)
-{
-	struct pcd_flash_testing pcd = {
-		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
-			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
-			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
-			sizeof (pcd.manifest.platform_id))
-	};
-
-	struct pcd_tcg_log_components_info info;
-	uint32_t component_id1 = 0;
-	uint32_t component_id2 = 1;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING, 0, false, 0);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry, 0,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_hash,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_offset,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len, 0);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, component_id1, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry + 1,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry + 1,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_hash + 1,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_offset +
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_len, 0);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, component_id2, info.component_id);
-
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.manifest, 0,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry + 2, 0, 0, 0, 0, 0);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, false);
-	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_tcg_log_component_null (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_tcg_log_components_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_TCG_LOG_COMPONENTS_TESTING, 0,
-		false, 0);
-
-	status = pcd.test.base.get_next_tcg_log_component (NULL, &info, true);
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, NULL, true);
-	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_tcg_log_component_verify_never_run (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_tcg_log_components_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init (test, &pcd, 0x10000);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_tcg_log_component_component_read_error (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_tcg_log_components_info info;
-	int status;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_TCG_LOG_COMPONENTS_TESTING, 0,
-		false, 0);
-
-	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
-		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
-	CuAssertIntEquals (test, 0, status);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_tcg_log_component_no_components (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_tcg_log_components_info info;
-	int status = 0;
-
-	TEST_START;
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_COMPONENTS_TESTING, 0, false,
-		0);
-
-	manifest_flash_v3_testing_iterate_manifest_toc_no_verify (test, &pcd.manifest,
-		&PCD_NO_COMPONENTS_TESTING.manifest, 0,	PCD_NO_COMPONENTS_TESTING.manifest.toc_entries - 1);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
-static void pcd_flash_test_get_next_tcg_log_component_malformed_component (CuTest *test)
-{
-	struct pcd_flash_testing pcd;
-	struct pcd_tcg_log_components_info info;
-	int status = 0;
-	struct manifest_toc_entry bad_entry;
-	uint8_t bad_data[3];
-
-	TEST_START;
-
-	bad_entry.type_id = PCD_COMPONENT_TCG_LOG;
-	bad_entry.parent = 0xff;
-	bad_entry.format = 2;
-	bad_entry.hash_id = PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_hash;
-	bad_entry.offset = PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_offset;
-	bad_entry.length = sizeof (bad_data);
-
-	memset (bad_data, 0x55, sizeof (bad_data));
-
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_TCG_LOG_COMPONENTS_TESTING, 0,
-		true, 0);
-
-	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
-		&PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_entry, 0,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_hash,
-		PCD_ONLY_TCG_LOG_COMPONENTS_TESTING.tcg_component_offset, bad_entry.length,
-		bad_entry.length, 0, &bad_entry, NULL);
-
-	status = pcd.test.base.get_next_tcg_log_component (&pcd.test.base, &info, true);
-	CuAssertIntEquals (test, PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT, status);
-
-	pcd_flash_testing_validate_and_release (test, &pcd);
-}
-
 static void pcd_flash_test_buffer_supported_components (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
 	uint8_t components[4096];
 	size_t components_len = sizeof (components);
-	struct pcd_supported_component supported_component[2] = {{1, 2}, {2, 1}};
-	size_t component_len = sizeof (supported_component[0]);
+	const struct pcd_supported_component *components_ptr =
+		(struct pcd_supported_component*) components;
+	struct pcd_supported_component supported_component[] = {{0, 1}, {1, 2}};
+	size_t element_read_op_len = 20;	/* It reads 20 bytes as the biggest possible common header */
 	int status;
+	size_t i;
 
 	TEST_START;
 
-	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0,
-		false, 0);
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
 
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_entry,
-		0, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_offset, PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.rot_len, 0);
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash,	PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
+		PCD_TESTING.rot_len, 0);
 
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash,
+		PCD_TESTING.direct_component_offset, PCD_TESTING.direct_component_len, element_read_op_len,
+		0);
 
-	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
-		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
-		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.bridge_component_entry, PCD_TESTING.direct_component_entry + 1,
+		PCD_TESTING.bridge_component_hash, PCD_TESTING.bridge_component_offset,
+		PCD_TESTING.bridge_component_len, element_read_op_len, 0);
 
 	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
 		(uint8_t*) components);
 
 	CuAssertIntEquals (test, sizeof (supported_component), status);
-	CuAssertIntEquals (test, supported_component[0].component_id,
-		buffer_unaligned_read32 ((uint32_t*) components));
-	CuAssertIntEquals (test, supported_component[1].component_id,
-		buffer_unaligned_read32 ((uint32_t*) (components + component_len)));
+
+	for (i = 0; i < ARRAY_SIZE (supported_component); ++i) {
+		CuAssertIntEquals (test, supported_component[i].component_id,
+			components_ptr[i].component_id);
+		CuAssertIntEquals (test, supported_component[i].component_count,
+			components_ptr[i].component_count);
+	}
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -5887,6 +5571,33 @@ static void pcd_flash_test_buffer_supported_components_rot_element_read_fail (Cu
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_buffer_supported_components_component_read_fail (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint32_t components[2];
+	size_t components_len = sizeof (components);
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.rot_entry, 0, PCD_TESTING.rot_hash, PCD_TESTING.rot_offset, PCD_TESTING.rot_len,
+		PCD_TESTING.rot_len, 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
 static void pcd_flash_test_buffer_supported_components_malformed_component_device (CuTest *test)
 {
 	struct pcd_flash_testing pcd;
@@ -5926,6 +5637,192 @@ static void pcd_flash_test_buffer_supported_components_malformed_component_devic
 	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, component_len,
 		(uint8_t*) components);
 	CuAssertIntEquals (test, PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_v3 (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	size_t components_len = sizeof (components);
+	const struct pcd_supported_component *components_ptr =
+		(struct pcd_supported_component*) components;
+	struct pcd_supported_component supported_component[] = {{0, 1}, {1, 2}, {5, 2}, {2, 1}};
+	const size_t element_read_op_len = 20;	/* It reads 20 bytes as the biggest possible common header */
+	int status;
+	size_t i;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, false, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.rot_entry, 0, PCD_TESTING_V3.rot_hash, PCD_TESTING_V3.rot_offset,
+		PCD_TESTING_V3.rot_len,	PCD_TESTING_V3.rot_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.direct_component_entry, 0, PCD_TESTING_V3.direct_component_hash,
+		PCD_TESTING_V3.direct_component_offset, PCD_TESTING_V3.direct_component_len,
+		element_read_op_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.bridge_component_entry, PCD_TESTING_V3.direct_component_entry + 1,
+		PCD_TESTING_V3.bridge_component_hash, PCD_TESTING_V3.bridge_component_offset,
+		PCD_TESTING_V3.bridge_component_len, element_read_op_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.bridge_component_entry + 1, PCD_TESTING_V3.bridge_component_entry + 1,
+		PCD_TESTING_V3.bridge_component_hash + 1, 0x1d8, 0x30, element_read_op_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.tcg_component_entry, PCD_TESTING_V3.bridge_component_entry + 2,
+		PCD_TESTING_V3.tcg_component_hash, PCD_TESTING_V3.tcg_component_offset,
+		PCD_TESTING_V3.tcg_component_len, element_read_op_len, 0);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+
+	CuAssertIntEquals (test, sizeof (supported_component), status);
+
+	for (i = 0; i < ARRAY_SIZE (supported_component); ++i) {
+		CuAssertIntEquals (test, supported_component[i].component_id,
+			components_ptr[i].component_id);
+		CuAssertIntEquals (test, supported_component[i].component_count,
+			components_ptr[i].component_count);
+	}
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_v3_malformed_direct_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	size_t components_len = sizeof (components);
+	struct manifest_toc_entry bad_entry;
+	const size_t element_read_op_len = 20;	/* It reads 20 bytes as the biggest possible common header */
+	int status;
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_DIRECT;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 3;
+	bad_entry.hash_id = PCD_TESTING_V3.direct_component_hash;
+	bad_entry.offset = PCD_TESTING_V3.direct_component_offset;
+	bad_entry.length = 3;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, true, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.rot_entry, 0, PCD_TESTING_V3.rot_hash,
+		PCD_TESTING_V3.rot_offset, PCD_TESTING_V3.rot_len, PCD_TESTING_V3.rot_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.direct_component_entry, 0,
+		PCD_TESTING_V3.direct_component_hash, PCD_TESTING_V3.direct_component_offset,
+		bad_entry.length, element_read_op_len, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_v3_malformed_mctp_bridge_component (
+	CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	size_t components_len = sizeof (components);
+	struct manifest_toc_entry bad_entry;
+	const size_t element_read_op_len = 20;	/* It reads 20 bytes as the biggest possible common header */
+	int status;
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_MCTP_BRIDGE;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 3;
+	bad_entry.hash_id = PCD_TESTING_V3.bridge_component_hash;
+	bad_entry.offset = PCD_TESTING_V3.bridge_component_offset;
+	bad_entry.length = 3;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, true, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.rot_entry, 0, PCD_TESTING_V3.rot_hash,
+		PCD_TESTING_V3.rot_offset, PCD_TESTING_V3.rot_len, PCD_TESTING_V3.rot_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.direct_component_entry, 0,
+		PCD_TESTING_V3.direct_component_hash, PCD_TESTING_V3.direct_component_offset,
+		PCD_TESTING_V3.direct_component_len, element_read_op_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.bridge_component_entry,
+		PCD_TESTING_V3.direct_component_entry + 1, PCD_TESTING_V3.bridge_component_hash,
+		PCD_TESTING_V3.bridge_component_offset,	bad_entry.length, element_read_op_len, 0,
+		&bad_entry, NULL);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT, status);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_buffer_supported_components_v3_malformed_tcg_log_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	uint8_t components[4096];
+	size_t components_len = sizeof (components);
+	struct manifest_toc_entry bad_entry;
+	const size_t element_read_op_len = 20;	/* It reads 20 bytes as the biggest possible common header */
+	int status;
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_TCG_LOG;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 3;
+	bad_entry.hash_id = PCD_TESTING_V3.tcg_component_hash;
+	bad_entry.offset = PCD_TESTING_V3.tcg_component_offset;
+	bad_entry.length = 3;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, true, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.rot_entry, 0, PCD_TESTING_V3.rot_hash,
+		PCD_TESTING_V3.rot_offset, PCD_TESTING_V3.rot_len, PCD_TESTING_V3.rot_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.direct_component_entry, 0,
+		PCD_TESTING_V3.direct_component_hash, PCD_TESTING_V3.direct_component_offset,
+		PCD_TESTING_V3.direct_component_len, element_read_op_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.bridge_component_entry,
+		PCD_TESTING_V3.direct_component_entry + 1, PCD_TESTING_V3.bridge_component_hash,
+		PCD_TESTING_V3.bridge_component_offset,	PCD_TESTING_V3.bridge_component_len,
+		element_read_op_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.bridge_component_entry + 1,
+		PCD_TESTING_V3.bridge_component_entry + 1, PCD_TESTING_V3.bridge_component_hash + 1, 0x1d8,
+		0x30, element_read_op_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.tcg_component_entry,
+		PCD_TESTING_V3.bridge_component_entry + 2, PCD_TESTING_V3.tcg_component_hash,
+		PCD_TESTING_V3.tcg_component_offset, bad_entry.length, element_read_op_len,	0, &bad_entry,
+		NULL);
+
+	status = pcd.test.base.buffer_supported_components (&pcd.test.base, 0, components_len,
+		(uint8_t*) components);
+	CuAssertIntEquals (test, PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT, status);
 
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
@@ -6010,6 +5907,643 @@ static void pcd_flash_test_is_empty_verify_never_run (CuTest *test)
 	pcd_flash_testing_validate_and_release (test, &pcd);
 }
 
+static void pcd_flash_test_get_next_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status = 0;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash,
+		PCD_TESTING.direct_component_offset, PCD_TESTING.direct_component_len,
+		PCD_TESTING.direct_component_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.bridge_component_entry, 3, PCD_TESTING.bridge_component_hash,
+		PCD_TESTING.bridge_component_offset, PCD_TESTING.bridge_component_len,
+		PCD_TESTING.bridge_component_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.bridge_component_entry, 4, PCD_TESTING.bridge_component_hash,
+		PCD_TESTING.bridge_component_offset, PCD_TESTING.bridge_component_len,
+		PCD_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_DIRECT, info.type);
+	CuAssertIntEquals (test, 1, info.components_count);
+	CuAssertIntEquals (test, 0, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertPtrNotNull (test, info.component_types);
+	CuAssertIntEquals (test, 0, info.component_types[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, info.component_types[0].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[0].max_usage);
+	CuAssertIntEquals (test, 0x0, info.details.direct.i2c_mode);
+	CuAssertIntEquals (test, 0x75, info.details.direct.address);
+	CuAssertIntEquals (test, 3, info.details.direct.bus);
+	CuAssertIntEquals (test, 0x77, info.details.direct.eid);
+	CuAssertIntEquals (test, 1, info.details.direct.mux_count);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+	CuAssertIntEquals (test, 2, info.components_count);
+	CuAssertIntEquals (test, 0x1, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertPtrNotNull (test, info.component_types);
+	CuAssertIntEquals (test, 0x1, info.component_types[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, info.component_types[0].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[0].max_usage);
+	CuAssertIntEquals (test, 0x0B, info.details.mctp_bridge.pci_vid);
+	CuAssertIntEquals (test, 0x0A, info.details.mctp_bridge.pci_device_id);
+	CuAssertIntEquals (test, 0x0D, info.details.mctp_bridge.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0C, info.details.mctp_bridge.pci_subsystem_id);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_mctp_bridge (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	uint32_t component_id1 = 1;
+	uint32_t component_id2 = 2;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0,
+		false, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+	CuAssertIntEquals (test, 0x0B, info.details.mctp_bridge.pci_vid);
+	CuAssertIntEquals (test, 0x0A, info.details.mctp_bridge.pci_device_id);
+	CuAssertIntEquals (test, 0x0D, info.details.mctp_bridge.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0C, info.details.mctp_bridge.pci_subsystem_id);
+	CuAssertIntEquals (test, 0x02, info.components_count);
+	CuAssertIntEquals (test, component_id1, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertIntEquals (test, component_id1, info.component_types[0].cfm_component_id);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+	CuAssertIntEquals (test, 0x0E, info.details.mctp_bridge.pci_vid);
+	CuAssertIntEquals (test, 0x0D, info.details.mctp_bridge.pci_device_id);
+	CuAssertIntEquals (test, 0x0A, info.details.mctp_bridge.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0F, info.details.mctp_bridge.pci_subsystem_id);
+	CuAssertIntEquals (test, 0x01, info.components_count);
+	CuAssertIntEquals (test, component_id2, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertIntEquals (test, component_id2, info.component_types[0].cfm_component_id);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 2, 0, 0, 0, 0, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_static_init (CuTest *test)
+{
+	struct pcd_flash_testing pcd = {
+		.test = pcd_flash_static_init (&pcd.state, &pcd.manifest.flash.base,
+			&pcd.manifest.hash.base, 0x10000, pcd.manifest.signature,
+			sizeof (pcd.manifest.signature), pcd.manifest.platform_id,
+			sizeof (pcd.manifest.platform_id))
+	};
+	struct pcd_component_info info;
+	uint32_t component_id1 = 1;
+	uint32_t component_id2 = 2;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_static_and_verify (test, &pcd, 0x10000,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING, 0,	false, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+	CuAssertIntEquals (test, 0x0B, info.details.mctp_bridge.pci_vid);
+	CuAssertIntEquals (test, 0x0A, info.details.mctp_bridge.pci_device_id);
+	CuAssertIntEquals (test, 0x0D, info.details.mctp_bridge.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0C, info.details.mctp_bridge.pci_subsystem_id);
+	CuAssertIntEquals (test, 0x02, info.components_count);
+	CuAssertIntEquals (test, component_id1, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertIntEquals (test, component_id1, info.component_types[0].cfm_component_id);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_hash + 1,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_offset +
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_len, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+	CuAssertIntEquals (test, 0x0E, info.details.mctp_bridge.pci_vid);
+	CuAssertIntEquals (test, 0x0D, info.details.mctp_bridge.pci_device_id);
+	CuAssertIntEquals (test, 0x0A, info.details.mctp_bridge.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0F, info.details.mctp_bridge.pci_subsystem_id);
+	CuAssertIntEquals (test, 0x01, info.components_count);
+	CuAssertIntEquals (test, component_id2, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertIntEquals (test, component_id2, info.component_types[0].cfm_component_id);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest,
+		&PCD_ONLY_BRIDGE_COMPONENTS_TESTING.manifest, 0,
+		PCD_ONLY_BRIDGE_COMPONENTS_TESTING.bridge_component_entry + 2, 0, 0, 0, 0, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_null (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = pcd.test.base.get_next_component (NULL, &info, true);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, NULL, true);
+	CuAssertIntEquals (test, PCD_INVALID_ARGUMENT, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_verify_never_run (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init (test, &pcd, 0x10000);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, MANIFEST_NO_MANIFEST, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_component_read_error (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, false, 0);
+
+	status = mock_expect (&pcd.manifest.flash.mock, pcd.manifest.flash.base.read,
+		&pcd.manifest.flash, FLASH_NO_MEMORY, MOCK_ARG (0x10000 + MANIFEST_V2_TOC_HDR_OFFSET),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (MANIFEST_V2_TOC_HEADER_SIZE));
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, FLASH_NO_MEMORY, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_no_components (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status = 0;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_NO_COMPONENTS_TESTING, 0, false,
+		0);
+
+	manifest_flash_v3_testing_iterate_manifest_toc_no_verify (test, &pcd.manifest,
+		&PCD_NO_COMPONENTS_TESTING.manifest, 0,	PCD_NO_COMPONENTS_TESTING.manifest.toc_entries - 1);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_malformed_direct_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status = 0;
+	struct manifest_toc_entry bad_entry;
+	uint8_t bad_data[3];
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_DIRECT;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 2;
+	bad_entry.hash_id = PCD_TESTING.direct_component_hash;
+	bad_entry.offset = PCD_TESTING.direct_component_offset;
+	bad_entry.length = sizeof (bad_data);
+
+	memset (bad_data, 0x55, sizeof (bad_data));
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, true, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING.manifest, PCD_TESTING.direct_component_entry, 0,
+		PCD_TESTING.direct_component_hash, PCD_TESTING.direct_component_offset, bad_entry.length,
+		bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_malformed_mctp_bridge_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status = 0;
+	struct manifest_toc_entry bad_entry;
+	uint8_t bad_data[3];
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_MCTP_BRIDGE;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 2;
+	bad_entry.hash_id = PCD_TESTING.bridge_component_hash;
+	bad_entry.offset = PCD_TESTING.bridge_component_offset;
+	bad_entry.length = sizeof (bad_data);
+
+	memset (bad_data, 0x55, sizeof (bad_data));
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING, 0, true, 0);
+
+	/* Direct entry goes first */
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest, &PCD_TESTING.manifest,
+		PCD_TESTING.direct_component_entry, 0, PCD_TESTING.direct_component_hash,
+		PCD_TESTING.direct_component_offset, PCD_TESTING.direct_component_len,
+		PCD_TESTING.direct_component_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING.manifest, PCD_TESTING.bridge_component_entry, 3,
+		PCD_TESTING.bridge_component_hash, PCD_TESTING.bridge_component_offset, bad_entry.length,
+		bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_v3 (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	int status = 0;
+
+	TEST_START;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, false, 0);
+
+	/* Direct entry goes first */
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.direct_component_entry, 0, PCD_TESTING_V3.direct_component_hash,
+		PCD_TESTING_V3.direct_component_offset,	PCD_TESTING_V3.direct_component_len,
+		PCD_TESTING_V3.direct_component_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.bridge_component_entry, 3, PCD_TESTING_V3.bridge_component_hash,
+		PCD_TESTING_V3.bridge_component_offset,	PCD_TESTING_V3.bridge_component_len,
+		PCD_TESTING_V3.bridge_component_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest, 4, 4, 4,
+		0x1d8, 0x30, 0x30, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.tcg_component_entry, 5, PCD_TESTING_V3.tcg_component_hash,
+		PCD_TESTING_V3.tcg_component_offset, PCD_TESTING_V3.tcg_component_len,
+		PCD_TESTING_V3.tcg_component_len, 0);
+
+	manifest_flash_v3_testing_read_element (test, &pcd.manifest, &PCD_TESTING_V3.manifest,
+		PCD_TESTING_V3.tcg_component_entry, 6, PCD_TESTING_V3.tcg_component_hash,
+		PCD_TESTING_V3.tcg_component_offset, PCD_TESTING_V3.tcg_component_len,
+		PCD_TESTING_V3.tcg_component_len, 0);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_DIRECT, info.type);
+	CuAssertIntEquals (test, 1, info.components_count);
+	CuAssertIntEquals (test, 0, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertPtrNotNull (test, info.component_types);
+	CuAssertIntEquals (test, 0, info.component_types[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, info.component_types[0].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[0].max_usage);
+	CuAssertIntEquals (test, 0x0, info.details.direct.i2c_mode);
+	CuAssertIntEquals (test, 0x75, info.details.direct.address);
+	CuAssertIntEquals (test, 3, info.details.direct.bus);
+	CuAssertIntEquals (test, 0x77, info.details.direct.eid);
+	CuAssertIntEquals (test, 1, info.details.direct.mux_count);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+	CuAssertIntEquals (test, 2, info.components_count);
+	CuAssertIntEquals (test, 0x1, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertPtrNotNull (test, info.component_types);
+	CuAssertIntEquals (test, 0x1, info.component_types[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, info.component_types[0].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[0].max_usage);
+	CuAssertIntEquals (test, 0x0B, info.details.mctp_bridge.pci_vid);
+	CuAssertIntEquals (test, 0x0A, info.details.mctp_bridge.pci_device_id);
+	CuAssertIntEquals (test, 0x0D, info.details.mctp_bridge.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0C, info.details.mctp_bridge.pci_subsystem_id);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+	CuAssertIntEquals (test, 2, info.components_count);
+	CuAssertIntEquals (test, 0x5, info.component_id);
+	CuAssertIntEquals (test, 3, info.component_type_count);
+	CuAssertPtrNotNull (test, info.component_types);
+	CuAssertIntEquals (test, 0x3, info.component_types[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, info.component_types[0].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[0].max_usage);
+	CuAssertIntEquals (test, 0x4, info.component_types[1].cfm_component_id);
+	CuAssertIntEquals (test, 0, info.component_types[1].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[1].max_usage);
+	CuAssertIntEquals (test, 0x6, info.component_types[2].cfm_component_id);
+	CuAssertIntEquals (test, 1, info.component_types[2].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[2].max_usage);
+	CuAssertIntEquals (test, 0x0d, info.details.mctp_bridge.pci_vid);
+	CuAssertIntEquals (test, 0x0c, info.details.mctp_bridge.pci_device_id);
+	CuAssertIntEquals (test, 0xaa, info.details.mctp_bridge.pci_subsystem_vid);
+	CuAssertIntEquals (test, 0x0e, info.details.mctp_bridge.pci_subsystem_id);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_TCG_LOG, info.type);
+	CuAssertIntEquals (test, 1, info.components_count);
+	CuAssertIntEquals (test, 0x2, info.component_id);
+	CuAssertIntEquals (test, 1, info.component_type_count);
+	CuAssertPtrNotNull (test, info.component_types);
+	CuAssertIntEquals (test, 0x2, info.component_types[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, info.component_types[0].min_usage);
+	CuAssertIntEquals (test, 0, info.component_types[0].max_usage);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, MANIFEST_ELEMENT_NOT_FOUND, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_v3_malformed_direct_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	struct manifest_toc_entry bad_entry;
+	struct pcd_component_common_v3 hdr;
+	int status = 0;
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_DIRECT;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 3;
+	bad_entry.hash_id = PCD_TESTING_V3.direct_component_hash;
+	bad_entry.offset = PCD_TESTING_V3.direct_component_offset;
+	bad_entry.length = 3;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, true, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.direct_component_entry, 0,
+		PCD_TESTING_V3.direct_component_hash, PCD_TESTING_V3.direct_component_offset,
+		bad_entry.length, bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT, status);
+
+	/* Component types count will mismatch */
+	bad_entry.length = sizeof (hdr);
+	memset (&hdr, 0x55, sizeof (hdr));
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.direct_component_entry, 0,
+		PCD_TESTING_V3.direct_component_hash, PCD_TESTING_V3.direct_component_offset,
+		bad_entry.length, bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+static void pcd_flash_test_get_next_component_v3_malformed_mctp_bridge_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	struct manifest_toc_entry bad_entry;
+	struct pcd_component_common_v3 hdr;
+	int status = 0;
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_MCTP_BRIDGE;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 3;
+	bad_entry.hash_id = PCD_TESTING_V3.bridge_component_hash;
+	bad_entry.offset = PCD_TESTING_V3.bridge_component_offset;
+	bad_entry.length = 3;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, true, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.direct_component_entry, 0,
+		PCD_TESTING_V3.direct_component_hash, PCD_TESTING_V3.direct_component_offset,
+		PCD_TESTING_V3.direct_component_len, PCD_TESTING_V3.direct_component_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.bridge_component_entry, 3,
+		PCD_TESTING_V3.bridge_component_hash, PCD_TESTING_V3.bridge_component_offset,
+		bad_entry.length, bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_DIRECT, info.type);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT, status);
+
+	/* Component types count will mismatch */
+	bad_entry.length = sizeof (hdr);
+	memset (&hdr, 0x55, sizeof (hdr));
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.bridge_component_entry, 3,
+		PCD_TESTING_V3.bridge_component_hash, PCD_TESTING_V3.bridge_component_offset,
+		bad_entry.length, bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, PCD_MALFORMED_BRIDGE_COMPONENT_ELEMENT, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
+
+
+static void pcd_flash_test_get_next_component_v3_malformed_tcg_log_component (CuTest *test)
+{
+	struct pcd_flash_testing pcd;
+	struct pcd_component_info info;
+	struct manifest_toc_entry bad_entry;
+	struct pcd_component_common_v3 hdr;
+	int status = 0;
+
+	TEST_START;
+
+	bad_entry.type_id = PCD_COMPONENT_TCG_LOG;
+	bad_entry.parent = 0xff;
+	bad_entry.format = 3;
+	bad_entry.hash_id = PCD_TESTING_V3.tcg_component_hash;
+	bad_entry.offset = PCD_TESTING_V3.tcg_component_offset;
+	bad_entry.length = 3;
+
+	pcd_flash_testing_init_and_verify (test, &pcd, 0x10000, &PCD_TESTING_V3, 0, true, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.direct_component_entry, 0,
+		PCD_TESTING_V3.direct_component_hash, PCD_TESTING_V3.direct_component_offset,
+		PCD_TESTING_V3.direct_component_len, PCD_TESTING_V3.direct_component_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.bridge_component_entry, 3,
+		PCD_TESTING_V3.bridge_component_hash, PCD_TESTING_V3.bridge_component_offset,
+		PCD_TESTING_V3.bridge_component_len, PCD_TESTING_V3.bridge_component_len, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, 4, 4, 4, 0x1d8, 0x30, 0x30, 0);
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.tcg_component_entry, 5,
+		PCD_TESTING_V3.tcg_component_hash, PCD_TESTING_V3.tcg_component_offset,	bad_entry.length,
+		bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, true);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_DIRECT, info.type);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, PCD_COMPONENT_TYPE_MCTP_BRIDGE, info.type);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT, status);
+
+	/* Component types count will mismatch */
+	bad_entry.length = sizeof (hdr);
+	memset (&hdr, 0x55, sizeof (hdr));
+
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &pcd.manifest,
+		&PCD_TESTING_V3.manifest, PCD_TESTING_V3.tcg_component_entry, 5,
+		PCD_TESTING_V3.tcg_component_hash, PCD_TESTING_V3.tcg_component_offset,	bad_entry.length,
+		bad_entry.length, 0, &bad_entry, NULL);
+
+	status = pcd.test.base.get_next_component (&pcd.test.base, &info, false);
+	CuAssertIntEquals (test, PCD_MALFORMED_TCG_LOG_COMPONENT_ELEMENT, status);
+
+	pcd.test.base.free_component (&pcd.test.base, &info);
+
+	pcd_flash_testing_validate_and_release (test, &pcd);
+}
 
 // *INDENT-OFF*
 TEST_SUITE_START (pcd_flash);
@@ -6058,13 +6592,6 @@ TEST (pcd_flash_test_get_platform_id_manifest_allocation);
 TEST (pcd_flash_test_get_platform_id_static_init);
 TEST (pcd_flash_test_get_platform_id_null);
 TEST (pcd_flash_test_get_platform_id_verify_never_run);
-TEST (pcd_flash_test_get_next_mctp_bridge_component);
-TEST (pcd_flash_test_get_next_mctp_bridge_component_static_init);
-TEST (pcd_flash_test_get_next_mctp_bridge_component_null);
-TEST (pcd_flash_test_get_next_mctp_bridge_component_verify_never_run);
-TEST (pcd_flash_test_get_next_mctp_bridge_component_component_read_error);
-TEST (pcd_flash_test_get_next_mctp_bridge_component_no_components);
-TEST (pcd_flash_test_get_next_mctp_bridge_component_malformed_component);
 TEST (pcd_flash_test_get_rot_info);
 TEST (pcd_flash_test_get_rot_info_v1);
 TEST (pcd_flash_test_get_rot_info_static_init);
@@ -6090,13 +6617,6 @@ TEST (pcd_flash_test_get_power_controller_info_null);
 TEST (pcd_flash_test_get_power_controller_info_verify_never_run);
 TEST (pcd_flash_test_get_power_controller_info_no_power_controller);
 TEST (pcd_flash_test_get_power_controller_info_power_controller_read_error);
-TEST (pcd_flash_test_get_next_tcg_log_component);
-TEST (pcd_flash_test_get_next_tcg_log_component_static_init);
-TEST (pcd_flash_test_get_next_tcg_log_component_null);
-TEST (pcd_flash_test_get_next_tcg_log_component_verify_never_run);
-TEST (pcd_flash_test_get_next_tcg_log_component_component_read_error);
-TEST (pcd_flash_test_get_next_tcg_log_component_no_components);
-TEST (pcd_flash_test_get_next_tcg_log_component_malformed_component);
 TEST (pcd_flash_test_buffer_supported_components);
 TEST (pcd_flash_test_buffer_supported_components_offset_nonzero);
 TEST (pcd_flash_test_buffer_supported_components_offset_too_large);
@@ -6106,12 +6626,30 @@ TEST (pcd_flash_test_buffer_supported_components_static_init);
 TEST (pcd_flash_test_buffer_supported_components_null);
 TEST (pcd_flash_test_buffer_supported_components_verify_never_run);
 TEST (pcd_flash_test_buffer_supported_components_rot_element_read_fail);
+TEST (pcd_flash_test_buffer_supported_components_component_read_fail);
 TEST (pcd_flash_test_buffer_supported_components_malformed_component_device);
+TEST (pcd_flash_test_buffer_supported_components_v3);
+TEST (pcd_flash_test_buffer_supported_components_v3_malformed_direct_component);
+TEST (pcd_flash_test_buffer_supported_components_v3_malformed_mctp_bridge_component);
+TEST (pcd_flash_test_buffer_supported_components_v3_malformed_tcg_log_component);
 TEST (pcd_flash_test_is_empty);
 TEST (pcd_flash_test_is_empty_empty_manifest);
 TEST (pcd_flash_test_is_empty_static_init);
 TEST (pcd_flash_test_is_empty_null);
 TEST (pcd_flash_test_is_empty_verify_never_run);
+TEST (pcd_flash_test_get_next_component);
+TEST (pcd_flash_test_get_next_component_mctp_bridge);
+TEST (pcd_flash_test_get_next_component_static_init);
+TEST (pcd_flash_test_get_next_component_null);
+TEST (pcd_flash_test_get_next_component_verify_never_run);
+TEST (pcd_flash_test_get_next_component_component_read_error);
+TEST (pcd_flash_test_get_next_component_no_components);
+TEST (pcd_flash_test_get_next_component_malformed_direct_component);
+TEST (pcd_flash_test_get_next_component_malformed_mctp_bridge_component);
+TEST (pcd_flash_test_get_next_component_v3);
+TEST (pcd_flash_test_get_next_component_v3_malformed_direct_component);
+TEST (pcd_flash_test_get_next_component_v3_malformed_mctp_bridge_component);
+TEST (pcd_flash_test_get_next_component_v3_malformed_tcg_log_component);
 
 TEST_SUITE_END;
 // *INDENT-ON*

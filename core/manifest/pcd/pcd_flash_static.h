@@ -22,13 +22,11 @@ int pcd_flash_get_rot_info (const struct pcd *pcd, struct pcd_rot_info *info);
 int pcd_flash_get_port_info (const struct pcd *pcd, uint8_t port_id, struct pcd_port_info *info);
 int pcd_flash_get_power_controller_info (const struct pcd *pcd,
 	struct pcd_power_controller_info *info);
-int pcd_flash_get_next_mctp_bridge_component (const struct pcd *pcd,
-	struct pcd_mctp_bridge_components_info *component, bool first);
 int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset, size_t length,
 	uint8_t *pcd_component_ids);
-int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
-	struct pcd_tcg_log_components_info *component, bool first);
-
+int pcd_flash_get_next_component (const struct pcd *pcd, struct pcd_component_info *component,
+	bool first);
+void pcd_flash_free_component (const struct pcd *pcd, struct pcd_component_info *component);
 
 /**
  * Constant initializer for the PCD API.
@@ -44,11 +42,11 @@ int pcd_flash_get_next_tcg_log_component (const struct pcd *pcd,
 			.is_empty = pcd_flash_is_empty, \
 		}, \
 		.buffer_supported_components = pcd_flash_buffer_supported_components, \
-		.get_next_mctp_bridge_component = pcd_flash_get_next_mctp_bridge_component, \
 		.get_port_info = pcd_flash_get_port_info, \
 		.get_rot_info = pcd_flash_get_rot_info, \
 		.get_power_controller_info = pcd_flash_get_power_controller_info, \
-		.get_next_tcg_log_component = pcd_flash_get_next_tcg_log_component, \
+		.get_next_component = pcd_flash_get_next_component, \
+		.free_component = pcd_flash_free_component, \
 	}
 
 

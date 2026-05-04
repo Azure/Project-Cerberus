@@ -437,21 +437,71 @@ int32_t visualize_pcd_power_controller_element (uint8_t *start, const char *pref
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char *prefix, int entry)
+int32_t vizualize_pcd_component_header (uint8_t *start, const char *prefix,	uint8_t format)
 {
 	uint8_t *pointer = start;
-	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
-	struct pcd_i2c_interface *interface;
+	struct pcd_component_common_v2 *component_v2 = (struct pcd_component_common_v2*) pointer;
+	struct pcd_component_common_v3 *component_v3 = (struct pcd_component_common_v3*) pointer;
 
-	pointer += (sizeof (struct pcd_component_common));
+	if (format <= 2) {
+		pointer += sizeof (struct pcd_component_common_v2);
+
+		printf ("%s\tHeader\n", prefix);
+		printf ("%s\t{\n", prefix);
+		printf ("%s\t\tpolicy: 0x%x\n", prefix, component_v2->policy);
+		printf ("%s\t\tpower_ctrl_reg: 0x%x\n", prefix, component_v2->power_ctrl_reg);
+		printf ("%s\t\tpower_ctrl_mask: 0x%x\n", prefix, component_v2->power_ctrl_mask);
+		printf ("%s\t\treserved: %i\n", prefix, component_v2->reserved);
+		printf ("%s\t\tcomponent_id: 0x%x\n", prefix, component_v2->component_id);
+		printf ("%s\t}\n", prefix);
+	}
+	else {
+		pointer += sizeof (struct pcd_component_common_v3);
+
+		printf ("%s\tHeader\n", prefix);
+		printf ("%s\t{\n", prefix);
+		printf ("%s\t\tpolicy: 0x%x\n", prefix, component_v3->policy);
+		printf ("%s\t\tpower_ctrl_reg: 0x%x\n", prefix, component_v3->power_ctrl_reg);
+		printf ("%s\t\tpower_ctrl_mask: 0x%x\n", prefix, component_v3->power_ctrl_mask);
+		printf ("%s\t\tinstances_count: %i\n", prefix, component_v3->instances_count);
+		printf ("%s\t\tcomponent_id: 0x%x\n", prefix, component_v3->component_id);
+		printf ("%s\t\tcomponent_types_count: %i\n", prefix, component_v3->component_types_count);
+		printf ("%s\t\tAllowedComponentTypes\n\t\t[\n", prefix);
+
+		for (int i = 0; i < component_v3->component_types_count; ++i) {
+			struct pcd_allowed_component_type *src_type =
+				(struct pcd_allowed_component_type*) pointer;
+
+			pointer += sizeof (struct pcd_allowed_component_type);
+
+			printf ("%s\t\t\tallowed_component\n", prefix);
+			printf ("%s\t\t\t{\n", prefix);
+			printf ("%s\t\t\t\tcfm_component_id: 0x%x\n", prefix, src_type->cfm_component_id);
+			printf ("%s\t\t\t\tmin_usage: %i\n", prefix, src_type->min_usage);
+			printf ("%s\t\t\t\tmax_usage: %i\n", prefix, src_type->max_usage);
+			printf ("%s\t\t\t\treserved: [%i, %i]\n", prefix, src_type->reserved[0],
+				src_type->reserved[1]);
+			printf ("%s\t\t\t}\n", prefix);
+		}
+
+		printf ("%s\t\t]\n", prefix);
+
+		printf ("%s\t}\n", prefix);
+	}
+
+	return (pointer - start);
+}
+
+int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char *prefix, int entry,
+	uint8_t format)
+{
+	uint8_t *pointer = start;
+	struct pcd_i2c_interface *interface;
 
 	printf ("%spcd_direct_i2c_component_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
-	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
-	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
-	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
-	printf ("%s\treserved: %i\n", prefix, component->reserved);
-	printf ("%s\tcomponent_id: 0x%x\n", prefix, component->component_id);
+
+	pointer += vizualize_pcd_component_header (pointer, prefix, format);
 
 	interface = (struct pcd_i2c_interface*) pointer;
 	pointer += sizeof (struct pcd_i2c_interface);
@@ -484,32 +534,57 @@ int32_t visualize_pcd_direct_i2c_component_element (uint8_t *start, const char *
 	return (pointer - start);
 }
 
-int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char *prefix, int entry)
+int32_t visualize_pcd_mctp_bridge_component_element (uint8_t *start, const char *prefix, int entry,
+	uint8_t format)
 {
 	uint8_t *pointer = start;
-	struct pcd_component_common *component = (struct pcd_component_common*) pointer;
-	struct pcd_mctp_bridge_component_connection *bridge_connection;
-
-	pointer += (sizeof (struct pcd_component_common));
+	struct pcd_mctp_bridge_component_connection_v2 *connection_v2;
+	struct pcd_mctp_bridge_component_connection_v3 *connection_v3;
 
 	printf ("%spcd_mctp_bridge_component_element (Entry %d)\n", prefix, entry);
 	printf ("%s{\n", prefix);
-	printf ("%s\tpolicy: 0x%x\n", prefix, component->policy);
-	printf ("%s\tpower_ctrl_reg: 0x%x\n", prefix, component->power_ctrl_reg);
-	printf ("%s\tpower_ctrl_mask: 0x%x\n", prefix, component->power_ctrl_mask);
-	printf ("%s\treserved: %i\n", prefix, component->reserved);
-	printf ("%s\tcomponent_id: 0x%x\n", prefix, component->component_id);
 
-	bridge_connection = (struct pcd_mctp_bridge_component_connection*) pointer;
-	pointer += sizeof (struct pcd_mctp_bridge_component_connection);
+	pointer += vizualize_pcd_component_header (pointer, prefix, format);
 
-	printf ("%s\tdevice_id: 0x%x\n", prefix, bridge_connection->device_id);
-	printf ("%s\tvendor_id: 0x%x\n", prefix, bridge_connection->vendor_id);
-	printf ("%s\tsubsystem_device_id: 0x%x\n", prefix, bridge_connection->subsystem_device_id);
-	printf ("%s\tsubsystem_vendor_id: 0x%x\n", prefix, bridge_connection->subsystem_vendor_id);
-	printf ("%s\tcomponents_count: %i\n", prefix, bridge_connection->components_count);
-	printf ("%s\teid: 0x%x\n", prefix, bridge_connection->eid);
-	printf ("%s\treserved: %i\n", prefix, bridge_connection->reserved);
+	if (format <= 2) {
+		connection_v2 = (struct pcd_mctp_bridge_component_connection_v2*) pointer;
+		pointer += sizeof (struct pcd_mctp_bridge_component_connection_v2);
+
+		printf ("%s\tdevice_id: 0x%x\n", prefix, connection_v2->device_id);
+		printf ("%s\tvendor_id: 0x%x\n", prefix, connection_v2->vendor_id);
+		printf ("%s\tsubsystem_device_id: 0x%x\n", prefix, connection_v2->subsystem_device_id);
+		printf ("%s\tsubsystem_vendor_id: 0x%x\n", prefix, connection_v2->subsystem_vendor_id);
+		printf ("%s\tcomponents_count: %i\n", prefix, connection_v2->components_count);
+		printf ("%s\teid: 0x%x\n", prefix, connection_v2->eid);
+		printf ("%s\treserved2: %i\n", prefix, connection_v2->reserved2);
+	}
+	else {
+		connection_v3 = (struct pcd_mctp_bridge_component_connection_v3*) pointer;
+		pointer += sizeof (struct pcd_mctp_bridge_component_connection_v3);
+
+		printf ("%s\tdevice_id: 0x%x\n", prefix, connection_v3->device_id);
+		printf ("%s\tvendor_id: 0x%x\n", prefix, connection_v3->vendor_id);
+		printf ("%s\tsubsystem_device_id: 0x%x\n", prefix, connection_v3->subsystem_device_id);
+		printf ("%s\tsubsystem_vendor_id: 0x%x\n", prefix, connection_v3->subsystem_vendor_id);
+		printf ("%s\treserved1: %i\n", prefix, connection_v3->reserved1);
+		printf ("%s\teid: 0x%x\n", prefix, connection_v3->eid);
+		printf ("%s\treserved2: %i\n", prefix, connection_v3->reserved2);
+	}
+
+	printf ("%s}\n", prefix);
+
+	return (pointer - start);
+}
+
+int32_t visualize_pcd_tcg_log_component_element (uint8_t *start, const char *prefix, int entry,
+	uint8_t format)
+{
+	uint8_t *pointer = start;
+
+	printf ("%spcd_tcg_log_component_element (Entry %d)\n", prefix, entry);
+	printf ("%s{\n", prefix);
+
+	pointer += vizualize_pcd_component_header (pointer, prefix, format);
 
 	printf ("%s}\n", prefix);
 
@@ -1454,12 +1529,13 @@ int32_t visualize_cfm (uint8_t *start, int extension_idx, uint8_t *measurement_h
 	return (pointer - start);
 }
 
-int32_t visualize_pcd (uint8_t *start)
+int32_t visualize_pcd (uint8_t *start, int extension_idx)
 {
 	uint8_t *pointer = start;
 	int32_t offset;
+	int entry;
 
-	offset = visualize_toc (pointer, false);
+	offset = visualize_toc (pointer, (extension_idx != 0));
 	if (offset == -1) {
 		return offset;
 	}
@@ -1467,29 +1543,42 @@ int32_t visualize_pcd (uint8_t *start)
 	pointer += offset;
 
 	for (int i = 0; i < entry_count; ++i) {
+		entry = (extension_idx * 255) + i;
+
 		switch (element_types[i]) {
 			case PCD_ROT:
-				offset = visualize_pcd_rot_element (pointer, "", i, element_formats[i]);
+				offset = visualize_pcd_rot_element (pointer, "", entry, element_formats[i]);
 				break;
 
 			case PCD_SPI_FLASH_PORT:
-				offset = visualize_pcd_port_element (pointer, "", i);
+				offset = visualize_pcd_port_element (pointer, "", entry);
 				break;
 
 			case PCD_POWER_CONTROLLER:
-				offset = visualize_pcd_power_controller_element (pointer, "", i);
+				offset = visualize_pcd_power_controller_element (pointer, "", entry);
 				break;
 
 			case PCD_COMPONENT_DIRECT:
-				offset = visualize_pcd_direct_i2c_component_element (pointer, "", i);
+				offset = visualize_pcd_direct_i2c_component_element (pointer, "", entry,
+					element_formats[i]);
 				break;
 
 			case PCD_COMPONENT_MCTP_BRIDGE:
-				offset = visualize_pcd_mctp_bridge_component_element (pointer, "", i);
+				offset = visualize_pcd_mctp_bridge_component_element (pointer, "", entry,
+					element_formats[i]);
+				break;
+
+			case PCD_COMPONENT_TCG_LOG:
+				offset = visualize_pcd_tcg_log_component_element (pointer, "", entry,
+					element_formats[i]);
+				break;
+
+			case MANIFEST_TOC_EXTENSION:
+				offset = visualize_pcd (pointer, extension_idx + 1);
 				break;
 
 			default:
-				offset = visualize_common_element (element_types[i], pointer, "", i);
+				offset = visualize_common_element (element_types[i], pointer, "", entry);
 				break;
 		}
 
@@ -1565,7 +1654,8 @@ int main (int argc, char **argv)
 			break;
 
 		case PCD_V2_MAGIC_NUM:
-			offset = visualize_pcd (manifest + sizeof (struct manifest_header));
+		case PCD_V3_MAGIC_NUM:
+			offset = visualize_pcd (manifest + sizeof (struct manifest_header), 0);
 			break;
 
 		default:

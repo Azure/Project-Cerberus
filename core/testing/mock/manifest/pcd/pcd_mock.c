@@ -104,19 +104,6 @@ static int pcd_mock_buffer_supported_components (const struct pcd *pcd, size_t o
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (components));
 }
 
-static int pcd_mock_get_next_mctp_bridge_component (const struct pcd *pcd,
-	struct pcd_mctp_bridge_components_info *component, bool first)
-{
-	struct pcd_mock *mock = (struct pcd_mock*) pcd;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, pcd_mock_get_next_mctp_bridge_component, pcd,
-		MOCK_ARG_PTR_CALL (component), MOCK_ARG_CALL (first));
-}
-
 static int pcd_mock_get_rot_info (const struct pcd *pcd, struct pcd_rot_info *info)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
@@ -153,8 +140,8 @@ static int pcd_mock_get_power_controller_info (const struct pcd *pcd,
 	MOCK_RETURN (&mock->mock, pcd_mock_get_power_controller_info, pcd, MOCK_ARG_PTR_CALL (info));
 }
 
-static int pcd_mock_get_next_tcg_log_component (const struct pcd *pcd,
-	struct pcd_tcg_log_components_info *component, bool first)
+static int pcd_mock_get_next_component (const struct pcd *pcd, struct pcd_component_info *component,
+	bool first)
 {
 	struct pcd_mock *mock = (struct pcd_mock*) pcd;
 
@@ -162,191 +149,41 @@ static int pcd_mock_get_next_tcg_log_component (const struct pcd *pcd,
 		return MOCK_INVALID_ARGUMENT;
 	}
 
-	MOCK_RETURN (&mock->mock, pcd_mock_get_next_tcg_log_component, pcd,
-		MOCK_ARG_PTR_CALL (component), MOCK_ARG_CALL (first));
+	MOCK_RETURN (&mock->mock, pcd_mock_get_next_component, pcd,	MOCK_ARG_PTR_CALL (component),
+		MOCK_ARG_CALL (first));
 }
 
-static int pcd_mock_func_arg_count (void *func)
+static void pcd_mock_free_component (const struct pcd *pcd, struct pcd_component_info *component)
 {
-	if (func == pcd_mock_verify) {
-		return 4;
+	struct pcd_mock *mock = (struct pcd_mock*) pcd;
+
+	if (mock == NULL) {
+		return;
 	}
-	else if ((func == pcd_mock_get_hash) || (func == pcd_mock_buffer_supported_components)) {
-		return 3;
-	}
-	else if ((func == pcd_mock_get_platform_id) || (func == pcd_mock_get_signature) ||
-		(func == pcd_mock_get_next_mctp_bridge_component) || (func == pcd_mock_get_port_info) ||
-		(func == pcd_mock_get_next_tcg_log_component)) {
-		return 2;
-	}
-	else if ((func == pcd_mock_get_id) || (func == pcd_mock_free_platform_id) ||
-		(func == pcd_mock_get_rot_info) || (func == pcd_mock_get_power_controller_info)) {
-		return 1;
-	}
-	else {
-		return 0;
-	}
+
+	MOCK_VOID_RETURN (&mock->mock, pcd_mock_free_component, pcd, MOCK_ARG_PTR_CALL (component));
 }
 
-static const char* pcd_mock_func_name_map (void *func)
-{
-	if (func == pcd_mock_verify) {
-		return "verify";
-	}
-	else if (func == pcd_mock_get_id) {
-		return "get_id";
-	}
-	else if (func == pcd_mock_get_platform_id) {
-		return "get_platform_id";
-	}
-	else if (func == pcd_mock_free_platform_id) {
-		return "free_platform_id";
-	}
-	else if (func == pcd_mock_get_hash) {
-		return "get_hash";
-	}
-	else if (func == pcd_mock_get_signature) {
-		return "get_signature";
-	}
-	else if (func == pcd_mock_is_empty) {
-		return "is_empty";
-	}
-	else if (func == pcd_mock_buffer_supported_components) {
-		return "buffer_supported_components";
-	}
-	else if (func == pcd_mock_get_next_mctp_bridge_component) {
-		return "get_next_mctp_bridge_component";
-	}
-	else if (func == pcd_mock_get_rot_info) {
-		return "get_rot_info";
-	}
-	else if (func == pcd_mock_get_port_info) {
-		return "get_port_info";
-	}
-	else if (func == pcd_mock_get_power_controller_info) {
-		return "get_power_controller_info";
-	}
-	else if (func == pcd_mock_get_next_tcg_log_component) {
-		return "get_next_tcg_log_component";
-	}
-	else {
-		return "unknown";
-	}
-}
+// *INDENT-OFF*
+MOCK_FUNCTION_TABLE_BEGIN (pcd, 4)
+    MOCK_FUNCTION (pcd, verify, 4,
+        MOCK_FUNCTION_ARGS ("hash", "verification", "hash_out", "hash_length"))
+    MOCK_FUNCTION (pcd, get_id, 1, MOCK_FUNCTION_ARGS ("id"))
+    MOCK_FUNCTION (pcd, get_platform_id, 2, MOCK_FUNCTION_ARGS ("id", "length"))
+    MOCK_FUNCTION (pcd, free_platform_id, 1, MOCK_FUNCTION_ARGS ("id"))
+    MOCK_FUNCTION (pcd, get_hash, 3, MOCK_FUNCTION_ARGS ("hash", "hash_out", "hash_length"))
+    MOCK_FUNCTION (pcd, get_signature, 2, MOCK_FUNCTION_ARGS ("signature", "length"))
+    MOCK_FUNCTION (pcd, is_empty, 0, MOCK_FUNCTION_ARGS ())
+    MOCK_FUNCTION (pcd, buffer_supported_components, 3, 
+		MOCK_FUNCTION_ARGS ("offset", "length", "components"))
+    MOCK_FUNCTION (pcd, get_rot_info, 1, MOCK_FUNCTION_ARGS ("info"))
+    MOCK_FUNCTION (pcd, get_port_info, 2, MOCK_FUNCTION_ARGS ("port_id", "info"))
+    MOCK_FUNCTION (pcd, get_power_controller_info, 1, MOCK_FUNCTION_ARGS ("info"))
+    MOCK_FUNCTION (pcd, get_next_component, 2, MOCK_FUNCTION_ARGS ("component", "first"))
+	MOCK_FUNCTION (pcd, free_component, 2, MOCK_FUNCTION_ARGS ("component"))
+MOCK_FUNCTION_TABLE_END (pcd)
+// *INDENT-ON*
 
-static const char* pcd_mock_arg_name_map (void *func, int arg)
-{
-	if (func == pcd_mock_verify) {
-		switch (arg) {
-			case 0:
-				return "hash";
-
-			case 1:
-				return "verification";
-
-			case 2:
-				return "hash_out";
-
-			case 3:
-				return "hash_length";
-		}
-	}
-	else if (func == pcd_mock_get_id) {
-		switch (arg) {
-			case 0:
-				return "id";
-		}
-	}
-	else if (func == pcd_mock_get_platform_id) {
-		switch (arg) {
-			case 0:
-				return "id";
-
-			case 1:
-				return "length";
-		}
-	}
-	else if (func == pcd_mock_free_platform_id) {
-		switch (arg) {
-			case 0:
-				return "id";
-		}
-	}
-	else if (func == pcd_mock_get_hash) {
-		switch (arg) {
-			case 0:
-				return "hash";
-
-			case 1:
-				return "hash_out";
-
-			case 2:
-				return "hash_length";
-		}
-	}
-	else if (func == pcd_mock_get_signature) {
-		switch (arg) {
-			case 0:
-				return "signature";
-
-			case 1:
-				return "length";
-		}
-	}
-	else if (func == pcd_mock_get_next_mctp_bridge_component) {
-		switch (arg) {
-			case 0:
-				return "component";
-
-			case 1:
-				return "first";
-		}
-	}
-	else if (func == pcd_mock_buffer_supported_components) {
-		switch (arg) {
-			case 0:
-				return "components";
-
-			case 1:
-				return "components_len";
-
-			case 2:
-				return "offset";
-		}
-	}
-	else if (func == pcd_mock_get_rot_info) {
-		switch (arg) {
-			case 0:
-				return "info";
-		}
-	}
-	else if (func == pcd_mock_get_port_info) {
-		switch (arg) {
-			case 0:
-				return "port_id";
-
-			case 1:
-				return "info";
-		}
-	}
-	else if (func == pcd_mock_get_power_controller_info) {
-		switch (arg) {
-			case 0:
-				return "info";
-		}
-	}
-	else if (func == pcd_mock_get_next_tcg_log_component) {
-		switch (arg) {
-			case 0:
-				return "component";
-
-			case 1:
-				return "first";
-		}
-	}
-
-	return "unknown";
-}
 
 /**
  * Initialize a mock instance for a pcd.
@@ -381,15 +218,13 @@ int pcd_mock_init (struct pcd_mock *mock)
 	mock->base.base.is_empty = pcd_mock_is_empty;
 
 	mock->base.buffer_supported_components = pcd_mock_buffer_supported_components;
-	mock->base.get_next_mctp_bridge_component = pcd_mock_get_next_mctp_bridge_component;
 	mock->base.get_rot_info = pcd_mock_get_rot_info;
 	mock->base.get_port_info = pcd_mock_get_port_info;
 	mock->base.get_power_controller_info = pcd_mock_get_power_controller_info;
-	mock->base.get_next_tcg_log_component = pcd_mock_get_next_tcg_log_component;
+	mock->base.get_next_component = pcd_mock_get_next_component;
+	mock->base.free_component = pcd_mock_free_component;
 
-	mock->mock.func_arg_count = pcd_mock_func_arg_count;
-	mock->mock.func_name_map = pcd_mock_func_name_map;
-	mock->mock.arg_name_map = pcd_mock_arg_name_map;
+	MOCK_INTERFACE_INIT (mock->mock, pcd);
 
 	return 0;
 }
