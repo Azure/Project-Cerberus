@@ -1777,7 +1777,7 @@ const struct attestation_discover* device_manager_get_discovery_object (struct d
 }
 
 /**
- * Get device manager device table entry number by device IDs
+ * Get device manager device table entry number by device IDs, searching only unidentified devices.
  *
  * @param mgr Device manager instance to utilize.
  * @param pci_vid The PCI vendor ID to utilize.
@@ -1787,8 +1787,8 @@ const struct attestation_discover* device_manager_get_discovery_object (struct d
  *
  * @return Device number of entry if found or an error code.
  */
-int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uint16_t pci_vid,
-	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id)
+int device_manager_get_unidentified_device_num_by_device_ids (struct device_manager *mgr,
+	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id)
 {
 	int i_device;
 
@@ -2242,6 +2242,36 @@ int device_manager_restart_device_discovery_by_handler (struct device_manager *m
 		if ((mgr->entries[i].state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
 			(mgr->entries[i].discover == discover)) {
 			mgr->entries[i].state = DEVICE_MANAGER_UNIDENTIFIED;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Reset devices that use a specific discovery handler back to unidentified state and clear their
+ * instance IDs. Devices using a different discovery handler or in NOT_ATTESTABLE state are left
+ * unchanged.
+ *
+ * @param mgr The device manager instance to utilize.
+ * @param discover The discovery handler to match. Only devices with this handler will be reset.
+ *
+ * @return 0 if the devices were reset or an error code.
+ */
+int device_manager_restart_device_discovery_and_instances_by_handler (struct device_manager *mgr,
+	const struct attestation_discover *discover)
+{
+	size_t i;
+
+	if ((mgr == NULL) || (discover == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	for (i = 0; i < mgr->num_devices; i++) {
+		if ((mgr->entries[i].state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+			(mgr->entries[i].discover == discover)) {
+			mgr->entries[i].state = DEVICE_MANAGER_UNIDENTIFIED;
+			mgr->entries[i].instance_id = 0;
 		}
 	}
 

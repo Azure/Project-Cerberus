@@ -4551,8 +4551,9 @@ static int attestation_requester_discover_device_spdm_protocol (
 	}
 
 	if (found == 0x0F) {
-		device_num = device_manager_get_device_num_by_device_ids (attestation->device_mgr, pci_vid,
-			pci_device_id, pci_sub_vid, pci_sub_id);
+		device_num =
+			device_manager_get_unidentified_device_num_by_device_ids (attestation->device_mgr,
+			pci_vid, pci_device_id, pci_sub_vid, pci_sub_id);
 		if (ROT_IS_ERROR (device_num)) {
 			return 0;
 		}

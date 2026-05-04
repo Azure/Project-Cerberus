@@ -758,7 +758,7 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 		component_id, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -775,7 +775,7 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, component_id, device_component_id);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 2, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -886,7 +886,7 @@ static void device_manager_test_update_device_entry (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* First component matches by device IDs */
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -908,7 +908,7 @@ static void device_manager_test_update_device_entry (CuTest *test)
 	CuAssertIntEquals (test, entry.component_id, device_component_id);
 
 	/* Second component at index 2 */
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 2, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -1215,7 +1215,7 @@ static void device_manager_test_get_device_addr_by_eid_unidentified_device (CuTe
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
@@ -1526,7 +1526,7 @@ static void device_manager_test_get_device_addr_by_eid_unidentified_device_null 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
@@ -1555,7 +1555,7 @@ static void device_manager_test_get_device_addr_by_eid_unknown_device (CuTest *t
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
@@ -7388,7 +7388,7 @@ static void device_manager_test_get_device_num_by_device_ids (CuTest *test)
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	device_manager_release (&manager);
@@ -7408,7 +7408,7 @@ static void device_manager_test_get_device_num_by_device_ids_no_unidentified_dev
 	status = device_manager_update_device_ids (&manager, 1, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -7420,7 +7420,7 @@ static void device_manager_test_get_device_num_by_device_ids_invalid_arg (CuTest
 
 	TEST_START;
 
-	status = device_manager_get_device_num_by_device_ids (NULL, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (NULL, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 }
 
@@ -7441,16 +7441,16 @@ static void device_manager_test_get_device_num_by_device_ids_device_not_found (C
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xAA, 0, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0, 0xCC, 0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0, 0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -7576,7 +7576,7 @@ static void device_manager_test_update_device_ids (CuTest *test)
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	device_manager_release (&manager);
@@ -10106,6 +10106,176 @@ static void device_manager_test_restart_device_discovery_by_handler_null (CuTest
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_restart_device_discovery_and_instances_by_handler (CuTest *test)
+{
+	struct device_manager manager;
+	struct attestation_discover discover_a;
+	struct attestation_discover discover_b;
+	const struct device_manager_entry entry_a = {
+		.pci_vid = 0xAA,
+		.pci_device_id = 0xBB,
+		.pci_subsystem_vid = 0xCC,
+		.pci_subsystem_id = 0xDD,
+		.component_id = 10,
+		.pcd_component_index = 0,
+		.discover = &discover_a,
+	};
+	const struct device_manager_entry entry_b = {
+		.pci_vid = 0x11,
+		.pci_device_id = 0x22,
+		.pci_subsystem_vid = 0x33,
+		.pci_subsystem_id = 0x44,
+		.component_id = 20,
+		.pcd_component_index = 1,
+		.discover = &discover_b,
+	};
+	uint8_t instance_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 2, 4, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&manager, 1, 0x10, 0x20,
+		DEVICE_MANAGER_NOT_PCD_COMPONENT);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_device_entry (&manager, 2, 2, &entry_a);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_device_entry (&manager, 4, 2, &entry_b);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Set instance IDs and move to NEVER_ATTESTED */
+	status = device_manager_update_device_instance_id (&manager, 2, 5);
+	status |= device_manager_update_device_instance_id (&manager, 3, 6);
+	status |= device_manager_update_device_instance_id (&manager, 4, 7);
+	status |= device_manager_update_device_instance_id (&manager, 5, 8);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_NEVER_ATTESTED);
+	status |= device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_NEVER_ATTESTED);
+	status |= device_manager_update_device_state (&manager, 4, DEVICE_MANAGER_AUTHENTICATED);
+	status |= device_manager_update_device_state (&manager, 5, DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Reset only handler_a devices (state + instance_id) */
+	status = device_manager_restart_device_discovery_and_instances_by_handler (&manager,
+		&discover_a);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Handler_a devices reset to UNIDENTIFIED with instance_id = 0 */
+	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED,
+		device_manager_get_device_state (&manager, 2));
+	CuAssertIntEquals (test, DEVICE_MANAGER_UNIDENTIFIED,
+		device_manager_get_device_state (&manager, 3));
+
+	status = device_manager_get_instance_id (&manager, 2, &instance_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, instance_id);
+
+	status = device_manager_get_instance_id (&manager, 3, &instance_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, instance_id);
+
+	/* Handler_b devices remain AUTHENTICATED with original instance_ids */
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED,
+		device_manager_get_device_state (&manager, 4));
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED,
+		device_manager_get_device_state (&manager, 5));
+
+	status = device_manager_get_instance_id (&manager, 4, &instance_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 7, instance_id);
+
+	status = device_manager_get_instance_id (&manager, 5, &instance_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 8, instance_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_restart_device_discovery_and_instances_by_handler_no_matching (
+	CuTest *test)
+{
+	struct device_manager manager;
+	struct attestation_discover discover_a;
+	struct attestation_discover discover_b;
+	const struct device_manager_entry entry_a = {
+		.pci_vid = 0xAA,
+		.pci_device_id = 0xBB,
+		.pci_subsystem_vid = 0xCC,
+		.pci_subsystem_id = 0xDD,
+		.component_id = 10,
+		.pcd_component_index = 0,
+		.discover = &discover_a,
+	};
+	uint8_t instance_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_component_device_entry (&manager, 2, 2, &entry_a);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_instance_id (&manager, 2, 5);
+	status |= device_manager_update_device_instance_id (&manager, 3, 6);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_AUTHENTICATED);
+	status |= device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Reset with a handler that no device uses */
+	status = device_manager_restart_device_discovery_and_instances_by_handler (&manager,
+		&discover_b);
+	CuAssertIntEquals (test, 0, status);
+
+	/* All devices unchanged */
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED,
+		device_manager_get_device_state (&manager, 2));
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED,
+		device_manager_get_device_state (&manager, 3));
+
+	status = device_manager_get_instance_id (&manager, 2, &instance_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 5, instance_id);
+
+	status = device_manager_get_instance_id (&manager, 3, &instance_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, instance_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_restart_device_discovery_and_instances_by_handler_null (
+	CuTest *test)
+{
+	struct device_manager manager;
+	struct attestation_discover discover;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_restart_device_discovery_and_instances_by_handler (NULL, &discover);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_restart_device_discovery_and_instances_by_handler (&manager, NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_update_attestation_summary_event_counters_by_eid (CuTest *test)
 {
 	struct device_manager manager;
@@ -10440,6 +10610,9 @@ TEST (device_manager_test_restart_device_discovery_null);
 TEST (device_manager_test_restart_device_discovery_by_handler);
 TEST (device_manager_test_restart_device_discovery_by_handler_no_matching_devices);
 TEST (device_manager_test_restart_device_discovery_by_handler_null);
+TEST (device_manager_test_restart_device_discovery_and_instances_by_handler);
+TEST (device_manager_test_restart_device_discovery_and_instances_by_handler_no_matching);
+TEST (device_manager_test_restart_device_discovery_and_instances_by_handler_null);
 TEST (device_manager_test_get_device_num_by_device_ids);
 TEST (device_manager_test_get_device_num_by_device_ids_no_unidentified_devices);
 TEST (device_manager_test_get_device_num_by_device_ids_invalid_arg);

@@ -491,8 +491,9 @@ int device_manager_get_component_id_by_eid (struct device_manager *mgr, uint8_t 
 int device_manager_get_component_id (struct device_manager *mgr, int device_num,
 	uint32_t *component_id);
 
-int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uint16_t pci_vid,
-	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);
+int device_manager_get_unidentified_device_num_by_device_ids (struct device_manager *mgr,
+	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid,
+	uint16_t pci_subsystem_id);
 int device_manager_get_device_num_by_device_and_instance_ids (struct device_manager *mgr,
 	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
 	uint8_t instance_id);
@@ -515,6 +516,8 @@ int device_manager_unidentified_device_timed_out (struct device_manager *mgr, ui
 int device_manager_get_eid_of_next_device_to_discover (struct device_manager *mgr);
 int device_manager_restart_device_discovery (struct device_manager *mgr);
 int device_manager_restart_device_discovery_by_handler (struct device_manager *mgr,
+	const struct attestation_discover *discover);
+int device_manager_restart_device_discovery_and_instances_by_handler (struct device_manager *mgr,
 	const struct attestation_discover *discover);
 const struct attestation_discover* device_manager_get_discovery_object (struct device_manager *mgr,
 	int device_num);
