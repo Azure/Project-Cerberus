@@ -530,6 +530,8 @@ static int pcd_flash_read_direct_component (const struct pcd_flash *pcd_flash,
 	const struct pcd_i2c_interface *i2c_interface = NULL;
 	int status;
 
+	UNUSED (pcd_flash);
+
 	component->type = PCD_COMPONENT_TYPE_DIRECT;
 
 	switch (entry_format) {
@@ -604,6 +606,8 @@ static int pcd_flash_read_mctp_bridge_component (const struct pcd_flash *pcd_fla
 	const struct pcd_component_common_v3 *hdr_v3 = (struct pcd_component_common_v3*) entry_data;
 	const struct pcd_mctp_bridge_component_connection_v3 *connection_v3 = NULL;
 	int status;
+
+	UNUSED (pcd_flash);
 
 	component->type = PCD_COMPONENT_TYPE_MCTP_BRIDGE;
 
@@ -681,6 +685,8 @@ static int pcd_flash_read_tcg_log_component (const struct pcd_flash *pcd_flash,
 	const struct pcd_component_common_v3 *hdr_v3 = (struct pcd_component_common_v3*) entry_data;
 
 	int status;
+
+	UNUSED (pcd_flash);
 
 	component->type = PCD_COMPONENT_TYPE_TCG_LOG;
 
