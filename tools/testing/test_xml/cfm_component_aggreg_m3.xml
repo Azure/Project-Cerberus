@@ -1,0 +1,90 @@
+<!--
+cfm_component_aggreg_m3.xml — Component2, Version Set 2
+
+    - pmr_id=1, measurement_id=1 and measurement_id=2: 1 digest each, DIFFERENT from ver1.
+        temp_aggregatable (version_set=2).
+
+    - pmr_id=1, measurement_id=5: SAME digest as ver1 → consolidated to version_set=0.
+        In analyze_measurements_for_aggregation second pass, version_set=0 measurements:
+        Are ALWAYS added to regular_measurements (version_set=0).
+        Also participate in aggregation: so for version_set=2:
+        total = 2 (measurement_id=1,2,3,4) + 1 (measurement_id=5 from vs=0) = 5 >= 2 → AGGREGATED.
+        Result:
+            regular_measurements: cfm_measurement_element (pmr_id=1, measurement_id=5, version_set=0).
+            aggregated: measurements_mask[1] bits 1,2,3,4,5 → byte 1 = 0x3e.
+-->
+<CFMComponent type="Component2" attestation_protocol="Cerberus" slot_num="0" transcript_hash_type="SHA512" measurement_hash_type="SHA384">
+    <RootCADigest>
+        <Digest>
+            EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        </Digest>
+    </RootCADigest>
+    <PMRDigest pmr_id="0">
+        <Digest>
+            AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        </Digest>
+        <Digest>
+            BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+        </Digest>
+    </PMRDigest>
+    <MeasurementData pmr_id="1" measurement_id="1">
+        <AllowableData>
+            <Endianness>BigEndian</Endianness>
+            <Check>Equal</Check>
+            <Data>"TestC"</Data>
+            <Data>"TestD"</Data>
+            <Bitmask>00FF00FFFF00</Bitmask>
+        </AllowableData>
+        <AllowableData>
+            <Endianness>LittleEndian</Endianness>
+            <Check>GreaterThan</Check>
+            <Data>0000330000</Data>
+            <Bitmask>0000FF0000</Bitmask>
+        </AllowableData>
+    </MeasurementData>
+    <MeasurementData pmr_id="1" measurement_id="3">
+        <AllowableData>
+            <Endianness>LittleEndian</Endianness>
+            <Check>NotEqual</Check>
+            <Data>ABCD</Data>
+            <Bitmask>00FF</Bitmask>
+        </AllowableData>
+        <AllowableData>
+            <Endianness>BigEndian</Endianness>
+            <Check>NotEqual</Check>
+            <Data>EFEF</Data>
+        </AllowableData>
+    </MeasurementData>
+    <!--
+    measurement_id=1 and measurement_id=2: different digests from ver1.
+    measurement_id=3 and measurement_id=4: NEW in ver2.
+    Together with measurement_id=5 from version_set=0: total=5 >= 2 → AGGREGATED (version_set=2).
+    measurements_mask[1]: bits 1,2,3,4,5 → byte 1 = 0x3e.
+    aggregated_hash (version_set=2) = (7777...||8888...||3333...||9999...||AAAA...).
+    -->
+    <Measurement pmr_id="1" measurement_id="1">
+        <Digest>777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777</Digest>
+    </Measurement>
+    <Measurement pmr_id="1" measurement_id="2">
+        <Digest>888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888</Digest>
+    </Measurement>
+    <!--
+    measurement_id=5: SAME digest as ver1 → consolidated to version_set=0.
+    DUAL BEHAVIOR:
+      - Goes to regular_measurements (version_set=0): cfm_measurement_element.
+      - Also it is aggregated (measurements_mask[1]: bits 1,2,3,4,5 → byte 1 = 0x3e).
+    -->
+    <Measurement pmr_id="1" measurement_id="5">
+        <Digest>333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333</Digest>
+    </Measurement>
+    <!--
+    measurement_id=3 and measurement_id=4: NEW in ver2.
+    is aggregated (measurements_mask[1]: bits 1,2,3,4,5 → byte 1 = 0x3e).
+    -->
+    <Measurement pmr_id="1" measurement_id="3">
+        <Digest>999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999</Digest>
+    </Measurement>
+    <Measurement pmr_id="1" measurement_id="4">
+        <Digest>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</Digest>
+    </Measurement>
+</CFMComponent>

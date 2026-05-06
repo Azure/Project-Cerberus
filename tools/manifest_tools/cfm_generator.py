@@ -138,6 +138,281 @@ def generate_pmr_digests (xml_pmr_digests, measurement_hash_type):
 
     return pmr_digests_list
 
+def analyze_measurements_for_aggregation(xml_measurements, unique):
+    """
+    Analyze measurements and separate them into aggregatable and non-aggregatable groups
+
+    Version_set 0 is special - it applies to all version_sets and participates in aggregation
+    for all version_sets.
+
+    If unique==0, the first measurement (first by insertion order) with all its digests
+    across all version sets is unconditionally placed into regular_measurements.
+
+    :param xml_measurements: Measurements dictionary from XML
+
+    :return Tuple of (aggregated_measurements, regular_measurements)
+    """
+    # aggregated_measurements: pmr_id -> version_set -> {"hash_type": int, "measurements": {measurement_id -> [digest]}}
+    aggregated_measurements = {}
+    # regular_measurements: pmr_id -> measurement_id -> version_set -> {"hash_type": int, "allowable_digests": [...]}
+    regular_measurements = {}
+    # Temporary structure to collect potentially aggregatable measurements
+    # pmr_id -> version_set -> {"hash_type": int, "measurements": {measurement_id -> [digests]}}
+    temp_aggregatable = {}
+
+    # Determine the first measurement (by insertion order) to force into
+    # regular_measurements when unique == 0
+    forced_regular_key = None
+    if unique == 0:
+        for pmr_id, measurement_entries_dict in xml_measurements.items():
+            for measurement_id in measurement_entries_dict.keys():
+                forced_regular_key = (pmr_id, measurement_id)
+                break
+            if forced_regular_key is not None:
+                break
+
+    # First pass: separate aggregatable from non-aggregatable
+    for pmr_id, measurement_entries_dict in xml_measurements.items():
+        for measurement_id, version_sets_dict in measurement_entries_dict.items():
+            # If unique==0, force the first measurement unconditionally into regular_measurements
+            is_forced_regular = (forced_regular_key is not None and
+                                 (pmr_id, measurement_id) == forced_regular_key)
+
+            for version_set, measurements in version_sets_dict["version_set"].items():
+                num_digests = len(measurements["allowable_digests"])
+
+                if is_forced_regular or num_digests != 1:
+                    # Forced regular (first measurement when unique==0) or
+                    # non-aggregatable (multiple digests) - add to regular_measurements
+                    if pmr_id not in regular_measurements:
+                        regular_measurements[pmr_id] = {}
+                    if measurement_id not in regular_measurements[pmr_id]:
+                        regular_measurements[pmr_id][measurement_id] = {"version_set": {}}
+
+                    regular_measurements[pmr_id][measurement_id]["version_set"][version_set] = \
+                        measurements.copy()
+                else:
+                    # Potentially aggregatable - collect in temp structure
+                    if pmr_id not in temp_aggregatable:
+                        temp_aggregatable[pmr_id] = {}
+                    if version_set not in temp_aggregatable[pmr_id]:
+                        temp_aggregatable[pmr_id][version_set] = {
+                            "hash_type": measurements["hash_type"],
+                            "measurements": {}
+                        }
+                    temp_aggregatable[pmr_id][version_set]["measurements"][measurement_id] = \
+                        measurements["allowable_digests"].copy()
+
+    # Second pass: determine which potentially aggregatable measurements can actually be aggregated
+    for pmr_id, version_sets_dict in temp_aggregatable.items():
+        # Get version_set 0 data (common measurements that apply to all version_sets)
+        version_set_0_data = version_sets_dict.get(0, {})
+        version_set_0_measurements = version_set_0_data.get("measurements", {})
+        num_version_set_0 = len(version_set_0_measurements)
+
+        # Always add version_set 0 measurements to regular_measurements
+        if 0 in version_sets_dict:
+            hash_type_val = version_set_0_data["hash_type"]
+            for measurement_id, measurement_digests in version_set_0_measurements.items():
+                if pmr_id not in regular_measurements:
+                    regular_measurements[pmr_id] = {}
+                if measurement_id not in regular_measurements[pmr_id]:
+                    regular_measurements[pmr_id][measurement_id] = {"version_set": {}}
+                regular_measurements[pmr_id][measurement_id]["version_set"][0] = {
+                    "hash_type": hash_type_val,
+                    "allowable_digests": measurement_digests.copy()
+                }
+
+        # Process other version_sets
+        for version_set, measurements_dict in version_sets_dict.items():
+            if version_set == 0:
+                continue  # Already processed above
+
+            num_measurements = len(measurements_dict["measurements"])
+
+            # Total measurements for this version_set = measurements in this version_set + version_set 0
+            total_measurements_for_aggregation = num_measurements + num_version_set_0
+
+            hash_type_val = measurements_dict["hash_type"]
+
+            if total_measurements_for_aggregation >= 2:
+                # Can be aggregated - combine measurements from this version_set and version_set 0
+                if pmr_id not in aggregated_measurements:
+                    aggregated_measurements[pmr_id] = {}
+
+                # Combine measurements from version_set 0 and current version_set
+                combined_measurements = {}
+
+                # Add measurements from version_set 0
+                for measurement_id, measurement_digests in version_set_0_measurements.items():
+                    combined_measurements[measurement_id] = measurement_digests.copy()
+
+                # Add measurements from current version_set
+                for measurement_id, measurement_digests in measurements_dict["measurements"].items():
+                    combined_measurements[measurement_id] = measurement_digests.copy()
+
+                if version_set not in aggregated_measurements[pmr_id]:
+                    aggregated_measurements[pmr_id][version_set] = {
+                        "hash_type": hash_type_val,
+                        "measurements": {}
+                    }
+
+                aggregated_measurements[pmr_id][version_set]["measurements"] = \
+                    combined_measurements.copy()
+            else:
+                # Cannot aggregate - only one measurement total, move to regular_measurements
+                for measurement_id, measurement_digests in measurements_dict["measurements"].items():
+                    if pmr_id not in regular_measurements:
+                        regular_measurements[pmr_id] = {}
+                    if measurement_id not in regular_measurements[pmr_id]:
+                        regular_measurements[pmr_id][measurement_id] = {"version_set": {}}
+
+                    regular_measurements[pmr_id][measurement_id]["version_set"][version_set] = {
+                        "hash_type": hash_type_val,
+                        "allowable_digests": measurement_digests.copy()
+                    }
+
+    return aggregated_measurements, regular_measurements
+
+def aggregate_measurements_hash(measurement_digests, hash_engine):
+    """
+    Aggregate multiple measurement digests into a single hash
+
+    :param measurement_digests: List of digests to aggregate
+    :param hash_engine: Hashing engine (SHA256, SHA384, or SHA512 class)
+
+    :return Aggregated hash bytes
+    """
+    # Concatenate all digests and hash them together
+    combined = b''.join(measurement_digests)
+    # Create new hash instance and compute digest
+    hash_obj = hash_engine.new(combined)
+    aggregated_hash = hash_obj.digest()
+    return aggregated_hash
+
+def generate_aggregated_measurements(aggregated_measurements_data, hash_type, measurement_hash_type):
+    """
+    Create a buffer of aggregated measurements section struct instances
+
+    Structure of input:
+        pmr_id -> version_set -> {"hash_type": int, "measurements": {measurement_id -> [digest]}}
+
+    :param aggregated_measurements_data: Dictionary of aggregated measurements data
+    :param hash_type: Hashing type from cfm_generator.config
+    :param measurement_hash_type: Default hash type for measurement digests (component-level)
+
+    :return List of (Aggregated measurement element, ToC entry) tuples
+    """
+    aggregated_list = []
+
+    # Temporary dictionary: pmr_id -> measurements_mask_bytes -> list of cfm_allowable_digest_element
+    temp_dict = {}
+
+    hash_engine = manifest_common.get_hash_engine(hash_type)
+    hash_len = manifest_common.get_hash_len(hash_type)
+
+    # Step 1: Create cfm_allowable_digest_element for each (pmr_id, version_set) and group by mask
+    for pmr_id, version_sets_dict in aggregated_measurements_data.items():
+        for version_set, measurements_dict in version_sets_dict.items():
+            # Get sorted measurement IDs
+            measurement_ids = sorted(measurements_dict["measurements"].keys())
+
+            if "hash_type" not in measurements_dict:
+                raise KeyError (
+                    "Version set {0} for PMR {1} is missing required 'hash_type'".format (
+                        version_set, pmr_id))
+            vs_hash_type = measurements_dict["hash_type"]
+            digest_len = manifest_common.get_hash_len(vs_hash_type)
+
+            # Create measurements mask (256 bits = 32 bytes)
+            measurements_mask = bytearray(32)
+            for measurement_id in measurement_ids:
+                byte_idx = measurement_id // 8
+                bit_idx = measurement_id % 8
+                measurements_mask[byte_idx] |= (1 << bit_idx)
+
+            # Convert mask to bytes for use as dictionary key
+            measurements_mask_bytes = bytes(measurements_mask)
+
+            # Collect all digests for this version_set and aggregate them
+            digests_to_aggregate = []
+            for measurement_id in measurement_ids:
+                digest = measurements_dict["measurements"][measurement_id][0]
+                if len(digest) != digest_len:
+                    raise ValueError("Hash has unexpected length {0} vs {1}".format(
+                        len(digest), digest_len))
+                digests_to_aggregate.append(digest)
+
+            # Aggregate the digests
+            aggregated_digest = aggregate_measurements_hash(digests_to_aggregate, hash_engine)
+            digest_arr = (ctypes.c_ubyte * hash_len).from_buffer_copy(aggregated_digest)
+
+            # Encode hash type override: flag + manifest_hash_type value
+            hash_type_override = 0 if vs_hash_type == measurement_hash_type else 1
+            hash_type_field = vs_hash_type if hash_type_override else 0
+
+            # Create cfm_allowable_digest_element for this version_set
+            class cfm_allowable_digest_element(ctypes.LittleEndianStructure):
+                _pack_ = 1
+                _fields_ = [('version_set', ctypes.c_uint16),
+                             ('digest_count', ctypes.c_ubyte),
+                             ('hash_type_override', ctypes.c_ubyte, 1),
+                             ('hash_type', ctypes.c_ubyte, 7),
+                             ('digest', ctypes.c_ubyte * hash_len)]
+
+            allowable_digest = cfm_allowable_digest_element(
+                version_set, 1, hash_type_override, hash_type_field, digest_arr)
+
+            # Add to temporary dictionary
+            if pmr_id not in temp_dict:
+                temp_dict[pmr_id] = {}
+            if measurements_mask_bytes not in temp_dict[pmr_id]:
+                temp_dict[pmr_id][measurements_mask_bytes] = []
+
+            temp_dict[pmr_id][measurements_mask_bytes].append(allowable_digest)
+
+    # Step 2: Create cfm_aggregated_measurement_element for each (pmr_id, measurements_mask) group
+    for pmr_id, mask_dict in temp_dict.items():
+        for measurements_mask_bytes, allowable_digest_list in mask_dict.items():
+            # Convert mask bytes back to ctypes array
+            measurements_mask_arr = (ctypes.c_ubyte * 32).from_buffer_copy(measurements_mask_bytes)
+
+            # Calculate total length for all allowable_digest elements
+            allowable_digest_len = sum(ctypes.sizeof(d) for d in allowable_digest_list)
+
+            # Create buffer for all allowable digest elements
+            allowable_digest_buf = (ctypes.c_ubyte * allowable_digest_len)()
+            manifest_common.move_list_to_buffer(allowable_digest_buf, 0, allowable_digest_list)
+
+            class cfm_aggregated_measurement_element(ctypes.LittleEndianStructure):
+                _pack_ = 1
+                _fields_ = [('measurements_mask', ctypes.c_ubyte * 32),
+                             ('pmr_id', ctypes.c_ubyte),
+                             ('hash_type', ctypes.c_ubyte),
+                             ('allowable_digest_count', ctypes.c_ubyte),
+                             ('reserved', ctypes.c_ubyte),
+                             ('digests_list', ctypes.c_ubyte * allowable_digest_len)]
+
+            aggregated_measurement = cfm_aggregated_measurement_element(
+                measurements_mask_arr,
+                pmr_id,
+                hash_type,
+                len(allowable_digest_list),
+                0,
+                allowable_digest_buf
+            )
+            aggregated_measurement_len = ctypes.sizeof(aggregated_measurement)
+
+            # Create TOC entry for aggregated measurements
+            aggregated_toc_entry = manifest_common.manifest_toc_entry(
+                manifest_common.CFM_V2_AGGREGATED_MEASUREMENT_TYPE_ID,
+                manifest_common.CFM_V2_COMPONENT_DEVICE_TYPE_ID, 0, 0, 0,
+                aggregated_measurement_len)
+
+            aggregated_list.append((aggregated_measurement, aggregated_toc_entry))
+
+    return aggregated_list
+
 def generate_measurements (xml_measurements, measurement_hash_type):
     """
     Create a buffer of measurements section struct instances from parsed XML list
@@ -156,6 +431,7 @@ def generate_measurements (xml_measurements, measurement_hash_type):
             allowable_digest_len = 0
             entries = 0
             for version_set, measurements_dict in version_sets["version_set"].items ():
+                # Determine hash type for this version set: component default or per-measurement override
                 if "hash_type" not in measurements_dict:
                     raise KeyError (
                         "Version set {0} for PMR {1} measurement {2} is missing required 'hash_type'".format (
@@ -524,12 +800,15 @@ def group_measurements_into_version_sets (xml_parsed_dict, component_key, compon
             components[component_key]["measurements"][pmr_id] = {}
 
         for measurement_id, measurement_entries in pmr_entries.items ():
+            if not (1 <= measurement_id <= 255):
+                raise ValueError("Component '{0}', PMR {1}: measurement_id {2} is out of valid "
+                    "range (1-255); ID 0 is reserved by SPDM (requests total "
+                    "measurement count).".format(component_key, pmr_id, measurement_id))
             if measurement_id not in components[component_key]["measurements"].get(pmr_id, {}):
-                # Initialize measurement entry if it doesn't exist
+                # Initialize measurement_id entry if it doesn't exist
                 components[component_key]["measurements"][pmr_id][measurement_id] = {"version_set": {}}
-
-            # Add this version's measurement to its corresponding version set
-            vs_entry = dict (measurement_entries)
+            # Add this version's measurement and hash_type to its corresponding version set
+            vs_entry = dict(measurement_entries)
             vs_entry["hash_type"] = xml_parsed_dict["measurement_hash_type"]
             components[component_key]["measurements"][pmr_id][measurement_id]["version_set"][version_number] = vs_entry
 
@@ -740,7 +1019,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser (description = 'Create a CFM')
     parser.add_argument ('config', nargs = '?', default = default_config,
         help = 'Path to configuration file')
+    parser.add_argument('-n', '--no-aggregation', action='store_true',
+        help='Disable measurement aggregation - generate all measurements as regular (non-aggregated)')
     args = parser.parse_args (argv)
+    no_aggregation = args.no_aggregation
 
     processed_xml, sign, key_size, key, key_type, hash_type, cfm_id, output, xml_version, empty, \
         max_num_rw_sections, selection_list, component_map, component_map_file = \
@@ -849,11 +1131,37 @@ def main(argv=None):
                 num_pmr_digests = len(pmr_digests)
 
             if (component_dict["unique"] == 0) and ("measurements" in component_dict):
-                measurements = generate_measurements (component_dict["measurements"],
-                        component_dict["measurement_hash_type"])
+                if no_aggregation or xml_version in (
+                    manifest_types.VERSION_1,
+                    manifest_types.VERSION_2,
+                ):
+                    measurements = generate_measurements (component_dict["measurements"],
+                            component_dict["measurement_hash_type"])
 
-                component_elements_list.extend (measurements)
-                num_measurements = len(measurements)
+                    component_elements_list.extend (measurements)
+                    num_measurements += len(measurements)
+                else:
+                    # Analyze and separate measurements into aggregatable and regular
+                    aggregated_measurements_data, regular_measurements_data = \
+                        analyze_measurements_for_aggregation(component_dict["measurements"],
+                                                            component_dict["unique"])
+
+                    # Generate regular measurements if any exist
+                    if regular_measurements_data:
+                        measurements = generate_measurements(regular_measurements_data,
+                                component_dict["measurement_hash_type"])
+
+                        component_elements_list.extend (measurements)
+                        num_measurements += len(measurements)
+
+                    # Generate aggregated measurements if any exist
+                    if aggregated_measurements_data:
+                        measurements = generate_aggregated_measurements(
+                                aggregated_measurements_data, hash_type,
+                                component_dict["measurement_hash_type"])
+
+                        component_elements_list.extend (measurements)
+                        num_measurements += len(measurements)
 
             if "measurement_data" in component_dict:
                 measurement_data = generate_measurement_data (
@@ -863,11 +1171,37 @@ def main(argv=None):
                 num_measurement_data = len(measurement_data)
 
             if (component_dict["unique"] == 1) and ("measurements" in component_dict):
-                measurements = generate_measurements (component_dict["measurements"],
-                        component_dict["measurement_hash_type"])
+                if no_aggregation or xml_version in (
+                    manifest_types.VERSION_1,
+                    manifest_types.VERSION_2,
+                ):
+                    measurements = generate_measurements (component_dict["measurements"],
+                            component_dict["measurement_hash_type"])
 
-                component_elements_list.extend (measurements)
-                num_measurements = len(measurements)
+                    component_elements_list.extend (measurements)
+                    num_measurements += len(measurements)
+                else:
+                    # Analyze and separate measurements into aggregatable and regular
+                    aggregated_measurements_data, regular_measurements_data = \
+                        analyze_measurements_for_aggregation(component_dict["measurements"],
+                                                            component_dict["unique"])
+
+                    # Generate regular measurements if any exist
+                    if regular_measurements_data:
+                        measurements = generate_measurements(regular_measurements_data,
+                                component_dict["measurement_hash_type"])
+
+                        component_elements_list.extend (measurements)
+                        num_measurements += len(measurements)
+
+                    # Generate aggregated measurements if any exist
+                    if aggregated_measurements_data:
+                        measurements = generate_aggregated_measurements(
+                                aggregated_measurements_data, hash_type,
+                                component_dict["measurement_hash_type"])
+
+                        component_elements_list.extend (measurements)
+                        num_measurements += len(measurements)
 
             if "allowable_pfm" in component_dict:
                 allowable_pfm = generate_allowable_pfm (component_dict["allowable_pfm"])

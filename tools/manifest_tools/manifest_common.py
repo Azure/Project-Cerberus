@@ -55,6 +55,7 @@ CFM_V2_ALLOWABLE_CFM_TYPE_ID = int ("0x77", 16)
 CFM_V2_ALLOWABLE_PCD_TYPE_ID = int ("0x78", 16)
 CFM_V2_ALLOWABLE_ID_TYPE_ID = int ("0x79", 16)
 CFM_V2_ROOT_CA_TYPE_ID = int ("0x7A", 16)
+CFM_V2_AGGREGATED_MEASUREMENT_TYPE_ID = int ("0x7B", 16)
 
 class manifest_header (ctypes.LittleEndianStructure):
     _pack_ = 1

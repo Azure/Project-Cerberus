@@ -1,0 +1,82 @@
+<!--
+cfm_component_aggreg_m2.xml — Component2, Version Set 1
+Component2: unique==1 (first XML tag inside CFMComponent is <MeasurementData>).
+Because unique==1, analyze_measurements_for_aggregation does NOT force any measurement
+into regular_measurements — all measurements participate in normal aggregation logic.
+
+Layout:
+- pmr_id=1, measurement_id=1: 1 digest → temp_aggregatable.
+- pmr_id=1, measurement_id=2: 1 digest → temp_aggregatable.
+- pmr_id=1, measurement_id=5: 1 digest → version_set0.
+  Together: total=2 >= 3 → AGGREGATED (version_set=1).
+  measurements_mask[1]: bits 1 and 2 and 5 → byte 1 = 0x26.
+  aggregated_hash (version_set=1) = (5555...||6666...|| 3333...).
+- pmr_id=1, measurement_id=5:  → regular_measurements.
+-->
+<CFMComponent type="Component2" attestation_protocol="Cerberus" slot_num="0" transcript_hash_type="SHA512" measurement_hash_type="SHA384">
+    <RootCADigest>
+        <Digest>
+            EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        </Digest>
+    </RootCADigest>
+    <PMRDigest pmr_id="0">
+        <Digest>
+            AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+        </Digest>
+        <Digest>
+            BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+        </Digest>
+    </PMRDigest>
+    <!--
+    MeasurementData comes FIRST → process_cfm sets unique=1 for Component2.
+    unique==1 means analyze_measurements_for_aggregation will NOT force any measurement
+    into regular_measurements.
+    -->
+    <MeasurementData pmr_id="1" measurement_id="1">
+        <AllowableData>
+            <Endianness>BigEndian</Endianness>
+            <Check>Equal</Check>
+            <Data>"TestA"</Data>
+            <Data>"TestB"</Data>
+            <Bitmask>00FF00FFFF00</Bitmask>
+        </AllowableData>
+        <AllowableData>
+            <Endianness>LittleEndian</Endianness>
+            <Check>GreaterThan</Check>
+            <Data>0000220000</Data>
+            <Bitmask>0000FF0000</Bitmask>
+        </AllowableData>
+    </MeasurementData>
+    <MeasurementData pmr_id="1" measurement_id="3">
+        <AllowableData>
+            <Endianness>LittleEndian</Endianness>
+            <Check>NotEqual</Check>
+            <Data>6543</Data>
+            <Bitmask>00FF</Bitmask>
+        </AllowableData>
+        <AllowableData>
+            <Endianness>BigEndian</Endianness>
+            <Check>NotEqual</Check>
+            <Data>1011</Data>
+        </AllowableData>
+    </MeasurementData>
+    <!--
+    measurement_id 1, 2, 5: 1 digest each → temp_aggregatable.
+    total=2 >= 3 → AGGREGATED (version_set=1).
+    measurements_mask[1]: bits 1 and 2 and 5 → byte 1 = 0x26.
+    aggregated_hash = (5555...||6666...|| 3333...).
+    -->
+    <Measurement pmr_id="1" measurement_id="1">
+        <Digest>555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555</Digest>
+    </Measurement>
+    <Measurement pmr_id="1" measurement_id="2">
+        <Digest>666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666</Digest>
+    </Measurement>
+    <!--
+    measurement_id=5: version_set0 → regular_measurements.
+    Result: cfm_measurement_element (pmr_id=1, measurement_id=5), version_set=1.
+    -->
+    <Measurement pmr_id="1" measurement_id="5">
+        <Digest>333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333</Digest>
+    </Measurement>
+</CFMComponent>
