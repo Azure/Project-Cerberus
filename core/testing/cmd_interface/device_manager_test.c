@@ -758,7 +758,8 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 		component_id, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -775,7 +776,8 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, component_id, device_component_id);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, 2, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -789,6 +791,21 @@ static void device_manager_test_update_mctp_bridge_device_entry (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = device_manager_get_component_id (&manager, 2, &device_component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, component_id, device_component_id);
+
+	/* Single-source matching component_id: list is NULL, accessor returns component_id */
+	CuAssertIntEquals (test, 1, manager.entries[1].component_type_count);
+	CuAssertPtrEquals (test, NULL, manager.entries[1].component_type_list);
+
+	CuAssertIntEquals (test, 1, manager.entries[2].component_type_count);
+	CuAssertPtrEquals (test, NULL, manager.entries[2].component_type_list);
+
+	status = device_manager_get_component_type (&manager, 1, 0, &device_component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, component_id, device_component_id);
+
+	status = device_manager_get_component_type (&manager, 2, 0, &device_component_id);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, component_id, device_component_id);
 
@@ -886,7 +903,8 @@ static void device_manager_test_update_device_entry (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* First component matches by device IDs */
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -908,7 +926,8 @@ static void device_manager_test_update_device_entry (CuTest *test)
 	CuAssertIntEquals (test, entry.component_id, device_component_id);
 
 	/* Second component at index 2 */
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xBB, 0xAA, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, 2, status);
 
 	status = device_manager_get_device_num_by_device_and_instance_ids (&manager, 0xBB, 0xAA, 0xCC,
@@ -1215,7 +1234,8 @@ static void device_manager_test_get_device_addr_by_eid_unidentified_device (CuTe
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13,
+		0x14);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
@@ -1526,7 +1546,8 @@ static void device_manager_test_get_device_addr_by_eid_unidentified_device_null 
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13,
+		0x14);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
@@ -1555,7 +1576,8 @@ static void device_manager_test_get_device_addr_by_eid_unknown_device (CuTest *t
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13, 0x14);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0x11, 0x12, 0x13,
+		0x14);
 	CuAssertIntEquals (test, 1, status);
 
 	status = device_manager_update_device_eid (&manager, 1, 0xAA);
@@ -7388,7 +7410,8 @@ static void device_manager_test_get_device_num_by_device_ids (CuTest *test)
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	device_manager_release (&manager);
@@ -7408,7 +7431,8 @@ static void device_manager_test_get_device_num_by_device_ids_no_unidentified_dev
 	status = device_manager_update_device_ids (&manager, 1, 0xAA, 0xBB, 0xCC, 0xDD);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -7420,7 +7444,8 @@ static void device_manager_test_get_device_num_by_device_ids_invalid_arg (CuTest
 
 	TEST_START;
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (NULL, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (NULL, 0xAA, 0xBB, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 }
 
@@ -7441,16 +7466,20 @@ static void device_manager_test_get_device_num_by_device_ids_device_not_found (C
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0, 0xBB, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0,
+		0xDD);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC,
+		0);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
 	device_manager_release (&manager);
@@ -7576,7 +7605,8 @@ static void device_manager_test_update_device_ids (CuTest *test)
 	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_UNIDENTIFIED);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC, 0xDD);
+	status = device_manager_get_unidentified_device_num_by_device_ids (&manager, 0xAA, 0xBB, 0xCC,
+		0xDD);
 	CuAssertIntEquals (test, 1, status);
 
 	device_manager_release (&manager);
@@ -9968,6 +9998,305 @@ static void device_manager_test_process_pending_action_invalid_arg (CuTest *test
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 }
 
+
+static void device_manager_test_update_component_device_entry_multi_source (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[2] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 200, .min_usage = 2, .max_usage = 3}
+	};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 3, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 3, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify each instance got its own deep copy of the type list */
+	CuAssertIntEquals (test, 2, manager.entries[2].component_type_count);
+	CuAssertPtrNotNull (test, manager.entries[2].component_type_list);
+	CuAssertIntEquals (test, 100, manager.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[0].min_usage);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[0].max_usage);
+	CuAssertIntEquals (test, 200, manager.entries[2].component_type_list[1].cfm_component_id);
+	CuAssertIntEquals (test, 2, manager.entries[2].component_type_list[1].min_usage);
+	CuAssertIntEquals (test, 3, manager.entries[2].component_type_list[1].max_usage);
+
+	/* Verify instance IDs are sequential */
+	CuAssertIntEquals (test, 0, manager.entries[2].instance_id);
+	CuAssertIntEquals (test, 1, manager.entries[3].instance_id);
+	CuAssertIntEquals (test, 2, manager.entries[4].instance_id);
+
+	/* Verify second instance also has deep-copied type list */
+	CuAssertIntEquals (test, 2, manager.entries[3].component_type_count);
+	CuAssertPtrNotNull (test, manager.entries[3].component_type_list);
+	CuAssertIntEquals (test, 100, manager.entries[3].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, 200, manager.entries[3].component_type_list[1].cfm_component_id);
+	CuAssertIntEquals (test, 2, manager.entries[3].component_type_list[1].min_usage);
+	CuAssertIntEquals (test, 3, manager.entries[3].component_type_list[1].max_usage);
+
+	/* Verify each instance got its own allocation (not sharing pointers) */
+	CuAssertTrue (test,
+		manager.entries[2].component_type_list != manager.entries[3].component_type_list);
+	CuAssertTrue (test,
+		manager.entries[3].component_type_list != manager.entries[4].component_type_list);
+
+	/* Verify component_id is propagated */
+	CuAssertIntEquals (test, 50, manager.entries[2].component_id);
+	CuAssertIntEquals (test, 50, manager.entries[3].component_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_device_entry_single_source (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	uint32_t device_component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 75;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 0;
+	comp_entry.component_type_list = NULL;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 2, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Single-source with NULL list: skip allocation, accessor returns component_id */
+	CuAssertIntEquals (test, 1, manager.entries[2].component_type_count);
+	CuAssertPtrEquals (test, NULL, manager.entries[2].component_type_list);
+	CuAssertIntEquals (test, 75, manager.entries[2].component_id);
+
+	CuAssertIntEquals (test, 1, manager.entries[3].component_type_count);
+	CuAssertPtrEquals (test, NULL, manager.entries[3].component_type_list);
+
+	status = device_manager_get_component_type (&manager, 2, 0, &device_component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 75, device_component_id);
+
+	status = device_manager_get_component_type (&manager, 3, 0, &device_component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 75, device_component_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_device_entry_single_source_redirect (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[1] = {
+		{.cfm_component_id = 300, .min_usage = 0, .max_usage = 0}
+	};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* component_type_count=1 means single source redirect: generic ID differs from CFM policy ID */
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 1;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertIntEquals (test, 1, manager.entries[2].component_type_count);
+	CuAssertPtrNotNull (test, manager.entries[2].component_type_list);
+	CuAssertIntEquals (test, 300, manager.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[0].min_usage);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[0].max_usage);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_device_entry_invalid_arg (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* NULL manager */
+	status = device_manager_update_component_device_entry (NULL, 2, 2, &comp_entry);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	/* Zero components_count */
+	status = device_manager_update_component_device_entry (&manager, 2, 0, &comp_entry);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	/* NULL entry */
+	status = device_manager_update_component_device_entry (&manager, 2, 2, NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_device_entry_invalid_device (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* device_num out of range */
+	status = device_manager_update_component_device_entry (&manager, 10, 2, &comp_entry);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	/* negative device_num */
+	status = device_manager_update_component_device_entry (&manager, -1, 2, &comp_entry);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_device_entry_too_many_components (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* components_count exceeds available entries */
+	status = device_manager_update_component_device_entry (&manager, 2, 5, &comp_entry);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_device_entry_min_max_enforcement (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[3] = {
+		{.cfm_component_id = 100, .min_usage = 1, .max_usage = 3},
+		{.cfm_component_id = 200, .min_usage = 0, .max_usage = 5},
+		{.cfm_component_id = 300, .min_usage = 2, .max_usage = 2}
+	};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 3;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 2, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify min/max values are preserved correctly for all entries in the type list */
+	CuAssertIntEquals (test, 3, manager.entries[2].component_type_count);
+
+	CuAssertIntEquals (test, 100, manager.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, 1, manager.entries[2].component_type_list[0].min_usage);
+	CuAssertIntEquals (test, 3, manager.entries[2].component_type_list[0].max_usage);
+
+	CuAssertIntEquals (test, 200, manager.entries[2].component_type_list[1].cfm_component_id);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[1].min_usage);
+	CuAssertIntEquals (test, 5, manager.entries[2].component_type_list[1].max_usage);
+
+	CuAssertIntEquals (test, 300, manager.entries[2].component_type_list[2].cfm_component_id);
+	CuAssertIntEquals (test, 2, manager.entries[2].component_type_list[2].min_usage);
+	CuAssertIntEquals (test, 2, manager.entries[2].component_type_list[2].max_usage);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_component_device_entry_no_enforcement (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[2] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 200, .min_usage = 0, .max_usage = 0}
+	};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* min=0, max=0 means no enforcement per design doc */
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[0].min_usage);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[0].max_usage);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[1].min_usage);
+	CuAssertIntEquals (test, 0, manager.entries[2].component_type_list[1].max_usage);
+
+	device_manager_release (&manager);
+}
+
 static void device_manager_test_restart_device_discovery_by_handler (CuTest *test)
 {
 	struct device_manager manager;
@@ -10333,6 +10662,387 @@ static void device_manager_test_update_attestation_summary_event_counters_by_eid
 	device_manager_release (&manager);
 }
 
+static void device_manager_test_get_num_component_types (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[3] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 200, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 300, .min_usage = 0, .max_usage = 0}
+	};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 3;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_num_component_types (&manager, 2);
+	CuAssertIntEquals (test, 3, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_num_component_types_invalid_arg (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = device_manager_get_num_component_types (NULL, 0);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+}
+
+static void device_manager_test_get_num_component_types_unknown_device (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_num_component_types (&manager, 10);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_component_type (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[2] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 200, .min_usage = 0, .max_usage = 0}
+	};
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_component_type (&manager, 2, 0, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 100, (int) component_id);
+
+	status = device_manager_get_component_type (&manager, 2, 1, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 200, (int) component_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_component_type_invalid_arg (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_component_type (NULL, 2, 0, &component_id);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_get_component_type (&manager, 2, 0, NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_component_type_unknown_device (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_component_type (&manager, 10, 0, &component_id);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_get_component_type_invalid_index (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[2] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 200, .min_usage = 0, .max_usage = 0}
+	};
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_component_type (&manager, 2, 5, &component_id);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_get_component_type (&manager, 2, -1, &component_id);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_promote_matched_component_type (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[3] = {
+		{.cfm_component_id = 100, .min_usage = 1, .max_usage = 5},
+		{.cfm_component_id = 200, .min_usage = 2, .max_usage = 6},
+		{.cfm_component_id = 300, .min_usage = 3, .max_usage = 7}
+	};
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 3;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Promote index 2 to front */
+	status = device_manager_promote_matched_component_type (&manager, 2, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify swap: index 0 should now be 300, index 2 should be 100 */
+	status = device_manager_get_component_type (&manager, 2, 0, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 300, (int) component_id);
+
+	status = device_manager_get_component_type (&manager, 2, 1, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 200, (int) component_id);
+
+	status = device_manager_get_component_type (&manager, 2, 2, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 100, (int) component_id);
+
+	/* Verify min/max were also swapped */
+	CuAssertIntEquals (test, 3, manager.entries[2].component_type_list[0].min_usage);
+	CuAssertIntEquals (test, 7, manager.entries[2].component_type_list[0].max_usage);
+	CuAssertIntEquals (test, 1, manager.entries[2].component_type_list[2].min_usage);
+	CuAssertIntEquals (test, 5, manager.entries[2].component_type_list[2].max_usage);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_promote_matched_component_type_index_zero_noop (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[2] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 200, .min_usage = 0, .max_usage = 0}
+	};
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Promote index 0 — should be a no-op */
+	status = device_manager_promote_matched_component_type (&manager, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify no change */
+	status = device_manager_get_component_type (&manager, 2, 0, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 100, (int) component_id);
+
+	status = device_manager_get_component_type (&manager, 2, 1, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 200, (int) component_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_promote_matched_component_type_single_count_noop (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[1] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0}
+	};
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 1;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Promote index 0 with count=1 — should be a no-op */
+	status = device_manager_promote_matched_component_type (&manager, 2, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify no change */
+	status = device_manager_get_component_type (&manager, 2, 0, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 100, (int) component_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_promote_matched_component_type_invalid_arg (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = device_manager_promote_matched_component_type (NULL, 2, 0);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+}
+
+static void device_manager_test_promote_matched_component_type_unknown_device (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_promote_matched_component_type (&manager, 10, 0);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_promote_matched_component_type_invalid_index (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[2] = {
+		{.cfm_component_id = 100, .min_usage = 0, .max_usage = 0},
+		{.cfm_component_id = 200, .min_usage = 0, .max_usage = 0}
+	};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_promote_matched_component_type (&manager, 2, 5);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	device_manager_release (&manager);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (device_manager);
@@ -10382,6 +11092,14 @@ TEST (device_manager_test_get_discovery_type_unknown_device);
 TEST (device_manager_test_get_discovery_object);
 TEST (device_manager_test_get_discovery_object_invalid_arg);
 TEST (device_manager_test_get_discovery_object_unknown_device);
+TEST (device_manager_test_update_component_device_entry_multi_source);
+TEST (device_manager_test_update_component_device_entry_single_source);
+TEST (device_manager_test_update_component_device_entry_single_source_redirect);
+TEST (device_manager_test_update_component_device_entry_invalid_arg);
+TEST (device_manager_test_update_component_device_entry_invalid_device);
+TEST (device_manager_test_update_component_device_entry_too_many_components);
+TEST (device_manager_test_update_component_device_entry_min_max_enforcement);
+TEST (device_manager_test_update_component_device_entry_no_enforcement);
 TEST (device_manager_test_get_device_addr_null);
 TEST (device_manager_test_get_device_addr_invalid_device);
 TEST (device_manager_test_get_device_addr_by_eid);
@@ -10692,6 +11410,19 @@ TEST (device_manager_test_process_pending_action_invalid_arg);
 TEST (device_manager_test_update_attestation_summary_event_counters_by_eid);
 TEST (device_manager_test_update_attestation_summary_event_counters_by_eid_invalid_arg);
 TEST (device_manager_test_update_attestation_summary_event_counters_by_eid_unknown_device);
+TEST (device_manager_test_get_num_component_types);
+TEST (device_manager_test_get_num_component_types_invalid_arg);
+TEST (device_manager_test_get_num_component_types_unknown_device);
+TEST (device_manager_test_get_component_type);
+TEST (device_manager_test_get_component_type_invalid_arg);
+TEST (device_manager_test_get_component_type_unknown_device);
+TEST (device_manager_test_get_component_type_invalid_index);
+TEST (device_manager_test_promote_matched_component_type);
+TEST (device_manager_test_promote_matched_component_type_index_zero_noop);
+TEST (device_manager_test_promote_matched_component_type_single_count_noop);
+TEST (device_manager_test_promote_matched_component_type_invalid_arg);
+TEST (device_manager_test_promote_matched_component_type_unknown_device);
+TEST (device_manager_test_promote_matched_component_type_invalid_index);
 
 TEST_SUITE_END;
 // *INDENT-ON*

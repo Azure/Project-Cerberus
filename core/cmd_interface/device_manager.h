@@ -305,21 +305,23 @@ struct device_manager_attestation_summary {
  * Entry type in a device manager table
  */
 struct device_manager_entry {
-	struct device_manager_full_capabilities capabilities;	/**< Device capabilities */
-	platform_clock attestation_timeout;						/**< Clock tracking when device should be attested */
-	uint32_t component_id;									/**< Component ID in PCD and CFM */
-	enum device_manager_device_state state;					/**< Device state */
-	struct device_manager_attestation_summary summary;		/**< Attestation summary data */
-	uint16_t pci_vid;										/**< PCI Vendor ID */
-	uint16_t pci_device_id;									/**< PCI Device ID */
-	uint16_t pci_subsystem_vid;								/**< PCI Subsystem Vendor ID */
-	uint16_t pci_subsystem_id;								/**< PCI Subsystem ID */
-	uint8_t slot_num;										/**< Device certificate chain slot number */
-	uint8_t smbus_addr;										/**< SMBUS address */
-	uint8_t eid;											/**< Endpoint ID */
-	uint8_t pcd_component_index;							/**< Index of component in PCD */
-	uint8_t instance_id;									/**< Instance ID of specific device */
-	const struct attestation_discover *discover;			/**< Discovery instance used by the device */
+	struct device_manager_full_capabilities capabilities;			/**< Device capabilities */
+	platform_clock attestation_timeout;								/**< Clock tracking when device should be attested */
+	uint32_t component_id;											/**< Component ID in PCD and CFM */
+	enum device_manager_device_state state;							/**< Device state */
+	struct device_manager_attestation_summary summary;				/**< Attestation summary data */
+	uint16_t pci_vid;												/**< PCI Vendor ID */
+	uint16_t pci_device_id;											/**< PCI Device ID */
+	uint16_t pci_subsystem_vid;										/**< PCI Subsystem Vendor ID */
+	uint16_t pci_subsystem_id;										/**< PCI Subsystem ID */
+	uint8_t slot_num;												/**< Device certificate chain slot number */
+	uint8_t smbus_addr;												/**< SMBUS address */
+	uint8_t eid;													/**< Endpoint ID */
+	uint8_t pcd_component_index;									/**< Index of component in PCD */
+	uint8_t instance_id;											/**< Instance ID of specific device */
+	const struct attestation_discover *discover;					/**< Discovery instance used by the device */
+	uint16_t component_type_count;									/**< Number of component types from PCD */
+	struct pcd_allowed_component_type_info *component_type_list;	/**< List of component types from PCD */
 };
 
 /**
@@ -409,6 +411,8 @@ int device_manager_update_not_attestable_device_entry (struct device_manager *mg
 int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, int device_num,
 	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
 	uint8_t components_count, uint32_t component_id, uint8_t pcd_component_index);
+int device_manager_update_component_device_entry (struct device_manager *mgr, int device_num,
+	uint8_t components_count, const struct device_manager_entry *entry);
 
 int device_manager_update_component_device_entry (struct device_manager *mgr, int device_num,
 	uint8_t components_count, const struct device_manager_entry *entry);
@@ -537,6 +541,12 @@ int device_manager_get_pending_action (struct device_manager *mgr,
 	struct device_manager_pending_action *action);
 int device_manager_process_pending_action (struct device_manager *mgr);
 int device_manager_clear_pending_action (struct device_manager *mgr);
+
+int device_manager_get_num_component_types (struct device_manager *mgr, int device_num);
+int device_manager_get_component_type (struct device_manager *mgr, int device_num, int index,
+	uint32_t *component_id);
+int device_manager_promote_matched_component_type (struct device_manager *mgr, int device_num,
+	int index);
 
 
 #define	DEVICE_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_DEVICE_MANAGER, code)

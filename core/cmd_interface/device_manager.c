@@ -197,6 +197,14 @@ int device_manager_init_ac_rot (struct device_manager *mgr, int num_requester_de
 void device_manager_release (struct device_manager *mgr)
 {
 	if (mgr) {
+		if (mgr->entries != NULL) {
+			int i;
+
+			for (i = 0; i < mgr->num_devices; ++i) {
+				platform_free (mgr->entries[i].component_type_list);
+			}
+		}
+
 		platform_free (mgr->entries);
 		platform_free (mgr->attestation_status);
 
@@ -588,6 +596,9 @@ int device_manager_update_not_attestable_device_entry (struct device_manager *mg
 }
 
 /**
+ * @deprecated This function is deprecated. Use device_manager_update_component_device_entry()
+ * instead for future changes.
+ *
  * Update device manager device table MCTP bridge component entry.  All attestable devices need to
  * be in device entries that follow non-attestable devices.  The order in which device entries are
  * added needs to follow order in PCD.
@@ -633,6 +644,11 @@ int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, 
 		mgr->entries[device_num].pcd_component_index = pcd_component_index;
 		mgr->entries[i_component].instance_id = instance_id++;
 
+		/* Single-source: type matches component_id, so skip allocation and
+		 * rely on the accessor to return component_id directly. */
+		mgr->entries[i_component].component_type_count = 1;
+		mgr->entries[i_component].component_type_list = NULL;
+
 		status = device_manager_update_device_state (mgr, i_component, DEVICE_MANAGER_UNIDENTIFIED);
 		if (status != 0) {
 			return status;
@@ -676,10 +692,30 @@ int device_manager_update_component_device_entry (struct device_manager *mgr, in
 	}
 
 	for (i_component = device_num; i_component < (device_num + components_count); ++i_component) {
-		mgr->entries[i_component] = *entry;
+		memcpy (&mgr->entries[i_component], entry, sizeof (struct device_manager_entry));
 		mgr->entries[i_component].smbus_addr =
 			mgr->entries[DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM].smbus_addr;
 		mgr->entries[i_component].instance_id = instance_id++;
+
+		if (entry->component_type_list != NULL) {
+			/* Multi-source or redirect: heap-allocate and copy the type list. */
+			mgr->entries[i_component].component_type_count = entry->component_type_count;
+			mgr->entries[i_component].component_type_list =
+				platform_calloc (entry->component_type_count,
+				sizeof (struct pcd_allowed_component_type_info));
+			if (mgr->entries[i_component].component_type_list == NULL) {
+				return DEVICE_MGR_NO_MEMORY;
+			}
+
+			memcpy (mgr->entries[i_component].component_type_list, entry->component_type_list,
+				entry->component_type_count * sizeof (struct pcd_allowed_component_type_info));
+		}
+		else {
+			/* Single-source matching component_id: skip allocation and rely on
+			 * the accessor to return component_id directly. */
+			mgr->entries[i_component].component_type_count = 1;
+			mgr->entries[i_component].component_type_list = NULL;
+		}
 
 		status = device_manager_update_device_state (mgr, i_component, DEVICE_MANAGER_UNIDENTIFIED);
 		if (status != 0) {
@@ -2706,4 +2742,100 @@ int device_manager_process_pending_action (struct device_manager *mgr)
 	device_manager_clear_pending_action (mgr);
 
 	return status;
+}
+
+/**
+ * Get the component type count for a device entry.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to query.
+ *
+ * @return The component type count or an error code.
+ */
+int device_manager_get_num_component_types (struct device_manager *mgr, int device_num)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	return mgr->entries[device_num].component_type_count;
+}
+
+/**
+ * Get the component type at a given index for a device entry.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to query.
+ * @param index Index into the component type list.
+ * @param component_id Output buffer for the component type ID.
+ *
+ * @return 0 if success or an error code.
+ */
+int device_manager_get_component_type (struct device_manager *mgr, int device_num, int index,
+	uint32_t *component_id)
+{
+	if ((mgr == NULL) || (component_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	if ((index < 0) || (index >= mgr->entries[device_num].component_type_count)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (mgr->entries[device_num].component_type_list == NULL) {
+		/* Single-source with no heap list: type is the entry's component_id. */
+		*component_id = mgr->entries[device_num].component_id;
+	}
+	else {
+		*component_id = mgr->entries[device_num].component_type_list[index].cfm_component_id;
+	}
+
+	return 0;
+}
+
+/**
+ * Promote a matched component type to the front of the list for faster matching in subsequent
+ * attestation cycles. This is a no-op if the count is 1 or the index is already 0.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ * @param index Index of the matched component type to promote.
+ *
+ * @return 0 if success or an error code.
+ */
+int device_manager_promote_matched_component_type (struct device_manager *mgr, int device_num,
+	int index)
+{
+	struct pcd_allowed_component_type_info temp;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	if ((index < 0) || (index >= mgr->entries[device_num].component_type_count)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((index == 0) || (mgr->entries[device_num].component_type_count <= 1)) {
+		return 0;
+	}
+
+	temp = mgr->entries[device_num].component_type_list[0];
+	mgr->entries[device_num].component_type_list[0] =
+		mgr->entries[device_num].component_type_list[index];
+	mgr->entries[device_num].component_type_list[index] = temp;
+
+	return 0;
 }

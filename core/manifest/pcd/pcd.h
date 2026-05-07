@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "cmd_interface/device_manager.h"
 #include "manifest/manifest.h"
 #include "status/rot_status.h"
 

@@ -4282,88 +4282,52 @@ int attestation_requester_attest_device_tcg (const struct attestation_requester 
 }
 
 /**
- * Perform an attestation cycle on a provided device using requested protocol.
+ * Attempt attestation of a device against a single component ID.
  *
  * @param attestation Attestation requester instance to utilize.
  * @param eid EID of device to attest.
+ * @param device_addr Slave address of device.
+ * @param device_state Current device attestation state.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component type ID to attest against.
+ * @param attestation_protocol Output for the attestation protocol used.
  *
- * @return Completion status, 0 if success or an error code otherwise
+ * @return Completion status, 0 if success or an error code otherwise.
  */
-int attestation_requester_attest_device (const struct attestation_requester *attestation,
-	uint8_t eid)
+static int attestation_requester_attest_device_by_component_id (
+	const struct attestation_requester *attestation, uint8_t eid, int device_addr, int device_state,
+	const struct cfm *active_cfm, uint32_t component_id,
+	enum cfm_attestation_type *attestation_protocol)
 {
 	struct cfm_component_device component_device;
-	const struct cfm *active_cfm;
-	uint32_t component_id;
-	enum cfm_attestation_type attestation_protocol;
-	struct device_manager_attestation_summary_event_counters event_counters;
-	int device_addr;
-	int device_prev_state;
-	int device_state;
 	int status;
-
-	if (attestation == NULL) {
-		return ATTESTATION_INVALID_ARGUMENT;
-	}
-
-	if (attestation->state->get_routing_table) {
-		return ATTESTATION_REFRESH_ROUTING_TABLE;
-	}
-
-	memset (&attestation->state->txn, 0, sizeof (struct attestation_requester_transaction_state));
-
-	device_addr = device_manager_get_device_addr_by_eid (attestation->device_mgr, eid);
-	if (ROT_IS_ERROR (device_addr)) {
-		return device_addr;
-	}
-
-	status = device_manager_get_component_id_by_eid (attestation->device_mgr, eid, &component_id);
-	if (status != 0) {
-		return status;
-	}
-
-	active_cfm = attestation->cfm_manager->get_active_cfm (attestation->cfm_manager);
-	if (active_cfm == NULL) {
-		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
-		if (status != 0) {
-			return status;
-		}
-
-		return ATTESTATION_NO_CFM;
-	}
-
-	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
-
-	/* Store the previous device state before starting attestation */
-	device_prev_state = device_state;
-
-	status = active_cfm->get_component_device (active_cfm, component_id, &component_device);
-	if (status != 0) {
-		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
-
-		goto free_cfm;
-	}
-
-	attestation->state->txn.slot_num = component_device.cert_slot;
-	attestation->state->txn.transcript_hash_type = component_device.transcript_hash_type;
-	attestation->state->txn.measurement_hash_type = component_device.measurement_hash_type;
-
-	attestation_protocol = component_device.attestation_protocol;
-
-	active_cfm->free_component_device (active_cfm, &component_device);
 
 	if (!((device_state == DEVICE_MANAGER_AUTHENTICATED) ||
 		(device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS))) {
 		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_READY_FOR_ATTESTATION);
 		if (status != 0) {
-			goto free_cfm;
+			return status;
 		}
 	}
 
-	switch (attestation_protocol) {
+	status = active_cfm->get_component_device (active_cfm, component_id, &component_device);
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
+
+		return status;
+	}
+
+	attestation->state->txn.slot_num = component_device.cert_slot;
+	attestation->state->txn.transcript_hash_type = component_device.transcript_hash_type;
+	attestation->state->txn.measurement_hash_type = component_device.measurement_hash_type;
+
+	*attestation_protocol = component_device.attestation_protocol;
+
+	active_cfm->free_component_device (active_cfm, &component_device);
+
+	switch (*attestation_protocol) {
 #if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE) && defined (CMD_ENABLE_ISSUE_REQUEST)
 		case CFM_ATTESTATION_CERBERUS_PROTOCOL:
 			status = attestation_requester_attest_device_cerberus_protocol (attestation, eid,
@@ -4387,6 +4351,96 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 		default:
 			status = ATTESTATION_UNSUPPORTED_PROTOCOL;
+	}
+
+	return status;
+}
+
+/**
+ * Perform an attestation cycle on a provided device using requested protocol.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to attest.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+int attestation_requester_attest_device (const struct attestation_requester *attestation,
+	uint8_t eid)
+{
+	const struct cfm *active_cfm;
+	enum cfm_attestation_type attestation_protocol;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	uint32_t component_id;
+	int component_type_count;
+	int device_addr;
+	int device_num;
+	int device_prev_state;
+	int device_state;
+	int id_index;
+	int status;
+
+	if (attestation == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	if (attestation->state->get_routing_table) {
+		return ATTESTATION_REFRESH_ROUTING_TABLE;
+	}
+
+	memset (&attestation->state->txn, 0, sizeof (struct attestation_requester_transaction_state));
+
+	device_addr = device_manager_get_device_addr_by_eid (attestation->device_mgr, eid);
+	if (ROT_IS_ERROR (device_addr)) {
+		return device_addr;
+	}
+
+	device_num = device_manager_get_device_num (attestation->device_mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	component_type_count = device_manager_get_num_component_types (attestation->device_mgr,
+		device_num);
+	if (ROT_IS_ERROR (component_type_count)) {
+		return component_type_count;
+	}
+
+	active_cfm = attestation->cfm_manager->get_active_cfm (attestation->cfm_manager);
+	if (active_cfm == NULL) {
+		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
+		if (status != 0) {
+			return status;
+		}
+
+		return ATTESTATION_NO_CFM;
+	}
+
+	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
+	if (ROT_IS_ERROR (device_state)) {
+		status = device_state;
+		goto free_cfm;
+	}
+
+	/* Store the previous device state before starting attestation */
+	device_prev_state = device_state;
+
+	for (id_index = 0; id_index < component_type_count; id_index++) {
+		status = device_manager_get_component_type (attestation->device_mgr, device_num, id_index,
+			&component_id);
+		if (status != 0) {
+			goto free_cfm;
+		}
+
+		status = attestation_requester_attest_device_by_component_id (attestation, eid,	device_addr,
+			device_state, active_cfm, component_id, &attestation_protocol);
+
+		if (status == 0) {
+			/* Promote matched type to front for faster match next cycle. */
+			device_manager_promote_matched_component_type (attestation->device_mgr, device_num,
+				id_index);
+			break;
+		}
 	}
 
 free_cfm:

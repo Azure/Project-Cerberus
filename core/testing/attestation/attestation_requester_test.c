@@ -200,6 +200,62 @@ struct attestation_requester_testing {
 
 
 /**
+ * Helper to update a device manager component entry using the new
+ * device_manager_update_component_device_entry API with single-source parameters matching the
+ * deprecated device_manager_update_mctp_bridge_device_entry signature.
+ *
+ * @param mgr Device manager instance.
+ * @param device_num Device table entry to update.
+ * @param pci_vid PCI Vendor ID.
+ * @param pci_device_id PCI Device ID.
+ * @param pci_subsystem_vid PCI Subsystem Vendor ID.
+ * @param pci_subsystem_id PCI Subsystem ID.
+ * @param components_count Number of identical components this element describes.
+ * @param component_id Component ID in PCD and CFM.
+ * @param pcd_component_index Index of component in PCD.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+static int attestation_requester_testing_update_device_entry (struct device_manager *mgr,
+	int device_num, uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid,
+	uint16_t pci_subsystem_id, uint8_t components_count, uint32_t component_id,
+	uint8_t pcd_component_index)
+{
+	struct pcd_allowed_component_type_info type_list;
+	struct device_manager_entry comp_entry = {0};
+	uint8_t eid;
+	int status;
+
+	/* Preserve the EID that was already set, since the update does a full memcpy. */
+	eid = mgr->entries[device_num].eid;
+
+	type_list.cfm_component_id = component_id;
+	type_list.min_usage = 0;
+	type_list.max_usage = 0;
+
+	comp_entry.component_id = component_id;
+	comp_entry.pci_vid = pci_vid;
+	comp_entry.pci_device_id = pci_device_id;
+	comp_entry.pci_subsystem_vid = pci_subsystem_vid;
+	comp_entry.pci_subsystem_id = pci_subsystem_id;
+	comp_entry.pcd_component_index = pcd_component_index;
+	comp_entry.component_type_count = 1;
+	comp_entry.component_type_list = &type_list;
+
+	status = device_manager_update_component_device_entry (mgr, device_num, components_count,
+		&comp_entry);
+	if (status != 0) {
+		return status;
+	}
+
+	/* Restore the EID for all populated entries. */
+	mgr->entries[device_num].eid = eid;
+
+	return 0;
+}
+
+
+/**
  * Helper function to add an intermediate and root CA to RIoT key manager cert chain
  *
  * @param test The test framework.
@@ -746,7 +802,7 @@ static void setup_attestation_requester_mock_attestation_test (CuTest *test,
 		attestation_requester_testing_add_certs_to_riot_key_manager (test, testing);
 	}
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 2, 0xAA, 0xBB,
+	status = attestation_requester_testing_update_device_entry (&testing->device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -29023,7 +29079,7 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 
 	cert_chain->length = testing.cert_buffer_len;
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
+	status = attestation_requester_testing_update_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -39279,7 +39335,7 @@ static void attestation_requester_test_attest_device_unknown_device (CuTest *tes
 	status = device_manager_update_device_eid (&testing.device_mgr, 1, 0xAA);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
+	status = attestation_requester_testing_update_device_entry (&testing.device_mgr, 1, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
@@ -41741,11 +41797,11 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 
 	cert_chain->length = testing.cert_buffer_len;
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
+	status = attestation_requester_testing_update_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 3, 0xAB, 0xBC,
+	status = attestation_requester_testing_update_device_entry (&testing.device_mgr, 3, 0xAB, 0xBC,
 		0xCD, 0xDE, 1, component_id2, 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -42704,11 +42760,11 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 
 	cert_chain->length = testing.cert_buffer_len;
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
+	status = attestation_requester_testing_update_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing.device_mgr, 3, 0xAB, 0xBC,
+	status = attestation_requester_testing_update_device_entry (&testing.device_mgr, 3, 0xAB, 0xBC,
 		0xCD, 0xDE, 1, component_id2, 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -43017,11 +43073,11 @@ static void attestation_requester_setup_attestation_loop (
 	testing->cert_eid[1] = 0x0C;
 
 	cert_chain->length = testing->cert_buffer_len;
-	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 2, 0xAA, 0xBB,
+	status = attestation_requester_testing_update_device_entry (&testing->device_mgr, 2, 0xAA, 0xBB,
 		0xCC, 0xDD, 1, component_id, 1);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_update_mctp_bridge_device_entry (&testing->device_mgr, 3, 0xAB, 0xBC,
+	status = attestation_requester_testing_update_device_entry (&testing->device_mgr, 3, 0xAB, 0xBC,
 		0xCD, 0xDE, 1, component_id2, 2);
 	CuAssertIntEquals (test, 0, status);
 
@@ -46870,6 +46926,1027 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	CuAssertIntEquals (test, 0, status);
 }
 
+/**
+ * Test multi-sourced component attestation where the first component type CFM lookup succeeds
+ * but all types fail CFM lookup in this simplified test.
+ * Verifies that the multi-source loop iterates through the component_type_list.
+ */
+static void attestation_requester_test_attest_device_multi_source_first_type_matches (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 65;
+	uint32_t sub_component_id_1 = 100;
+	uint32_t sub_component_id_2 = 200;
+	struct pcd_allowed_component_type_info type_list[2];
+	struct device_manager_entry comp_entry = {0};
+	int status;
+
+	TEST_START;
+
+	type_list[0].cfm_component_id = sub_component_id_1;
+	type_list[0].min_usage = 0;
+	type_list[0].max_usage = 0;
+	type_list[1].cfm_component_id = sub_component_id_2;
+	type_list[1].min_usage = 0;
+	type_list[1].max_usage = 0;
+
+	comp_entry.component_id = component_id;
+	comp_entry.eid = 0xAA;
+	comp_entry.pci_vid = 0xBB;
+	comp_entry.pci_device_id = 0xCC;
+	comp_entry.pci_subsystem_vid = 0xDD;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 1;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	setup_attestation_requester_mock_test (test, &testing, false, false, true);
+
+	status = device_manager_update_component_device_entry (&testing.device_mgr, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: get_active_cfm + free_cfm */
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: First type (100) CFM lookup fails */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: Second type (200) CFM lookup also fails */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+
+	/* Both types fail CFM lookup — final status is CFM_INVALID_ARGUMENT */
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	/* Device state is ATTESTATION_INVALID_CFM (set by helper on get_component_device failure) */
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
+
+	/* No promotion since no type succeeded */
+	CuAssertIntEquals (test, (int) sub_component_id_1,
+		(int) testing.device_mgr.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, (int) sub_component_id_2,
+		(int) testing.device_mgr.entries[2].component_type_list[1].cfm_component_id);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+/**
+ * Test multi-sourced component attestation where the second component type matches
+ * and cache promotion swaps it to front.
+ */
+static void attestation_requester_test_attest_device_multi_source_second_type_matches (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 65;
+	uint32_t sub_component_id_1 = 100;
+	uint32_t sub_component_id_2 = 200;
+	struct pcd_allowed_component_type_info type_list[2];
+	struct device_manager_entry comp_entry = {0};
+	int status;
+
+	TEST_START;
+
+	type_list[0].cfm_component_id = sub_component_id_1;
+	type_list[0].min_usage = 0;
+	type_list[0].max_usage = 0;
+	type_list[1].cfm_component_id = sub_component_id_2;
+	type_list[1].min_usage = 0;
+	type_list[1].max_usage = 0;
+
+	comp_entry.component_id = component_id;
+	comp_entry.eid = 0xAA;
+	comp_entry.pci_vid = 0xBB;
+	comp_entry.pci_device_id = 0xCC;
+	comp_entry.pci_subsystem_vid = 0xDD;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 1;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	setup_attestation_requester_mock_test (test, &testing, false, false, true);
+
+	status = device_manager_update_component_device_entry (&testing.device_mgr, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: get_active_cfm + free_cfm */
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: First type (100) — CFM lookup fails */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: Second type (200) — CFM lookup also fails (to keep test simple) */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+
+	/* Both types fail — should get CFM_INVALID_ARGUMENT */
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	/* Device state is ATTESTATION_INVALID_CFM (set by helper on get_component_device failure) */
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
+
+	/* Type list should NOT be promoted since no type succeeded */
+	CuAssertIntEquals (test, (int) sub_component_id_1,
+		(int) testing.device_mgr.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, (int) sub_component_id_2,
+		(int) testing.device_mgr.entries[2].component_type_list[1].cfm_component_id);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+/**
+ * Test multi-sourced component attestation where no component type matches — all fail.
+ */
+static void attestation_requester_test_attest_device_multi_source_no_type_matches (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 65;
+	uint32_t sub_component_id_1 = 100;
+	uint32_t sub_component_id_2 = 200;
+	uint32_t sub_component_id_3 = 300;
+	struct pcd_allowed_component_type_info type_list[3];
+	struct device_manager_entry comp_entry = {0};
+	int status;
+
+	TEST_START;
+
+	type_list[0].cfm_component_id = sub_component_id_1;
+	type_list[0].min_usage = 0;
+	type_list[0].max_usage = 0;
+	type_list[1].cfm_component_id = sub_component_id_2;
+	type_list[1].min_usage = 0;
+	type_list[1].max_usage = 0;
+	type_list[2].cfm_component_id = sub_component_id_3;
+	type_list[2].min_usage = 0;
+	type_list[2].max_usage = 0;
+
+	comp_entry.component_id = component_id;
+	comp_entry.eid = 0xAA;
+	comp_entry.pci_vid = 0xBB;
+	comp_entry.pci_device_id = 0xCC;
+	comp_entry.pci_subsystem_vid = 0xDD;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 1;
+	comp_entry.component_type_count = 3;
+	comp_entry.component_type_list = type_list;
+
+	setup_attestation_requester_mock_test (test, &testing, false, false, true);
+
+	status = device_manager_update_component_device_entry (&testing.device_mgr, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: get_active_cfm + free_cfm */
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	/* All three types fail CFM lookup */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_3), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+
+	/* All types failed — final status is CFM_INVALID_ARGUMENT */
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	/* Device state is ATTESTATION_INVALID_CFM (set by helper on get_component_device failure) */
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
+
+	/* No promotion should have occurred */
+	CuAssertIntEquals (test, (int) sub_component_id_1,
+		(int) testing.device_mgr.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, (int) sub_component_id_2,
+		(int) testing.device_mgr.entries[2].component_type_list[1].cfm_component_id);
+	CuAssertIntEquals (test, (int) sub_component_id_3,
+		(int) testing.device_mgr.entries[2].component_type_list[2].cfm_component_id);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+/**
+ * Test that cache promotion via device_manager_promote_matched_component_type swaps the matched
+ * component type to index 0.
+ */
+static void attestation_requester_test_attest_device_multi_source_cache_promotion (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_entry comp_entry = {0};
+	struct pcd_allowed_component_type_info type_list[3] = {
+		{.cfm_component_id = 100, .min_usage = 1, .max_usage = 5},
+		{.cfm_component_id = 200, .min_usage = 2, .max_usage = 6},
+		{.cfm_component_id = 300, .min_usage = 3, .max_usage = 7}
+	};
+	uint32_t component_id;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 1, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	comp_entry.component_id = 50;
+	comp_entry.pci_vid = 0xAA;
+	comp_entry.pci_device_id = 0xBB;
+	comp_entry.pci_subsystem_vid = 0xCC;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 0;
+	comp_entry.component_type_count = 3;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&manager, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Promote index 2 (component_type=300) to front */
+	status = device_manager_promote_matched_component_type (&manager, 2, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	/* After promotion: index 0 should have the matched type (300),
+	 * index 2 should have the original index 0 (100) */
+	status = device_manager_get_component_type (&manager, 2, 0, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 300, (int) component_id);
+
+	status = device_manager_get_component_type (&manager, 2, 1, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 200, (int) component_id);
+
+	status = device_manager_get_component_type (&manager, 2, 2, &component_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 100, (int) component_id);
+
+	/* Verify min/max were also swapped */
+	CuAssertIntEquals (test, 3, manager.entries[2].component_type_list[0].min_usage);
+	CuAssertIntEquals (test, 7, manager.entries[2].component_type_list[0].max_usage);
+	CuAssertIntEquals (test, 1, manager.entries[2].component_type_list[2].min_usage);
+	CuAssertIntEquals (test, 5, manager.entries[2].component_type_list[2].max_usage);
+
+	device_manager_release (&manager);
+}
+
+/**
+ * Test single-source backward compatibility: component_type_count=0 uses primary component_id.
+ */
+static void attestation_requester_test_attest_device_single_source_backward_compat (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 101;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_test (test, &testing, false, false, true);
+
+	status = attestation_requester_testing_update_device_entry (&testing.device_mgr, 2, 0xAA, 0xBB,
+		0xCC, 0xDD, 1, component_id, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify single source entry populated with component_type_count = 1 */
+	CuAssertIntEquals (test, 1, testing.device_mgr.entries[2].component_type_count);
+	CuAssertPtrNotNull (test, testing.device_mgr.entries[2].component_type_list);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: get_active_cfm + free_cfm */
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mock: get_component_device for the primary component_id — returns invalid */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (component_id), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+
+	/* Single-source path: should call get_component_device with primary component_id directly */
+	CuAssertIntEquals (test, CFM_INVALID_ARGUMENT, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INVALID_CFM, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+/**
+ * Test multi-sourced component attestation where the first component type's SPDM attestation
+ * fails (simulating measurement mismatch or protocol error), and the second type succeeds.
+ * Verifies the multi-source loop continues after a non-CFM-lookup failure and cache promotion
+ * moves the successful type to index 0.
+ */
+static void attestation_requester_test_attest_device_multi_source_first_fail_second_success (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
+	struct cfm_component_device component_device_1;
+	struct cfm_component_device component_device_2;
+	struct pcd_allowed_component_type_info type_list[2];
+	struct device_manager_entry comp_entry = {0};
+	uint32_t component_id = 65;
+	uint32_t sub_component_id_1 = 100;
+	uint32_t sub_component_id_2 = 200;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement[SHA256_HASH_LENGTH];
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+
+	type_list[0].cfm_component_id = sub_component_id_1;
+	type_list[0].min_usage = 0;
+	type_list[0].max_usage = 0;
+	type_list[1].cfm_component_id = sub_component_id_2;
+	type_list[1].min_usage = 0;
+	type_list[1].max_usage = 0;
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 1;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
+
+	/* First type component device — SPDM will fail during attestation */
+	component_device_1.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device_1.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device_1.component_id = sub_component_id_1;
+	component_device_1.num_pmr_ids = 1;
+	component_device_1.pmr_id_list = pmr_id_list;
+	component_device_1.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device_1.measurement_hash_type = HASH_TYPE_SHA256;
+
+	/* Second type component device — SPDM will succeed */
+	component_device_2.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device_2.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device_2.component_id = sub_component_id_2;
+	component_device_2.num_pmr_ids = 1;
+	component_device_2.pmr_id_list = pmr_id_list;
+	component_device_2.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device_2.measurement_hash_type = HASH_TYPE_SHA256;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	status = ecc_der_encode_ecdsa_signature (signature, &signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
+
+	/* Setup attestation infrastructure for the second type (which will succeed) */
+	setup_attestation_requester_mock_attestation_test (test, &testing, false, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		sub_component_id_2);
+
+	/* Override device entry with multi-source component_type_list */
+	platform_free (testing.device_mgr.entries[2].component_type_list);
+	comp_entry.component_id = component_id;
+	comp_entry.eid = 0xAA;
+	comp_entry.pci_vid = 0xBB;
+	comp_entry.pci_device_id = 0xCC;
+	comp_entry.pci_subsystem_vid = 0xDD;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 1;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&testing.device_mgr, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* CFM manager mocks */
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	/* First type (100) — get_component_device succeeds but SPDM will fail */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device_1,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Second type (200) — get_component_device succeeds and SPDM will succeed */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device_2,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+
+	/* First type SPDM: hash start fails — simulates attestation failure (e.g. measurement
+	 * mismatch in production would fail similarly after protocol exchange) */
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Second type SPDM: full successful flow */
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, sub_component_id_2);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
+		false, &testing, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (sub_component_id_2), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	/* Cache promotion: second type (200) matched, should be promoted to index 0 */
+	CuAssertIntEquals (test, (int) sub_component_id_2,
+		(int) testing.device_mgr.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, (int) sub_component_id_1,
+		(int) testing.device_mgr.entries[2].component_type_list[1].cfm_component_id);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+/**
+ * Test multi-sourced component attestation success where the first component type (index 0)
+ * matches the CFM and full SPDM attestation succeeds. No cache promotion needed.
+ */
+static void attestation_requester_test_attest_device_multi_source_first_type_success (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
+	struct cfm_component_device component_device;
+	struct pcd_allowed_component_type_info type_list[2];
+	struct device_manager_entry comp_entry = {0};
+	uint32_t component_id = 65;
+	uint32_t sub_component_id_1 = 100;
+	uint32_t sub_component_id_2 = 200;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement[SHA256_HASH_LENGTH];
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+
+	type_list[0].cfm_component_id = sub_component_id_1;
+	type_list[0].min_usage = 0;
+	type_list[0].max_usage = 0;
+	type_list[1].cfm_component_id = sub_component_id_2;
+	type_list[1].min_usage = 0;
+	type_list[1].max_usage = 0;
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 1;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
+
+	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device.component_id = sub_component_id_1;
+	component_device.num_pmr_ids = 1;
+	component_device.pmr_id_list = pmr_id_list;
+	component_device.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device.measurement_hash_type = HASH_TYPE_SHA256;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	status = ecc_der_encode_ecdsa_signature (signature, &signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
+
+	/* Use init_attestation=false so we can manually set up multi-source + CFM mocks */
+	setup_attestation_requester_mock_attestation_test (test, &testing, false, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		sub_component_id_1);
+
+	/* Override device entry with multi-source component_type_list */
+	platform_free (testing.device_mgr.entries[2].component_type_list);
+	comp_entry.component_id = component_id;
+	comp_entry.eid = 0xAA;
+	comp_entry.pci_vid = 0xBB;
+	comp_entry.pci_device_id = 0xCC;
+	comp_entry.pci_subsystem_vid = 0xDD;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 1;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&testing.device_mgr, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* CFM manager mocks */
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	/* First type (100) — get_component_device succeeds */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, sub_component_id_1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
+		false, &testing, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (sub_component_id_1), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	/* No cache promotion needed — first type matched at index 0 */
+	CuAssertIntEquals (test, (int) sub_component_id_1,
+		(int) testing.device_mgr.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, (int) sub_component_id_2,
+		(int) testing.device_mgr.entries[2].component_type_list[1].cfm_component_id);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+/**
+ * Test multi-sourced component attestation success where the second component type (index 1)
+ * matches the CFM and full SPDM attestation succeeds. Cache promotion swaps it to index 0.
+ */
+static void attestation_requester_test_attest_device_multi_source_second_type_success (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-measurements signing";
+	struct cfm_measurement_container container;
+	struct cfm_allowable_digests allowable_digests;
+	struct cfm_component_device component_device;
+	struct pcd_allowed_component_type_info type_list[2];
+	struct device_manager_entry comp_entry = {0};
+	uint32_t component_id = 65;
+	uint32_t sub_component_id_1 = 100;
+	uint32_t sub_component_id_2 = 200;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t measurement[SHA256_HASH_LENGTH];
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+
+	type_list[0].cfm_component_id = sub_component_id_1;
+	type_list[0].min_usage = 0;
+	type_list[0].max_usage = 0;
+	type_list[1].cfm_component_id = sub_component_id_2;
+	type_list[1].min_usage = 0;
+	type_list[1].max_usage = 0;
+
+	container.measurement.digest.allowable_digests = &allowable_digests;
+	container.measurement.digest.pmr_id = 0;
+	container.measurement.digest.measurement_id = 1;
+	container.measurement_type = CFM_MEASUREMENT_TYPE_DIGEST;
+	container.measurement.digest.allowable_digests_count = 1;
+	container.measurement.digest.allowable_digests[0].version_set = 1;
+	container.measurement.digest.allowable_digests[0].digests.digest_count = 1;
+	container.measurement.digest.allowable_digests[0].digests.hash_type = HASH_TYPE_SHA256;
+	container.measurement.digest.allowable_digests[0].digests.digests = measurement;
+
+	component_device.attestation_protocol = CFM_ATTESTATION_DMTF_SPDM;
+	component_device.cert_slot = ATTESTATION_RIOT_SLOT_NUM;
+	component_device.component_id = sub_component_id_2;
+	component_device.num_pmr_ids = 1;
+	component_device.pmr_id_list = pmr_id_list;
+	component_device.transcript_hash_type = HASH_TYPE_SHA256;
+	component_device.measurement_hash_type = HASH_TYPE_SHA256;
+
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		measurement[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	status = ecc_der_encode_ecdsa_signature (signature, &signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
+
+	/* Use init_attestation=false so we can manually set up multi-source + CFM mocks */
+	setup_attestation_requester_mock_attestation_test (test, &testing, false, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		sub_component_id_2);
+
+	/* Override device entry with multi-source component_type_list */
+	platform_free (testing.device_mgr.entries[2].component_type_list);
+	comp_entry.component_id = component_id;
+	comp_entry.eid = 0xAA;
+	comp_entry.pci_vid = 0xBB;
+	comp_entry.pci_device_id = 0xCC;
+	comp_entry.pci_subsystem_vid = 0xDD;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 1;
+	comp_entry.component_type_count = 2;
+	comp_entry.component_type_list = type_list;
+
+	status = device_manager_update_component_device_entry (&testing.device_mgr, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* CFM manager mocks */
+	status = mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.get_active_cfm,
+		&testing.cfm_manager, MOCK_RETURN_PTR (&testing.cfm.base));
+	status |= mock_expect (&testing.cfm_manager.mock, testing.cfm_manager.base.free_cfm,
+		&testing.cfm_manager, 0, MOCK_ARG_PTR (&testing.cfm.base));
+	CuAssertIntEquals (test, 0, status);
+
+	/* First type (100) — get_component_device FAILS (not in CFM) */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm,
+		CFM_INVALID_ARGUMENT, MOCK_ARG (sub_component_id_1), MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Second type (200) — get_component_device succeeds */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_device, &testing.cfm, 0,
+		MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &component_device,
+		sizeof (struct cfm_component_device), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 1, 0);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_device, &testing.cfm,
+		0, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, &testing.rsa.base, &testing.x509_mock.base, &testing.rng.base,
+		&testing.riot, &testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	testing.challenge_unsupported = true;
+	testing.get_all_blocks = false;
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, sub_component_id_2);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.cancel,
+		&testing.secondary_hash, 0);
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+
+	attestation_requester_testing_send_and_receive_spdm_get_measurements_with_mocks (test, false,
+		false, &testing, 1);
+
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, CFM_PMR_DIGEST_NOT_FOUND, MOCK_ARG (sub_component_id_2), MOCK_ARG (0),
+		MOCK_ARG_NOT_NULL);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm, 0,
+		MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL, MOCK_ARG (1), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 1, &container,
+		sizeof (struct cfm_measurement_container), -1);
+	status |= mock_expect (&testing.cfm.mock,
+		testing.cfm.base.get_next_measurement_or_measurement_data, &testing.cfm,
+		CFM_ENTRY_NOT_FOUND, MOCK_ARG (sub_component_id_2), MOCK_ARG_NOT_NULL, MOCK_ARG (0));
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_measurement_container,
+		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	/* Cache promotion: second type (200) should be promoted to index 0 */
+	CuAssertIntEquals (test, (int) sub_component_id_2,
+		(int) testing.device_mgr.entries[2].component_type_list[0].cfm_component_id);
+	CuAssertIntEquals (test, (int) sub_component_id_1,
+		(int) testing.device_mgr.entries[2].component_type_list[1].cfm_component_id);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (attestation_requester);
@@ -47329,6 +48406,14 @@ TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_n
 TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_only_measurement_version_set_selector_invalid);
 TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_only_fail);
 TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_second_fail_invalid);
+TEST (attestation_requester_test_attest_device_multi_source_first_type_matches);
+TEST (attestation_requester_test_attest_device_multi_source_second_type_matches);
+TEST (attestation_requester_test_attest_device_multi_source_no_type_matches);
+TEST (attestation_requester_test_attest_device_multi_source_cache_promotion);
+TEST (attestation_requester_test_attest_device_single_source_backward_compat);
+TEST (attestation_requester_test_attest_device_multi_source_first_fail_second_success);
+TEST (attestation_requester_test_attest_device_multi_source_first_type_success);
+TEST (attestation_requester_test_attest_device_multi_source_second_type_success);
 
 TEST_SUITE_END;
 // *INDENT-ON*
