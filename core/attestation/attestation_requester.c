@@ -4371,6 +4371,8 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 	enum cfm_attestation_type attestation_protocol;
 	struct device_manager_attestation_summary_event_counters event_counters;
 	uint32_t component_id;
+	uint32_t device_component_id;
+	uint8_t instance_id;
 	int component_type_count;
 	int device_addr;
 	int device_num;
@@ -4399,11 +4401,38 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 		return device_num;
 	}
 
+	status = device_manager_get_component_id (attestation->device_mgr, device_num,
+		&device_component_id);
+	if (status != 0) {
+		return status;
+	}
+
+	status = device_manager_get_instance_id (attestation->device_mgr, device_num, &instance_id);
+	if (status != 0) {
+		return status;
+	}
+
 	component_type_count = device_manager_get_num_component_types (attestation->device_mgr,
 		device_num);
 	if (ROT_IS_ERROR (component_type_count)) {
 		return component_type_count;
 	}
+
+	if (component_type_count == 0) {
+		/* This should never happen, but still lets handle it properly. */
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_NO_COMPONENT_TYPE, device_component_id, instance_id);
+
+		return ATTESTATION_NO_CFM;
+	}
+
+	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
+	if (ROT_IS_ERROR (device_state)) {
+		return device_state;
+	}
+
+	/* Store the previous device state before starting attestation */
+	device_prev_state = device_state;
 
 	active_cfm = attestation->cfm_manager->get_active_cfm (attestation->cfm_manager);
 	if (active_cfm == NULL) {
@@ -4415,15 +4444,6 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 
 		return ATTESTATION_NO_CFM;
 	}
-
-	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
-	if (ROT_IS_ERROR (device_state)) {
-		status = device_state;
-		goto free_cfm;
-	}
-
-	/* Store the previous device state before starting attestation */
-	device_prev_state = device_state;
 
 	for (id_index = 0; id_index < component_type_count; id_index++) {
 		status = device_manager_get_component_type (attestation->device_mgr, device_num, id_index,
@@ -4443,9 +4463,6 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 		}
 	}
 
-free_cfm:
-	attestation->cfm_manager->free_cfm (attestation->cfm_manager, active_cfm);
-
 	/* update previous attestation state in device manager attestation event */
 	device_manager_update_attestation_summary_prev_state_by_eid (attestation->device_mgr, eid,
 		device_prev_state);
@@ -4464,7 +4481,7 @@ free_cfm:
 			&event_counters);
 		if (event_counters.status_success_count == 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION, eid, 0);
+				ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION, device_component_id, instance_id);
 		}
 	}
 	else {
@@ -4476,6 +4493,9 @@ free_cfm:
 				DEVICE_MANAGER_ATTESTATION_FAILED);
 		}
 	}
+
+free_cfm:
+	attestation->cfm_manager->free_cfm (attestation->cfm_manager, active_cfm);
 
 	device_manager_update_attestation_summary_event_counters_by_eid (attestation->device_mgr, eid);
 

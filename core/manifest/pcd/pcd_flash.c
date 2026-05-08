@@ -345,7 +345,11 @@ int pcd_flash_buffer_supported_components (const struct pcd *pcd, size_t offset,
 					return PCD_MALFORMED_DIRECT_I2C_COMPONENT_ELEMENT;
 				}
 
-				[[fallthrough]];
+				/* These components always have one instance */
+				supported_component.component_count = 1;
+				supported_component.component_id = component_data.common_v2.component_id;
+
+				break;
 
 			case PCD_COMPONENT_TCG_LOG:
 				if ((size_t) status < sizeof (struct pcd_tcg_log_component_element_v2)) {

@@ -125,7 +125,7 @@ struct attestation_requester_testing {
 	struct mctp_interface mctp;									/**< MCTP interface instance */
 	struct mctp_interface_state mctp_state;						/**< MCTP interface variable context. */
 	struct msg_transport_mock mctp_control;						/**< MCTP Control msg transport mock instance */
-	struct msg_transport_mock spdm_transport;						/**< SPDM msg transport mock instance */
+	struct msg_transport_mock spdm_transport;					/**< SPDM msg transport mock instance */
 	struct cmd_interface_fw_version fw_version;					/**< The firmware version data. */
 	struct cmd_interface_multi_handler req_handler;				/**< MCTP request handling. */
 	struct cmd_interface_protocol_mctp mctp_proto;				/**< MCTP message type parsing. */
@@ -885,7 +885,6 @@ static void complete_attestation_requester_mock_test (CuTest *test,
 	status |= attestation_responder_mock_validate_and_release (&testing->attestation_responder);
 	status |= msg_transport_mock_validate_and_release (&testing->mctp_control);
 	status |= msg_transport_mock_validate_and_release (&testing->spdm_transport);
-
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2136,7 +2135,7 @@ static void attestation_requester_testing_send_and_receive_cerberus_get_certific
 	attestation_requester_testing_verify_cerberus_alias_with_mocks (test, testing, x509_mock,
 		RIOT_CORE_ALIAS_CERT, RIOT_CORE_ALIAS_CERT_LEN, out_digest, key_type);
 }
-#endif 
+#endif
 
 /**
  * Generate and process a MCTP protocol Set Endpoint ID request
@@ -2216,7 +2215,8 @@ static int64_t attestation_requester_testing_receive_spdm_rsp_not_ready (CuTest 
 
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_error_response) + sizeof (struct spdm_error_response_not_ready));
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
 	resp_expected->target_eid = dest_eid;
@@ -2248,18 +2248,19 @@ static int64_t attestation_requester_testing_receive_spdm_rsp_not_ready (CuTest 
 	offset += sizeof (struct spdm_error_response_not_ready);
 
 	resp_expected->length = offset;
-	resp_expected->payload_length = resp_expected->length - sizeof (struct spdm_protocol_mctp_header);
+	resp_expected->payload_length = resp_expected->length -
+		sizeof (struct spdm_protocol_mctp_header);
 	/* Response contruction ends. */
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect_output_deep_copy_tmp (&testing->spdm_transport.mock, 2, resp_expected,
-		sizeof (*resp_expected), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
-		cmd_interface_mock_free_request);
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2282,7 +2283,8 @@ static int64_t attestation_requester_testing_receive_spdm_error_busy (CuTest *te
 
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_error_response));
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
 	resp_expected->source_eid = dest_eid;
@@ -2304,18 +2306,19 @@ static int64_t attestation_requester_testing_receive_spdm_error_busy (CuTest *te
 	offset += sizeof (struct spdm_error_response);
 
 	resp_expected->length = offset;
-	resp_expected->payload_length = resp_expected->length - sizeof (struct spdm_protocol_mctp_header);
+	resp_expected->payload_length = resp_expected->length -
+		sizeof (struct spdm_protocol_mctp_header);
 	/* Response contruction ends. */
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect_output_deep_copy_tmp (&testing->spdm_transport.mock, 2, resp_expected,
-		sizeof (*resp_expected), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
-		cmd_interface_mock_free_request);
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2347,8 +2350,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 	struct cmd_interface_msg *req_expected = NULL;
 	struct cmd_interface_msg *resp_expected = NULL;
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
-	uint32_t timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr,
-			dest_eid);
+	uint32_t timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr,	dest_eid);
 	size_t num_entries = testing->spdm_max_version - testing->spdm_min_version + 1;
 	int length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
 	size_t i;
@@ -2357,8 +2359,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct spdm_get_version_request));
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct spdm_get_version_request);
 	req_expected->max_response = length;
 	req_expected->payload = tx_message;
@@ -2378,36 +2381,41 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing->spdm_transport.mock,
-		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport, length,
-		MOCK_ARG (dest_eid));
+		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport,
+		length,	MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
 	if ((!get_rsp) || rsp_fail || unexpected_rsp) {
 		if (rsp_fail && testing->rsp_not_ready_request) {
-			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout,
+				testing);
 		}
 		else if (rsp_fail && testing->rsp_busy_request) {
-			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout,
+				testing);
 		}
 		else {
-			status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-				&testing->spdm_transport.base,
+			status = mock_expect (&testing->spdm_transport.mock,
+				testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base,
 				get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
 				MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
-				sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-				cmd_interface_mock_duplicate_request),
+				sizeof (*req_expected), cmd_interface_mock_save_request,
+				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 				MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 			CuAssertIntEquals (test, 0, status);
 		}
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
 	/* Response contruction starts. */
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
-		sizeof (struct spdm_get_version_response) + (sizeof (struct spdm_version_num_entry) * num_entries));
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
+		sizeof (struct spdm_get_version_response) +
+		(sizeof (struct spdm_version_num_entry) * num_entries));
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
 	resp_expected->target_eid = dest_eid;
@@ -2436,7 +2444,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_version (CuT
 	}
 
 	resp_expected->length = offset + (sizeof (struct spdm_version_num_entry) * num_entries);
-	resp_expected->payload_length = resp_expected->length - sizeof (struct spdm_protocol_mctp_header);
+	resp_expected->payload_length = resp_expected->length -
+		sizeof (struct spdm_protocol_mctp_header);
 	/* Response contruction ends. */
 
 	status = mock_expect (&testing->spdm_transport.mock,
@@ -2538,16 +2547,16 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	struct cmd_interface_msg *req_expected;
 	struct cmd_interface_msg *resp_expected;
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
-	uint32_t timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr,
-			dest_eid);
+	uint32_t timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr,	dest_eid);
 	size_t offset;
 	int length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
 	int status = 0;
 
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct spdm_get_capabilities));
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->max_response = length;
 	req_expected->payload = tx_message;
 	req_expected->target_eid = dest_eid;
@@ -2599,36 +2608,40 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing->spdm_transport.mock,
-		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport, length,
-		MOCK_ARG (dest_eid));
+		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport,
+		length,	MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
 	if ((!get_rsp) || rsp_fail || unexpected_rsp) {
 		if (rsp_fail && testing->rsp_not_ready_request) {
-			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout,
+				testing);
 		}
 		else if (rsp_fail && testing->rsp_busy_request) {
-			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout,
+				testing);
 		}
 		else {
-			status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-				&testing->spdm_transport.base,
+			status = mock_expect (&testing->spdm_transport.mock,
+				testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base,
 				get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
 				MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
-				sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-				cmd_interface_mock_duplicate_request),
+				sizeof (*req_expected), cmd_interface_mock_save_request,
+				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 				MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 			CuAssertIntEquals (test, 0, status);
 		}
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
 	/* Response contruction starts. */
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_get_capabilities));
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
 	resp_expected->target_eid = dest_eid;
@@ -2686,15 +2699,15 @@ static void attestation_requester_testing_send_and_receive_spdm_get_capabilities
 	resp_expected->length = offset;
 	resp_expected->payload_length = resp_expected->length - 1;
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect_output_deep_copy_tmp (&testing->spdm_transport.mock, 2, resp_expected,
-		sizeof (*resp_expected), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
-		cmd_interface_mock_free_request);
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2830,16 +2843,16 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	struct cmd_interface_msg *req_expected;
 	struct cmd_interface_msg *resp_expected;
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
-	uint32_t timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr,
-			dest_eid);
+	uint32_t timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr,	dest_eid);
 	size_t offset;
 	int length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
 	int status = 0;
 
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct spdm_negotiate_algorithms_request));
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct spdm_negotiate_algorithms_request);
 	req_expected->max_response = length;
 	req_expected->payload = tx_message;
@@ -2868,40 +2881,44 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 
 	status = mock_expect (&testing->spdm_transport.mock,
 		testing->spdm_transport.base.get_buffer_overhead, &testing->spdm_transport, 0,
-		MOCK_ARG (dest_eid),  MOCK_ARG_ANY);
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing->spdm_transport.mock,
-		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport, length,
-		MOCK_ARG (dest_eid));
+		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport,
+		length,	MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
 	if ((!get_rsp) || rsp_fail || unexpected_rsp) {
 		if (rsp_fail && testing->rsp_not_ready_request) {
-			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout,
+				testing);
 		}
 		else if (rsp_fail && testing->rsp_busy_request) {
-			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout,
+				testing);
 		}
 		else {
-			status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-				&testing->spdm_transport.base,
+			status = mock_expect (&testing->spdm_transport.mock,
+				testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base,
 				get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
 				MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
-				sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-				cmd_interface_mock_duplicate_request),
+				sizeof (*req_expected), cmd_interface_mock_save_request,
+				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 				MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 			CuAssertIntEquals (test, 0, status);
 		}
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
 	/* Response contruction starts. */
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_negotiate_algorithms_response));
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
 	resp_expected->target_eid = dest_eid;
@@ -2921,10 +2938,10 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	algorithms_response->num_alg_structure_tables = 0;
 	algorithms_response->length = sizeof (struct spdm_negotiate_algorithms_response);
 	algorithms_response->measurement_specification = testing->measurement_spec_unsupported ?
-		(SPDM_MEASUREMENT_SPEC_DMTF + 1) : SPDM_MEASUREMENT_SPEC_DMTF;
+			(SPDM_MEASUREMENT_SPEC_DMTF + 1) : SPDM_MEASUREMENT_SPEC_DMTF;
 	algorithms_response->base_asym_sel = testing->asymmetric_key_signature_alg_unsupported ?
-		0 : (testing->asymmetric_key_signature_alg_mismatched ?
-			SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
+			0 : (testing->asymmetric_key_signature_alg_mismatched ?
+				SPDM_TPM_ALG_RSASSA_2048 : SPDM_TPM_ALG_ECDSA_ECC_NIST_P256);
 	algorithms_response->base_hash_sel = testing->hashing_alg_supported + unexpected_rsp;
 	algorithms_response->measurement_hash_algo = testing->meas_hashing_alg_supported;
 
@@ -2934,15 +2951,15 @@ static void attestation_requester_testing_send_and_receive_spdm_negotiate_algori
 	resp_expected->payload_length = resp_expected->length - 1;
 	/* Response contruction ends. */
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect_output_deep_copy_tmp (&testing->spdm_transport.mock, 2, resp_expected,
-		sizeof (*resp_expected), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
-		cmd_interface_mock_free_request);
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3036,7 +3053,8 @@ static void attestation_requester_testing_spdm_get_digests_response_mock (CuTest
 	uint8_t *rx_message = NULL;
 	struct cmd_interface_msg *resp_expected = NULL;
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
-	uint32_t timeout = (device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
+	uint32_t timeout =
+		(device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
 		ATTESTATION_REQUESTER_TESTING_RESP_CT_EXPONENT))) * 100;
 	size_t offset;
 	int length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
@@ -3046,33 +3064,36 @@ static void attestation_requester_testing_spdm_get_digests_response_mock (CuTest
 
 	status = mock_expect (&testing->spdm_transport.mock,
 		testing->spdm_transport.base.get_buffer_overhead, &testing->spdm_transport, 0,
-		MOCK_ARG (dest_eid),  MOCK_ARG_ANY);
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing->spdm_transport.mock,
-		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport, length,
-		MOCK_ARG (dest_eid));
+		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport,
+		length,	MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
 	if ((!get_rsp) || rsp_fail || unexpected_rsp) {
 		if (rsp_fail && testing->rsp_not_ready_request) {
-			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_rsp_not_ready (test, req_expected, timeout,
+				testing);
 		}
 		else if (rsp_fail && testing->rsp_busy_request) {
-			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout, testing);
+			attestation_requester_testing_receive_spdm_error_busy (test, req_expected, timeout,
+				testing);
 		}
 		else {
-			status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-				&testing->spdm_transport.base,
+			status = mock_expect (&testing->spdm_transport.mock,
+				testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base,
 				get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
 				MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
-				sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-				cmd_interface_mock_duplicate_request),
+				sizeof (*req_expected), cmd_interface_mock_save_request,
+				cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 				MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 			CuAssertIntEquals (test, 0, status);
 		}
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
@@ -3092,7 +3113,7 @@ static void attestation_requester_testing_spdm_get_digests_response_mock (CuTest
 	/* Response contruction starts. */
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_get_digests_response) + hash_len);
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1,
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
 		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
@@ -3129,15 +3150,15 @@ static void attestation_requester_testing_spdm_get_digests_response_mock (CuTest
 		sizeof (struct spdm_protocol_mctp_header);
 	/* Response contruction ends. */
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect_output_deep_copy_tmp (&testing->spdm_transport.mock, 2, resp_expected,
-		sizeof (*resp_expected), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
-		cmd_interface_mock_free_request);
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3165,8 +3186,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_digests (CuT
 
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct spdm_get_digests_request));
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct spdm_get_digests_request);
 	req_expected->max_response = length;
 	req_expected->payload = tx_message;
@@ -3180,8 +3202,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_digests (CuT
 	request->header.req_rsp_code = SPDM_REQUEST_GET_DIGESTS;
 	/* Request contruction ends */
 
-	attestation_requester_testing_spdm_get_digests_response_mock (test, get_rsp, rsp_fail, unexpected_rsp,
-		req_expected, testing);
+	attestation_requester_testing_spdm_get_digests_response_mock (test, get_rsp, rsp_fail,
+		unexpected_rsp,	req_expected, testing);
 }
 
 /**
@@ -3293,17 +3315,18 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 	struct cmd_interface_msg *req_expected = NULL;
 	struct cmd_interface_msg *resp_expected = NULL;
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
-	uint32_t timeout = (device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
+	uint32_t timeout =
+		(device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
 		ATTESTATION_REQUESTER_TESTING_RESP_CT_EXPONENT))) * 100;
 	size_t offset;
 	int max_length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
 	int status = 0;
 
-
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct spdm_get_certificate_request));
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct spdm_get_certificate_request);
 	req_expected->max_response = max_length;
 	req_expected->payload = tx_message;
@@ -3327,25 +3350,26 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 
 	status = mock_expect (&testing->spdm_transport.mock,
 		testing->spdm_transport.base.get_buffer_overhead, &testing->spdm_transport, 0,
-		MOCK_ARG (dest_eid),  MOCK_ARG_ANY);
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing->spdm_transport.mock,
-		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport, length,
-		MOCK_ARG (dest_eid));
+		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport,
+		length,	MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
 	if ((!get_rsp) || rsp_fail || unexpected_rsp) {
-		status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-			&testing->spdm_transport.base,
+		status = mock_expect (&testing->spdm_transport.mock,
+			testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base,
 			get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
 			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
-			sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 			MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 		CuAssertIntEquals (test, 0, status);
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
@@ -3363,8 +3387,9 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 
 	/* Response contruction starts. */
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
-		sizeof (struct spdm_get_certificate_response) + get_cert->resp_length + testing->rsp_len_invalid[3]);
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1,
+		sizeof (struct spdm_get_certificate_response) + get_cert->resp_length +
+		testing->rsp_len_invalid[3]);
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
 		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
@@ -3410,15 +3435,15 @@ static void attestation_requester_testing_send_and_receive_spdm_get_certificate 
 		sizeof (struct spdm_protocol_mctp_header);
 	/* Response contruction ends. */
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect_output_deep_copy_tmp (&testing->spdm_transport.mock, 2, resp_expected,
-		sizeof (*resp_expected), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
-		cmd_interface_mock_free_request);
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3897,14 +3922,16 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 	size_t i;
 	int status;
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
-	uint32_t timeout = (device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
+	uint32_t timeout =
+		(device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
 		ATTESTATION_REQUESTER_TESTING_RESP_CT_EXPONENT))) * 100;
 	int length = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
 
 	/* Request contruction starts */
 	tx_message = platform_calloc (1, sizeof (struct spdm_challenge_request) + SPDM_NONCE_LEN);
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct spdm_get_digests_request) + SPDM_NONCE_LEN;
 	req_expected->max_response = length;
 	req_expected->payload = tx_message;
@@ -3932,25 +3959,26 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 
 	status = mock_expect (&testing->spdm_transport.mock,
 		testing->spdm_transport.base.get_buffer_overhead, &testing->spdm_transport, 0,
-		MOCK_ARG (dest_eid),  MOCK_ARG_ANY);
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing->spdm_transport.mock,
-		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport, length,
-		MOCK_ARG (dest_eid));
+		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport,
+		length,	MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
 	if ((!get_rsp) || rsp_fail || unexpected_rsp) {
-		status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-			&testing->spdm_transport.base,
+		status = mock_expect (&testing->spdm_transport.mock,
+			testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base,
 			get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
 			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
-			sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 			MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 		CuAssertIntEquals (test, 0, status);
 
 		cmd_interface_mock_free_request (req_expected);
+
 		return;
 	}
 
@@ -3973,7 +4001,7 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 	rx_message = platform_calloc (1, sizeof (struct spdm_protocol_mctp_header) +
 		sizeof (struct spdm_challenge_response) + (hash_len * 2) + SPDM_NONCE_LEN + 7 +
 		(ECC_KEY_LENGTH_256 * 2));
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1,
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
 		sizeof (struct cmd_interface_msg));
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
@@ -4031,8 +4059,8 @@ static void attestation_requester_testing_send_and_receive_spdm_challenge (CuTes
 		sizeof (struct spdm_protocol_mctp_header);
 	/* Response contruction ends. */
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
@@ -4204,7 +4232,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	uint8_t *nonce;
 	int status;
 	uint8_t dest_eid = testing->second_device ? 0x0C : 0xAA;
-	uint32_t timeout = (device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
+	uint32_t timeout =
+		(device_manager_set_crypto_timeout_ms (spdm_capabilities_rsp_ct_to_ms (
 		ATTESTATION_REQUESTER_TESTING_RESP_CT_EXPONENT))) * 100;
 	size_t num_blocks_in_rsp = (testing->get_all_blocks | testing->num_blocks_incorrect) ? 2 : 1;
 	size_t block_len;
@@ -4217,8 +4246,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	}
 
 	if (testing->spdm_discovery) {
-		timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr,
-			dest_eid) * 10;
+		timeout = device_manager_get_reponse_timeout_by_eid (&testing->device_mgr, dest_eid) * 10;
 	}
 
 	/* Request contruction starts */
@@ -4254,9 +4282,10 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	tx_message = platform_calloc (1, offset);
 	memcpy (tx_message, tx_msg_temp, offset);
 
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
 
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->max_response = length;
 	req_expected->payload = tx_message;
 	req_expected->target_eid = dest_eid;
@@ -4266,21 +4295,21 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 
 	status = mock_expect (&testing->spdm_transport.mock,
 		testing->spdm_transport.base.get_buffer_overhead, &testing->spdm_transport, 0,
-		MOCK_ARG (dest_eid),  MOCK_ARG_ANY);
+		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing->spdm_transport.mock,
-		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport, length,
-		MOCK_ARG (dest_eid));
+		testing->spdm_transport.base.get_max_message_payload_length, &testing->spdm_transport,
+		length,	MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
 	if ((!get_rsp) || rsp_fail || unexpected_rsp) {
-		status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-			&testing->spdm_transport.base,
+		status = mock_expect (&testing->spdm_transport.mock,
+			testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base,
 			get_rsp ? MSG_TRANSPORT_UNEXPECTED_RESPONSE : MSG_TRANSPORT_REQUEST_TIMEOUT,
 			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
-			sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
-			cmd_interface_mock_duplicate_request),
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
 			MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 		CuAssertIntEquals (test, 0, status);
 
@@ -4288,7 +4317,6 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 
 		return;
 	}
-
 
 	/* Response contruction starts. */
 	if (testing->meas_hashing_alg_supported == SPDM_MEAS_RSP_TPM_ALG_SHA_256) {
@@ -4306,7 +4334,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 		(4 - testing->device_id_block_short);
 
 	block_len = testing->spdm_discovery ? spdm_measurements_block_size (device_id_len) :
-		num_blocks_in_rsp * spdm_measurements_block_size (hash_len);
+			num_blocks_in_rsp* spdm_measurements_block_size (hash_len);
 
 	if (testing->get_num_indices) {
 		block_len = 0;
@@ -4342,7 +4370,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 		payload_len += sizeof (struct spdm_measurements_measurement_block);
 
 		if (!testing->spdm_discovery) {
-			if(measurement_operation != 2 && measurement_operation != 3) {
+			if ((measurement_operation != 2) && (measurement_operation != 3)) {
 				block->index = 1 + testing->unexpected_measurement_block;
 				block->measurement_size = spdm_measurements_measurement_size (hash_len);
 				block->measurement_specification = 1;
@@ -4416,37 +4444,40 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 				sizeof (struct spdm_discovery_device_id_block);
 			payload_len += sizeof (struct spdm_discovery_device_id_block);
 
-			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &rx_msg_temp[payload_len];
+			device_id_descriptor =
+				(struct spdm_discovery_device_id_descriptor*) &rx_msg_temp[payload_len];
 			payload_len += sizeof (struct spdm_discovery_device_id_descriptor);
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 1) ?
-				SPDM_DISCOVERY_DEVICE_ID_PCI_VID :
-				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+					SPDM_DISCOVERY_DEVICE_ID_PCI_VID :
+					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &rx_msg_temp[payload_len];
 			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xAB : 0xAA;
 			payload_len += 2;
 
-			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &rx_msg_temp[payload_len];
+			device_id_descriptor =
+				(struct spdm_discovery_device_id_descriptor*) &rx_msg_temp[payload_len];
 			payload_len += sizeof (struct spdm_discovery_device_id_descriptor);
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 2) ?
-				SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID :
-				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+					SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID :
+					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &rx_msg_temp[payload_len];
 			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xBC : 0xBB;
 			payload_len += 2;
 
-			device_id_descriptor = (struct spdm_discovery_device_id_descriptor*) &rx_msg_temp[payload_len];
+			device_id_descriptor =
+				(struct spdm_discovery_device_id_descriptor*) &rx_msg_temp[payload_len];
 			payload_len += sizeof (struct spdm_discovery_device_id_descriptor);
 
 			device_id_descriptor->descriptor_len = sizeof (uint16_t);
 			device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 3) ?
-				SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID :
-				SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+					SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID :
+					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 			id = (uint16_t*) &rx_msg_temp[payload_len];
 			*id = (testing->second_response[0] && testing->multiple_devices) ? 0xCD : 0xCC;
@@ -4459,8 +4490,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 
 				device_id_descriptor->descriptor_len = sizeof (uint16_t);
 				device_id_descriptor->descriptor_type = (testing->discovery_id_missing != 4) ?
-					SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID :
-					SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
+						SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID :
+						SPDM_DISCOVERY_DEVICE_ID_IANA_ENTERPRISE_ID;
 
 				id = (uint16_t*) &rx_msg_temp[payload_len];
 				*id = (testing->second_response[0] && testing->multiple_devices) ? 0xDE : 0xDD;
@@ -4497,7 +4528,8 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	rx_message = platform_calloc (1, payload_len);
 	memcpy (rx_message, rx_msg_temp, payload_len);
 
-	resp_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
+	resp_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
 
 	resp_expected->data = rx_message;
 	resp_expected->payload = rx_message + sizeof (struct spdm_protocol_mctp_header);
@@ -4507,15 +4539,15 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	resp_expected->payload_length = payload_len - sizeof (struct spdm_protocol_mctp_header);
 	/* Response contruction ends. */
 
-	status = mock_expect (&testing->spdm_transport.mock, testing->spdm_transport.base.send_request_message,
-		&testing->spdm_transport.base, 0,
+	status = mock_expect (&testing->spdm_transport.mock,
+		testing->spdm_transport.base.send_request_message, &testing->spdm_transport.base, 0,
 		MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
 		sizeof (*req_expected), cmd_interface_mock_save_request, cmd_interface_mock_free_request,
 		cmd_interface_mock_duplicate_request), MOCK_ARG (timeout), MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect_output_deep_copy_tmp (&testing->spdm_transport.mock, 2, resp_expected,
-		sizeof (*resp_expected), cmd_interface_mock_copy_request, cmd_interface_mock_duplicate_request,
-		cmd_interface_mock_free_request);
+		sizeof (*resp_expected), cmd_interface_mock_copy_request,
+		cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -4603,7 +4635,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 	offset = sizeof (struct spdm_get_measurements_response) +
 		sizeof (struct spdm_measurements_measurement_block);
 
-	if (measurement_operation != 2 && measurement_operation != 3) {
+	if ((measurement_operation != 2) && (measurement_operation != 3)) {
 		block->index = 1 + testing->unexpected_measurement_block;
 		block->measurement_size = spdm_measurements_measurement_size (hash_len);
 		block->measurement_specification = 1;
@@ -4619,7 +4651,7 @@ static void attestation_requester_testing_send_and_receive_spdm_get_measurements
 			}
 		}
 	}
-	else if(measurement_operation != 2) {
+	else if (measurement_operation != 2) {
 		block->index = 3 + testing->unexpected_measurement_block;
 		block->measurement_size = spdm_measurements_measurement_size (hash_len);
 		block->measurement_specification = 1;
@@ -5186,7 +5218,7 @@ static void attestation_requester_test_init_invalid_arg (CuTest *test)
 		&testing.mctp_control.base, &testing.spdm_transport.base);
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 
-#if defined(CMD_ENABLE_ISSUE_REQUEST)
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
 	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
 		&testing.channel.base, &testing.primary_hash.base, NULL, &testing.ecc.base, NULL,
 		&testing.x509_mock.base, &testing.rng.base, &testing.riot, &testing.device_mgr,
@@ -5359,7 +5391,7 @@ static void attestation_requester_test_deinit_null (CuTest *test)
 	attestation_requester_deinit (NULL);
 }
 
-#if defined(CMD_ENABLE_ISSUE_REQUEST)
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
 static void attestation_requester_test_attest_device_cerberus_ecc (CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -6017,14 +6049,14 @@ static void attestation_requester_test_attest_device_cerberus_device_capabilitie
 	tx_packet.dest_addr = 0x20;
 	tx_packet.timeout_valid = false;
 
-	status = mock_expect (&testing.channel.mock, testing.channel.base.send_packet,
-		&testing.channel, 0,
+	status = mock_expect (&testing.channel.mock, testing.channel.base.send_packet, &testing.channel,
+		0,
 		MOCK_ARG_VALIDATOR_TMP (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect_external_action (&testing.channel.mock,
-			attestation_requester_testing_cerberus_unexpected_rsp_callback, &testing);
-		CuAssertIntEquals (test, 0, status);
+		attestation_requester_testing_cerberus_unexpected_rsp_callback, &testing);
+	CuAssertIntEquals (test, 0, status);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MSG_TRANSPORT_RESPONSE_TOO_LARGE, status);
@@ -25041,7 +25073,8 @@ static void attestation_requester_test_attest_device_spdm_already_authenticated_
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
-static void attestation_requester_test_attest_device_spdm_already_authenticated_with_spdm_transient (
+static void attestation_requester_test_attest_device_spdm_already_authenticated_with_spdm_transient
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27485,7 +27518,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_busy_from_
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_version_timeout_from_authenticated_without_certs (
+static void
+attestation_requester_test_attest_device_spdm_get_version_timeout_from_authenticated_without_certs (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -27510,8 +27544,8 @@ static void attestation_requester_test_attest_device_spdm_get_version_timeout_fr
 		&testing.secondary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	attestation_requester_testing_send_and_receive_spdm_get_version (test, false, false, false, false,
-		&testing);
+	attestation_requester_testing_send_and_receive_spdm_get_version (test, false, false, false,
+		false, &testing);
 
 	status = attestation_requester_attest_device (&testing.test, 0xAA);
 	CuAssertIntEquals (test, MSG_TRANSPORT_REQUEST_TIMEOUT, status);
@@ -29139,8 +29173,9 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	/* Request contruction starts */
 	dest_eid = testing.second_device ? 0x0C : 0xAA;
 	tx_message = platform_calloc (1, sizeof (struct spdm_respond_if_ready_request));
-	req_expected = (struct cmd_interface_msg *) platform_calloc (1, sizeof (struct cmd_interface_msg));
-	req_expected->data = (uint8_t *) tx_message;
+	req_expected = (struct cmd_interface_msg*) platform_calloc (1,
+		sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
 	req_expected->length = sizeof (struct spdm_respond_if_ready_request);
 	req_expected->max_response = length;
 	req_expected->payload = tx_message;
@@ -29298,7 +29333,8 @@ static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_re
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready_unexpected_req_code (
+static void
+attestation_requester_test_attest_device_spdm_get_digests_rsp_not_ready_unexpected_req_code (
 	CuTest *test)
 {
 	uint32_t component_id = 101;
@@ -34886,8 +34922,8 @@ static void attestation_requester_test_attest_device_spdm_only_pmr0_req_hash_upd
 		MOCK_ARG (dest_eid));
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output_tmp (&testing.rng.mock, 1, spdm_get_measurements_rq_nonce (req),
 		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
@@ -37340,8 +37376,7 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_measurement_get_measurement_interrupted
-(
+static void attestation_requester_test_attest_device_spdm_measurement_get_measurement_interrupted (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -37472,7 +37507,6 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 	offset = sizeof (struct spdm_get_measurements_response) +
 		sizeof (struct spdm_measurements_measurement_block);
 
-
 	block->index = 1 + testing.unexpected_measurement_block;
 	block->measurement_size = spdm_measurements_measurement_size (hash_len);
 	block->measurement_specification = 1;
@@ -37504,10 +37538,10 @@ static void attestation_requester_test_attest_device_spdm_measurement_get_measur
 		rsp_buf[offset + i] = i * 10;
 	}
 
-	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer,
-		&testing.rng, 0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output_tmp (&testing.rng.mock, 1,
-		spdm_get_measurements_rq_nonce (req), SPDM_NONCE_LEN, -1);
+	status = mock_expect (&testing.rng.mock, testing.rng.base.generate_random_buffer, &testing.rng,
+		0, MOCK_ARG (SPDM_NONCE_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.rng.mock, 1,	spdm_get_measurements_rq_nonce (req),
+		SPDM_NONCE_LEN, -1);
 	CuAssertIntEquals (test, 0, status);
 
 	rq_len = (testing.spdm_version == 0) ?
@@ -38520,8 +38554,11 @@ static void attestation_requester_test_attest_device_tcg_only_measurement (CuTes
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
-	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
-		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	uint8_t digest[SHA256_HASH_LENGTH] = {
+		0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b,
+		0xd7, 0x10, 0xdd
+	};
 	int status;
 
 	setup_attestation_requester_mock_test (test, &testing, true, true, true);
@@ -38554,7 +38591,8 @@ static void attestation_requester_test_attest_device_tcg_only_measurement (CuTes
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38616,13 +38654,15 @@ static void attestation_requester_test_attest_device_tcg_only_measurement_data (
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_2_measurement_blocks (CuTest *test)
+static void attestation_requester_test_attest_device_tcg_measurement_2_measurement_blocks (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
@@ -38630,10 +38670,16 @@ static void attestation_requester_test_attest_device_tcg_measurement_2_measureme
 	struct cfm_allowable_digests allowable_digests;
 	struct cfm_allowable_digests allowable_digests2;
 	uint32_t component_id = 65;
-	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
-		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
-	uint8_t digest2[SHA256_HASH_LENGTH] = {0x35, 0xa1, 0xf1, 0xc9, 0x7f, 0xf2, 0x12, 0x76, 0x81, 0xb3, 0x51, 0x80, 0xb1, 0x92,
-		0x64, 0xd6, 0x21, 0x60, 0xb4, 0x07, 0xc1, 0xca, 0x06, 0x73, 0x96, 0x46, 0x35, 0xf4, 0x2c, 0x3a, 0x65, 0x83};
+	uint8_t digest[SHA256_HASH_LENGTH] = {
+		0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b,
+		0xd7, 0x10, 0xdd
+	};
+	uint8_t digest2[SHA256_HASH_LENGTH] = {
+		0x35, 0xa1, 0xf1, 0xc9, 0x7f, 0xf2, 0x12, 0x76, 0x81, 0xb3, 0x51, 0x80, 0xb1, 0x92,
+		0x64, 0xd6, 0x21, 0x60, 0xb4, 0x07, 0xc1, 0xca, 0x06, 0x73, 0x96, 0x46, 0x35, 0xf4, 0x2c,
+		0x3a, 0x65, 0x83
+	};
 	int status;
 
 	setup_attestation_requester_mock_test (test, &testing, true, true, true);
@@ -38681,13 +38727,15 @@ static void attestation_requester_test_attest_device_tcg_measurement_2_measureme
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_data_2_data_blocks (CuTest *test)
+static void attestation_requester_test_attest_device_tcg_measurement_data_2_data_blocks (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
@@ -38776,7 +38824,8 @@ static void attestation_requester_test_attest_device_tcg_measurement_data_2_data
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -38801,8 +38850,9 @@ static void attestation_requester_test_attest_device_tcg_invalid_arg (CuTest *te
 	CuAssertIntEquals (test, ATTESTATION_INVALID_ARGUMENT, status);
 }
 
-static void attestation_requester_test_attest_device_tcg_get_next_measurement_or_measurement_data_fail
-(CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_get_next_measurement_or_measurement_data_fail (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	uint32_t component_id = 65;
@@ -38819,21 +38869,26 @@ static void attestation_requester_test_attest_device_tcg_get_next_measurement_or
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, CFM_NO_MEMORY, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selector_invalid
-(CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selector_invalid
+	(CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
-	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
-		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	uint8_t digest[SHA256_HASH_LENGTH] = {
+		0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b,
+		0xd7, 0x10, 0xdd
+	};
 	int status;
 
 	setup_attestation_requester_mock_test (test, &testing, true, true, true);
@@ -38863,23 +38918,31 @@ static void attestation_requester_test_attest_device_tcg_measurement_only_measur
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selection_fail
-(CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_measurement_only_measurement_version_set_selection_fail
+	(CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
-	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
-		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
-	uint8_t invalid_digest[SHA256_HASH_LENGTH] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+	uint8_t digest[SHA256_HASH_LENGTH] = {
+		0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b,
+		0xd7, 0x10, 0xdd
+	};
+	uint8_t invalid_digest[SHA256_HASH_LENGTH] = {
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+		0xFF, 0xFF, 0xFF
+	};
 	int status;
 
 	setup_attestation_requester_mock_test (test, &testing, true, true, true);
@@ -38908,21 +38971,25 @@ static void attestation_requester_test_attest_device_tcg_measurement_only_measur
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_get_measurement_fail
-(CuTest *test)
+static void attestation_requester_test_attest_device_tcg_measurement_get_measurement_fail (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
 	struct cfm_allowable_digests allowable_digests;
 	uint32_t component_id = 65;
-	uint8_t digest[SHA256_HASH_LENGTH] = {0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
-		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b, 0xd7, 0x10, 0xdd};
+	uint8_t digest[SHA256_HASH_LENGTH] = {
+		0x63, 0x0D, 0xCD, 0x29, 0x66, 0xC4, 0x33, 0x66, 0x91, 0x12, 0x54, 0x48, 0xBB, 0xB2,
+		0x5b, 0x4F, 0xF4, 0x12, 0xa4, 0x9c, 0x73, 0x2d, 0xb2, 0xc8, 0xab, 0xc1, 0xb8, 0x58, 0x1b,
+		0xd7, 0x10, 0xdd
+	};
 	int status;
 
 	setup_attestation_requester_mock_test (test, &testing, true, true, true);
@@ -38950,7 +39017,8 @@ static void attestation_requester_test_attest_device_tcg_measurement_get_measure
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	container.measurement.digest.measurement_id = 0;
@@ -38965,7 +39033,8 @@ static void attestation_requester_test_attest_device_tcg_measurement_get_measure
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	container.measurement.digest.measurement_id = 13;
@@ -38980,14 +39049,15 @@ static void attestation_requester_test_attest_device_tcg_measurement_get_measure
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
 static void attestation_requester_test_attest_device_tcg_measurement_data_get_measurement_data_fail
-(CuTest *test)
+	(CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
@@ -39032,7 +39102,8 @@ static void attestation_requester_test_attest_device_tcg_measurement_data_get_me
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	container.measurement.digest.measurement_id = 0;
@@ -39047,7 +39118,8 @@ static void attestation_requester_test_attest_device_tcg_measurement_data_get_me
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	container.measurement.digest.measurement_id = 13;
@@ -39062,14 +39134,16 @@ static void attestation_requester_test_attest_device_tcg_measurement_data_get_me
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selector_invalid
-(CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selector_invalid
+	(CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
@@ -39114,14 +39188,16 @@ static void attestation_requester_test_attest_device_tcg_measurement_data_only_m
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selection_fail
-(CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_measurement_data_only_measurement_data_version_set_selection_fail
+	(CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct cfm_measurement_container container;
@@ -39174,7 +39250,8 @@ static void attestation_requester_test_attest_device_tcg_measurement_data_only_m
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
@@ -39935,9 +40012,8 @@ static void attestation_requester_test_discover_device_get_msg_type_request_resp
 	request->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	request->header.rq = 1;
 
-	status = mock_expect (&testing.mctp_control.mock,
-		testing.mctp_control.base.get_buffer_overhead, &testing.mctp_control, 0,
-		MOCK_ARG (dest_eid), MOCK_ARG_ANY);
+	status = mock_expect (&testing.mctp_control.mock, testing.mctp_control.base.get_buffer_overhead,
+		&testing.mctp_control, 0, MOCK_ARG (dest_eid), MOCK_ARG_ANY);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.mctp_control.mock,
@@ -41179,7 +41255,7 @@ attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_
 		.severity = DEBUG_LOG_SEVERITY_INFO,
 		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
 		.msg_index = ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION,
-		.arg1 = 0xaa,
+		.arg1 = component_id,
 		.arg2 = 0
 	};
 
@@ -43885,7 +43961,8 @@ static void attestation_requestor_test_wait_for_next_action_invalid_arg (CuTest 
 	attestation_requestor_wait_for_next_action (NULL);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_only_valid (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_aggregated_measurement_only_valid (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -43912,7 +43989,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.pmr_id = 0;
@@ -44028,7 +44106,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -44104,7 +44183,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_with_different_version_set_valid (
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_with_different_version_set_valid
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -44267,7 +44348,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_with_same_version_set_valid (
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_with_same_version_set_valid (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -44321,7 +44403,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	container2.measurement.aggregated.allowable_digests[1].version_set = 2;
 	container2.measurement.aggregated.allowable_digests[1].digests.digest_count = 1;
 	container2.measurement.aggregated.allowable_digests[1].digests.hash_type = HASH_TYPE_SHA256;
-	container2.measurement.aggregated.allowable_digests[1].digests.digests = aggregated_measurement2;
+	container2.measurement.aggregated.allowable_digests[1].digests.digests =
+		aggregated_measurement2;
 	memset (container2.measurement.aggregated.measurements_mask, 0,
 		sizeof (container2.measurement.aggregated.measurements_mask));
 	container2.measurement.aggregated.measurements_mask[0] = 0x0c;
@@ -44437,7 +44520,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -44476,7 +44560,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest5, sizeof (digest5), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest5, sizeof (digest5),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -44556,7 +44641,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_null_allowable_digests_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_null_allowable_digests_invalid
+	(CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -44565,7 +44652,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	int status;
 
 	container.measurement.aggregated.allowable_digests = NULL;
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.allowable_digests_count = 1;
 
@@ -44624,7 +44712,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_invalid_hash_type_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_invalid_hash_type_invalid (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -44634,7 +44724,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	int status;
 
 	container.measurement.aggregated.allowable_digests = &aggregated_allowable_digests;
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = 255;
 	container.measurement.aggregated.allowable_digests_count = 1;
@@ -44698,7 +44789,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_hash_finish_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_hash_finish_invalid (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -44725,7 +44818,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -44841,7 +44935,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -44877,7 +44972,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (measurement2, sizeof (measurement2)),
 		MOCK_ARG (sizeof (measurement2)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
-		&testing.primary_hash, HASH_ENGINE_INVALID_ARGUMENT, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+		&testing.primary_hash, HASH_ENGINE_INVALID_ARGUMENT, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -44914,7 +45010,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_hash_update_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_hash_update_invalid (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -44934,7 +45032,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -45027,8 +45126,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, HASH_ENGINE_HASH_BUFFER_TOO_SMALL, MOCK_ARG_PTR_CONTAINS (measurement, sizeof (measurement)),
-		MOCK_ARG (sizeof (measurement)));
+		&testing.primary_hash, HASH_ENGINE_HASH_BUFFER_TOO_SMALL,
+		MOCK_ARG_PTR_CONTAINS (measurement, sizeof (measurement)), MOCK_ARG (sizeof (measurement)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -45065,7 +45164,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_get_measurements_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_get_measurements_invalid (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -45076,7 +45177,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -45149,7 +45251,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_hash_start_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_hash_start_invalid (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -45160,7 +45264,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -45229,7 +45334,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_only_measurement_version_set_selector_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_only_measurement_version_set_selector_invalid
+	(CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -45264,7 +45371,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -45383,7 +45491,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -45462,7 +45571,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_only_fail (CuTest *test)
+static void attestation_requester_test_attest_device_spdm_aggregated_measurement_only_fail (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -45498,7 +45608,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -45618,7 +45729,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -45697,7 +45809,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_second_fail_invalid (
+static void attestation_requester_test_attest_device_spdm_aggregated_measurement_second_fail_invalid
+(
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -45880,7 +45993,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest3, sizeof (digest3),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -45919,7 +46033,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
 		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
-	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest5, sizeof (digest5), -1);
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest5, sizeof (digest5),
+		-1);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
 	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
@@ -46003,7 +46118,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_no_measurements_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_spdm_aggregated_measurement_fail_no_measurements_invalid (
+	CuTest *test)
 {
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
@@ -46016,7 +46133,8 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
 	container.measurement.aggregated.allowable_digests_count = 1;
@@ -46092,7 +46210,9 @@ static void attestation_requester_test_attest_device_spdm_aggregated_measurement
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_measurement_aggregated_measurement_with_different_version_set_valid (
+static void
+attestation_requester_test_attest_device_tcg_measurement_aggregated_measurement_with_different_version_set_valid
+(
 	CuTest *test)
 {
 	uint32_t component_id = 65;
@@ -46181,13 +46301,15 @@ static void attestation_requester_test_attest_device_tcg_measurement_aggregated_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_only_valid (CuTest *test)
+static void attestation_requester_test_attest_device_tcg_aggregated_measurement_only_valid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement[SHA256_HASH_LENGTH];
@@ -46209,7 +46331,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46252,13 +46375,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, 0, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_null_allowable_digests_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_null_allowable_digests_invalid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	struct attestation_requester_testing testing;
@@ -46269,7 +46395,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = NULL;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.pmr_id = 1;
 	container.measurement.aggregated.allowable_digests_count = 0;
@@ -46287,13 +46414,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_invalid_hash_type_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_invalid_hash_type_invalid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	struct cfm_allowable_digests allowable_digests;
@@ -46305,7 +46435,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = 255;
@@ -46329,13 +46460,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, HASH_ENGINE_UNKNOWN_HASH, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_hash_finish_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_hash_finish_invalid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement[SHA256_HASH_LENGTH];
@@ -46357,7 +46491,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46382,7 +46517,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest2, sizeof (digest2)),
 		MOCK_ARG (sizeof (digest2)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
-		&testing.primary_hash, HASH_ENGINE_INVALID_ARGUMENT, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+		&testing.primary_hash, HASH_ENGINE_INVALID_ARGUMENT, MOCK_ARG_NOT_NULL,
+		MOCK_ARG (HASH_MAX_HASH_LEN));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -46398,13 +46534,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_hash_update_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_hash_update_invalid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement[SHA256_HASH_LENGTH];
@@ -46424,7 +46563,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46442,8 +46582,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, HASH_ENGINE_HASH_BUFFER_TOO_SMALL, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
-		MOCK_ARG (sizeof (digest)));
+		&testing.primary_hash, HASH_ENGINE_HASH_BUFFER_TOO_SMALL,
+		MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)), MOCK_ARG (sizeof (digest)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.cancel,
 		&testing.primary_hash, 0);
 	CuAssertIntEquals (test, 0, status);
@@ -46459,13 +46599,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, HASH_ENGINE_HASH_BUFFER_TOO_SMALL, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_get_measurements_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_get_measurements_invalid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement[SHA256_HASH_LENGTH];
@@ -46485,7 +46628,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 7;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46517,13 +46661,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, PCR_INVALID_PCR, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_hash_start_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_hash_start_invalid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement[SHA256_HASH_LENGTH];
@@ -46541,7 +46688,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46569,13 +46717,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, HASH_ENGINE_HW_NOT_INIT, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_no_measurements_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_no_measurements_invalid (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement[SHA256_HASH_LENGTH];
@@ -46593,7 +46744,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 0;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46623,13 +46775,16 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 		&testing.cfm, 0, MOCK_ARG_NOT_NULL);
 	CuAssertIntEquals (test, 0, status);
 
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_INVALID_ATTESTATION, status);
 
 	complete_attestation_requester_mock_test (test, &testing, true);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_only_measurement_version_set_selector_invalid (CuTest *test)
+static void
+attestation_requester_test_attest_device_tcg_aggregated_measurement_only_measurement_version_set_selector_invalid
+	(CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement[SHA256_HASH_LENGTH];
@@ -46660,7 +46815,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46709,7 +46865,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &logger.base;
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID, status);
 	debug_log = NULL;
 
@@ -46719,7 +46876,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_only_fail (CuTest *test)
+static void attestation_requester_test_attest_device_tcg_aggregated_measurement_only_fail (
+	CuTest *test)
 {
 	uint32_t component_id = 65;
 	uint8_t aggregated_measurement2[SHA256_HASH_LENGTH];
@@ -46752,7 +46910,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 
 	container.measurement.aggregated.allowable_digests = &allowable_digests;
 
-	memset(container.measurement.aggregated.measurements_mask, 0, sizeof(container.measurement.aggregated.measurements_mask));
+	memset (container.measurement.aggregated.measurements_mask, 0,
+		sizeof (container.measurement.aggregated.measurements_mask));
 	container.measurement.aggregated.measurements_mask[0] = 6;
 	container.measurement_type = CFM_MEASUREMENT_TYPE_AGGREGATED;
 	container.measurement.aggregated.hash_type = HASH_TYPE_SHA256;
@@ -46801,7 +46960,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &logger.base;
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 	debug_log = NULL;
 
@@ -46811,7 +46971,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	CuAssertIntEquals (test, 0, status);
 }
 
-static void attestation_requester_test_attest_device_tcg_aggregated_measurement_second_fail_invalid (CuTest *test)
+static void attestation_requester_test_attest_device_tcg_aggregated_measurement_second_fail_invalid
+	(CuTest *test)
 {
 	uint32_t component_id = 65;
 	struct cfm_allowable_digests aggregated_allowable_digests;
@@ -46916,7 +47077,8 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	CuAssertIntEquals (test, 0, status);
 
 	debug_log = &logger.base;
-	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base, component_id, &testing.store);
+	status = attestation_requester_attest_device_tcg (&testing.test, 2, &testing.cfm.base,
+		component_id, &testing.store);
 	CuAssertIntEquals (test, ATTESTATION_CFM_ATTESTATION_RULE_FAIL, status);
 	debug_log = NULL;
 
@@ -46925,6 +47087,85 @@ static void attestation_requester_test_attest_device_tcg_aggregated_measurement_
 	status = logging_mock_validate_and_release (&logger);
 	CuAssertIntEquals (test, 0, status);
 }
+
+/**
+ * Tests the scenario when for some reason device entry has 0 component types
+ */
+static void attestation_requester_test_attest_device_no_component_types (CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	uint32_t component_id = 65;
+	uint8_t instance_id = 0;
+	uint32_t sub_component_id_1 = 100;
+	uint32_t sub_component_id_2 = 200;
+	struct pcd_allowed_component_type_info type_list[2];
+	struct device_manager_entry comp_entry = {0};
+	int status;
+	struct logging_mock logger;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_NO_COMPONENT_TYPE,
+		.arg1 = component_id,
+		.arg2 = instance_id,
+	};
+
+	TEST_START;
+
+	status = logging_mock_init (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	type_list[0].cfm_component_id = sub_component_id_1;
+	type_list[0].min_usage = 0;
+	type_list[0].max_usage = 0;
+	type_list[1].cfm_component_id = sub_component_id_2;
+	type_list[1].min_usage = 0;
+	type_list[1].max_usage = 0;
+
+	comp_entry.component_id = component_id;
+	comp_entry.eid = 0xAA;
+	comp_entry.pci_vid = 0xBB;
+	comp_entry.pci_device_id = 0xCC;
+	comp_entry.pci_subsystem_vid = 0xDD;
+	comp_entry.pci_subsystem_id = 0xDD;
+	comp_entry.pcd_component_index = 1;
+	comp_entry.component_type_count = 0;	/* check the case when somehow this is 0 */
+	comp_entry.component_type_list = type_list;
+
+	setup_attestation_requester_mock_test (test, &testing, false, false, true);
+
+	status = device_manager_update_component_device_entry (&testing.device_mgr, 2, 1, &comp_entry);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_init (&testing.test, &testing.state, &testing.mctp,
+		&testing.channel.base, &testing.primary_hash.base, &testing.secondary_hash.base,
+		&testing.ecc.base, NULL, &testing.x509_mock.base, &testing.rng.base, &testing.riot,
+		&testing.device_mgr, &testing.cfm_manager.base, &testing.mctp_control.base,
+		&testing.spdm_transport.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &logger.base;
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	debug_log = NULL;
+
+	CuAssertIntEquals (test, ATTESTATION_NO_CFM, status);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+
+	status = logging_mock_validate_and_release (&logger);
+	CuAssertIntEquals (test, 0, status);
+}
+
 
 /**
  * Test multi-sourced component attestation where the first component type CFM lookup succeeds
@@ -48406,6 +48647,7 @@ TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_fail_n
 TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_only_measurement_version_set_selector_invalid);
 TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_only_fail);
 TEST (attestation_requester_test_attest_device_tcg_aggregated_measurement_second_fail_invalid);
+TEST (attestation_requester_test_attest_device_no_component_types);
 TEST (attestation_requester_test_attest_device_multi_source_first_type_matches);
 TEST (attestation_requester_test_attest_device_multi_source_second_type_matches);
 TEST (attestation_requester_test_attest_device_multi_source_no_type_matches);

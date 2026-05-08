@@ -70,6 +70,7 @@ enum {
 	ATTESTATION_LOGGING_TCG_DISCOVERY_COMPLETE,						/**< TCG device discovery completed successfully. */
 	ATTESTATION_LOGGING_TCG_DISCOVERY_TRIGGERED,					/**< TCG discovery triggered by boot delay timer. */
 	ATTESTATION_LOGGING_TCG_DISCOVERY_TIMER_FAILED,					/**< Failed to start TCG discovery boot delay timer. */
+	ATTESTATION_LOGGING_NO_COMPONENT_TYPE,							/**< No component type found for the device. */
 };
 
 
