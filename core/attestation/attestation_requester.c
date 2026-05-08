@@ -4311,6 +4311,8 @@ static int attestation_requester_attest_device_by_component_id (
 		}
 	}
 
+	memset (&attestation->state->txn, 0, sizeof (struct attestation_requester_transaction_state));
+
 	status = active_cfm->get_component_device (active_cfm, component_id, &component_device);
 	if (status != 0) {
 		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
