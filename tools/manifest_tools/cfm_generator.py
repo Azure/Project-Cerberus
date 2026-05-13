@@ -9,6 +9,7 @@ import os
 import sys
 import ctypes
 import binascii
+import configparser
 import argparse
 import manifest_types
 import manifest_common
@@ -16,6 +17,7 @@ import manifest_parser
 from Crypto.PublicKey import RSA
 
 CFM_CONFIG_FILENAME = "cfm_generator.config"
+COMPONENT_DEFAULTS_FILENAME = "component_defaults.cfg"
 
 
 def generate_root_ca_digests (xml_root_ca_digests, measurement_hash_type):
@@ -857,6 +859,376 @@ def consolidate_identical_measurements(components, component_version_tracker):
     
     return components
 
+def is_measurement_digest_unique(measurements_dict, measurement_id, pmr_id, num_versions, version_strings=None):
+    """
+    Check if a measurement ID is unique across all versions.
+    A measurement is unique if it has NOT been consolidated to version_set 0.
+
+    :param measurements_dict: Component's measurements dictionary {pmr_id: {measurement_id: data}}
+    :param measurement_id: The measurement ID to check
+    :param pmr_id: The PMR ID where the measurement exists
+    :param num_versions: Expected number of versions for this component
+    :param version_strings: Optional dict {version_number: version_string} for readable log messages
+
+    :return: (is_unique: bool, exists: bool, error_msg: str)
+    """
+    if pmr_id not in measurements_dict:
+        return False, False, "PMR {0} not found".format(pmr_id)
+
+    if measurement_id not in measurements_dict[pmr_id]:
+        return False, False, "Measurement ID {0} not found in PMR {1}".format(measurement_id, pmr_id)
+
+    version_sets = measurements_dict[pmr_id][measurement_id].get("version_set", {})
+
+    # Consolidated to version_set 0 → NOT unique
+    if 0 in version_sets and len(version_sets) == 1:
+        ver_labels = [_ver_str(v, version_strings) for v in range(1, num_versions + 1)]
+        versions_display = "[{0}]".format(", ".join(ver_labels))
+        return False, True, ("Measurement ID {0} (PMR {1}) is identical across all {2} versions {3} "
+            "and was consolidated to version_set 0. It cannot be used as a unique identifier "
+            "because all versions share the same digest.".format(measurement_id, pmr_id, num_versions, versions_display))
+
+    # Version-specific sets (no 0) → check count matches and digests differ
+    if version_sets and 0 not in version_sets:
+        if len(version_sets) != num_versions:
+            expected = set(range(1, num_versions + 1))
+            missing = sorted(expected - set(version_sets.keys()))
+            found_labels   = [_ver_str(k, version_strings) for k in sorted(version_sets.keys())]
+            missing_labels = [_ver_str(k, version_strings) for k in missing]
+            return False, True, "Exists in versions [{0}] but component has {1} versions. Missing versions: [{2}]".format(
+                ", ".join(found_labels), num_versions, ", ".join(missing_labels))
+        # Verify each version has exactly one digest (a unique identifier must not have
+        # multiple allowable digests per version — that would allow multiple valid values)
+        for k, vs_data in version_sets.items():
+            num_digests_in_ver = len(vs_data["allowable_digests"])
+            if num_digests_in_ver != 1:
+                ver_label = _ver_str(k, version_strings)
+                return False, True, (
+                    "Measurement ID {0} (PMR {1}) in version {2} has {3} allowable digests. "
+                    "A unique measurement identifier must have exactly 1 digest per version, "
+                    "not multiple allowable digests.".format(
+                        measurement_id, pmr_id, ver_label, num_digests_in_ver))
+        # Verify all version sets have distinct digests
+        digest_map = {}
+        for k in version_sets:
+            digest_map.setdefault(frozenset(version_sets[k]["allowable_digests"]), []).append(k)
+        if len(digest_map) != len(version_sets):
+            identical = [[_ver_str(v, version_strings) for v in sorted(vs)] for vs in digest_map.values() if len(vs) > 1]
+            distinct  = [_ver_str(vs[0], version_strings) for vs in digest_map.values() if len(vs) == 1]
+            return False, True, ("Some versions have identical digests (not truly unique). "
+                "Versions with identical digests: {0}, Versions with distinct digests: {1}".format(identical, distinct))
+        return True, True, "Unique across versions"
+
+    found_labels    = [_ver_str(k, version_strings) for k in sorted(version_sets.keys())]
+    expected_labels = [_ver_str(k, version_strings) for k in range(1, num_versions + 1)]
+    return False, True, ("Unexpected version state for measurement ID {0} (PMR {1}): "
+        "found versions=[{2}]. Expected either only version_set 0 (fully consolidated) or "
+        "versions [{3}] (version-specific). "
+        "This may indicate a partial consolidation issue.".format(
+            measurement_id, pmr_id,
+            ", ".join(found_labels), ", ".join(expected_labels)))
+
+def is_measurement_data_unique(measurement_data_dict, measurement_id, pmr_id, num_versions, version_strings=None):
+    """
+    Check if a measurement data ID is unique across all versions.
+    A measurement data is unique if at least one of its allowable_data elements
+    has NOT been consolidated to version_set 0.
+
+    :param measurement_data_dict: Component's measurement_data dictionary
+    :param measurement_id: The measurement ID to check
+    :param pmr_id: The PMR ID where the measurement exists
+    :param num_versions: Expected number of versions for this component
+    :param version_strings: Optional dict {version_number: version_string} for readable log messages
+
+    :return: (is_unique: bool, exists: bool, error_msg: str)
+    """
+    if pmr_id not in measurement_data_dict:
+        return False, False, "PMR {0} not found".format(pmr_id)
+
+    if measurement_id not in measurement_data_dict[pmr_id]:
+        return False, False, "Measurement ID {0} not found in PMR {1}".format(measurement_id, pmr_id)
+
+    allowable_data_list = measurement_data_dict[pmr_id][measurement_id].get("allowable_data", [])
+    if not allowable_data_list:
+        return False, True, "No allowable data entries"
+
+    # A unique measurement identifier must have exactly one allowable data element.
+    # Multiple elements (different check/bitmask/endianness combinations) are not permitted
+    # because the verifier cannot use an ambiguous multi-group measurement as a unique identifier.
+    if len(allowable_data_list) != 1:
+        return False, True, (
+            "Measurement ID {0} (PMR {1}) has {2} allowable data element(s). "
+            "A unique measurement identifier must have exactly 1 allowable data element.".format(
+                measurement_id, pmr_id, len(allowable_data_list)))
+
+    has_unique_element = False
+    for idx, data_element in enumerate(allowable_data_list):
+        if "data" not in data_element or "version_set" not in data_element["data"]:
+            continue
+
+        version_sets = data_element["data"]["version_set"]
+
+        # Consolidated to version_set 0 → not unique, skip
+        if 0 in version_sets:
+            continue
+
+        # Version-specific sets → verify count matches and data differs
+        if version_sets:
+            if len(version_sets) != num_versions:
+                expected = set(range(1, num_versions + 1))
+                missing = sorted(expected - set(version_sets.keys()))
+                found_labels   = [_ver_str(k, version_strings) for k in sorted(version_sets.keys())]
+                missing_labels = [_ver_str(k, version_strings) for k in missing]
+                return False, True, ("Allowable_data element {0}: measurement ID {1} (PMR {2}) exists in "
+                    "versions [{3}] but component has {4} versions. "
+                    "Missing versions: [{5}] — these component versions do not contain this measurement ID.".format(
+                        idx, measurement_id, pmr_id,
+                        ", ".join(found_labels), num_versions, ", ".join(missing_labels)))
+            # Verify each version has exactly one data value (a unique identifier must not have
+            # multiple allowable data values per version — that would allow multiple valid values)
+            for k, data_values in version_sets.items():
+                if len(data_values) != 1:
+                    ver_label = _ver_str(k, version_strings)
+                    return False, True, (
+                        "Allowable_data element {0}: measurement ID {1} (PMR {2}) in version {3} "
+                        "has {4} data values. A unique measurement identifier must have exactly "
+                        "1 data value per version, not multiple allowable data values.".format(
+                            idx, measurement_id, pmr_id, ver_label, len(data_values)))
+            # Verify all version sets have distinct data
+            data_map = {}
+            for k in version_sets:
+                data_map.setdefault(frozenset(version_sets[k]), []).append(k)
+            if len(data_map) != len(version_sets):
+                identical = [[_ver_str(v, version_strings) for v in sorted(vs)] for vs in data_map.values() if len(vs) > 1]
+                distinct  = [_ver_str(vs[0], version_strings) for vs in data_map.values() if len(vs) == 1]
+                print("    [DEBUG] Allowable_data element {0}: measurement ID {1} (PMR {2}) has identical "
+                    "data across some versions — not suitable as unique identifier for this element. "
+                    "Versions with identical data: {3}. Versions with distinct data: {4}. "
+                    "Skipping this element and checking remaining allowable_data elements.".format(
+                        idx, measurement_id, pmr_id, identical, distinct))
+                continue
+            has_unique_element = True
+
+    if has_unique_element:
+        return True, True, "Unique across versions"
+    ver_labels = [_ver_str(v, version_strings) for v in range(1, num_versions + 1)]
+    versions_display = "[{0}]".format(", ".join(ver_labels))
+    return False, True, ("Measurement ID {0} (PMR {1}) is NOT unique across {2} versions {3}. "
+        "All allowable_data elements either have identical data across versions "
+        "(version sets share the same values) or are consolidated to version_set 0. "
+        "None of the {4} allowable_data element(s) qualify as a unique identifier.".format(
+            measurement_id, pmr_id, num_versions, versions_display, len(allowable_data_list)))
+
+def _ver_str(version_num, version_strings):
+    """Map a sequential version number to its actual version string if available."""
+    if version_strings and version_num in version_strings:
+        return version_strings[version_num]
+    return str(version_num)
+
+def _move_to_front(d, key):
+    """Return a new dict with 'key' moved to first position, others unchanged."""
+    return {key: d[key], **{k: v for k, v in d.items() if k != key}}
+
+def validate_and_reorder_unique_measurements(components, unique_measurement_ids, component_version_tracker, component_version_strings=None):
+    """
+    Validates that specified measurement IDs are unique across all versions of a component.
+    Searches in BOTH digest (measurements) and data (measurement_data) dictionaries.
+    If unique, moves the specified measurement to the first position in the appropriate dict
+    and sets a flag to control element generation order.
+
+    :param components: Dictionary of components with measurements
+    :param unique_measurement_ids: Dict of component_name -> measurement_id
+    :param component_version_tracker: Dict tracking number of versions per component
+    :param component_version_strings: Optional dict {component: {version_number: version_string}} for readable logs
+
+    :raises ValueError: If specified measurement is not unique or doesn't exist
+    """
+    if not unique_measurement_ids:
+        return
+
+    for component_key, required_unique_meas_id in unique_measurement_ids.items():
+        print("\n--- Processing component: {0}, unique measurement ID: {1} ---".format(
+            component_key, required_unique_meas_id))
+
+        comp = components[component_key]
+        has_measurements = "measurements" in comp
+        has_measurement_data = "measurement_data" in comp
+
+        if not has_measurements and not has_measurement_data:
+            raise ValueError(
+                "ERROR: Component '{0}' has no measurements (digest or data) "
+                "but UNIQUE_MEASUREMENT_ID specified".format(component_key))
+
+        num_versions = component_version_tracker.get(component_key, 0)
+        if num_versions <= 1:
+            print("Info: Component '{0}' has only 1 version, skipping uniqueness check".format(
+                component_key))
+            continue
+
+        # Search for measurement ID in digest and data dicts
+        target_pmr_digest = None
+        target_pmr_data = None
+
+        if has_measurements:
+            for pmr_id in comp["measurements"]:
+                if required_unique_meas_id in comp["measurements"][pmr_id]:
+                    target_pmr_digest = pmr_id
+                    break
+
+        if has_measurement_data:
+            for pmr_id in comp["measurement_data"]:
+                if required_unique_meas_id in comp["measurement_data"][pmr_id]:
+                    target_pmr_data = pmr_id
+                    break
+
+        # Check if the measurement ID appears as both digest and data (inconsistency across versions)
+        if target_pmr_digest is not None and target_pmr_data is not None:
+            raise ValueError(
+                "ERROR: Component '{0}' measurement ID {1} appears as both "
+                "digest (<Measurement>) in PMR {2} and as data (<MeasurementData>) in PMR {3}. "
+                "A measurement ID must use the same element type across all versions "
+                "of a component.".format(
+                    component_key, required_unique_meas_id, target_pmr_digest, target_pmr_data))
+
+        if target_pmr_digest is None and target_pmr_data is None:
+            raise ValueError(
+                "ERROR: Component '{0}' measurement ID {1} not found in any PMR "
+                "(searched both digest and data measurements)".format(
+                    component_key, required_unique_meas_id))
+
+        # Determine which form was found and set up validation parameters
+        if target_pmr_digest is not None:
+            dict_key, flag_key, label = "measurements", "unique_measurement_is_digest", "DIGEST"
+            target_pmr = target_pmr_digest
+            validate_fn = is_measurement_digest_unique
+        else:
+            dict_key, flag_key, label = "measurement_data", "unique_measurement_is_data", "DATA"
+            target_pmr = target_pmr_data
+            validate_fn = is_measurement_data_unique
+
+        # Validate uniqueness
+        target_dict = comp[dict_key]
+        comp_ver_strings = component_version_strings.get(component_key) if component_version_strings else None
+        is_unique, exists, error_msg = validate_fn(
+            target_dict, required_unique_meas_id, target_pmr, num_versions, comp_ver_strings)
+
+        if not exists:
+            raise ValueError("ERROR: Component '{0}' measurement ID {1} not found in all versions.\n"
+                             "Reason: {2}".format(component_key, required_unique_meas_id, error_msg))
+        elif not is_unique:
+            raise ValueError(
+                "ERROR: Component '{0}' measurement ID {1} (PMR {2}) is NOT unique across versions.\n"
+                "Reason: {3}\n"
+                "Required: This measurement must differ across component versions.".format(
+                    component_key, required_unique_meas_id, target_pmr, error_msg))
+
+        ver_labels = [_ver_str(v, comp_ver_strings) for v in range(1, num_versions + 1)]
+        versions_display = "[{0}]".format(", ".join(ver_labels))
+        print("Validated: Component '{0}' {1} measurement ID {2} (PMR {3}) is unique "
+              "across {4} versions {5}".format(
+                  component_key, label, required_unique_meas_id, target_pmr, num_versions, versions_display))
+
+        # Set ordering flag
+        comp[flag_key] = True
+
+        # Reorder step 1: move target PMR to first position (if not already)
+        if next(iter(target_dict)) != target_pmr:
+            comp[dict_key] = _move_to_front(target_dict, target_pmr)
+            target_dict = comp[dict_key]
+            print("Reordered: PMR {0} moved to first position for component '{1}'".format(
+                target_pmr, component_key))
+
+        # Reorder step 2: move unique measurement to first position within that PMR
+        if next(iter(target_dict[target_pmr])) != required_unique_meas_id:
+            target_dict[target_pmr] = _move_to_front(target_dict[target_pmr], required_unique_meas_id)
+            print("Reordered: {0} measurement ID {1} moved to first position in PMR {2} "
+                  "for component '{3}'".format(
+                      label.lower(), required_unique_meas_id, target_pmr, component_key))
+        else:
+            print("Measurement ID {0} is already first in PMR {1}, no reordering needed".format(
+                required_unique_meas_id, target_pmr))
+
+def check_first_measurement_uniqueness(components, component_version_tracker, skip_components=None, component_version_strings=None):
+    """
+    For each multi-version component, checks whether the first measurement
+    (digest or data, based on the 'unique' field ordering) is unique across
+    all version sets. Raises ValueError if the first measurement is not unique.
+    Single-version components are skipped.
+
+    :param components: Dictionary of components with measurements
+    :param component_version_tracker: Dict tracking number of versions per component
+    :param skip_components: Optional set/dict of component names to skip (already validated)
+    :param component_version_strings: Optional dict {component: {version_number: version_string}} for readable logs
+
+    :raises ValueError: If the first measurement is not unique across versions
+    """
+    for component_key, comp in components.items():
+        num_versions = component_version_tracker.get(component_key, 0)
+        if num_versions <= 1:
+            continue
+
+        if skip_components and component_key in skip_components:
+            continue
+
+        has_measurements = "measurements" in comp
+        has_measurement_data = "measurement_data" in comp
+
+        if not has_measurements and not has_measurement_data:
+            continue
+
+        # Prefer digest if unique==0, else data; fall back to whichever exists
+        use_digest = (comp.get("unique", 0) == 0 and has_measurements) or not has_measurement_data
+
+        if use_digest:
+            first_dict, check_fn, label = comp["measurements"], is_measurement_digest_unique, "DIGEST"
+        else:
+            first_dict, check_fn, label = comp["measurement_data"], is_measurement_data_unique, "DATA"
+
+        # Get first PMR and first measurement ID
+        first_pmr = next(iter(first_dict), None)
+        if first_pmr is None or not first_dict[first_pmr]:
+            continue
+        first_meas_id = next(iter(first_dict[first_pmr]))
+
+        # Check if the first measurement ID appears in both digest and data forms (inconsistency)
+        if use_digest and has_measurement_data:
+            data_pmr_dict = comp["measurement_data"]
+            if first_pmr in data_pmr_dict and first_meas_id in data_pmr_dict[first_pmr]:
+                raise ValueError(
+                    "ERROR: Component '{0}' first DIGEST measurement ID {1} (PMR {2}) also appears "
+                    "as data (<MeasurementData>) in the same PMR. "
+                    "A measurement ID must use the same element type across all versions "
+                    "of a component.".format(component_key, first_meas_id, first_pmr))
+        elif not use_digest and has_measurements:
+            digest_pmr_dict = comp["measurements"]
+            if first_pmr in digest_pmr_dict and first_meas_id in digest_pmr_dict[first_pmr]:
+                raise ValueError(
+                    "ERROR: Component '{0}' first DATA measurement ID {1} (PMR {2}) also appears "
+                    "as digest (<Measurement>) in the same PMR. "
+                    "A measurement ID must use the same element type across all versions "
+                    "of a component.".format(component_key, first_meas_id, first_pmr))
+
+        comp_ver_strings = component_version_strings.get(component_key) if component_version_strings else None
+        is_unique, exists, msg = check_fn(first_dict, first_meas_id, first_pmr, num_versions, comp_ver_strings)
+
+        ver_labels = [_ver_str(v, comp_ver_strings) for v in range(1, num_versions + 1)]
+        versions_display = "[{0}]".format(", ".join(ver_labels))
+
+        if is_unique:
+            print("Info: Component '{0}' first {1} measurement ID {2} (PMR {3}) "
+                  "is unique across {4} versions {5}".format(
+                      component_key, label, first_meas_id, first_pmr, num_versions, versions_display))
+        else:
+            raise ValueError(
+                "ERROR: Component '{0}' first {1} measurement ID {2} (PMR {3}) "
+                "is NOT unique across {4} versions {5}.\n"
+                "Reason: {6}\n"
+                "Required: The first measurement must be unique across component versions.\n"
+                "Add 'unique_measurement_id: <1-239>' for this component in component_defaults.cfg "
+                "to specify which measurement ID is unique across versions.".format(
+                    component_key, label, first_meas_id, first_pmr, num_versions, versions_display, msg))
+
+
 def consolidate_identical_measurement_data(components, component_version_tracker):
     """
     After all versions are processed, consolidate measurement data that have identical data 
@@ -1037,6 +1409,76 @@ def main(argv=None):
     # Track version numbers per component
     component_version_tracker = {}
 
+    # Read component version strings (version_number -> version_string) emitted by generate_cfm_config.py.
+    # Used only in diagnostic messages for unique measurement validation.
+    # Format: COMPONENT:ver1,ver2,ver3;COMPONENT2:ver1
+    component_version_strings = {}
+    comp_str_env = os.environ.get("COMPONENT_VERSION_STRINGS", "").strip()
+    if comp_str_env:
+        for raw_entry in comp_str_env.split(";"):
+            entry = raw_entry.strip()
+            if not entry:
+                continue
+            if ":" not in entry:
+                raise ValueError("Invalid COMPONENT_VERSION_STRINGS entry (expected 'COMPONENT:ver1,ver2'): {0}".format(entry))
+            comp_name, versions_str = entry.split(":", 1)
+            comp_name = comp_name.strip()
+            if not comp_name:
+                raise ValueError("Empty component name in COMPONENT_VERSION_STRINGS entry: {0}".format(entry))
+            if comp_name in component_version_strings:
+                raise ValueError("Duplicate component '{0}' in COMPONENT_VERSION_STRINGS".format(comp_name))
+            versions = [v.strip() for v in versions_str.split(",") if v.strip()]
+            if not versions:
+                raise ValueError("No versions specified for component '{0}' in COMPONENT_VERSION_STRINGS".format(comp_name))
+            component_version_strings[comp_name] = {(idx + 1): ver for idx, ver in enumerate(versions)}
+
+    # Read unique measurement IDs from component_defaults.cfg.
+    # For each component section that defines unique_measurement_id: <1-239>,
+    # that measurement index will be validated as unique and moved to first position.
+    # If no section defines unique_measurement_id, the dict stays empty and the
+    # existing check_first_measurement_uniqueness() auto-check runs unchanged.
+    unique_measurement_ids = {}
+    comp_def_cfg = os.path.join(os.path.dirname(os.path.abspath(__file__)), COMPONENT_DEFAULTS_FILENAME)
+    if os.path.isfile(comp_def_cfg):
+        cfg_parser = configparser.ConfigParser()
+        read_files = cfg_parser.read(comp_def_cfg)
+        if not read_files:
+            raise ValueError(
+                "{0} exists at '{1}' but could not be read "
+                "(check file permissions).".format(COMPONENT_DEFAULTS_FILENAME, comp_def_cfg))
+
+        for component_name in cfg_parser.sections():
+            if component_name.lower() == "defaults":
+                continue
+            if not cfg_parser.has_option(component_name, "unique_measurement_id"):
+                continue
+            mid_s = cfg_parser.get(component_name, "unique_measurement_id").strip()
+            if not mid_s:
+                continue
+            try:
+                mid_i = int(mid_s, 0)   # supports decimal or hex (0x1A)
+            except ValueError:
+                raise ValueError(
+                    "Invalid unique_measurement_id '{0}' for component '{1}' "
+                    "in {2}: expected integer".format(mid_s, component_name, COMPONENT_DEFAULTS_FILENAME))
+            if mid_i < 1 or mid_i > 239:
+                raise ValueError(
+                    "unique_measurement_id {0} for component '{1}' out-of-range (1-239) "
+                    "in {2}".format(mid_i, component_name, COMPONENT_DEFAULTS_FILENAME))
+            # Note: configparser.sections() never yields the same section name twice even if the
+            # cfg file contains duplicate sections (configparser silently merges them). This check
+            # guards against any future code path that might call this block more than once.
+            if component_name in unique_measurement_ids:
+                raise ValueError(
+                    "Duplicate component '{0}' with unique_measurement_id encountered "
+                    "while building unique_measurement_ids dict.".format(component_name))
+            unique_measurement_ids[component_name] = mid_i
+    else:
+        raise FileNotFoundError(
+        "Required configuration file '{0}' not found at '{1}'. "
+        "Please create this file before running CFM generation.".format(
+            COMPONENT_DEFAULTS_FILENAME, comp_def_cfg))
+
     for xml_key, xml_dict in processed_xml.items ():
         for component_key, component_dict in xml_dict.items ():
             # Get the next version number for this specific component
@@ -1097,6 +1539,30 @@ def main(argv=None):
     # After processing all XML files, consolidate identical measurement data into Version Set 0
     components = consolidate_identical_measurement_data(components, component_version_tracker)
 
+    # Filter to only components present in this CFM's XML (component_version_tracker).
+    # unique_measurement_ids is global (all SKUs); not all components appear in every CFM.
+    active_unique_measurement_ids = {
+        comp: meas_id
+        for comp, meas_id in unique_measurement_ids.items()
+        if comp in component_version_tracker
+    }
+
+    # Validate and reorder unique measurements (must be done AFTER consolidation)
+    if active_unique_measurement_ids:
+        separator = "=" * 56
+        print("\n" + separator)
+        print("=== Validating and Reordering Unique Measurement IDs ===")
+        print(separator)
+
+        validate_and_reorder_unique_measurements(components, active_unique_measurement_ids, component_version_tracker, component_version_strings)
+
+        print("\n=== Unique Measurement Validation and Reordering Complete ===")
+        print(separator + "=" * 5 + "\n")
+
+    # Auto-check first measurement uniqueness for all multi-version components
+    # not already handled by active_unique_measurement_ids
+    check_first_measurement_uniqueness(components, component_version_tracker, skip_components=active_unique_measurement_ids, component_version_strings=component_version_strings)
+
     platform_id = manifest_common.generate_platform_id ({"platform_id": platform_id})
     elements_list.append (platform_id)
 
@@ -1130,7 +1596,16 @@ def main(argv=None):
                 component_elements_list.extend (pmr_digests)
                 num_pmr_digests = len(pmr_digests)
 
-            if (component_dict["unique"] == 0) and ("measurements" in component_dict):
+            # Determine measurement element ordering:
+            #   - unique_measurement_is_digest flag  → digest BEFORE data
+            #   - unique_measurement_is_data flag    → data BEFORE digest
+            #   - Neither flag set                   → use original "unique" field (backward compatible)
+            has_unique_digest = component_dict.get("unique_measurement_is_digest", False)
+            has_unique_data = component_dict.get("unique_measurement_is_data", False)
+            digest_first = has_unique_digest or (not has_unique_data and component_dict["unique"] == 0)
+
+            # Generate digest measurements BEFORE data if digest_first
+            if digest_first and ("measurements" in component_dict):
                 if no_aggregation or xml_version in (
                     manifest_types.VERSION_1,
                     manifest_types.VERSION_2,
@@ -1163,6 +1638,7 @@ def main(argv=None):
                         component_elements_list.extend (measurements)
                         num_measurements += len(measurements)
 
+            # Generate measurement_data (data form)
             if "measurement_data" in component_dict:
                 measurement_data = generate_measurement_data (
                         component_dict["measurement_data"])
@@ -1170,7 +1646,8 @@ def main(argv=None):
                 component_elements_list.extend (measurement_data)
                 num_measurement_data = len(measurement_data)
 
-            if (component_dict["unique"] == 1) and ("measurements" in component_dict):
+            # Generate digest measurements AFTER data if not digest_first
+            if (not digest_first) and ("measurements" in component_dict):
                 if no_aggregation or xml_version in (
                     manifest_types.VERSION_1,
                     manifest_types.VERSION_2,
