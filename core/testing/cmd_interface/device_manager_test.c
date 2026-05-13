@@ -8,15 +8,21 @@
 #include "platform_api.h"
 #include "testing.h"
 #include "attestation/attestation_discover.h"
+#include "attestation/attestation_logging.h"
 #include "cmd_interface/device_manager.h"
+#include "logging/debug_log.h"
 #include "manifest/pcd/pcd.h"
 #include "mctp/mctp_base_protocol.h"
 #include "testing/asn1/x509_testing.h"
+#include "testing/logging/debug_log_testing.h"
 #include "testing/mock/cmd_interface/device_manager_observer_mock.h"
 #include "testing/mock/crypto/hash_mock.h"
+#include "testing/mock/logging/logging_mock.h"
 
 
 TEST_SUITE_LABEL ("device_manager");
+
+extern const struct logging *debug_log;
 
 
 /*******************
@@ -9414,10 +9420,10 @@ static void device_manager_test_get_mctp_ctrl_timeout_invalid_arg (CuTest *test)
 	CuAssertIntEquals (test, DEVICE_MANAGER_MCTP_CTRL_PROTOCOL_TIMEOUT_MS, status);
 }
 
-static void device_manager_test_set_pending_action (CuTest *test)
+static void device_manager_test_set_force_action (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	uint8_t data[10];
 	int status;
 
@@ -9430,29 +9436,27 @@ static void device_manager_test_set_pending_action (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	memcpy (pending.data, data, sizeof (data));
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data_size = 1;
+	memcpy (&action_data, data, sizeof (data));
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	memset (&pending, 0, sizeof (pending));
-
-	status = device_manager_get_pending_action (&manager, &pending);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION,
+		manager.force_action.type);
+	status = testing_validate_array (data, (uint8_t*) &manager.force_action.action_data,
+		manager.force_action.data_size);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, DEVICE_MANAGER_ACTION_FORCE_ATTESTATION, pending.type);
-	status = testing_validate_array (data, pending.data, pending.data_size);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 1, pending.data_size);
+	CuAssertIntEquals (test, 1, manager.force_action.data_size);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_set_pending_action_bad_data_size (CuTest *test)
+static void device_manager_test_set_force_action_bad_data_size (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
+	int num_actions;
 	int status;
 	uint8_t data_comp[] = {3, 0x11, 0, 0, 0, 1};
 	uint8_t data_dev[] = {4, 0x11, 0, 0, 0, 1, 0, 0, 0, 2};
@@ -9463,69 +9467,76 @@ static void device_manager_test_set_pending_action_bad_data_size (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
-	pending.data_size = 1;
-	status = device_manager_set_pending_action (&manager, &pending);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
+	device_manager_process_force_action (&manager, &num_actions);
+	device_manager_clear_force_action_set_state (&manager, DEVICE_MANAGER_FORCE_ACTION_IDLE);
 
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
-	pending.data_size = 2;
-	status = device_manager_set_pending_action (&manager, &pending);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
+	status = device_manager_set_force_action (&manager, &action_data, 2,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_DATA, status);
 
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
-	pending.data_size = 1;
-	status = device_manager_set_pending_action (&manager, &pending);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
+	device_manager_process_force_action (&manager, &num_actions);
+	device_manager_clear_force_action_set_state (&manager, DEVICE_MANAGER_FORCE_ACTION_IDLE);
 
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
-	pending.data_size = 6;
-	status = device_manager_set_pending_action (&manager, &pending);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
+	status = device_manager_set_force_action (&manager, &action_data, 6,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_DATA, status);
 
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
-	pending.data_size = 1;
-	status = device_manager_set_pending_action (&manager, &pending);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
+	device_manager_process_force_action (&manager, &num_actions);
+	device_manager_clear_force_action_set_state (&manager, DEVICE_MANAGER_FORCE_ACTION_IDLE);
 
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
-	pending.data_size = 10;
-	status = device_manager_set_pending_action (&manager, &pending);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+	status = device_manager_set_force_action (&manager, &action_data, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_DATA, status);
 
-	memcpy (pending.data, data_comp, sizeof (data_comp));
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
-	pending.data_size = 6;
-	status = device_manager_set_pending_action (&manager, &pending);
+	memcpy (&action_data, data_comp, sizeof (data_comp));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
+	status = device_manager_set_force_action (&manager, &action_data, 6,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+	device_manager_clear_force_action_set_state (&manager, DEVICE_MANAGER_FORCE_ACTION_IDLE);
 
-	memcpy (pending.data, data_comp, sizeof (data_comp));
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
-	pending.data_size = 10;
-	status = device_manager_set_pending_action (&manager, &pending);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+	memcpy (&action_data, data_comp, sizeof (data_comp));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
+	status = device_manager_set_force_action (&manager, &action_data, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_DATA, status);
 
-	memcpy (pending.data, data_dev, sizeof (data_dev));
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
-	pending.data_size = 10;
-	status = device_manager_set_pending_action (&manager, &pending);
+	memcpy (&action_data, data_dev, sizeof (data_dev));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
+	status = device_manager_set_force_action (&manager, &action_data, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+	device_manager_clear_force_action_set_state (&manager, DEVICE_MANAGER_FORCE_ACTION_IDLE);
 
-	memcpy (pending.data, data_dev, sizeof (data_dev));
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
-	pending.data_size = 6;
-	status = device_manager_set_pending_action (&manager, &pending);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+	memcpy (&action_data, data_dev, sizeof (data_dev));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
+	status = device_manager_set_force_action (&manager, &action_data, 6,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_DATA, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_set_pending_action_replace_existing (CuTest *test)
+static void device_manager_test_set_force_action_replace_existing (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending1;
-	struct device_manager_pending_action pending2;
+	struct device_manager_force_action_data action_data1;
+	struct device_manager_force_action_data action_data2;
 	uint8_t data1[] = {4, 0xaa, 0, 0xbb, 0, 0xcc, 0, 0xdd, 0, 6};
 	uint8_t data2[] = {4, 0xee, 0, 0xff, 0, 0xee, 0, 0xff, 0, 7};
 	int status;
@@ -9545,32 +9556,30 @@ static void device_manager_test_set_pending_action_replace_existing (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 
 	/* Set first action */
-	pending1.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending1.data, data1, 10);
-	pending1.data_size = 10;
+	memcpy (&action_data1, data1, 10);
 
-	status = device_manager_set_pending_action (&manager, &pending1);
+	status = device_manager_set_force_action (&manager, &action_data1, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	/* Replace with second action - should clear first data */
-	pending2.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending2.data, data2, 10);
-	pending2.data_size = 10;
+	/* Attempt to replace with second action - should be rejected */
+	memcpy (&action_data2, data2, 10);
 
-	status = device_manager_set_pending_action (&manager, &pending2);
-	CuAssertIntEquals (test, 0, status);
+	status = device_manager_set_force_action (&manager, &action_data2, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_PENDING, status);
 
-	status = device_manager_get_pending_action (&manager, &pending1);
+	/* Verify first action is still pending */
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION,
+		manager.force_action.type);
+	status = testing_validate_array (data1, (uint8_t*) &manager.force_action.action_data, 10);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, DEVICE_MANAGER_ACTION_FORCE_ATTESTATION, pending1.type);
-	status = testing_validate_array (data2, pending1.data, 10);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 10, pending1.data_size);
+	CuAssertIntEquals (test, 10, manager.force_action.data_size);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_set_pending_action_invalid_arg (CuTest *test)
+static void device_manager_test_set_force_action_invalid_arg (CuTest *test)
 {
 	struct device_manager manager;
 	int status;
@@ -9582,21 +9591,19 @@ static void device_manager_test_set_pending_action_invalid_arg (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Test NULL manager */
-	struct device_manager_pending_action pending_null;
+	struct device_manager_force_action_data action_data_null;
 
-	pending_null.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending_null.data_size = 0;
-
-	status = device_manager_set_pending_action (NULL, &pending_null);
+	status = device_manager_set_force_action (NULL, &action_data_null, 0,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_set_pending_action_data_bad_device_ids (CuTest *test)
+static void device_manager_test_set_force_action_data_bad_device_ids (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	int status;
 
 	TEST_START;
@@ -9611,46 +9618,36 @@ static void device_manager_test_set_pending_action_data_bad_device_ids (CuTest *
 	status = device_manager_update_device_instance_id (&manager, 2, 0x55);
 	CuAssertIntEquals (test, 0, status);
 
-	/* Try to set pending action with device IDs that don't match any device */
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
-	pending.data[1] = 0x11;
-	pending.data[2] = 0x00;
-	pending.data[3] = 0x22;
-	pending.data[4] = 0x00;
-	pending.data[5] = 0x33;
-	pending.data[6] = 0x00;
-	pending.data[7] = 0x44;
-	pending.data[8] = 0x00;
-	pending.data[9] = 0x66;
-	pending.data_size = 10;
+	/* Try to set force action with device IDs that don't match any device */
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
+	action_data.target.device_ids.pci_vid = 0x0011;
+	action_data.target.device_ids.pci_device_id = 0x0022;
+	action_data.target.device_ids.pci_subsystem_vid = 0x0033;
+	action_data.target.device_ids.pci_subsystem_id = 0x0044;
+	action_data.target.device_ids.instance_id = 0x66;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
-	pending.data[1] = 0xAA;
-	pending.data[2] = 0x00;
-	pending.data[3] = 0xBB;
-	pending.data[4] = 0x00;
-	pending.data[5] = 0xCC;
-	pending.data[6] = 0x00;
-	pending.data[7] = 0xDD;
-	pending.data[8] = 0x00;
-	pending.data[9] = 0x55;
-	pending.data_size = 10;
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
+	action_data.target.device_ids.pci_vid = 0x00AA;
+	action_data.target.device_ids.pci_device_id = 0x00BB;
+	action_data.target.device_ids.pci_subsystem_vid = 0x00CC;
+	action_data.target.device_ids.pci_subsystem_id = 0x00DD;
+	action_data.target.device_ids.instance_id = 0x55;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_set_pending_action_data_bad_component_ids (CuTest *test)
+static void device_manager_test_set_force_action_data_bad_component_ids (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	int status;
 
 	TEST_START;
@@ -9663,113 +9660,33 @@ static void device_manager_test_set_pending_action_data_bad_component_ids (CuTes
 		50, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	memset (&pending, 0, sizeof (pending));
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
-	pending.data[1] = 0x11;
-	pending.data[5] = 4;
-	pending.data_size = 6;
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
+	action_data.target.component.component_id = 0x11;
+	action_data.target.component.instance_id = 4;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 6,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
 
-	memset (&pending, 0, sizeof (pending));
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
-	pending.data[1] = 50;
-	pending.data[5] = 0;
-	pending.data_size = 6;
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
+	action_data.target.component.component_id = 50;
+	action_data.target.component.instance_id = 0;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 6,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_get_pending_action (CuTest *test)
+static void device_manager_test_clear_force_action (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending1;
-	struct device_manager_pending_action pending2;
-	uint8_t data1[] = {4, 0xaa, 0, 0xbb, 0, 0xcc, 0, 0xdd, 0, 6};
-	int status;
-
-	TEST_START;
-
-	status = device_manager_init (&manager, 2, 2, 2, DEVICE_MANAGER_PA_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_update_device_ids (&manager, 2, 0xAA, 0xBB, 0xCC, 0xDD);
-	status |= device_manager_update_device_instance_id (&manager, 2, 6);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Set first action */
-	pending1.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending1.data, data1, 10);
-	pending1.data_size = 10;
-
-	status = device_manager_set_pending_action (&manager, &pending1);
-	CuAssertIntEquals (test, 0, status);
-
-	status = device_manager_get_pending_action (&manager, &pending2);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, DEVICE_MANAGER_ACTION_FORCE_ATTESTATION, pending1.type);
-	status = testing_validate_array (pending2.data, pending1.data, 10);
-	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, 10, pending1.data_size);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_get_pending_action_invalid_arg (CuTest *test)
-{
-	struct device_manager manager;
-	struct device_manager_pending_action action;
-	int status;
-
-	TEST_START;
-
-	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Test NULL manager */
-	status = device_manager_get_pending_action (NULL, &action);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
-
-	/* Test NULL action buffer */
-	status = device_manager_get_pending_action (&manager, NULL);
-	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_get_pending_action_no_action_set (CuTest *test)
-{
-	struct device_manager manager;
-	struct device_manager_pending_action action;
-	int status;
-
-	TEST_START;
-
-	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
-		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
-	CuAssertIntEquals (test, 0, status);
-
-	/* Test when no action has been set */
-	status = device_manager_get_pending_action (&manager, &action);
-	CuAssertIntEquals (test, DEVICE_MGR_NO_PENDING_ACTION, status);
-
-	device_manager_release (&manager);
-}
-
-static void device_manager_test_clear_pending_action (CuTest *test)
-{
-	struct device_manager manager;
-	struct device_manager_pending_action action;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	uint8_t data = 1;
+	int num_actions;
 	int status;
 
 	TEST_START;
@@ -9778,24 +9695,26 @@ static void device_manager_test_clear_pending_action (CuTest *test)
 		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending.data, &data, 1);
-	pending.data_size = 1;
+	action_data.mode = data;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_clear_pending_action (&manager);
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_clear_force_action_set_state (&manager,
+		DEVICE_MANAGER_FORCE_ACTION_IDLE);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Verify action is cleared */
-	status = device_manager_get_pending_action (&manager, &action);
-	CuAssertIntEquals (test, DEVICE_MGR_NO_PENDING_ACTION, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IDLE, manager.force_action.state);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_clear_pending_action_no_action (CuTest *test)
+static void device_manager_test_clear_force_action_no_action (CuTest *test)
 {
 	struct device_manager manager;
 	int status;
@@ -9807,27 +9726,97 @@ static void device_manager_test_clear_pending_action_no_action (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Test clearing when no action exists - should succeed */
-	status = device_manager_clear_pending_action (&manager);
+	status = device_manager_clear_force_action_set_state (&manager,
+		DEVICE_MANAGER_FORCE_ACTION_IDLE);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_clear_pending_action_invalid_arg (CuTest *test)
+static void device_manager_test_clear_force_action_invalid_arg (CuTest *test)
 {
+	struct device_manager manager;
 	int status;
 
 	TEST_START;
 
-	status = device_manager_clear_pending_action (NULL);
+	status = device_manager_clear_force_action_set_state (NULL, DEVICE_MANAGER_FORCE_ACTION_IDLE);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Out-of-range state value must be rejected */
+	status = device_manager_clear_force_action_set_state (&manager,
+		(enum device_manager_force_action_state) (DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS + 1));
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_STATE, status);
+
+	device_manager_release (&manager);
 }
 
-static void device_manager_test_process_pending_action_force_attestation_failed (CuTest *test)
+static void device_manager_test_clear_force_action_pending_to_idle_rejected (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Queue a force action to transition to PENDING */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, manager.force_action.state);
+
+	/* Attempting PENDING -> IDLE directly must be rejected */
+	status = device_manager_clear_force_action_set_state (&manager,
+		DEVICE_MANAGER_FORCE_ACTION_IDLE);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE, status);
+
+	/* State must remain PENDING */
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, manager.force_action.state);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_clear_force_action_idle_to_in_progress_rejected (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* State starts as IDLE - jumping directly to IN_PROGRESS must be rejected */
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IDLE, manager.force_action.state);
+
+	status = device_manager_clear_force_action_set_state (&manager,
+		DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE, status);
+
+	/* State must remain IDLE */
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IDLE, manager.force_action.state);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_force_attestation_failed (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
 	uint8_t data;
+	int num_actions;
 	int status;
 
 	TEST_START;
@@ -9851,19 +9840,20 @@ static void device_manager_test_process_pending_action_force_attestation_failed 
 	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending.data, &data, 1);
-	pending.data_size = 1;
+	action_data.mode = data;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_process_pending_action (&manager);
+	num_actions = 0;
+	status = device_manager_process_force_action (&manager, &num_actions);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_actions);
 
 	/* Check device 1 (failed) was reset */
 	status = device_manager_get_device_state (&manager, 1);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
 
 	/* Check device 2 (authenticated) was not reset */
 	status = device_manager_get_device_state (&manager, 2);
@@ -9872,11 +9862,12 @@ static void device_manager_test_process_pending_action_force_attestation_failed 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_process_pending_action_force_attestation_passed (CuTest *test)
+static void device_manager_test_process_force_action_force_attestation_passed (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	uint8_t data;
+	int num_actions;
 	int status;
 
 	TEST_START;
@@ -9900,15 +9891,16 @@ static void device_manager_test_process_pending_action_force_attestation_passed 
 	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending.data, &data, 1);
-	pending.data_size = 1;
+	action_data.mode = data;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_process_pending_action (&manager);
+	num_actions = 0;
+	status = device_manager_process_force_action (&manager, &num_actions);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_actions);
 
 	/* Check device 1 (failed) was not reset */
 	status = device_manager_get_device_state (&manager, 1);
@@ -9916,16 +9908,17 @@ static void device_manager_test_process_pending_action_force_attestation_passed 
 
 	/* Check device 2 (authenticated) was reset */
 	status = device_manager_get_device_state (&manager, 2);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_process_pending_action_force_attestation_all (CuTest *test)
+static void device_manager_test_process_force_action_force_attestation_all (CuTest *test)
 {
 	struct device_manager manager;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	uint8_t data;
+	int num_actions;
 	int status;
 
 	TEST_START;
@@ -9949,29 +9942,31 @@ static void device_manager_test_process_pending_action_force_attestation_all (Cu
 	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_AUTHENTICATED);
 	CuAssertIntEquals (test, 0, status);
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending.data, &data, 1);
-	pending.data_size = 1;
+	action_data.mode = data;
 
-	status = device_manager_set_pending_action (&manager, &pending);
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_process_pending_action (&manager);
+	num_actions = 0;
+	status = device_manager_process_force_action (&manager, &num_actions);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 3, num_actions);
 
 	/* Check both devices were reset */
 	status = device_manager_get_device_state (&manager, 1);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
 
 	status = device_manager_get_device_state (&manager, 2);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, status);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_process_pending_action_no_action (CuTest *test)
+static void device_manager_test_process_force_action_no_action (CuTest *test)
 {
 	struct device_manager manager;
+	int num_actions;
 	int status;
 
 	TEST_START;
@@ -9981,21 +9976,37 @@ static void device_manager_test_process_pending_action_no_action (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	/* Process when no action is set - should succeed */
-	status = device_manager_process_pending_action (&manager);
+	status = device_manager_process_force_action (&manager, &num_actions);
 	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&manager);
 }
 
-static void device_manager_test_process_pending_action_invalid_arg (CuTest *test)
+static void device_manager_test_process_force_action_invalid_arg (CuTest *test)
 {
+	struct device_manager manager;
+	int num_actions;
 	int status;
 
 	TEST_START;
 
 	/* Test NULL manager */
-	status = device_manager_process_pending_action (NULL);
+	status = device_manager_process_force_action (NULL, NULL);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	/* Test NULL num_actions with valid manager */
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_process_force_action (&manager, NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	/* Confirm num_actions still works normally */
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
 }
 
 
@@ -10431,6 +10442,744 @@ static void device_manager_test_restart_device_discovery_by_handler_null (CuTest
 
 	status = device_manager_restart_device_discovery_by_handler (&manager, NULL);
 	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_force_attestation_component_id (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	struct logging_mock logger;
+	struct debug_log_entry_info entry_started = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,
+		.arg1 = 1,
+		.arg2 = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID
+	};
+	struct debug_log_entry_info entry_initiated = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+		.arg1 = 0x030C,
+		.arg2 = 50
+	};
+	struct debug_log_entry_info entry_completed = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,
+		.arg1 = 1,
+		.arg2 = 0
+	};
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 2, 3, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Setup MCTP bridge device entries with specific component IDs */
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 2, 0xAA, 0xBB, 0xCC, 0xDD, 1,
+		50, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_instance_id (&manager, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 3, 0xEE, 0xFF, 0x11, 0x22, 1,
+		75, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_instance_id (&manager, 3, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Set device 2 to authenticated state */
+	status = device_manager_update_device_eid (&manager, 2, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Set device 3 to failed state */
+	status = device_manager_update_device_eid (&manager, 3, 0x0D);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Create force action for component ID 50, instance 3 */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
+	action_data.target.component.component_id = 50;
+	action_data.target.component.instance_id = 3;
+
+	status = logging_mock_init (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_started, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_started)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_initiated, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_initiated)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_completed, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_completed)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_set_force_action (&manager, &action_data, 6,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &logger.base;
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&manager, &num_actions);
+
+	debug_log = NULL;
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_actions);
+
+	/* Check device 2 (component 50, instance 3) was reset */
+	status = device_manager_get_device_state (&manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
+
+	/* Check device 3 (component 75, instance 1) was not reset */
+	status = device_manager_get_device_state (&manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
+
+	status = logging_mock_validate_and_release (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_force_attestation_device_ids (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	struct logging_mock logger;
+	struct debug_log_entry_info entry_started = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,
+		.arg1 = 1,
+		.arg2 = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS
+	};
+	struct debug_log_entry_info entry_initiated = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+		.arg1 = 0x050C,
+		.arg2 = 60
+	};
+	struct debug_log_entry_info entry_completed = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,
+		.arg1 = 1,
+		.arg2 = 0
+	};
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 2, 3, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Setup device entries with specific device IDs and component IDs */
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 2, 0xAA, 0xBB, 0xCC, 0xDD, 1,
+		60, 0);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&manager, 2, 0x05);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 3, 0xEE, 0xFF, 0x11, 0x22, 1,
+		80, 1);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&manager, 3, 0x06);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Set device 2 to authenticated state */
+	status = device_manager_update_device_eid (&manager, 2, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Set device 3 to failed state */
+	status = device_manager_update_device_eid (&manager, 3, 0x0D);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Create force action for device IDs matching device 2 */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
+	action_data.target.device_ids.pci_vid = 0x00AA;
+	action_data.target.device_ids.pci_device_id = 0x00BB;
+	action_data.target.device_ids.pci_subsystem_vid = 0x00CC;
+	action_data.target.device_ids.pci_subsystem_id = 0x00DD;
+	action_data.target.device_ids.instance_id = 0x05;
+
+	status = logging_mock_init (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_started, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_started)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_initiated, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_initiated)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_completed, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_completed)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_set_force_action (&manager, &action_data, 10,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &logger.base;
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&manager, &num_actions);
+
+	debug_log = NULL;
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_actions);
+
+	/* Check device 2 (matching device IDs) was reset */
+	status = device_manager_get_device_state (&manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
+
+	/* Check device 3 (different device IDs) was not reset */
+	status = device_manager_get_device_state (&manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
+
+	status = logging_mock_validate_and_release (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_check_force_action_idle (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t action_id = 0xFF;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, action_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_check_force_action_pending (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	uint32_t action_id = 0;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, status);
+	CuAssertIntEquals (test, 1, action_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_check_force_action_in_progress (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	uint32_t action_id = 0xFF;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Transition to IN_PROGRESS via set + process to simulate attestation loop running */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS, status);
+	CuAssertIntEquals (test, 1, action_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_check_force_action_null_action_id (CuTest *test)
+{
+	struct device_manager manager;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_force_action_state (&manager, NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_set_force_action_in_progress_rejected (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Transition to IN_PROGRESS via set + process to simulate attestation loop running */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Attempt to queue a new action while force attestation is in progress */
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_IN_PROGRESS, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_set_force_action_action_id_increments (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	uint32_t action_id = 0;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Queue first action */
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify action_id is 1 */
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, status);
+	CuAssertIntEquals (test, 1, action_id);
+
+	/* Process and clear the pending action */
+	device_manager_process_force_action (&manager, &num_actions);
+	device_manager_clear_force_action_set_state (&manager, DEVICE_MANAGER_FORCE_ACTION_IDLE);
+
+	/* Queue second action */
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify action_id incremented to 2 */
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, status);
+	CuAssertIntEquals (test, 2, action_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_update_device_state_force_attestation_timeout_zero (CuTest *test)
+{
+	struct device_manager manager;
+	uint32_t duration_ms;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 1, 1, DEVICE_MANAGER_AC_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 5000, 10000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* First set to authenticated with non-zero timeout */
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
+	duration_ms = device_manager_get_time_till_next_action (&manager);
+	CuAssertTrue (test, (duration_ms != 0));
+
+	/* Now set to FORCE_ATTESTATION - should have timeout 0 (immediate) */
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	duration_ms = device_manager_get_time_till_next_action (&manager);
+	CuAssertIntEquals (test, 0, duration_ms);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_noop_when_in_progress (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	uint32_t action_id = 0;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Queue and process a force attestation to transition to IN_PROGRESS */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test, (num_actions > 0));
+
+	/* Verify state is IN_PROGRESS */
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS, status);
+
+	/* Call process_force_action again while IN_PROGRESS - should be a no-op returning 0 */
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify state remains IN_PROGRESS (no-op does not change state) */
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_sets_in_progress (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	uint32_t action_id = 0;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 1, 2, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Queue a force attestation */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Process it - should apply actions and transition to IN_PROGRESS */
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify check_force_action now returns IN_PROGRESS with correct action_id */
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS, status);
+	CuAssertIntEquals (test, 1, action_id);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_sets_none_when_zero_actions (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	uint32_t action_id = 0;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	/* Init with only 1 requester (self) and 0 responders — no attestable devices */
+	status = device_manager_init_ac_rot (&manager, 1, DEVICE_MANAGER_SLAVE_BUS_ROLE);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Queue a force attestation ALL — but there are no attestable devices */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify action was queued */
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, status);
+	CuAssertIntEquals (test, 1, action_id);
+
+	/* Process it — always transitions to IN_PROGRESS regardless of num_actions */
+	status = device_manager_process_force_action (&manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, num_actions);
+
+	/* Verify state is IN_PROGRESS (process always sets this) */
+	status = device_manager_get_force_action_state (&manager, &action_id);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS, status);
+
+	/* Verify a new action cannot be queued while IN_PROGRESS */
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_IN_PROGRESS, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_logging_start_and_complete (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	struct logging_mock logger;
+	int num_actions;
+	struct debug_log_entry_info entry_started = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,
+		.arg1 = 1,
+		.arg2 = DEVICE_MANAGER_FORCE_ATTESTATION_ALL
+	};
+	struct debug_log_entry_info entry_completed = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,
+		.arg1 = 1,
+		.arg2 = 0
+	};
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 1, 0, 0, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Only the self device exists, which is NOT_ATTESTABLE — no INITIATED logs expected */
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = logging_mock_init (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_started, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_started)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_completed, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_completed)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &logger.base;
+
+	status = device_manager_process_force_action (&manager, &num_actions);
+
+	debug_log = NULL;
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = logging_mock_validate_and_release (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&manager);
+}
+
+static void device_manager_test_process_force_action_logging_per_device (CuTest *test)
+{
+	struct device_manager manager;
+	struct device_manager_force_action_data action_data;
+	struct logging_mock logger;
+	struct debug_log_entry_info entry_started = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,
+		.arg1 = 1,
+		.arg2 = DEVICE_MANAGER_FORCE_ATTESTATION_ALL
+	};
+	struct debug_log_entry_info entry_dev1 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+		.arg1 = 0x030B,
+		.arg2 = 50
+	};
+	struct debug_log_entry_info entry_dev2 = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+		.arg1 = 0x040C,
+		.arg2 = 75
+	};
+	struct debug_log_entry_info entry_completed = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
+		.msg_index = ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,
+		.arg1 = 1,
+		.arg2 = 0
+	};
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	status = device_manager_init (&manager, 2, 2, 3, DEVICE_MANAGER_PA_ROT_MODE,
+		DEVICE_MANAGER_SLAVE_BUS_ROLE, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Mark non-target devices as NOT_ATTESTABLE so only devices 2 and 3 produce INITIATED logs */
+	status = device_manager_update_device_state (&manager, 1, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state (&manager, 4, DEVICE_MANAGER_NOT_ATTESTABLE);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Setup two MCTP bridge device entries */
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 2, 0xAA, 0xBB, 0xCC, 0xDD, 1,
+		50, 0);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&manager, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_eid (&manager, 2, 0x0B);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state (&manager, 2, DEVICE_MANAGER_READY_FOR_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&manager, 3, 0xEE, 0xFF, 0x11, 0x22, 1,
+		75, 1);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&manager, 3, 4);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_eid (&manager, 3, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state (&manager, 3, DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&action_data, 0, sizeof (action_data));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	status = logging_mock_init (&logger);
+	CuAssertIntEquals (test, 0, status);
+
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_started, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_started)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_dev1, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_dev1)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_dev2, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_dev2)));
+	status |= mock_expect (&logger.mock, logger.base.create_entry, &logger, 0,
+		MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry_completed, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry_completed)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_set_force_action (&manager, &action_data, 1,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	debug_log = &logger.base;
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&manager, &num_actions);
+
+	debug_log = NULL;
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_actions);
+
+	/* Verify both devices transitioned */
+	status = device_manager_get_device_state (&manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
+	status = device_manager_get_device_state (&manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
+
+	status = logging_mock_validate_and_release (&logger);
+	CuAssertIntEquals (test, 0, status);
 
 	device_manager_release (&manager);
 }
@@ -11043,7 +11792,6 @@ static void device_manager_test_promote_matched_component_type_invalid_index (Cu
 	device_manager_release (&manager);
 }
 
-
 // *INDENT-OFF*
 TEST_SUITE_START (device_manager);
 
@@ -11390,23 +12138,36 @@ TEST (device_manager_test_get_rsp_not_ready_limits);
 TEST (device_manager_test_get_rsp_not_ready_limits_invalid_arg);
 TEST (device_manager_test_get_mctp_ctrl_timeout);
 TEST (device_manager_test_get_mctp_ctrl_timeout_invalid_arg);
-TEST (device_manager_test_set_pending_action);
-TEST (device_manager_test_set_pending_action_bad_data_size);
-TEST (device_manager_test_set_pending_action_replace_existing);
-TEST (device_manager_test_set_pending_action_invalid_arg);
-TEST (device_manager_test_set_pending_action_data_bad_device_ids);
-TEST (device_manager_test_set_pending_action_data_bad_component_ids);
-TEST (device_manager_test_get_pending_action);
-TEST (device_manager_test_get_pending_action_invalid_arg);
-TEST (device_manager_test_get_pending_action_no_action_set);
-TEST (device_manager_test_clear_pending_action);
-TEST (device_manager_test_clear_pending_action_no_action);
-TEST (device_manager_test_clear_pending_action_invalid_arg);
-TEST (device_manager_test_process_pending_action_force_attestation_failed);
-TEST (device_manager_test_process_pending_action_force_attestation_passed);
-TEST (device_manager_test_process_pending_action_force_attestation_all);
-TEST (device_manager_test_process_pending_action_no_action);
-TEST (device_manager_test_process_pending_action_invalid_arg);
+TEST (device_manager_test_set_force_action);
+TEST (device_manager_test_set_force_action_bad_data_size);
+TEST (device_manager_test_set_force_action_replace_existing);
+TEST (device_manager_test_set_force_action_invalid_arg);
+TEST (device_manager_test_set_force_action_data_bad_device_ids);
+TEST (device_manager_test_set_force_action_data_bad_component_ids);
+TEST (device_manager_test_clear_force_action);
+TEST (device_manager_test_clear_force_action_no_action);
+TEST (device_manager_test_clear_force_action_invalid_arg);
+TEST (device_manager_test_clear_force_action_pending_to_idle_rejected);
+TEST (device_manager_test_clear_force_action_idle_to_in_progress_rejected);
+TEST (device_manager_test_process_force_action_force_attestation_failed);
+TEST (device_manager_test_process_force_action_force_attestation_passed);
+TEST (device_manager_test_process_force_action_force_attestation_all);
+TEST (device_manager_test_process_force_action_force_attestation_component_id);
+TEST (device_manager_test_process_force_action_force_attestation_device_ids);
+TEST (device_manager_test_check_force_action_idle);
+TEST (device_manager_test_check_force_action_pending);
+TEST (device_manager_test_check_force_action_in_progress);
+TEST (device_manager_test_check_force_action_null_action_id);
+TEST (device_manager_test_set_force_action_in_progress_rejected);
+TEST (device_manager_test_set_force_action_action_id_increments);
+TEST (device_manager_test_update_device_state_force_attestation_timeout_zero);
+TEST (device_manager_test_process_force_action_noop_when_in_progress);
+TEST (device_manager_test_process_force_action_sets_in_progress);
+TEST (device_manager_test_process_force_action_sets_none_when_zero_actions);
+TEST (device_manager_test_process_force_action_logging_start_and_complete);
+TEST (device_manager_test_process_force_action_logging_per_device);
+TEST (device_manager_test_process_force_action_no_action);
+TEST (device_manager_test_process_force_action_invalid_arg);
 TEST (device_manager_test_update_attestation_summary_event_counters_by_eid);
 TEST (device_manager_test_update_attestation_summary_event_counters_by_eid_invalid_arg);
 TEST (device_manager_test_update_attestation_summary_event_counters_by_eid_unknown_device);

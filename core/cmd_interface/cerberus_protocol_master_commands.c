@@ -9,6 +9,7 @@
 #include "cerberus_protocol_master_commands.h"
 #include "cerberus_protocol_optional_commands.h"
 #include "cerberus_protocol_required_commands.h"
+#include "common/buffer_util.h"
 #include "common/certificate.h"
 #include "common/common_math.h"
 #include "common/unused.h"
@@ -1417,52 +1418,100 @@ int cerberus_protocol_force_attestation (struct attestation_requester *attestati
 {
 	struct cerberus_protocol_force_attestation *req =
 		(struct cerberus_protocol_force_attestation*) request->data;
-	struct device_manager_pending_action pending;
 	size_t data_length;
 	int status = 0;
 
 	if (attestation == NULL) {
-		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+		return CMD_HANDLER_INVALID_ARGUMENT;
 	}
 
-	if ((attestation->device_mgr == NULL) || (attestation->state == NULL)) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
+	data_length = request->length - sizeof (struct cerberus_protocol_header);
+
+	if (data_length < sizeof (uint8_t)) {
+		return CMD_HANDLER_BAD_LENGTH;
 	}
 
 	if (req->data.mode > DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	data_length = request->length - sizeof (struct cerberus_protocol_header);
+	switch (req->data.mode) {
+		case DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS:
+			if (data_length !=
+				(sizeof (uint8_t) + sizeof (struct device_manager_device_ids_target))) {
+				return CMD_HANDLER_BAD_LENGTH;
+			}
+			break;
 
-	if (req->data.mode == DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
-		if (data_length != (sizeof (uint8_t) + sizeof (struct device_manager_device_ids_target))) {
-			return CMD_HANDLER_BAD_LENGTH;
-		}
-	}
-	else if (req->data.mode == DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID) {
-		if (data_length != (sizeof (uint8_t) + sizeof (struct device_manager_component_target))) {
-			return CMD_HANDLER_BAD_LENGTH;
-		}
-	}
-	else {
-		if (data_length != (sizeof (uint8_t))) {
-			return CMD_HANDLER_BAD_LENGTH;
-		}
+		case DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID:
+			if (data_length !=
+				(sizeof (uint8_t) + sizeof (struct device_manager_component_target))) {
+				return CMD_HANDLER_BAD_LENGTH;
+			}
+			break;
+
+		default:
+			if (data_length != (sizeof (uint8_t))) {
+				return CMD_HANDLER_BAD_LENGTH;
+			}
+			break;
 	}
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	memcpy (pending.data, &req->data, data_length);
-	pending.data_size = data_length;
-
-	status = device_manager_set_pending_action (attestation->device_mgr, &pending);
+	status = device_manager_set_force_action (attestation->device_mgr, &req->data, data_length,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	if (status != 0) {
 		return status;
 	}
 
-	request->length = sizeof (struct cerberus_protocol_force_attestation_response);
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_force_attestation_response));
 
 	platform_semaphore_post (&attestation->state->next_action);
 
 	return status;
+}
+
+/**
+ * Process a force attestation info command.
+ *
+ * @param attestation Attestation requester instance to utilize
+ * @param request The force attestation info request to process
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int cerberus_protocol_force_attestation_info (struct attestation_requester *attestation,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_force_attestation_info_response *response;
+	uint32_t current_action_id;
+	int action_state;
+
+	if (attestation == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+	}
+
+	response = (struct cerberus_protocol_force_attestation_info_response*) request->data;
+
+	if (request->length != sizeof (struct cerberus_protocol_header)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	/* Query the force attestation status */
+	action_state = device_manager_get_force_action_state (attestation->device_mgr,
+		&current_action_id);
+
+	if (ROT_IS_ERROR (action_state)) {
+		return action_state;
+	}
+
+	response->status = (uint8_t) action_state;
+
+	/* Use buffer_unaligned_write32 because response points into a uint8_t message buffer
+	 * and the packed struct field may not be naturally aligned for a 32-bit access. */
+	buffer_unaligned_write32 (&response->action_id, current_action_id);
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_force_attestation_info_response));
+
+	return 0;
 }

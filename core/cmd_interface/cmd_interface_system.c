@@ -317,6 +317,10 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_force_attestation (interface->attestation_req, request);
 			break;
 
+		case CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO:
+			status = cerberus_protocol_force_attestation_info (interface->attestation_req, request);
+			break;
+
 		default:
 			return CMD_HANDLER_UNKNOWN_REQUEST;
 	}

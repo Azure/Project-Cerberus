@@ -52,17 +52,25 @@
 #define device_manager_set_crypto_timeout_ms(timeout)			((timeout) / 100)
 
 /**
- * Device manager pending action types
+ * Device manager action states
  */
-enum device_manager_action_type {
-	DEVICE_MANAGER_ACTION_NONE = 0,				/**< No pending action */
-	DEVICE_MANAGER_ACTION_FORCE_ATTESTATION,	/**< Force attestation action */
-	DEVICE_MANAGER_ACTION_FORCE_DISCOVERY,		/**< Device discovery action */
+enum device_manager_force_action_state {
+	DEVICE_MANAGER_FORCE_ACTION_IDLE = 0,		/**< No force action pending*/
+	DEVICE_MANAGER_FORCE_ACTION_PENDING,		/**< Action is pending */
+	DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS,	/**< Action is in progress */
+};
+
+/**
+ * Device manager action types
+ */
+enum device_manager_force_action_type {
+	DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION = 0,	/**< Force attestation action */
+	DEVICE_MANAGER_FORCE_ACTION_FORCE_DISCOVERY,		/**< Device discovery action */
 };
 
 
 /**
- * Force attestation modes
+ * Force attestation request codes
  */
 enum {
 	DEVICE_MANAGER_FORCE_ATTESTATION_FAILED = 0,	/**< Only previously failed devices */
@@ -104,23 +112,20 @@ union device_manager_target_data {
 /**
  * Container for force attestation action data
  */
-struct device_manager_force_attestation_data {
+struct device_manager_force_action_data {
 	uint8_t mode;								/**< Force attestation mode */
 	union device_manager_target_data target;	/**< Optional targeting data */
 };
 
-
-// Maximum size for pending action data
-#define DEVICE_MANAGER_PENDING_DATA_MAX_SIZE \
-	sizeof(struct device_manager_force_attestation_data)
-
 /**
- * Container for pending device manager actions
+ * Container for force action device manager actions
  */
-struct device_manager_pending_action {
-	enum device_manager_action_type type;				/**< Type of pending action */
-	uint8_t data[DEVICE_MANAGER_PENDING_DATA_MAX_SIZE];	/**< Static buffer for action data */
-	size_t data_size;									/**< Size of the action-specific data */
+struct device_manager_force_action {
+	enum device_manager_force_action_state state;			/**< State of the action */
+	enum device_manager_force_action_type type;				/**< Type of force action */
+	struct device_manager_force_action_data action_data;	/**< Force action data */
+	size_t data_size;										/**< Size of valid data in action_data */
+	uint32_t action_id;										/**< ID of the force action */
 };
 
 #pragma pack(pop)
@@ -141,7 +146,7 @@ enum device_manager_device_state {
 	DEVICE_MANAGER_ATTESTATION_INTERRUPTED,						/**< Communication with device is interrupted */
 	DEVICE_MANAGER_NOT_PRESENT,									/**< Device is not present in the system */
 	DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT,			/**< Authenticated with SPDM transient */
-
+	DEVICE_MANAGER_FORCE_ATTESTATION,							/**< Device force attestation requested */
 
 	DEVICE_MANAGER_ATTESTATION_INVALID_VERSION = 0x10,			/**< Previous attestation attempt failed due to invalid version */
 	DEVICE_MANAGER_ATTESTATION_INVALID_CAPS,					/**< Previous attestation attempt failed due to invalid capabilities */
@@ -363,8 +368,8 @@ struct device_manager {
 	struct device_manager_key alias_key;					/**< Container with device alias key */
 	uint8_t alias_key_eid;									/**< EID of component alias key belongs */
 	struct observable observable;							/**< Observer manager for the interface. */
-	struct device_manager_pending_action pending_action;	/**< Pending action to be processed by device manager. */
-	platform_mutex action_mutex;							/**< Mutex for protecting pending action operations */
+	struct device_manager_force_action force_action;		/**< Force action to be processed by device manager. */
+	platform_mutex action_mutex;							/**< Mutex for protecting force action operations */
 };
 
 /**
@@ -535,12 +540,18 @@ int device_manager_mark_component_attestation_invalid (struct device_manager *mg
 
 bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t eid);
 
-int device_manager_set_pending_action (struct device_manager *mgr,
-	struct device_manager_pending_action *action);
-int device_manager_get_pending_action (struct device_manager *mgr,
-	struct device_manager_pending_action *action);
-int device_manager_process_pending_action (struct device_manager *mgr);
-int device_manager_clear_pending_action (struct device_manager *mgr);
+int device_manager_get_force_action_state (
+	struct device_manager *mgr, uint32_t *action_id);
+
+
+int device_manager_set_force_action (struct device_manager *mgr,
+	const struct device_manager_force_action_data *action_data, size_t data_size,
+	enum device_manager_force_action_type action_type);
+int device_manager_process_force_action (struct device_manager *mgr, int *num_actions);
+int device_manager_update_force_action_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state);
+int device_manager_clear_force_action_set_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state);
 
 int device_manager_get_num_component_types (struct device_manager *mgr, int device_num);
 int device_manager_get_component_type (struct device_manager *mgr, int device_num, int index,
@@ -555,19 +566,24 @@ int device_manager_promote_matched_component_type (struct device_manager *mgr, i
  * Error codes that can be generated by the device manager.
  */
 enum {
-	DEVICE_MGR_INVALID_ARGUMENT = DEVICE_MGR_ERROR (0x00),			/**< Input parameter is null or not valid. */
-	DEVICE_MGR_NO_MEMORY = DEVICE_MGR_ERROR (0x01),					/**< Memory allocation failed. */
-	DEVICE_MGR_UNKNOWN_DEVICE = DEVICE_MGR_ERROR (0x02),			/**< Invalid device number. */
-	DEVICE_MGR_INVALID_CERT_NUM = DEVICE_MGR_ERROR (0x03),			/**< Invalid certificate number. */
-	DEVICE_MGR_BUF_TOO_SMALL = DEVICE_MGR_ERROR (0x04),				/**< Provided buffer too small for output. */
-	DEVICE_MGR_INPUT_TOO_LARGE = DEVICE_MGR_ERROR (0x05),			/**< Provided data larger than storage buffer. */
-	DEVICE_MGR_DIGEST_LEN_MISMATCH = DEVICE_MGR_ERROR (0x06),		/**< Provided digest not same length as cached digest. */
-	DEVICE_MGR_DIGEST_MISMATCH = DEVICE_MGR_ERROR (0x07),			/**< Provided digest not same as cached digest. */
-	DEVICE_MGR_NO_DEVICES_AVAILABLE = DEVICE_MGR_ERROR (0x08),		/**< No devices ready for attestation. */
-	DEVICE_MGR_DIGEST_NOT_UNIQUE = DEVICE_MGR_ERROR (0x09),			/**< Certificate chain digest not unique. */
-	DEVICE_MGR_INVALID_RESPONDER_COUNT = DEVICE_MGR_ERROR (0x0A),	/**< Invalid responder count. */
-	DEVICE_MGR_STATE_UPDATE_UNSUPPORTED = DEVICE_MGR_ERROR (0x0B),	/**< State update not supported. */
-	DEVICE_MGR_NO_PENDING_ACTION = DEVICE_MGR_ERROR (0x0C),			/**< No pending action available. */
+	DEVICE_MGR_INVALID_ARGUMENT = DEVICE_MGR_ERROR (0x00),					/**< Input parameter is null or not valid. */
+	DEVICE_MGR_NO_MEMORY = DEVICE_MGR_ERROR (0x01),							/**< Memory allocation failed. */
+	DEVICE_MGR_UNKNOWN_DEVICE = DEVICE_MGR_ERROR (0x02),					/**< Invalid device number. */
+	DEVICE_MGR_INVALID_CERT_NUM = DEVICE_MGR_ERROR (0x03),					/**< Invalid certificate number. */
+	DEVICE_MGR_BUF_TOO_SMALL = DEVICE_MGR_ERROR (0x04),						/**< Provided buffer too small for output. */
+	DEVICE_MGR_INPUT_TOO_LARGE = DEVICE_MGR_ERROR (0x05),					/**< Provided data larger than storage buffer. */
+	DEVICE_MGR_DIGEST_LEN_MISMATCH = DEVICE_MGR_ERROR (0x06),				/**< Provided digest not same length as cached digest. */
+	DEVICE_MGR_DIGEST_MISMATCH = DEVICE_MGR_ERROR (0x07),					/**< Provided digest not same as cached digest. */
+	DEVICE_MGR_NO_DEVICES_AVAILABLE = DEVICE_MGR_ERROR (0x08),				/**< No devices ready for attestation. */
+	DEVICE_MGR_DIGEST_NOT_UNIQUE = DEVICE_MGR_ERROR (0x09),					/**< Certificate chain digest not unique. */
+	DEVICE_MGR_INVALID_RESPONDER_COUNT = DEVICE_MGR_ERROR (0x0A),			/**< Invalid responder count. */
+	DEVICE_MGR_STATE_UPDATE_UNSUPPORTED = DEVICE_MGR_ERROR (0x0B),			/**< State update not supported. */
+	DEVICE_MGR_FORCE_ACTION_PENDING = DEVICE_MGR_ERROR (0x0C),				/**< Previous force action still pending. */
+	DEVICE_MGR_FORCE_ACTION_IN_PROGRESS = DEVICE_MGR_ERROR (0x0D),			/**< Force action already in progress. */
+	DEVICE_MGR_FORCE_ACTION_UNSUPPORTED = DEVICE_MGR_ERROR (0x0E),			/**< Unsupported action type or mode. */
+	DEVICE_MGR_FORCE_ACTION_INVALID_DATA = DEVICE_MGR_ERROR (0x0F),			/**< Invalid action data size or content. */
+	DEVICE_MGR_FORCE_ACTION_INVALID_STATE = DEVICE_MGR_ERROR (0x10),		/**< Invalid action state. */
+	DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE = DEVICE_MGR_ERROR (0x11),	/**< State transition not allowed. */
 };
 
 

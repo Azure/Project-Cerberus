@@ -393,8 +393,8 @@ struct cerberus_protocol_get_configuration_ids_response {
  * Cerberus protocol force attestation request format
  */
 struct cerberus_protocol_force_attestation {
-	struct cerberus_protocol_header header;				/**< Message header */
-	struct device_manager_force_attestation_data data;	/**< Force attestation mode and optional targeting */
+	struct cerberus_protocol_header header;			/**< Message header */
+	struct device_manager_force_action_data data;	/**< Force attestation mode and optional targeting */
 };
 
 /**
@@ -402,6 +402,15 @@ struct cerberus_protocol_force_attestation {
  */
 struct cerberus_protocol_force_attestation_response {
 	struct cerberus_protocol_header header;	/**< Message header */
+};
+
+/**
+ * Cerberus protocol force attestation info response format
+ */
+struct cerberus_protocol_force_attestation_info_response {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t status;							/**< Force attestation status: 0x00=idle, 0x01=pending, 0x02=in progress */
+	uint32_t action_id;						/**< Current action ID from device manager */
 };
 
 #pragma pack(pop)
@@ -490,6 +499,9 @@ int cerberus_protocol_process_device_capabilities_response (struct device_manage
 	struct cmd_interface_msg *response);
 
 int cerberus_protocol_force_attestation (struct attestation_requester *attestation,
+	struct cmd_interface_msg *request);
+
+int cerberus_protocol_force_attestation_info (struct attestation_requester *attestation,
 	struct cmd_interface_msg *request);
 
 /* Private functions for internal use */

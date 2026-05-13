@@ -1761,15 +1761,12 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
 {
 	const struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, const struct attestation_requester, cfm_observer);
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 
-	memset (&pending, 0, sizeof (pending));
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
-	pending.data_size = sizeof (uint8_t);
-
-	device_manager_set_pending_action (attestation->device_mgr, &pending);
+	device_manager_set_force_action (attestation->device_mgr, &action_data, sizeof (uint8_t),
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 
 	platform_semaphore_post (&attestation->state->next_action);
 }
@@ -4988,6 +4985,7 @@ void attestation_requester_discovery_and_attestation_loop (
 	uint8_t measurement_version)
 {
 	int eid = 0;
+	int num_actions = 0;
 	int status;
 
 	if ((attestation == NULL) || (pcr == NULL)) {
@@ -5019,10 +5017,10 @@ void attestation_requester_discovery_and_attestation_loop (
 	eid = 0;
 
 	while (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
-		status = device_manager_process_pending_action (attestation->device_mgr);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_PROCESS_PENDING_ACTION_ERROR, status, 0);
+		device_manager_process_force_action (attestation->device_mgr, &num_actions);
+		if (num_actions != 0) {
+			attestation_requester_update_pcr_attestation_status (attestation, pcr, measurement,
+				measurement_version);
 		}
 
 		eid = device_manager_get_eid_of_next_device_to_attest (attestation->device_mgr);
@@ -5049,6 +5047,9 @@ void attestation_requester_discovery_and_attestation_loop (
 	}
 
 get_routing_table:
+	device_manager_clear_force_action_set_state (attestation->device_mgr,
+		DEVICE_MANAGER_FORCE_ACTION_IDLE);
+
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 	status = attestation_requester_get_mctp_routing_table (attestation);
 	if (status != 0) {

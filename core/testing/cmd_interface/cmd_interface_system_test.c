@@ -5879,6 +5879,7 @@ static void cmd_interface_system_test_process_force_attestation (CuTest *test)
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_force_attestation *req_msg =
 		(struct cerberus_protocol_force_attestation*) data;
+	int num_actions;
 	int status;
 	int device_state;
 
@@ -5926,8 +5927,10 @@ static void cmd_interface_system_test_process_force_attestation (CuTest *test)
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req_msg->header.pci_vendor_id);
 	CuAssertIntEquals (test, CERBERUS_PROTOCOL_FORCE_ATTESTATION, req_msg->header.command);
 
-	status = device_manager_process_pending_action (&cmd.device_manager);
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, num_actions);
 
 	/* Verify devices remain in NOT_ATTESTABLE state (no change expected since they're not attestable) */
 	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
@@ -5935,13 +5938,88 @@ static void cmd_interface_system_test_process_force_attestation (CuTest *test)
 	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
 	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_previous_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+	int device_state;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
+	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+	device_manager_update_device_state (&cmd.device_manager, 4,	DEVICE_MANAGER_ATTESTATION_FAILED);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+
+	/* Process the force attestation request */
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, req_msg->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req_msg->header.pci_vendor_id);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_FORCE_ATTESTATION, req_msg->header.command);
+
+	/* Try to process another force attestation request without processing the pending action */
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	/* Should return error because previous action is still pending */
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_PENDING, status);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -5953,6 +6031,7 @@ static void cmd_interface_system_test_process_force_attestation_failed_only (CuT
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_force_attestation *req_msg =
 		(struct cerberus_protocol_force_attestation*) data;
+	int num_actions;
 	int status;
 	int device_state;
 
@@ -5998,8 +6077,10 @@ static void cmd_interface_system_test_process_force_attestation_failed_only (CuT
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_process_pending_action (&cmd.device_manager);
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 2, num_actions);
 
 	/* Verify: devices remain in NOT_ATTESTABLE state (no change since they're not attestable) */
 	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
@@ -6011,9 +6092,9 @@ static void cmd_interface_system_test_process_force_attestation_failed_only (CuT
 	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
 	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -6025,6 +6106,7 @@ static void cmd_interface_system_test_process_force_attestation_passed_only (CuT
 	struct cmd_interface_msg request;
 	struct cerberus_protocol_force_attestation *req_msg =
 		(struct cerberus_protocol_force_attestation*) data;
+	int num_actions;
 	int status;
 	int device_state;
 
@@ -6070,8 +6152,10 @@ static void cmd_interface_system_test_process_force_attestation_passed_only (CuT
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, 0, status);
 
-	status = device_manager_process_pending_action (&cmd.device_manager);
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 4, num_actions);
 
 	/* Verify: devices remain in NOT_ATTESTABLE state (no change since they're not attestable) */
 	device_state = device_manager_get_device_state (&cmd.device_manager, 0);
@@ -6079,13 +6163,192 @@ static void cmd_interface_system_test_process_force_attestation_passed_only (CuT
 	device_state = device_manager_get_device_state (&cmd.device_manager, 1);
 	CuAssertIntEquals (test, DEVICE_MANAGER_NOT_ATTESTABLE, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
-	CuAssertIntEquals (test, DEVICE_MANAGER_NEVER_ATTESTED, device_state);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 4);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
 	device_state = device_manager_get_device_state (&cmd.device_manager, 5);
 	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_INTERRUPTED, device_state);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_component_id (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int num_actions;
+	int status;
+	int device_state;
+	uint32_t component_id = 50;
+	uint8_t instance_id = 3;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request for COMPONENT_ID mode */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID;
+	req_msg->data.target.component.component_id = component_id;
+	req_msg->data.target.component.instance_id = instance_id;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t) +
+		sizeof (struct device_manager_component_target);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Setup MCTP bridge device entries with component IDs */
+	status = device_manager_update_mctp_bridge_device_entry (&cmd.device_manager, 2, 0xAA, 0xBB,
+		0xCC, 0xDD, 1, 50, 0);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_eid (&cmd.device_manager, 2, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&cmd.device_manager, 2, 3);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state (&cmd.device_manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&cmd.device_manager, 3, 0xEE, 0xFF,
+		0x11, 0x22, 1, 75, 1);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_eid (&cmd.device_manager, 3, 0x0D);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&cmd.device_manager, 3, 1);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state (&cmd.device_manager, 3,
+		DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify initial states */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+
+	/* Process the force attestation request */
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, req_msg->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req_msg->header.pci_vendor_id);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_FORCE_ATTESTATION, req_msg->header.command);
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_actions);
+
+	/* Verify device 2 (matching component_id 50, instance 3) was reset */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
+
+	/* Verify device 3 (different component_id 75) was not reset */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_device_ids (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int num_actions;
+	int status;
+	int device_state;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	/* Setup force attestation request for DEVICE_IDS mode */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS;
+	req_msg->data.target.device_ids.pci_vid = 0xAA;
+	req_msg->data.target.device_ids.pci_device_id = 0xBB;
+	req_msg->data.target.device_ids.pci_subsystem_vid = 0xCC;
+	req_msg->data.target.device_ids.pci_subsystem_id = 0xDD;
+	req_msg->data.target.device_ids.instance_id = 0x05;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t) +
+		sizeof (struct device_manager_device_ids_target);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Setup device entries with specific device IDs and component IDs */
+	status = device_manager_update_mctp_bridge_device_entry (&cmd.device_manager, 2, 0xAA, 0xBB,
+		0xCC, 0xDD, 1, 60, 0);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_eid (&cmd.device_manager, 2, 0x0C);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&cmd.device_manager, 2, 0x05);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state (&cmd.device_manager, 2,
+		DEVICE_MANAGER_AUTHENTICATED);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_mctp_bridge_device_entry (&cmd.device_manager, 3, 0xEE, 0xFF,
+		0x11, 0x22, 1, 80, 1);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_eid (&cmd.device_manager, 3, 0x0D);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_instance_id (&cmd.device_manager, 3, 0x06);
+	CuAssertIntEquals (test, 0, status);
+	status = device_manager_update_device_state (&cmd.device_manager, 3,
+		DEVICE_MANAGER_ATTESTATION_FAILED);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify initial states */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, device_state);
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
+
+	/* Process the force attestation request */
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_response),
+		request.length);
+	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF, req_msg->header.msg_type);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_MSFT_PCI_VID, req_msg->header.pci_vendor_id);
+	CuAssertIntEquals (test, CERBERUS_PROTOCOL_FORCE_ATTESTATION, req_msg->header.command);
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_actions);
+
+	/* Verify device 2 (matching device IDs) was reset */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 2);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, device_state);
+
+	/* Verify device 3 (different device IDs) was not reset */
+	device_state = device_manager_get_device_state (&cmd.device_manager, 3);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, device_state);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -6190,7 +6453,518 @@ static void cmd_interface_system_test_process_force_attestation_no_attestation_r
 	cmd.handler.attestation_req = NULL;
 
 	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_status_idle (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	struct cerberus_protocol_force_attestation_info_response *resp =
+		(struct cerberus_protocol_force_attestation_info_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_info_response),
+		request.length);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IDLE, resp->status);
+	CuAssertIntEquals (test, 0, resp->action_id);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_status_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	struct cerberus_protocol_force_attestation_info_response *resp =
+		(struct cerberus_protocol_force_attestation_info_response*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* First, queue a force attestation ALL action */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Now send an info request */
+	memset (data, 0, sizeof (data));
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_info_response),
+		request.length);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, resp->status);
+	CuAssertIntEquals (test, 1, resp->action_id);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_status_in_progress (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	struct cerberus_protocol_force_attestation_info_response *resp =
+		(struct cerberus_protocol_force_attestation_info_response*) data;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Queue a force attestation ALL action */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Process the pending action to transition devices to FORCE_ATTESTATION */
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, num_actions);
+
+	/* Now send an info request */
+	memset (data, 0, sizeof (data));
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_info_response),
+		request.length);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS, resp->status);
+	CuAssertIntEquals (test, 1, resp->action_id);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_status_invalid_len (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	/* Wrong length: add extra byte beyond the header-only payload */
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_BAD_LENGTH, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_action_id_increments (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	struct cerberus_protocol_force_attestation_info_response *resp =
+		(struct cerberus_protocol_force_attestation_info_response*) data;
+	int num_actions;
+	int status;
+	int i;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Cycle 1: queue and process a force attestation */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, num_actions);
+
+	/* Verify action_id is 1 after cycle 1 */
+	memset (data, 0, sizeof (data));
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, resp->action_id);
+
+	/* Simulate attestation completing: move devices out of FORCE_ATTESTATION */
+	for (i = 2; i < 8; i++) {
+		device_manager_update_device_state (&cmd.device_manager, i, DEVICE_MANAGER_AUTHENTICATED);
+	}
+
+	/* Simulate attestation loop completing by clearing the pending action */
+	device_manager_clear_force_action_set_state (&cmd.device_manager,
+		DEVICE_MANAGER_FORCE_ACTION_IDLE);
+
+	/* Cycle 2: queue another force attestation */
+	memset (data, 0, sizeof (data));
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Query status and verify action_id incremented to 2 */
+	memset (data, 0, sizeof (data));
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_info_response),
+		request.length);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_PENDING, resp->status);
+	CuAssertIntEquals (test, 2, resp->action_id);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_in_progress_rejected (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int num_actions;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Queue and process a force attestation to put devices in FORCE_ATTESTATION state */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, num_actions);
+
+	/* Attempt another force attestation while devices are still in FORCE_ATTESTATION */
+	memset (data, 0, sizeof (data));
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, DEVICE_MGR_FORCE_ACTION_IN_PROGRESS, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_info_no_attestation_requester (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cmd.handler.attestation_req = NULL;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
 	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_COMMAND, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_info_invalid_state (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	struct device_manager *saved_device_mgr;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Test with NULL device_mgr */
+	saved_device_mgr = cmd.handler.attestation_req->device_mgr;
+	cmd.handler.attestation_req->device_mgr = NULL;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, DEVICE_MGR_INVALID_ARGUMENT, status);
+
+	cmd.handler.attestation_req->device_mgr = saved_device_mgr;
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_info_invalid_len_short (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	/* Too short: one byte less than header, rejected before reaching the info handler */
+	request.length = sizeof (struct cerberus_protocol_header) - 1;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_PAYLOAD_TOO_SHORT, status);
+
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_force_attestation_info_idle_after_completion (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_force_attestation *req_msg =
+		(struct cerberus_protocol_force_attestation*) data;
+	struct cerberus_protocol_force_attestation_info_response *resp =
+		(struct cerberus_protocol_force_attestation_info_response*) data;
+	int num_actions;
+	int status;
+	int i;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	request.data = data;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+
+	/* Queue and process a force attestation */
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION;
+	req_msg->data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
+
+	request.length = sizeof (struct cerberus_protocol_header) + sizeof (uint8_t);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	num_actions = 0;
+	status = device_manager_process_force_action (&cmd.device_manager, &num_actions);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 6, num_actions);
+
+	/* Simulate attestation completing */
+	for (i = 2; i < 8; i++) {
+		device_manager_update_device_state (&cmd.device_manager, i, DEVICE_MANAGER_AUTHENTICATED);
+	}
+
+	device_manager_clear_force_action_set_state (&cmd.device_manager,
+		DEVICE_MANAGER_FORCE_ACTION_IDLE);
+
+	/* Query info: should be IDLE with action_id still 1 */
+	memset (data, 0, sizeof (data));
+	req_msg->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req_msg->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req_msg->header.command = CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO;
+
+	request.length = sizeof (struct cerberus_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_force_attestation_info_response),
+		request.length);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ACTION_IDLE, resp->status);
+	CuAssertIntEquals (test, 1, resp->action_id);
 
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
@@ -8968,11 +9742,24 @@ TEST (cmd_interface_system_test_process_get_component_instance_info_no_dev_manag
 TEST (cmd_interface_system_test_process_get_component_instance_info_dev_manager_not_init);
 TEST (cmd_interface_system_test_process_get_component_instance_info_invalid_len);
 TEST (cmd_interface_system_test_process_force_attestation);
+TEST (cmd_interface_system_test_process_force_attestation_previous_pending);
 TEST (cmd_interface_system_test_process_force_attestation_failed_only);
 TEST (cmd_interface_system_test_process_force_attestation_passed_only);
+TEST (cmd_interface_system_test_process_force_attestation_component_id);
+TEST (cmd_interface_system_test_process_force_attestation_device_ids);
 TEST (cmd_interface_system_test_process_force_attestation_invalid_len);
 TEST (cmd_interface_system_test_process_force_attestation_invalid_mode);
 TEST (cmd_interface_system_test_process_force_attestation_no_attestation_requester);
+TEST (cmd_interface_system_test_process_force_attestation_status_idle);
+TEST (cmd_interface_system_test_process_force_attestation_status_pending);
+TEST (cmd_interface_system_test_process_force_attestation_status_in_progress);
+TEST (cmd_interface_system_test_process_force_attestation_status_invalid_len);
+TEST (cmd_interface_system_test_process_force_attestation_action_id_increments);
+TEST (cmd_interface_system_test_process_force_attestation_in_progress_rejected);
+TEST (cmd_interface_system_test_process_force_attestation_info_no_attestation_requester);
+TEST (cmd_interface_system_test_process_force_attestation_info_invalid_state);
+TEST (cmd_interface_system_test_process_force_attestation_info_invalid_len_short);
+TEST (cmd_interface_system_test_process_force_attestation_info_idle_after_completion);
 TEST (cmd_interface_system_test_process_pcd_update_init);
 TEST (cmd_interface_system_test_process_pcd_update_init_no_pcd_manager);
 TEST (cmd_interface_system_test_process_pcd_update_init_invalid_len);

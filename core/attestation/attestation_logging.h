@@ -59,7 +59,7 @@ enum {
 	ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET,			/**< CFM has multiple allowable data entries for a single version set where only one is permitted. */
 	ATTESTATION_LOGGING_DEVICE_DISCOVERY_COMPLETE,					/**< Device discovery completed successfully. */
 	ATTESTATION_LOGGING_EID_DISCOVERED,								/**< Target device EID is discovered. */
-	ATTESTATION_LOGGING_PROCESS_PENDING_ACTION_ERROR,				/**< Failed to process pending action in device manager. */
+	ATTESTATION_LOGGING_PROCESS_FORCE_ACTION_ERROR,					/**< Failed to process force action in device manager. */
 	ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,						/**< Received SPDM response error. */
 	ATTESTATION_LOGGING_SET_EID_RECEIVED,							/**< SET EID request received, triggering discovery. */
 	ATTESTATION_LOGGING_MCTP_DISCOVERY_COMPLETE,					/**< MCTP device discovery completed successfully. */
@@ -71,6 +71,9 @@ enum {
 	ATTESTATION_LOGGING_TCG_DISCOVERY_TRIGGERED,					/**< TCG discovery triggered by boot delay timer. */
 	ATTESTATION_LOGGING_TCG_DISCOVERY_TIMER_FAILED,					/**< Failed to start TCG discovery boot delay timer. */
 	ATTESTATION_LOGGING_NO_COMPONENT_TYPE,							/**< No component type found for the device. */
+	ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,				/**< Force attestation initiated for device. */
+	ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,			/**< Force attestation action processing started. */
+	ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,			/**< Force attestation action processing completed. */
 };
 
 

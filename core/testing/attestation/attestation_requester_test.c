@@ -41189,6 +41189,7 @@ static void attestation_requester_test_reset_authenticated_devices_on_cfm_activa
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
+	int num_actions;
 	int status;
 
 	TEST_START;
@@ -41211,8 +41212,10 @@ static void attestation_requester_test_reset_authenticated_devices_on_cfm_activa
 
 	testing.test.cfm_observer.on_cfm_activation_request (&testing.test.cfm_observer);
 
-	status = device_manager_process_pending_action (&testing.device_mgr);
+	num_actions = 0;
+	status = device_manager_process_force_action (&testing.device_mgr, &num_actions);
 	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, num_actions);
 
 	status = device_manager_get_eid_of_next_device_to_attest (&testing.device_mgr);
 	CuAssertIntEquals (test, 0xAA, status);
@@ -42104,7 +42107,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_multiple_d
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	/* Third call to update PCR before get_routing_table */
+	/* PCR update #4: At end of loop when no more devices to attest */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -42434,7 +42437,7 @@ static void attestation_requester_test_refresh_routing_table_invalid_arg (CuTest
 	attestation_requester_refresh_routing_table (NULL);
 }
 
-static void attestation_requester_test_discovery_and_attestation_loop_no_pending_action (
+static void attestation_requester_test_discovery_and_attestation_loop_no_force_action (
 	CuTest *test)
 {
 	struct attestation_requester_testing testing;
@@ -42652,7 +42655,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
 	struct spdm_certificate_chain_min_header *cert_chain =
 		(struct spdm_certificate_chain_min_header*) cert_buffer;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	uint32_t component_id = 50;
 	uint32_t component_id2 = 1;
 	uint8_t digest[SHA256_HASH_LENGTH];
@@ -42945,11 +42948,10 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_fail
 		eid);
 	CuAssertIntEquals (test, 0, status);
 
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
-	pending.data_size = sizeof (uint8_t);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_FAILED;
 
-	status = device_manager_set_pending_action (&testing.device_mgr, &pending);
+	status = device_manager_set_force_action (&testing.device_mgr, &action_data, sizeof (uint8_t),
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
@@ -43217,7 +43219,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -43232,6 +43234,14 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 	uint8_t attestation_status_expected[12] = {
 		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
 		0x00, 0x00, 0x01, 0x00
+	};
+	uint8_t attestation_status_force_attestation[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x0c, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x0c
+	};
+	uint8_t attestation_status_first_attested[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x0c
 	};
 	uint8_t attestation_status_expected_pcr[17] = {0};
 	uint8_t pcr_event_version_info[5] = {0};
@@ -43294,6 +43304,24 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 	testing.spdm_max_version = 2;
 
 	attestation_requester_setup_attestation_loop (test, &testing);
+
+	/* PCR update #1: After device_manager_process_force_action (both devices in FORCE_ATTESTATION) */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_force_attestation,
+		sizeof (attestation_status_force_attestation)),
+		MOCK_ARG (sizeof (attestation_status_force_attestation)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -43364,7 +43392,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	/* First pcr_store_update_versioned_buffer call after first device force attestation */
+	/* PCR update #2: After first device attestation (first device AUTHENTICATED, second still FORCE_ATTESTATION) */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -43374,7 +43402,10 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_ANY, MOCK_ARG (sizeof (attestation_status_expected)));
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_first_attested,
+		sizeof (attestation_status_first_attested)),
+		MOCK_ARG (sizeof (attestation_status_first_attested)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
@@ -43449,7 +43480,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
-	/* Second pcr_store_update_versioned_buffer call after second device force attestation */
+	/* PCR update #3: After second device attestation (both devices now AUTHENTICATED) */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -43466,7 +43497,7 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
-	/* Third call to update PCR before get_routing_table */
+	/* PCR update #4: At end of loop when no more devices to attest */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -43515,11 +43546,10 @@ attestation_requester_test_discovery_and_attestation_loop_force_attestation_pass
 	CuAssertIntEquals (test, 0, status);
 
 	/* Allocate and set force attestation mode for failed devices only */
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = 2;
-	pending.data_size = sizeof (uint8_t);
+	action_data.mode = 2;
 
-	status = device_manager_set_pending_action (&testing.device_mgr, &pending);
+	status = device_manager_set_force_action (&testing.device_mgr, &action_data, sizeof (uint8_t),
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
@@ -43579,7 +43609,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 	struct attestation_requester_testing testing;
 	struct device_manager_attestation_summary_event_counters event_counters;
 	struct pcr_measured_data pcr_cfm_valid_measured_data;
-	struct device_manager_pending_action pending;
+	struct device_manager_force_action_data action_data;
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
 	char spdm_context[] = "responder-challenge_auth signing";
@@ -43594,6 +43624,14 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 	uint8_t attestation_status_expected[12] = {
 		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
 		0x00, 0x00, 0x01, 0x00
+	};
+	uint8_t attestation_status_force_attestation[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x0c, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x0c
+	};
+	uint8_t attestation_status_first_attested[12] = {
+		0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+		0x00, 0x00, 0x01, 0x0c
 	};
 	uint8_t attestation_status_expected_pcr[17] = {0};
 	uint8_t pcr_event_version_info[5] = {0};
@@ -43656,6 +43694,24 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 	testing.spdm_max_version = 2;
 
 	attestation_requester_setup_attestation_loop (test, &testing);
+
+	/* PCR update #1: After device_manager_process_force_action (both devices in FORCE_ATTESTATION) */
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
+		&testing.primary_hash, 0);
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (version, sizeof (version)),
+		MOCK_ARG (sizeof (version)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
+		MOCK_ARG (sizeof (event)));
+	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_force_attestation,
+		sizeof (attestation_status_force_attestation)),
+		MOCK_ARG (sizeof (attestation_status_force_attestation)));
+	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
+		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
 		&testing.secondary_hash, 0);
@@ -43726,7 +43782,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
 	CuAssertIntEquals (test, 0, status);
 
-	/* First pcr_store_update_versioned_buffer call after first device force attestation */
+	/* PCR update #2: After first device attestation (first device AUTHENTICATED, second still FORCE_ATTESTATION) */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -43736,7 +43792,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 		&testing.primary_hash, 0, MOCK_ARG_PTR_CONTAINS (&event, sizeof (event)),
 		MOCK_ARG (sizeof (event)));
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
-		&testing.primary_hash, 0, MOCK_ARG_ANY, MOCK_ARG (sizeof (attestation_status_expected)));
+		&testing.primary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP (attestation_status_first_attested,
+		sizeof (attestation_status_first_attested)),
+		MOCK_ARG (sizeof (attestation_status_first_attested)));
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.finish,
 		&testing.primary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
@@ -43810,7 +43869,7 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (3));
 	CuAssertIntEquals (test, 0, status);
 
-	/* Second pcr_store_update_versioned_buffer call after second device force attestation */
+	/* PCR update #3: After second device attestation (both devices now AUTHENTICATED) */
 	status = mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.start_sha256,
 		&testing.primary_hash, 0);
 	status |= mock_expect (&testing.primary_hash.mock, testing.primary_hash.base.update,
@@ -43874,11 +43933,10 @@ static void attestation_requester_test_discovery_and_attestation_loop_force_atte
 	CuAssertIntEquals (test, 0, status);
 
 	/* Allocate and set force attestation mode for failed devices only */
-	pending.type = DEVICE_MANAGER_ACTION_FORCE_ATTESTATION;
-	pending.data[0] = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
-	pending.data_size = sizeof (uint8_t);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_ALL;
 
-	status = device_manager_set_pending_action (&testing.device_mgr, &pending);
+	status = device_manager_set_force_action (&testing.device_mgr, &action_data, sizeof (uint8_t),
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 	CuAssertIntEquals (test, 0, status);
 
 	attestation_requester_discovery_and_attestation_loop (&testing.test, &testing.store, 0, 0);
@@ -48189,6 +48247,223 @@ static void attestation_requester_test_attest_device_multi_source_second_type_su
 }
 
 
+static void attestation_requester_test_attest_device_force_attestation_state_transitions_to_ready (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
+	char spdm_prefix[] = "dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*dmtf-spdm-v1.2.*";
+	char spdm_context[] = "responder-challenge_auth signing";
+	struct cfm_pmr_digest pmr_digest;
+	uint32_t component_id = 12;
+	uint8_t digest[SHA256_HASH_LENGTH];
+	uint8_t digest2[SHA256_HASH_LENGTH];
+	uint8_t digest3[SHA256_HASH_LENGTH];
+	uint8_t signature[ECC_KEY_LENGTH_256 * 2];
+	uint8_t sig_der[ECC_DER_P256_ECDSA_MAX_LENGTH];
+	int status;
+	size_t i;
+
+	/* Expected PMR0 digest returned by the CFM for final measurement comparison. */
+	pmr_digest.pmr_id = 0;
+	pmr_digest.digests.hash_type = HASH_TYPE_SHA256;
+	pmr_digest.digests.digest_count = 1;
+	pmr_digest.digests.digests = digest3;
+
+	/* Populate test data: digest = transcript hash, digest2 = final signature verification hash,
+	 * digest3 = PMR0 measurement summary hash, signature = raw ECC (r,s) values. */
+	for (i = 0; i < sizeof (digest); ++i) {
+		digest[i] = i * 3;
+		digest2[i] = i * 2;
+		digest3[i] = 50 + i;
+	}
+
+	for (i = 0; i < (ECC_KEY_LENGTH_256 * 2); ++i) {
+		signature[i] = i * 10;
+	}
+
+	TEST_START;
+
+	/* DER-encode the raw (r,s) signature for ECC verification. The challenge response carries a
+	 * DER-encoded signature, so the mock verifier needs to match it. */
+	status = ecc_der_encode_ecdsa_signature (signature, &signature[ECC_KEY_LENGTH_256],
+		ECC_KEY_LENGTH_256, sig_der, sizeof (sig_der));
+	CuAssertIntEquals (test, 69, status);
+
+	/* Build the SPDM 1.2 combined prefix used in the signature verification hash.  The prefix is
+	 * a fixed string followed by the signing context, padded to SPDM_COMBINED_PREFIX_LEN bytes. */
+	memcpy (combined_spdm_prefix, spdm_prefix, strlen (spdm_prefix));
+	memcpy (&combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context,
+		strlen (spdm_context));
+
+	/* Initialize all attestation mocks (hash, ecc, x509, cfm, rng, transport, device_mgr).
+	 * Sets device 2 (EID 0xAA) to READY_FOR_ATTESTATION by default with SPDM protocol. */
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, true, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		component_id);
+
+	/* KEY SETUP: Override device state from READY_FOR_ATTESTATION to FORCE_ATTESTATION.
+	 * This is the state under test — attest_device must transition it to READY_FOR_ATTESTATION
+	 * (protocol-agnostic, line ~3997) before entering the SPDM code path. */
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Confirm the device is actually in FORCE_ATTESTATION before we call attest_device. */
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
+
+	/* Start the SPDM transcript hash.  attestation_requester_attest_device_spdm calls
+	 * hash_start_new_hash(secondary_hash, SHA256) as its first operation. */
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* SPDM Get Version + Get Capabilities + Negotiate Algorithms: establishes protocol version,
+	 * capabilities (cert/challenge support), and hash/signature algorithms with the device.
+	 * Each helper sets up send/receive mocks and transcript hash update mocks. */
+	attestation_requester_testing_send_and_receive_spdm_negotiate_algorithms_with_mocks (test,
+		false, &testing);
+
+	/* SPDM Get Digests: retrieves certificate chain digests; determines if cert chain needs
+	 * refreshing.  The helper mocks the request/response and transcript hash updates. */
+	attestation_requester_testing_send_and_receive_spdm_get_digests_with_mocks (test, false, true,
+		false, &testing);
+
+	/* SPDM Get Certificate: retrieves the full certificate chain (root CA, intermediate, alias),
+	 * verifies each cert, and extracts the alias public key for signature verification.
+	 * Also mocks the cert chain digest hash to match what Get Digests returned. */
+	attestation_requester_testing_send_and_receive_spdm_get_certificate_with_mocks_and_verify (test,
+		&testing, HASH_TYPE_SHA256, true, false, false, false, NULL, component_id);
+
+	/* SPDM Challenge: sends a challenge with a random nonce; the helper mocks the request,
+	 * response (including signature and measurement summary hash), and transcript hash updates. */
+	attestation_requester_testing_send_and_receive_spdm_challenge_with_mocks (test, false, false,
+		&testing);
+
+	/* SPDM 1.2 signature verification hash construction:
+	 * 1. Finish the transcript hash to get 'digest' (the running hash of all SPDM messages).
+	 * 2. Start a new SHA256 hash for the combined prefix format.
+	 * 3. Hash the SPDM 1.2 combined prefix (fixed string + signing context).
+	 * 4. Hash the transcript digest.
+	 * 5. Finish to produce 'digest2' — this is what gets verified against the signature. */
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest, sizeof (digest), -1);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, 0);
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0,
+		MOCK_ARG_PTR_CONTAINS (combined_spdm_prefix, sizeof (combined_spdm_prefix)),
+		MOCK_ARG (SPDM_COMBINED_PREFIX_LEN));
+	status |= mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.update,
+		&testing.secondary_hash, 0, MOCK_ARG_PTR_CONTAINS (digest, sizeof (digest)),
+		MOCK_ARG (sizeof (digest)));
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.finish,
+		&testing.secondary_hash, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (HASH_MAX_HASH_LEN));
+	status |= mock_expect_output_tmp (&testing.secondary_hash.mock, 0, digest2, sizeof (digest2),
+		-1);
+	CuAssertIntEquals (test, 0, status);
+
+	/* ECC signature verification: load the alias public key extracted from the certificate,
+	 * verify 'digest2' against the DER-encoded challenge response signature, then release. */
+	status = mock_expect (&testing.ecc.mock, testing.ecc.base.init_public_key, &testing.ecc, 0,
+		MOCK_ARG_PTR_CONTAINS (RIOT_CORE_ALIAS_PUBLIC_KEY, RIOT_CORE_ALIAS_PUBLIC_KEY_LEN),
+		MOCK_ARG (RIOT_CORE_ALIAS_PUBLIC_KEY_LEN), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_save_arg (&testing.ecc.mock, 2, 0);
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.verify, &testing.ecc, 0,
+		MOCK_ARG_SAVED_ARG (0), MOCK_ARG_PTR_CONTAINS_TMP (digest2, sizeof (digest2)),
+		MOCK_ARG (sizeof (digest2)), MOCK_ARG_PTR_CONTAINS_TMP (sig_der, 69), MOCK_ARG (69));
+	status |= mock_expect (&testing.ecc.mock, testing.ecc.base.release_key_pair, &testing.ecc, 0,
+		MOCK_ARG_ANY, MOCK_ARG_SAVED_ARG (0));
+	CuAssertIntEquals (test, 0, status);
+
+	/* CFM PMR0 digest check: the challenge response measurement summary hash is compared against
+	 * the expected PMR0 digest from the CFM.  Return digest3 as the expected value — the mock
+	 * challenge helper already populated the response with a matching measurement hash. */
+	status = mock_expect (&testing.cfm.mock, testing.cfm.base.get_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG (component_id), MOCK_ARG (0), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output_tmp (&testing.cfm.mock, 2, &pmr_digest,
+		sizeof (struct cfm_pmr_digest), -1);
+	status |= mock_expect_save_arg (&testing.cfm.mock, 2, 1);
+	status |= mock_expect (&testing.cfm.mock, testing.cfm.base.free_component_pmr_digest,
+		&testing.cfm, 0, MOCK_ARG_SAVED_ARG (1));
+	CuAssertIntEquals (test, 0, status);
+
+	/* Execute: Run the full attestation flow.  attestation_requester_attest_device will:
+	 * 1. See FORCE_ATTESTATION state and transition to READY_FOR_ATTESTATION.
+	 * 2. Enter the SPDM code path and complete the full SPDM challenge flow.
+	 * 3. On success, set device state to AUTHENTICATED. */
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify: device reached AUTHENTICATED, proving FORCE_ATTESTATION was not rejected and
+	 * the state transition to READY_FOR_ATTESTATION allowed the SPDM flow to complete. */
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_AUTHENTICATED, status);
+
+	/* Verify attestation event counters: exactly one success, zero failures. */
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 1, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
+static void attestation_requester_test_attest_device_force_attestation_failure_sets_failed (
+	CuTest *test)
+{
+	struct attestation_requester_testing testing;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	int status;
+
+	TEST_START;
+
+	setup_attestation_requester_mock_attestation_test (test, &testing, true, false, true, true,
+		HASH_TYPE_SHA256, HASH_TYPE_SHA256, CFM_ATTESTATION_DMTF_SPDM, ATTESTATION_RIOT_SLOT_NUM,
+		0);
+
+	/* Override device state to FORCE_ATTESTATION */
+	status = device_manager_update_device_state (&testing.device_mgr, 2,
+		DEVICE_MANAGER_FORCE_ATTESTATION);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_FORCE_ATTESTATION, status);
+
+	/* Inject hash start failure to cause attestation to fail early */
+	status = mock_expect (&testing.secondary_hash.mock, testing.secondary_hash.base.start_sha256,
+		&testing.secondary_hash, HASH_ENGINE_NO_MEMORY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = attestation_requester_attest_device (&testing.test, 0xAA);
+	CuAssertIntEquals (test, HASH_ENGINE_NO_MEMORY, status);
+
+	/* Device should be ATTESTATION_FAILED (transitioned FORCE_ATTESTATION -> READY_FOR_ATTESTATION
+	 * before attestation, then failure handler sees READY_FOR_ATTESTATION and sets FAILED) */
+	status = device_manager_get_device_state_by_eid (&testing.device_mgr, 0xAA);
+	CuAssertIntEquals (test, DEVICE_MANAGER_ATTESTATION_FAILED, status);
+
+	status = device_manager_get_attestation_summary_event_counters_by_eid (&testing.device_mgr,
+		0xAA, &event_counters);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, event_counters.status_success_count);
+	CuAssertIntEquals (test, 0, event_counters.status_success_timeout_count);
+	CuAssertIntEquals (test, 1, event_counters.status_fail_internal_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_timeout_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_response_count);
+	CuAssertIntEquals (test, 0, event_counters.status_fail_invalid_config_count);
+
+	complete_attestation_requester_mock_test (test, &testing, true);
+}
+
 // *INDENT-OFF*
 TEST_SUITE_START (attestation_requester);
 
@@ -48613,7 +48888,7 @@ TEST (attestation_requester_test_discovery_and_attestation_loop_single_device_in
 TEST (attestation_requester_test_discovery_and_attestation_loop_single_device_authenticated_with_timeout);
 TEST (attestation_requester_test_discovery_and_attestation_loop_multiple_devices);
 TEST (attestation_requester_test_discovery_and_attestation_loop_get_routing_table_before_discovery);
-TEST (attestation_requester_test_discovery_and_attestation_loop_no_pending_action);
+TEST (attestation_requester_test_discovery_and_attestation_loop_no_force_action);
 TEST (attestation_requester_test_discovery_and_attestation_loop_force_attestation_failed_devices);
 TEST (attestation_requester_test_discovery_and_attestation_loop_force_attestation_passed_devices);
 TEST (attestation_requester_test_discovery_and_attestation_loop_force_attestation_all_devices);
@@ -48656,6 +48931,8 @@ TEST (attestation_requester_test_attest_device_single_source_backward_compat);
 TEST (attestation_requester_test_attest_device_multi_source_first_fail_second_success);
 TEST (attestation_requester_test_attest_device_multi_source_first_type_success);
 TEST (attestation_requester_test_attest_device_multi_source_second_type_success);
+TEST (attestation_requester_test_attest_device_force_attestation_state_transitions_to_ready);
+TEST (attestation_requester_test_attest_device_force_attestation_failure_sets_failed);
 
 TEST_SUITE_END;
 // *INDENT-ON*

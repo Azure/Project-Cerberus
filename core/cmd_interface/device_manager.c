@@ -7,9 +7,11 @@
 #include "device_manager.h"
 #include "platform_api.h"
 #include "attestation/attestation_discover.h"
+#include "attestation/attestation_logging.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "crypto/hash.h"
+#include "logging/debug_log.h"
 #include "manifest/pcd/pcd.h"
 #include "mctp/mctp_base_protocol.h"
 
@@ -53,7 +55,8 @@
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT) || \
-	(state == DEVICE_MANAGER_NEVER_ATTESTED))
+	(state == DEVICE_MANAGER_NEVER_ATTESTED) || \
+	(state == DEVICE_MANAGER_FORCE_ATTESTATION))
 
 /**
  * Initialize a device manager.
@@ -213,8 +216,6 @@ void device_manager_release (struct device_manager *mgr)
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 		device_manager_clear_unidentified_devices (mgr);
 #endif
-
-		device_manager_clear_pending_action (mgr);
 
 		observable_release (&mgr->observable);
 		platform_mutex_free (&mgr->action_mutex);
@@ -1310,7 +1311,12 @@ int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t 
 }
 
 /**
- * Update device manager device table entry state
+ * Update device manager device table entry state.
+ *
+ * This function does not hold any lock when reading or writing the device entry state.  This is
+ * safe because the attestation loop is single-threaded and MCTP control only modifies
+ * non-attestable entries (devices 0/1), so there is no concurrent writer for attestable device
+ * states.  If that assumption changes, device entry state access will need synchronization.
  *
  * @param mgr Device manager instance to utilize.
  * @param device_num Device table entry to update.
@@ -2475,271 +2481,438 @@ bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t 
 }
 
 /**
- * Set a pending action for the device manager to process.
+ * Check if there is a force action for the device manager.
  *
  * @param mgr Device manager instance to utilize.
- * @param action Pointer to the pending action structure to set.
+ * @param action_id Optional output for the current action ID. Can be NULL if not needed.
  *
- * @return 0 if the action was set successfully or an error code.
+ * @return The current action state or an error code.
  */
-int device_manager_set_pending_action (struct device_manager *mgr,
-	struct device_manager_pending_action *action)
+int device_manager_get_force_action_state (
+	struct device_manager *mgr, uint32_t *action_id)
 {
-	struct device_manager_force_attestation_data *att_data = NULL;
-	int device_num;
-	int status = 0;
+	int state;
 
-	if ((mgr == NULL) || (action == NULL)) {
+	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	switch (action->type) {
-		case DEVICE_MANAGER_ACTION_FORCE_ATTESTATION:
-			att_data = (struct device_manager_force_attestation_data*) action->data;
+	platform_mutex_lock (&mgr->action_mutex);
 
-			if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
-				if (action->data_size != (sizeof (uint8_t) +
-					sizeof (struct device_manager_device_ids_target))) {
-					status = DEVICE_MGR_INVALID_ARGUMENT;
-				}
-				else {
-					device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
-						att_data->target.device_ids.pci_vid,
-						att_data->target.device_ids.pci_device_id,
-						att_data->target.device_ids.pci_subsystem_vid,
-						att_data->target.device_ids.pci_subsystem_id,
-						att_data->target.device_ids.instance_id);
-					if (ROT_IS_ERROR (device_num)) {
-						status = device_num;
-					}
-				}
-			}
-			else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID) {
-				if (action->data_size != (sizeof (uint8_t) +
-					sizeof (struct device_manager_component_target))) {
-					status = DEVICE_MGR_INVALID_ARGUMENT;
-				}
-				else {
-					device_num = device_manager_get_device_num_by_component (mgr,
-						att_data->target.component.component_id,
-						att_data->target.component.instance_id);
-					if (ROT_IS_ERROR (device_num)) {
-						status = device_num;
-					}
-				}
-			}
-			else if (att_data->mode <= DEVICE_MANAGER_FORCE_ATTESTATION_ALL) {
-				if (action->data_size != sizeof (uint8_t)) {
-					status = DEVICE_MGR_INVALID_ARGUMENT;
-				}
-			}
-			else {
-				status = DEVICE_MGR_INVALID_ARGUMENT;
+	state = mgr->force_action.state;
+
+	if (action_id != NULL) {
+		*action_id = mgr->force_action.action_id;
+	}
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return state;
+}
+
+/**
+ * Update the force action state in the device manager with transition validation.
+ *
+ * This function validates the requested state transition and updates the force action state
+ * if the transition is allowed.  It must be called with the action_mutex held.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param state The new state to set for the force action.
+ *
+ * @return 0 if the state was updated successfully or an error code.
+ */
+static int device_manager_update_force_action_state_internal (struct device_manager *mgr,
+	enum device_manager_force_action_state state)
+{
+	if (state > DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS) {
+		return DEVICE_MGR_FORCE_ACTION_INVALID_STATE;
+	}
+
+	switch (mgr->force_action.state) {
+		case DEVICE_MANAGER_FORCE_ACTION_IDLE:
+			if (state == DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS) {
+				return DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE;
 			}
 			break;
 
-		case DEVICE_MANAGER_ACTION_FORCE_DISCOVERY:
-			status = DEVICE_MGR_INVALID_ARGUMENT;
+		case DEVICE_MANAGER_FORCE_ACTION_PENDING:
+			if ((state == DEVICE_MANAGER_FORCE_ACTION_IDLE) ||
+				(state == DEVICE_MANAGER_FORCE_ACTION_PENDING)) {
+				return DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE;
+			}
+			break;
+
+		case DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS:
+			if ((state == DEVICE_MANAGER_FORCE_ACTION_PENDING) ||
+				(state == DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS)) {
+				return DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE;
+			}
 			break;
 
 		default:
-			status = DEVICE_MGR_INVALID_ARGUMENT;
+			break;
+	}
+
+	mgr->force_action.state = state;
+
+	return 0;
+}
+
+/**
+ * Set a force action for the device manager to process.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param action Pointer to the force action structure to set.
+ *
+ * @return 0 if the action was set successfully or an error code.
+ */
+int device_manager_set_force_action (struct device_manager *mgr,
+	const struct device_manager_force_action_data *action_data, size_t data_size,
+	enum device_manager_force_action_type action_type)
+{
+	int device_num;
+	int status = 0;
+
+	if ((mgr == NULL) || (action_data == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	switch (mgr->force_action.state) {
+		case DEVICE_MANAGER_FORCE_ACTION_IDLE:
+			break;
+
+		case DEVICE_MANAGER_FORCE_ACTION_PENDING:
+			status = DEVICE_MGR_FORCE_ACTION_PENDING;
+			goto unlock_and_exit;
+
+		case DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS:
+			status = DEVICE_MGR_FORCE_ACTION_IN_PROGRESS;
+			goto unlock_and_exit;
+
+		default:
+			status = DEVICE_MGR_FORCE_ACTION_INVALID_STATE;
+			goto unlock_and_exit;
+	}
+
+	switch (action_type) {
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION:
+			switch (action_data->mode) {
+				case DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS:
+					if (data_size != (sizeof (uint8_t) +
+						sizeof (struct device_manager_device_ids_target))) {
+						status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
+					}
+					else {
+						device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
+							buffer_unaligned_read16 (&action_data->target.device_ids.pci_vid),
+							buffer_unaligned_read16 (&action_data->target.device_ids.pci_device_id),
+							buffer_unaligned_read16 (
+							&action_data->target.device_ids.pci_subsystem_vid),
+							buffer_unaligned_read16 (
+							&action_data->target.device_ids.pci_subsystem_id),
+							action_data->target.device_ids.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
+						}
+					}
+					break;
+
+				case DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID:
+					if (data_size != (sizeof (uint8_t) +
+						sizeof (struct device_manager_component_target))) {
+						status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
+					}
+					else {
+						device_num = device_manager_get_device_num_by_component (mgr,
+							buffer_unaligned_read32 (&action_data->target.component.component_id),
+							action_data->target.component.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
+						}
+					}
+					break;
+
+				case DEVICE_MANAGER_FORCE_ATTESTATION_FAILED:
+				case DEVICE_MANAGER_FORCE_ATTESTATION_PASSED:
+				case DEVICE_MANAGER_FORCE_ATTESTATION_ALL:
+					if (data_size != sizeof (uint8_t)) {
+						status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
+					}
+					break;
+
+				default:
+					status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+					break;
+			}
+			break;
+
+		/* TODO: Implement Force Device discovery action */
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_DISCOVERY:
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+			break;
+
+		default:
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+			break;
 	}
 
 	if (status != 0) {
-		return status;
+		goto unlock_and_exit;
 	}
 
-	platform_mutex_lock (&mgr->action_mutex);
+	status = device_manager_update_force_action_state_internal (mgr,
+		DEVICE_MANAGER_FORCE_ACTION_PENDING);
+	if (status != 0) {
+		goto unlock_and_exit;
+	}
 
-	mgr->pending_action.type = action->type;
-	memcpy (mgr->pending_action.data, action->data, action->data_size);
-	mgr->pending_action.data_size = action->data_size;
+	mgr->force_action.type = action_type;
+	memset (&mgr->force_action.action_data, 0, sizeof (mgr->force_action.action_data));
+	memcpy (&mgr->force_action.action_data, action_data, data_size);
+	mgr->force_action.data_size = data_size;
+	mgr->force_action.action_id++;
 
+unlock_and_exit:
 	platform_mutex_unlock (&mgr->action_mutex);
 
-	return 0;
+	return status;
 }
 
 /**
- * Get the current pending action from the device manager.
+ * Update the force action state in the device manager with transition validation.
  *
  * @param mgr Device manager instance to utilize.
- * @param action Output buffer for the pending action.
+ * @param state The new state to set for the force action.
  *
- * @return 0 if a pending action was retrieved successfully or an error code.
+ * @return 0 if the state was updated successfully or an error code.
  */
-int device_manager_get_pending_action (struct device_manager *mgr,
-	struct device_manager_pending_action *action)
+int device_manager_update_force_action_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state)
 {
-	if ((mgr == NULL) || (action == NULL)) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
-	}
+	int status;
 
-	if (mgr->pending_action.type == DEVICE_MANAGER_ACTION_NONE) {
-		return DEVICE_MGR_NO_PENDING_ACTION;
-	}
-
-	platform_mutex_lock (&mgr->action_mutex);
-
-	action->type = mgr->pending_action.type;
-	memcpy (action->data, mgr->pending_action.data, mgr->pending_action.data_size);
-	action->data_size = mgr->pending_action.data_size;
-
-	platform_mutex_unlock (&mgr->action_mutex);
-
-	return 0;
-}
-
-/**
- * Clear the current pending action from the device manager.
- *
- * @param mgr Device manager instance to utilize.
- *
- * @return 0 if the pending action was cleared successfully or an error code.
- */
-int device_manager_clear_pending_action (struct device_manager *mgr)
-{
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
 	platform_mutex_lock (&mgr->action_mutex);
 
-	memset (mgr->pending_action.data, 0, DEVICE_MANAGER_PENDING_DATA_MAX_SIZE);
-	mgr->pending_action.type = DEVICE_MANAGER_ACTION_NONE;
-	mgr->pending_action.data_size = 0;
+	status = device_manager_update_force_action_state_internal (mgr, state);
 
 	platform_mutex_unlock (&mgr->action_mutex);
 
-	return 0;
+	return status;
 }
 
 /**
- * Process the current pending action based on its type.
+ * Clear the force action data and update the state in the device manager.
  *
  * @param mgr Device manager instance to utilize.
+ * @param state The new state to set for the force action.
  *
- * @return 0 if the action was processed successfully or an error code.
+ * @return 0 if the force action was updated successfully or an error code.
  */
-int device_manager_process_pending_action (struct device_manager *mgr)
+int device_manager_clear_force_action_set_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state)
+{
+	int status;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	status = device_manager_update_force_action_state_internal (mgr, state);
+	if (status == 0) {
+		memset (&mgr->force_action.action_data, 0, sizeof (mgr->force_action.action_data));
+		mgr->force_action.data_size = 0;
+	}
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return status;
+}
+
+/**
+ * Process the current force action based on its type.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param num_actions Optional output for the number of actions successfully applied. Can be NULL.
+ *
+ * @return 0 if the force action was processed successfully or an error code.
+ */
+int device_manager_process_force_action (struct device_manager *mgr, int *num_actions)
 {
 	int status = 0;
-	struct device_manager_force_attestation_data *att_data = NULL;
+	struct device_manager_force_action_data *att_data = NULL;
 	int device_num = 0;
 	int device_state = 0;
 
-	if (mgr == NULL) {
+	if ((mgr == NULL) || (num_actions == NULL)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
+	*num_actions = 0;
+
 	platform_mutex_lock (&mgr->action_mutex);
 
-	switch (mgr->pending_action.type) {
-		case DEVICE_MANAGER_ACTION_NONE:
-			break;
+	if (mgr->force_action.state != DEVICE_MANAGER_FORCE_ACTION_PENDING) {
+		platform_mutex_unlock (&mgr->action_mutex);
 
-		case DEVICE_MANAGER_ACTION_FORCE_ATTESTATION:
-			if (mgr->pending_action.data_size > 0) {
-				att_data = (struct device_manager_force_attestation_data*)
-					mgr->pending_action.data;
+		return 0;
+	}
 
-				if (att_data->mode <= DEVICE_MANAGER_FORCE_ATTESTATION_ALL) {
-					for (device_num = 0; device_num < mgr->num_devices; ++device_num) {
+	switch (mgr->force_action.type) {
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION:
+			if (mgr->force_action.data_size > 0) {
+				att_data = &mgr->force_action.action_data;
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,
+					buffer_unaligned_read32 (&mgr->force_action.action_id), att_data->mode);
+
+				switch (att_data->mode) {
+					case DEVICE_MANAGER_FORCE_ATTESTATION_FAILED:
+					case DEVICE_MANAGER_FORCE_ATTESTATION_PASSED:
+					case DEVICE_MANAGER_FORCE_ATTESTATION_ALL:
+						for (device_num = 0; device_num < mgr->num_devices; ++device_num) {
+							device_state = device_manager_get_device_state (mgr, device_num);
+							if (ROT_IS_ERROR (device_state)) {
+								status = device_state;
+								break;
+							}
+
+							if ((device_state == DEVICE_MANAGER_NOT_ATTESTABLE) ||
+								(device_state == DEVICE_MANAGER_UNIDENTIFIED)) {
+								continue;
+							}
+
+							if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_FAILED) {
+								if (DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
+									continue;
+								}
+							}
+							else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_PASSED) {
+								if (!DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
+									continue;
+								}
+							}
+
+							status = device_manager_update_device_state (mgr, device_num,
+								DEVICE_MANAGER_FORCE_ATTESTATION);
+							if (ROT_IS_ERROR (status)) {
+								break;
+							}
+							(*num_actions)++;
+
+							debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO,
+								DEBUG_LOG_COMPONENT_ATTESTATION,
+								ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+								(mgr->entries[device_num].eid |
+											(mgr->entries[device_num].instance_id <<
+											8)), mgr->entries[device_num].component_id);
+						}
+						break;
+
+					case DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID:
+						device_num = device_manager_get_device_num_by_component (mgr,
+							buffer_unaligned_read32 (&att_data->target.component.component_id),
+							att_data->target.component.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
+							break;
+						}
+
 						device_state = device_manager_get_device_state (mgr, device_num);
 						if (ROT_IS_ERROR (device_state)) {
 							status = device_state;
 							break;
 						}
-
-						if ((device_state == DEVICE_MANAGER_NOT_ATTESTABLE) ||
-							(device_state == DEVICE_MANAGER_UNIDENTIFIED)) {
-							continue;
-						}
-
-						if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_FAILED) {
-							if (DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
-								continue;
+						if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+							(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
+							status = device_manager_update_device_state (mgr, device_num,
+								DEVICE_MANAGER_FORCE_ATTESTATION);
+							if (!ROT_IS_ERROR (status)) {
+								(*num_actions)++;
+								debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO,
+									DEBUG_LOG_COMPONENT_ATTESTATION,
+									ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+									(mgr->entries[device_num].eid |
+												(mgr->entries[device_num].instance_id << 8)),
+									mgr->entries[device_num].component_id);
 							}
 						}
-						else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_PASSED) {
-							if (!DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
-								continue;
-							}
-						}
+						break;
 
-						status = device_manager_update_device_state (mgr, device_num,
-							DEVICE_MANAGER_NEVER_ATTESTED);
-						if (ROT_IS_ERROR (status)) {
+					case DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS:
+						device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
+							buffer_unaligned_read16 (&att_data->target.device_ids.pci_vid),
+							buffer_unaligned_read16 (&att_data->target.device_ids.pci_device_id),
+							buffer_unaligned_read16 (
+							&att_data->target.device_ids.pci_subsystem_vid),
+							buffer_unaligned_read16 (&att_data->target.device_ids.pci_subsystem_id),
+							att_data->target.device_ids.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
 							break;
 						}
-					}
-				}
-				else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID) {
-					device_num = device_manager_get_device_num_by_component (mgr,
-						att_data->target.component.component_id,
-						att_data->target.component.instance_id);
-					if (ROT_IS_ERROR (device_num)) {
-						status = device_num;
-						break;
-					}
 
-					device_state = device_manager_get_device_state (mgr, device_num);
-					if (ROT_IS_ERROR (device_state)) {
-						status = device_state;
+						device_state = device_manager_get_device_state (mgr, device_num);
+						if (ROT_IS_ERROR (device_state)) {
+							status = device_state;
+							break;
+						}
+						if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+							(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
+							status = device_manager_update_device_state (mgr, device_num,
+								DEVICE_MANAGER_FORCE_ATTESTATION);
+							if (!ROT_IS_ERROR (status)) {
+								(*num_actions)++;
+								debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO,
+									DEBUG_LOG_COMPONENT_ATTESTATION,
+									ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+									(mgr->entries[device_num].eid |
+												(mgr->entries[device_num].instance_id << 8)),
+									mgr->entries[device_num].component_id);
+							}
+						}
 						break;
-					}
-					if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
-						(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
-						status = device_manager_update_device_state (mgr, device_num,
-							DEVICE_MANAGER_NEVER_ATTESTED);
-					}
-				}
-				else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
-					device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
-						att_data->target.device_ids.pci_vid,
-						att_data->target.device_ids.pci_device_id,
-						att_data->target.device_ids.pci_subsystem_vid,
-						att_data->target.device_ids.pci_subsystem_id,
-						att_data->target.device_ids.instance_id);
-					if (ROT_IS_ERROR (device_num)) {
-						status = device_num;
-						break;
-					}
 
-					device_state = device_manager_get_device_state (mgr, device_num);
-					if (ROT_IS_ERROR (device_state)) {
-						status = device_state;
+					default:
+						status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
 						break;
-					}
-					if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
-						(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
-						status = device_manager_update_device_state (mgr, device_num,
-							DEVICE_MANAGER_NEVER_ATTESTED);
-					}
 				}
-				else {
-					status = DEVICE_MGR_INVALID_ARGUMENT;
-				}
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,
+					mgr->force_action.action_id, status);
 			}
 			else {
-				status = DEVICE_MGR_INVALID_ARGUMENT;
+				status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
 			}
 			break;
 
 		/* TODO: Implement Force Device discovery action */
-		case DEVICE_MANAGER_ACTION_FORCE_DISCOVERY:
-			status = DEVICE_MGR_INVALID_ARGUMENT;
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_DISCOVERY:
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
 			break;
 
 		default:
-			status = DEVICE_MGR_INVALID_ARGUMENT;
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
 			break;
 	}
 
 	platform_mutex_unlock (&mgr->action_mutex);
 
-	device_manager_clear_pending_action (mgr);
+	if (ROT_IS_ERROR (status)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_PROCESS_FORCE_ACTION_ERROR, status, 0);
+	}
+
+	device_manager_clear_force_action_set_state (mgr, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS);
 
 	return status;
 }
