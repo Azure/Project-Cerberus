@@ -74,6 +74,7 @@ enum {
 	ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,				/**< Force attestation initiated for device. */
 	ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,			/**< Force attestation action processing started. */
 	ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,			/**< Force attestation action processing completed. */
+	ATTESTATION_LOGGING_DEVICE_INFO,								/**< Device info log entry with component ID and instance ID. */
 };
 
 
