@@ -41259,7 +41259,7 @@ attestation_requester_test_discovery_and_attestation_loop_single_device_invalid_
 		.component = DEBUG_LOG_COMPONENT_ATTESTATION,
 		.msg_index = ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION,
 		.arg1 = component_id,
-		.arg2 = 0
+		.arg2 = (0xAA << 8)
 	};
 
 	pmr_digest.pmr_id = 0;

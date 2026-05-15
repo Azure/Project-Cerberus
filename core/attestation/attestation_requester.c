@@ -4480,7 +4480,8 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 			&event_counters);
 		if (event_counters.status_success_count == 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION, device_component_id, instance_id);
+				ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION, device_component_id,
+				(instance_id | (eid << 8)));
 		}
 	}
 	else {
