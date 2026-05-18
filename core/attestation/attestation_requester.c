@@ -1116,23 +1116,37 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 			}
 		}
 
-		if (((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_256) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA256)) ||
-			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_384) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA384)) ||
-			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_512) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA512)) ||
-			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA3_256) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA256)) ||
-			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA3_384) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA384)) ||
-			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA3_512) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA512))) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP, device_eid,
-				rsp->measurement_hash_algo);
+		/* The CFM component-level measurement_hash_type is only a default.  With multi-hash CFMs,
+		 * individual allowable digest entries can override the hash type via hash_type_override.
+		 * Adopt the responder's negotiated measurement hash as authoritative for this transaction;
+		 * per-measurement verification will reject it later if no allowable digest in the CFM
+		 * matches this hash type.
+		 *
+		 * Note: Measurement digests are byte-compared against the CFM, never recomputed, so
+		 * mapping the SHA3 SPDM enums onto the matching-length SHA-2 hash_type tag is sufficient
+		 * for the normal Get Measurements verification flow. */
+		switch (rsp->measurement_hash_algo) {
+			case SPDM_MEAS_RSP_TPM_ALG_SHA_256:
+			case SPDM_MEAS_RSP_TPM_ALG_SHA3_256:
+				attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA256;
+				break;
 
-			return ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE;
+			case SPDM_MEAS_RSP_TPM_ALG_SHA_384:
+			case SPDM_MEAS_RSP_TPM_ALG_SHA3_384:
+				attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA384;
+				break;
+
+			case SPDM_MEAS_RSP_TPM_ALG_SHA_512:
+			case SPDM_MEAS_RSP_TPM_ALG_SHA3_512:
+				attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA512;
+				break;
+
+			default:
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP, device_eid,
+					rsp->measurement_hash_algo);
+
+				return ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE;
 		}
 	}
 
@@ -2650,6 +2664,14 @@ static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
 
 	// TODO: If device responds with raw blocks, hash them here instead of reporting error
 
+	/* This path recomputes a digest over the device's measurements, so the negotiated
+	 * algorithm must actually be implemented by the hash engine. SHA3 may not be supported by the
+	 * engine even though it is legal in SPDM, so fail explicitly here. */
+	if (!hash_is_alg_supported (attestation->state->txn.measurement_hash_type)) {
+		status = ATTESTATION_UNSUPPORTED_ALGORITHM;
+		goto free_pmr_digest;
+	}
+
 	status = hash_calculate (attestation->primary_hash,
 		attestation->state->txn.measurement_hash_type, attestation->state->txn.msg_buffer,
 		attestation->state->txn.msg_buffer_len, digest, sizeof (digest));
@@ -4124,8 +4146,7 @@ static int attestation_requester_attest_device_spdm (
 	int rq_len;
 	int status;
 
-	if (!hash_is_alg_supported (attestation->state->txn.transcript_hash_type) ||
-		!hash_is_alg_supported (attestation->state->txn.measurement_hash_type)) {
+	if (!hash_is_alg_supported (attestation->state->txn.transcript_hash_type)) {
 		return ATTESTATION_UNSUPPORTED_ALGORITHM;
 	}
 
