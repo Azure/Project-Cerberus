@@ -388,6 +388,52 @@ static void cmd_interface_mctp_control_test_process_request_set_eid_no_observer 
 	complete_cmd_interface_mctp_control_test (test, &cmd);
 }
 
+static void cmd_interface_mctp_control_test_process_request_set_eid_internal_error_response (
+	CuTest *test)
+{
+	struct cmd_interface_mctp_control_testing cmd;
+	struct cmd_interface_msg request;
+	uint8_t data[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct mctp_control_set_eid *rq = (struct mctp_control_set_eid*) data;
+	struct mctp_control_protocol_resp_header *rsp =
+		(struct mctp_control_protocol_resp_header*) data;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (struct cmd_interface_msg));
+	memset (data, 0, sizeof (data));
+	request.payload = data;
+	request.payload_length = sizeof (struct mctp_control_set_eid);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.source_addr = 0x10;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	rq->header.rq = 1;
+	rq->header.d_bit = 0;
+	rq->header.rsvd = 0;
+	rq->header.command_code = MCTP_CONTROL_PROTOCOL_SET_EID;
+	rq->operation = MCTP_CONTROL_SET_EID_OPERATION_SET_ID;
+	rq->eid = 0x11;
+
+	setup_cmd_interface_mctp_control_test (test, &cmd, true);
+
+	/* Force command handler failure to verify generic error response fallback path. */
+	cmd.handler.device_manager = NULL;
+
+	status = cmd.handler.base.process_request (&cmd.handler.base, &request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
+	CuAssertIntEquals (test, 0, rsp->header.rq);
+	CuAssertIntEquals (test, 0, rsp->header.d_bit);
+	CuAssertIntEquals (test, 0, rsp->header.instance_id);
+	CuAssertIntEquals (test, 0, rsp->header.rsvd);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_SET_EID, rsp->header.command_code);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR, rsp->completion_code);
+
+	complete_cmd_interface_mctp_control_test (test, &cmd);
+}
+
 static void cmd_interface_mctp_control_test_process_request_get_eid (CuTest *test)
 {
 	struct cmd_interface_mctp_control_testing cmd;
@@ -709,6 +755,7 @@ TEST (cmd_interface_mctp_control_test_process_request_rsvd_not_zero);
 TEST (cmd_interface_mctp_control_test_process_request_unknown_command);
 TEST (cmd_interface_mctp_control_test_process_request_set_eid);
 TEST (cmd_interface_mctp_control_test_process_request_set_eid_no_observer);
+TEST (cmd_interface_mctp_control_test_process_request_set_eid_internal_error_response);
 TEST (cmd_interface_mctp_control_test_process_request_get_eid);
 TEST (cmd_interface_mctp_control_test_process_request_get_mctp_version);
 TEST (cmd_interface_mctp_control_test_process_request_get_message_type_support);

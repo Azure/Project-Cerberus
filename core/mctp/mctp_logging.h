@@ -25,6 +25,7 @@ enum {
 	MCTP_LOGGING_RSP_DROPPED,					/**< Dropped a received response message. */
 	MCTP_LOGGING_RESTART_MESSAGE,				/**< A new message was started before finishing the previous one. */
 	MCTP_LOGGING_MCTP_CONTROL_UNSUPPORTED_CMD,	/**< Received an unsupported MCTP control command. */
+	MCTP_LOGGING_SET_EID_NOTIFY_FAIL,			/**< Set EID succeeded but observer notification failed. */
 };
 
 /**

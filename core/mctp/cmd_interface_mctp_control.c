@@ -65,11 +65,35 @@ static int cmd_interface_mctp_control_process_mctp_protocol_message (
 	return 0;
 }
 
+/**
+ * Generate MCTP control error response.
+ *
+ * @param message Message containing the request payload buffer to update.
+ * @param command_id Command code to include in the response header.
+ * @param completion_code Completion code to return in the response.
+ */
+static void cmd_interface_mctp_control_generate_error_response (struct cmd_interface_msg *message,
+	uint8_t command_id, uint8_t completion_code)
+{
+	struct mctp_control_protocol_resp_header *rsp_header;
+
+	rsp_header = (struct mctp_control_protocol_resp_header*) message->payload;
+
+	rsp_header->header.d_bit = 0;
+	rsp_header->header.rq = 0;
+	rsp_header->header.rsvd = 0;
+	rsp_header->header.command_code = command_id;
+	rsp_header->completion_code = completion_code;
+
+	cmd_interface_msg_set_message_payload_length (message, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN);
+}
+
 static int cmd_interface_mctp_control_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
 	struct cmd_interface_mctp_control *interface = (struct cmd_interface_mctp_control*) intf;
 	uint8_t command_id;
+	int notify_status;
 	int status;
 
 	if (request == NULL) {
@@ -86,8 +110,13 @@ static int cmd_interface_mctp_control_process_request (const struct cmd_interfac
 		case MCTP_CONTROL_PROTOCOL_SET_EID:
 			status = mctp_control_protocol_set_eid (interface->device_manager, request);
 			if (status == 0) {
-				return observable_notify_observers_with_ptr (&interface->observable,
+				notify_status = observable_notify_observers_with_ptr (&interface->observable,
 					offsetof (struct mctp_control_protocol_observer, on_set_eid_request), NULL);
+
+				if (notify_status != 0) {
+					debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+						MCTP_LOGGING_SET_EID_NOTIFY_FAIL, notify_status, request->channel_id);
+				}
 			}
 			break;
 
@@ -117,7 +146,15 @@ static int cmd_interface_mctp_control_process_request (const struct cmd_interfac
 			status = mctp_control_protocol_unsupported_cmd (request);
 	}
 
-	return status;
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
+			MCTP_LOGGING_MCTP_CONTROL_REQ_FAIL, status, request->channel_id);
+
+		cmd_interface_mctp_control_generate_error_response (request, command_id,
+			MCTP_CONTROL_PROTOCOL_ERROR);
+	}
+
+	return 0;
 }
 
 /**
