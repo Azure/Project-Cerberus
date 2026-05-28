@@ -606,12 +606,16 @@ static int cfm_flash_populate_allowable_digests (const struct cfm_flash *cfm_fla
 			return CFM_MALFORMED_MEASUREMENT_ENTRY;
 		}
 
-		// Determine hash type: use per-element hash type if specified, otherwise component default
+		// Determine hash type: component default unless the element specifies an override.
+		hash_type = default_hash_type;
+
 		if (allowable_digest_ptr->hash_type_override != 0) {
+			// Aggregated digest size is fixed by the aggregation hash; per-element override is not allowed.
+			if (element_type == CFM_AGGREGATED_MEASUREMENT) {
+				return CFM_MALFORMED_MEASUREMENT_ENTRY;
+			}
+
 			hash_type = manifest_convert_manifest_hash_type (allowable_digest_ptr->hash_type);
-		}
-		else {
-			hash_type = default_hash_type;
 		}
 
 		hash_len = hash_get_hash_length (hash_type);

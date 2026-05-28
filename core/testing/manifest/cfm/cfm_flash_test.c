@@ -17771,6 +17771,67 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
+static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_invalid_hash_override (CuTest *test)
+{
+	struct cfm_flash_testing cfm;
+	struct cfm_allowable_digest_element bad_digest;
+	struct cfm_measurement_container container;
+	struct manifest_toc_entry bad_entry;
+	int status;
+
+	memset (&bad_digest, 0, sizeof (bad_digest));
+	bad_digest.version_set = 1;
+	bad_digest.digest_count = 1;
+	bad_digest.hash_type_override = 1;
+	bad_digest.hash_type = MANIFEST_HASH_SHA256;
+
+	bad_entry.type_id = CFM_AGGREGATED_MEASUREMENT;
+	bad_entry.parent = CFM_COMPONENT_DEVICE;
+	bad_entry.format = 0;
+	bad_entry.hash_id = 2;
+	bad_entry.offset = 0xe0;
+	bad_entry.length = sizeof (bad_digest);
+
+	TEST_START;
+
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0, true, 0);
+
+	// Read Component element
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len, 0);
+
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
+		3);
+
+	manifest_flash_v3_testing_iterate_manifest_toc_no_verify_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
+
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
+		2);
+
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
+		3);
+
+	// Read Aggregated Measurement element (valid header from binary)
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
+		0xe0, 0x48, sizeof (struct cfm_aggregated_measurement_element), 0);
+
+	// Inject Allowable Digest with hash_type_override = 1 (illegal for aggregated)
+	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, bad_entry.hash_id, 2, bad_entry.hash_id, bad_entry.offset,
+		bad_entry.length, bad_entry.length, sizeof (struct cfm_aggregated_measurement_element), &bad_entry, (uint8_t*) &bad_digest);
+
+	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
+		true);
+	CuAssertIntEquals (test, CFM_MALFORMED_MEASUREMENT_ENTRY, status);
+
+	cfm.test.base.free_measurement_container (&cfm.test.base, &container);
+
+	cfm_flash_testing_validate_and_release (test, &cfm);
+}
+
 // *INDENT-OFF*
 TEST_SUITE_START (cfm_flash);
 
@@ -18004,6 +18065,7 @@ TEST (cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measure
 TEST (cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_no_digest_invalid);
 TEST (cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_hash_type_invalid);
 TEST (cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_allowable_digests_invalid);
+TEST (cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_invalid_hash_override);
 
 TEST_SUITE_END;
 // *INDENT-ON*

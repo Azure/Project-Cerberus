@@ -349,10 +349,6 @@ def generate_aggregated_measurements(aggregated_measurements_data, hash_type, me
             aggregated_digest = aggregate_measurements_hash(digests_to_aggregate, hash_engine)
             digest_arr = (ctypes.c_ubyte * hash_len).from_buffer_copy(aggregated_digest)
 
-            # Encode hash type override: flag + manifest_hash_type value
-            hash_type_override = 0 if vs_hash_type == measurement_hash_type else 1
-            hash_type_field = vs_hash_type if hash_type_override else 0
-
             # Create cfm_allowable_digest_element for this version_set
             class cfm_allowable_digest_element(ctypes.LittleEndianStructure):
                 _pack_ = 1
@@ -362,8 +358,7 @@ def generate_aggregated_measurements(aggregated_measurements_data, hash_type, me
                              ('hash_type', ctypes.c_ubyte, 7),
                              ('digest', ctypes.c_ubyte * hash_len)]
 
-            allowable_digest = cfm_allowable_digest_element(
-                version_set, 1, hash_type_override, hash_type_field, digest_arr)
+            allowable_digest = cfm_allowable_digest_element(version_set, 1, 0, 0, digest_arr)
 
             # Add to temporary dictionary
             if pmr_id not in temp_dict:

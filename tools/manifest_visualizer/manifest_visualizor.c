@@ -1036,8 +1036,14 @@ int32_t visualize_cfm_aggregated_measurement (uint8_t *start, const char *prefix
 		printf ("%s\t\t\thash_type_override: %i\n", prefix, allowable_digest->hash_type_override);
 		printf ("%s\t\t\thash_type: %i\n", prefix, allowable_digest->hash_type);
 
-		hash_type = (allowable_digest->hash_type_override != 0) ?
-				allowable_digest->hash_type : measurement->hash_type;
+		if (allowable_digest->hash_type_override != 0) {
+			printf ("Invalid aggregated measurement: hash_type_override must be 0 "
+				"(aggregated digest size is fixed by the root hash_type)\n");
+
+			return -1;
+		}
+
+		hash_type = measurement->hash_type;
 		switch (hash_type) {
 			case MANIFEST_HASH_SHA256:
 				hash_len = SHA256_HASH_LENGTH;
