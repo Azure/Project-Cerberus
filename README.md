@@ -32,7 +32,7 @@ Windows.  See the repo documentation for details regarding Windows support at ht
 If repo is still not working, there are two other options for using repo in Windows.
 
 1. Use Windows Subsystem for Linux (WSL).  This has the benefit of not needing anything special for repo to work, but
-has the downside of not actually being a Windows development enviroment.
+has the downside of not actually being a Windows development environment.
 
 2. There exists an old version of repo ported to work in Windows.  Details of this project can be found on github at
 https://github.com/esrlabs/git-repo.  See the README.md in that project for installation details.
@@ -56,7 +56,7 @@ repo sync
 
 #### Download using SSH
 
-If an SSH connection is desired or required to retrieve the Cerberus code, the repository must be initalized in this way.
+If an SSH connection is desired or required to retrieve the Cerberus code, the repository must be initialized in this way.
 ```bash
 mkdir Project-Cerberus
 cd Project-Cerberus
@@ -163,7 +163,7 @@ the main development environment for adding core functionality and serves as an 
 
 ### Unit Tests With Coverage Report
 
-The unit test build includes a target which runs the unit tests and generates a code coverate
+The unit test build includes a target which runs the unit tests and generates a code coverage
 report. If necessary, this target also builds the unit tests. The report output can be found at
 build/coverage_report.
 
@@ -175,8 +175,9 @@ build/coverage_report.
 	```
 ## Contributing
 
-Cerberus code is developed following Test-Driven Development (TDD) practices.  Any code submissions are expected to be
-similarly developed.
+Cerberus code is developed following a set of guidelines and coding conventions.  See the
+[CONTRIBUTING.md](https://github.com/Azure/Project-Cerberus/blob/master/CONTRIBUTING.md) file for more
+details.
 
 ### Agreement and Code of Conduct
 
