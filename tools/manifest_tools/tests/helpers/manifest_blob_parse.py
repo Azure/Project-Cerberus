@@ -12,63 +12,74 @@ from Crypto.Hash import SHA256, SHA384, SHA512
 # =============================================================================
 # Helpers
 # =============================================================================
+
+
 def _u8(b: bytes, off: int) -> int:
     return b[off]
+
 
 def _u16(b: bytes, off: int) -> int:
     return struct.unpack_from("<H", b, off)[0]
 
+
 def _u32(b: bytes, off: int) -> int:
     return struct.unpack_from("<I", b, off)[0]
+
 
 def _need(total_len: int, off: int, n: int) -> None:
     """Ensure [off, off+n) is within [0, total_len)."""
     if off < 0 or n < 0 or off + n > total_len:
         raise ValueError(f"Truncated manifest: need {n} at 0x{off:x}")
 
+
 def _pad4_len(n: int) -> int:
     """Return padding length to 4-byte boundary for a segment of size n."""
     return ((n + 3) & ~3) - n
+
 
 def _read(b: bytes, off: int, n: int) -> Tuple[bytes, int]:
     _need(len(b), off, n)
     return b[off:off + n], off + n
 
+
 # =============================================================================
 # Constants
 # =============================================================================
-V2_BASE_TYPE_ID                         = 0xFF
-V2_PLATFORM_TYPE_ID                     = 0x00
+V2_BASE_TYPE_ID = 0xFF
+V2_PLATFORM_TYPE_ID = 0x00
+V2_TOC_EXTENSION_TYPE_ID = 0x01
 
-PFM_V2_FLASH_DEVICE_TYPE_ID             = 0x10
-PFM_V2_FW_TYPE_ID                       = 0x11
-PFM_V2_FW_VERSION_TYPE_ID               = 0x12
+PFM_V2_FLASH_DEVICE_TYPE_ID = 0x10
+PFM_V2_FW_TYPE_ID = 0x11
+PFM_V2_FW_VERSION_TYPE_ID = 0x12
 
-PCD_V2_ROT_TYPE_ID                      = 0x40
-PCD_V2_SPI_FLASH_PORT_TYPE_ID           = 0x41
-PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID     = 0x42
-PCD_V2_DIRECT_COMPONENT_TYPE_ID         = 0x43
-PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID    = 0x44
+PCD_V2_ROT_TYPE_ID = 0x40
+PCD_V2_SPI_FLASH_PORT_TYPE_ID = 0x41
+PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID = 0x42
+PCD_V2_DIRECT_COMPONENT_TYPE_ID = 0x43
+PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID = 0x44
+PCD_V2_TCG_LOG_COMPONENT_TYPE_ID = 0x45
 
-CFM_V2_COMPONENT_DEVICE_TYPE_ID         = 0x70
-CFM_V2_PMR_TYPE_ID                      = 0x71
-CFM_V2_PMR_DIGEST_TYPE_ID               = 0x72
-CFM_V2_MEASUREMENT_TYPE_ID              = 0x73
-CFM_V2_MEASUREMENT_DATA_TYPE_ID         = 0x74
-CFM_V2_ALLOWABLE_DATA_TYPE_ID           = 0x75
-CFM_V2_ALLOWABLE_PFM_TYPE_ID            = 0x76
-CFM_V2_ALLOWABLE_CFM_TYPE_ID            = 0x77
-CFM_V2_ALLOWABLE_PCD_TYPE_ID            = 0x78
-CFM_V2_ALLOWABLE_ID_TYPE_ID             = 0x79
-CFM_V2_ROOT_CA_TYPE_ID                  = 0x7A
+CFM_V2_COMPONENT_DEVICE_TYPE_ID = 0x70
+CFM_V2_PMR_TYPE_ID = 0x71
+CFM_V2_PMR_DIGEST_TYPE_ID = 0x72
+CFM_V2_MEASUREMENT_TYPE_ID = 0x73
+CFM_V2_MEASUREMENT_DATA_TYPE_ID = 0x74
+CFM_V2_ALLOWABLE_DATA_TYPE_ID = 0x75
+CFM_V2_ALLOWABLE_PFM_TYPE_ID = 0x76
+CFM_V2_ALLOWABLE_CFM_TYPE_ID = 0x77
+CFM_V2_ALLOWABLE_PCD_TYPE_ID = 0x78
+CFM_V2_ALLOWABLE_ID_TYPE_ID = 0x79
+CFM_V2_ROOT_CA_TYPE_ID = 0x7A
 
-PFM_MAGIC_NUM                           = 0x504D
-CFM_MAGIC_NUM                           = 0xA592
-PCD_MAGIC_NUM                           = 0x1029
+PFM_MAGIC_NUM = 0x504D
+CFM_MAGIC_NUM = 0xA592
+PCD_MAGIC_NUM = 0x1029
+PCD_V3_MAGIC_NUM = 0x58A3
 
-MANIFEST_HASH_SHA256            = 0
-MANIFEST_HASH_SHA384            = 1
-MANIFEST_HASH_SHA512            = 2
+MANIFEST_HASH_SHA256 = 0
+MANIFEST_HASH_SHA384 = 1
+MANIFEST_HASH_SHA512 = 2
 
 _HASH_LEN = {
     MANIFEST_HASH_SHA256: 32,
@@ -79,14 +90,18 @@ _HASH_LEN = {
 # =============================================================================
 # Data classes
 # =============================================================================
+
+
 @dataclass
 class ManifestHeader:
-    length: int      # total file length claimed by manifest (includes signature)
+    # total file length claimed by manifest (includes signature)
+    length: int
     magic: int
     id: int
     sig_length: int
     sig_type: int
     reserved: int
+
 
 @dataclass
 class ManifestTocHeader:
@@ -95,14 +110,29 @@ class ManifestTocHeader:
     hash_type: int
     reserved: int
 
+
 @dataclass
 class ManifestTocEntry:
     type_id: int
     parent: int
     format: int
     hash_id: int
-    offset: int      # absolute offset from start of manifest (0 = first header byte)
+    # absolute offset from start of manifest (0 = first header byte)
+    offset: int
     length: int
+
+
+@dataclass
+class ManifestTocExtension:
+    """Parsed sub-table-of-contents reached via a parent extension entry."""
+    parent_index: int                  # index into the parent's entry list of the marker entry
+    toc_offset: int                    # absolute offset where this sub-TOC starts
+    toc_length: int                    # length in bytes of the sub-TOC region
+    toc_header: ManifestTocHeader
+    entries: List[ManifestTocEntry]
+    # element hashes carried inside the sub-TOC
+    hashes: List[bytes]
+
 
 @dataclass
 class Manifest:
@@ -114,13 +144,21 @@ class Manifest:
     signature: bytes
 
     # Computed fields for tests
-    signed_bytes: bytes = b""                    # header + payload (excluding signature)
+    # header + payload (excluding signature)
+    signed_bytes: bytes = b""
     computed_hashes: List[bytes] = None          # per-element hashes
-    computed_table_hash: bytes = b""             # hash(TOC header + entries + element hashes)
+    # hash(TOC header + entries + element hashes)
+    computed_table_hash: bytes = b""
+    # populated when extension entries are present
+    toc_extensions: List[ManifestTocExtension] = None
+    # entries from the first/outermost TOC only
+    outer_entries: List[ManifestTocEntry] = None
 
 # =============================================================================
 # Parsing functions
 # =============================================================================
+
+
 def parse_manifest_header(b: bytes) -> Tuple[ManifestHeader, int]:
     """
     struct manifest_header (packed, 12 bytes, at file start):
@@ -140,6 +178,7 @@ def parse_manifest_header(b: bytes) -> Tuple[ManifestHeader, int]:
     sig_type = _u8(b, 10)
     reserved = _u8(b, 11)
     return ManifestHeader(length, magic, _id, sig_len, sig_type, reserved), 12
+
 
 def parse_toc_header(b: bytes, off: int) -> Tuple[ManifestTocHeader, int, int]:
     """
@@ -163,6 +202,7 @@ def parse_toc_header(b: bytes, off: int) -> Tuple[ManifestTocHeader, int, int]:
 
     return hdr, off + 4, hash_len
 
+
 def parse_toc_entries(b: bytes, off: int, count: int) -> Tuple[List[ManifestTocEntry], int]:
     """
     struct manifest_toc_entry (packed, 8 bytes each):
@@ -183,9 +223,11 @@ def parse_toc_entries(b: bytes, off: int, count: int) -> Tuple[List[ManifestTocE
         hash_id = _u8(b, off + 3)
         offset = _u16(b, off + 4)
         length = _u16(b, off + 6)
-        entries.append(ManifestTocEntry(type_id, parent, format_, hash_id, offset, length))
+        entries.append(ManifestTocEntry(type_id, parent,
+                       format_, hash_id, offset, length))
         off += 8
     return entries, off
+
 
 def parse_hashes(b: bytes, off: int, hash_len: int, hash_count: int) -> Tuple[List[bytes], bytes, int]:
     """Read 'hash_count' element hashes followed by 1 table hash (all of size 'hash_len')."""
@@ -199,6 +241,8 @@ def parse_hashes(b: bytes, off: int, hash_len: int, hash_count: int) -> Tuple[Li
 # =============================================================================
 # helpers
 # =============================================================================
+
+
 def _get_hash_engine(hash_type: int):
     if hash_type == MANIFEST_HASH_SHA256:
         return SHA256
@@ -207,6 +251,52 @@ def _get_hash_engine(hash_type: int):
     if hash_type == MANIFEST_HASH_SHA512:
         return SHA512
     raise ValueError(f"Unsupported hash_type {hash_type}")
+
+
+def _parse_toc_extension(
+    b: bytes,
+    parent_index: int,
+    ext_offset: int,
+    ext_length: int,
+    hash_len: int,
+    hash_type: int,
+) -> ManifestTocExtension:
+    """
+    Parse a TOC extension at ``ext_offset`` (size ``ext_length``).
+
+    A TOC extension contains: ``manifest_toc_header`` + ``entry_count`` entries +
+    ``hash_count`` element hashes. Unlike the outermost TOC, it does **not**
+    carry a trailing table hash -- the parent TOC's element hash for the
+    extension's marker entry serves that role.
+    """
+    sub_hdr, sub_off, ext_hash_len = parse_toc_header(b, ext_offset)
+    if ext_hash_len != hash_len:
+        raise ValueError(
+            f"TOC extension hash_type {sub_hdr.hash_type} does not match parent {hash_type}"
+        )
+
+    sub_entries, sub_off = parse_toc_entries(b, sub_off, sub_hdr.entry_count)
+    sub_hashes: List[bytes] = []
+    for _ in range(sub_hdr.hash_count):
+        h, sub_off = _read(b, sub_off, hash_len)
+        sub_hashes.append(h)
+
+    consumed = sub_off - ext_offset
+    if consumed != ext_length:
+        raise ValueError(
+            f"TOC extension at 0x{ext_offset:x}: consumed {consumed} bytes "
+            f"but parent entry length is {ext_length}"
+        )
+
+    return ManifestTocExtension(
+        parent_index=parent_index,
+        toc_offset=ext_offset,
+        toc_length=ext_length,
+        toc_header=sub_hdr,
+        entries=sub_entries,
+        hashes=sub_hashes,
+    )
+
 
 # =============================================================================
 # Top-level parser
@@ -217,13 +307,21 @@ def parse_manifest(b: bytes) -> Manifest:
     - computed_hashes: per-element hashes over element bytes
     - computed_table_hash: hash over TOC header + entries + element hashes
     - signed_bytes: header + payload (excluding signature)
+
+    TOC extensions (entries with ``type_id == V2_TOC_EXTENSION_TYPE_ID``) are
+    parsed recursively. Their child entries are flattened into ``Manifest.entries``
+    so consumers can iterate the full element list without special handling.
+    The original outermost TOC entries (including extension markers) are kept on
+    ``Manifest.outer_entries`` and detailed extension info is kept on
+    ``Manifest.toc_extensions``.
     """
     total_len = len(b)
 
     # 1) Header (fixed 12 bytes at start)
     hdr, after_hdr = parse_manifest_header(b)
     if hdr.length > total_len:
-        raise ValueError(f"Truncated manifest: header.length={hdr.length} > file_size={total_len}")
+        raise ValueError(
+            f"Truncated manifest: header.length={hdr.length} > file_size={total_len}")
 
     # 2) Signature region (from end of claimed size)
     sig_len = hdr.sig_length
@@ -239,58 +337,87 @@ def parse_manifest(b: bytes) -> Manifest:
         raise ValueError("TOC header overruns payload region")
 
     # 4) TOC entries
-    entries, off = parse_toc_entries(b, off, toc_hdr.entry_count)
+    outer_entries, off = parse_toc_entries(b, off, toc_hdr.entry_count)
     if off > sig_start:
         raise ValueError("TOC entries overrun payload region")
 
     # 5) Element hashes + table hash
-    hashes, table_hash, off = parse_hashes(b, off, hash_len, toc_hdr.hash_count)
+    hashes, table_hash, off = parse_hashes(
+        b, off, hash_len, toc_hdr.hash_count)
     if off > sig_start:
         raise ValueError("TOC hashes overrun payload region")
 
     # 6) Payload window (exclude signature)
-    payload_off = off             # start of payload (immediately after TOC)
     payload_end = sig_start       # start of signature
-    if payload_off > payload_end:
+    if off > payload_end:
         raise ValueError("Invalid payload bounds: header overlaps signature")
 
-    # 7) Compute per-element hashes and table hash
+    # 7) Recursively parse any TOC extensions and build a flattened entry list,
+    # paired with the element hash recorded for each entry in its own TOC.
+    # The marker entry that points at an extension is itself included in the
+    # flat list so that its element hash (which authenticates the entire
+    # extension blob: sub-TOC header + entries + sub-element-hashes) is
+    # verified by ``assert_hashes_valid`` along with everything else.
+    toc_extensions: List[ManifestTocExtension] = []
+    flat_entries: List[ManifestTocEntry] = []
+    flat_hashes: List[bytes] = []
+
+    def _walk(curr_entries: List[ManifestTocEntry], curr_hashes: List[bytes]) -> None:
+        for idx, entry in enumerate(curr_entries):
+            if 0 <= entry.hash_id < len(curr_hashes):
+                entry_hash = curr_hashes[entry.hash_id]
+            else:
+                entry_hash = b""
+            flat_entries.append(entry)
+            flat_hashes.append(entry_hash)
+
+            if entry.type_id == V2_TOC_EXTENSION_TYPE_ID and entry.parent == V2_BASE_TYPE_ID:
+                ext = _parse_toc_extension(
+                    b, idx, entry.offset, entry.length, hash_len, toc_hdr.hash_type,
+                )
+                toc_extensions.append(ext)
+                _walk(ext.entries, ext.hashes)
+
+    _walk(outer_entries, hashes)
+
+    # 8) Per-element hashes for every flat entry, plus the outermost table hash.
     hash_engine = _get_hash_engine(toc_hdr.hash_type)
+    computed_hashes: List[bytes] = [
+        hash_engine.new(b[e.offset: e.offset + e.length]).digest() for e in flat_entries
+    ]
 
-    # Per-element hashes from element bytes
-    computed_hashes: List[bytes] = []
-    for entry in entries:
-        el = b[entry.offset: entry.offset + entry.length]
-        computed_hashes.append(hash_engine.new(el).digest())
-
-    # Table hash over TOC table:
-    # TOC table bytes = TOC header + entries + element hashes.
-    # 'after_hdr' points to TOC header, 'off - hash_len' now points to start of the table hash field.
+    # Table hash over the OUTERMOST TOC bytes only (extension TOCs are validated
+    # via their parent entry's element hash).
     toc_table_bytes = b[after_hdr: off - hash_len]
     computed_table_hash = hash_engine.new(toc_table_bytes).digest()
 
-    # 8) Signed bytes = header + TOC + entire payload (excluding signature)
+    # 9) Signed bytes = everything before the signature.
     signed_bytes = b[:payload_end]
 
     return Manifest(
         header=hdr,
         toc_header=toc_hdr,
-        entries=entries,
-        hashes=hashes,
+        entries=flat_entries,
+        hashes=flat_hashes,
         table_hash=table_hash,
         signature=signature,
         signed_bytes=signed_bytes,
         computed_hashes=computed_hashes,
         computed_table_hash=computed_table_hash,
+        toc_extensions=toc_extensions,
+        outer_entries=outer_entries,
     )
 
 # =============================================================================
 # Convenience for tests
 # =============================================================================
+
+
 def load_manifest_blob(path: str) -> Manifest:
     with open(path, "rb") as f:
         data = f.read()
     return parse_manifest(data)
+
 
 def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
     """
@@ -304,6 +431,12 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
         if "components" not in tree:
             tree["components"] = []
 
+    if m.header.magic in (PCD_MAGIC_NUM, PCD_V3_MAGIC_NUM):
+        # Provide stable defaults so tests can assert presence/absence cleanly.
+        tree["rot"] = None
+        tree["power_controller"] = None
+        tree["components"] = []
+
     data = m.signed_bytes  # full manifest payload excluding signature
     current_component: Dict[str, Any] = None
     current_measurement_data_node: Dict[str, Any] = None
@@ -312,6 +445,11 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
     pending_rot_ports: Dict[int, Dict[str, Any]] = {}
 
     for entry in m.entries:
+        # Skip TOC-extension marker entries: they describe sub-TOC bytes, not
+        # a real element, and have already been walked into by parse_manifest.
+        if entry.type_id == V2_TOC_EXTENSION_TYPE_ID and entry.parent == V2_BASE_TYPE_ID:
+            continue
+
         start = entry.offset
         end = start + entry.length
         chunk = data[start:end]
@@ -320,7 +458,8 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
         if entry.parent == V2_BASE_TYPE_ID and entry.type_id == V2_PLATFORM_TYPE_ID:
             # platform_id_length (u8), reserved[3], platform_id string, padding
             platform_len = chunk[0]
-            platform_id = chunk[4:4 + platform_len].decode("utf-8", errors="strict")
+            platform_id = chunk[4:4 +
+                                platform_len].decode("utf-8", errors="strict")
             tree["platform_id"] = platform_id
             continue
 
@@ -358,7 +497,8 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             version_length = chunk[2]
             # reserved = chunk[3]
             version_addr = _u32(chunk, 4)
-            version_str = chunk[8:8 + version_length].decode("utf-8", errors="strict")
+            version_str = chunk[8:8 +
+                                version_length].decode("utf-8", errors="strict")
             off = 8 + version_length + _pad4_len(version_length)
 
             # RW regions
@@ -366,8 +506,8 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             for _ in range(rw_count):
                 flags = chunk[off]
                 # reserved = chunk[off+1:off+4]
-                start_addr = _u32(chunk, off+4)
-                end_addr = _u32(chunk, off+8)
+                start_addr = _u32(chunk, off + 4)
+                end_addr = _u32(chunk, off + 8)
                 rw_regions.append({
                     "flags": flags,
                     "start_addr": start_addr,
@@ -379,19 +519,19 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             images = []
             for _ in range(img_count):
                 hash_type = chunk[off]
-                region_count = chunk[off+1]
-                img_flags = chunk[off+2]
+                region_count = chunk[off + 1]
+                img_flags = chunk[off + 2]
                 # reserved = chunk[off+3]
                 off += 4
                 hash_len = _HASH_LEN.get(hash_type)
                 if hash_len is None:
                     raise ValueError(f"Unsupported hash_type {hash_type}")
-                hash_bytes = chunk[off:off+hash_len]
+                hash_bytes = chunk[off:off + hash_len]
                 off += hash_len
                 regions = []
                 for _ in range(region_count):
                     img_start_addr = _u32(chunk, off)
-                    img_end_addr = _u32(chunk, off+4)
+                    img_end_addr = _u32(chunk, off + 4)
                     regions.append({
                         "start": img_start_addr,
                         "end": img_end_addr
@@ -415,22 +555,22 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
 
         # RoT element
         if entry.parent == V2_BASE_TYPE_ID and entry.type_id == PCD_V2_ROT_TYPE_ID:
-            rot_flags                     = chunk[0]
-            port_count                    = chunk[1]
-            components_count              = chunk[2]
-            rot_address                   = chunk[3]
-            rot_eid                       = chunk[4]
-            bridge_address                = chunk[5]
-            bridge_eid                    = chunk[6]
+            rot_flags = chunk[0]
+            port_count = chunk[1]
+            components_count = chunk[2]
+            rot_address = chunk[3]
+            rot_eid = chunk[4]
+            bridge_address = chunk[5]
+            bridge_eid = chunk[6]
             # reserved                    = chunk[7]
-            attestation_success_retry     = _u32(chunk, 8)
-            attestation_fail_retry        = _u32(chunk, 12)
-            discovery_fail_retry          = _u32(chunk, 16)
-            mctp_ctrl_timeout             = _u32(chunk, 20)
-            mctp_bridge_get_table_wait    = _u32(chunk, 24)
-            mctp_bridge_additional_timeout= _u32(chunk, 28)
-            rsp_not_ready_max_duration    = _u32(chunk, 32)
-            rsp_not_ready_max_retry       = chunk[36]
+            attestation_success_retry = _u32(chunk, 8)
+            attestation_fail_retry = _u32(chunk, 12)
+            discovery_fail_retry = _u32(chunk, 16)
+            mctp_ctrl_timeout = _u32(chunk, 20)
+            mctp_bridge_get_table_wait = _u32(chunk, 24)
+            mctp_bridge_additional_timeout = _u32(chunk, 28)
+            rsp_not_ready_max_duration = _u32(chunk, 32)
+            rsp_not_ready_max_retry = chunk[36]
             # reserved2[3]                = chunk[37:40]  # ignore
 
             rot_node = {
@@ -464,19 +604,20 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
 
         # SPI Flash Port
         if entry.parent == PCD_V2_ROT_TYPE_ID and entry.type_id == PCD_V2_SPI_FLASH_PORT_TYPE_ID:
-            port_id          = chunk[0]
-            port_flags       = chunk[1]
+            port_id = chunk[0]
+            port_flags = chunk[1]
             host_reset_action = port_flags >> 6
             watchdog_monitoring = (port_flags >> 5) & 1
             runtime_verification = (port_flags >> 4) & 1
             flash_mode = (port_flags >> 2) & 3
             reset_ctrl = port_flags & 3
 
-            port_flags_new = (host_reset_action << 6) | (watchdog_monitoring << 5) | (runtime_verification << 4) | (flash_mode << 2) | reset_ctrl
+            port_flags_new = (host_reset_action << 6) | (watchdog_monitoring << 5) | (
+                runtime_verification << 4) | (flash_mode << 2) | reset_ctrl
             assert port_flags == port_flags_new, f"Expected port_flags {port_flags}, got {port_flags_new}"
 
-            policy           = chunk[2]
-            pulse_interval   = chunk[3]
+            policy = chunk[2]
+            pulse_interval = chunk[3]
             spi_frequency_hz = _u32(chunk, 4)
 
             port_obj = {
@@ -499,23 +640,23 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
         # Power controller
         if entry.parent == V2_BASE_TYPE_ID and entry.type_id == PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID:
             # Bitfield byte: low 4 bits = mux_count, high 4 bits = i2c_flags
-            bf0        = chunk[0]
-            mux_count  = bf0 & 0x0F
-            i2c_flags  = (bf0 >> 4) & 0x0F
-            bus        = chunk[1]
-            address    = chunk[2]
-            eid        = chunk[3]
-            off        = 4
+            bf0 = chunk[0]
+            mux_count = bf0 & 0x0F
+            i2c_flags = (bf0 >> 4) & 0x0F
+            bus = chunk[1]
+            address = chunk[2]
+            eid = chunk[3]
+            off = 4
 
             muxes: Dict[Dict[str, Any]] = {}
             for index in range(mux_count):
-                mux_addr   = chunk[off + 0]
-                mux_chan   = chunk[off + 1]
+                mux_addr = chunk[off + 0]
+                mux_chan = chunk[off + 1]
                 # reserved u16 at off+2..off+3
                 off += 4
                 muxes[index + 1] = {"address": mux_addr, "channel": mux_chan}
 
-            power_ctrl_node = { "interface": {
+            power_ctrl_node = {"interface": {
                 "type": "I2C",
                 "i2c_mode": i2c_flags,
                 "bus": bus,
@@ -527,74 +668,86 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             tree["power_controller"] = power_ctrl_node
             continue
 
-        # Direct I2C component
-        if entry.parent == V2_BASE_TYPE_ID and entry.type_id == PCD_V2_DIRECT_COMPONENT_TYPE_ID:
-            policy          = chunk[0]
-            pwr_reg         = chunk[1]
-            pwr_mask        = chunk[2]
-            # reserved       = chunk[3]
-            component_id    = _u32(chunk, 4)
-            bf              = chunk[8]
-            mux_count       = bf & 0x0F
-            i2c_flags       = (bf >> 4) & 0x0F
-            bus             = chunk[9]
-            address         = chunk[10]
-            eid             = chunk[11]
-            off             = 12
+        # PCD components (Direct / MCTPBridge / TCGLog) -- v2 and v3 formats
+        if entry.parent == V2_BASE_TYPE_ID and entry.type_id in (
+            PCD_V2_DIRECT_COMPONENT_TYPE_ID,
+            PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID,
+            PCD_V2_TCG_LOG_COMPONENT_TYPE_ID,
+        ):
+            # Common header (v2 = 8 bytes, v3 = 12 bytes + types_count * 8 byte sources)
+            policy = chunk[0]
+            pwr_reg = chunk[1]
+            pwr_mask = chunk[2]
 
-            muxes: Dict[Dict[str, Any]] = {}
-            for index in range(mux_count):
-                mux_addr   = chunk[off + 0]
-                mux_chan   = chunk[off + 1]
-                off += 4  # skip reserved u16
-                muxes[index] = {"address": mux_addr, "channel": mux_chan}
+            sources: List[Dict[str, Any]] = []
+            if entry.format >= 3:
+                instances_count = chunk[3]
+                component_id = _u32(chunk, 4)
+                component_types_count = chunk[8]
+                # reserved[3]         = chunk[9:12]
+                off = 12
+                for _ in range(component_types_count):
+                    sources.append({
+                        "cfm_component_id": _u32(chunk, off),
+                        "min": chunk[off + 4],
+                        "max": chunk[off + 5],
+                    })
+                    off += 8
+            else:
+                instances_count = 1
+                component_types_count = 0
+                # reserved             = chunk[3]
+                component_id = _u32(chunk, 4)
+                off = 8
 
-            comp = {
-                "connection": "Direct",
+            comp: Dict[str, Any] = {
+                "format": entry.format,
                 "policy": policy,
                 "powerctrl": {"register": pwr_reg, "mask": pwr_mask},
                 "component_id": component_id,
-                "interface": {
+                "instances_count": instances_count,
+                "sources": sources,
+            }
+
+            if entry.type_id == PCD_V2_DIRECT_COMPONENT_TYPE_ID:
+                comp["kind"] = "direct"
+                comp["connection"] = "Direct"
+                bf = chunk[off + 0]
+                mux_count = bf & 0x0F
+                i2c_flags = (bf >> 4) & 0x0F
+                bus = chunk[off + 1]
+                address = chunk[off + 2]
+                eid = chunk[off + 3]
+                mux_off = off + 4
+                muxes: Dict[int, Dict[str, Any]] = {}
+                for index in range(mux_count):
+                    muxes[index] = {
+                        "address": chunk[mux_off + 0],
+                        "channel": chunk[mux_off + 1],
+                    }
+                    mux_off += 4  # skip reserved u16
+                comp["interface"] = {
                     "type": "I2C",
                     "i2c_mode": i2c_flags,
                     "bus": bus,
                     "address": address,
                     "eid": eid,
-                    "muxes": muxes
+                    "muxes": muxes,
                 }
-            }
-            if "components" not in tree:
-                tree["components"] = []
-            tree["components"].append(comp)
-            continue
+            elif entry.type_id == PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID:
+                comp["kind"] = "mctp_bridge"
+                comp["connection"] = "MCTPBridge"
+                comp["deviceid"] = _u16(chunk, off + 0)
+                comp["vendorid"] = _u16(chunk, off + 2)
+                comp["subdeviceid"] = _u16(chunk, off + 4)
+                comp["subvendorid"] = _u16(chunk, off + 6)
+                comp["count"] = chunk[off + 8]
+                comp["eid"] = chunk[off + 9]
+                # reserved u16 at off+10..off+11
+            else:  # PCD_V2_TCG_LOG_COMPONENT_TYPE_ID
+                comp["kind"] = "tcg_log"
+                comp["connection"] = "TCGLog"
 
-        # MCTP Bridge component
-        if entry.parent == V2_BASE_TYPE_ID and entry.type_id == PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID:
-            policy                = chunk[0]
-            pwr_reg               = chunk[1]
-            pwr_mask              = chunk[2]
-            # reserved            = chunk[3]
-            component_id          = _u32(chunk, 4)
-            device_id             = _u16(chunk, 8)
-            vendor_id             = _u16(chunk, 10)
-            subsystem_device_id   = _u16(chunk, 12)
-            subsystem_vendor_id   = _u16(chunk, 14)
-            components_count      = chunk[16]
-            eid                   = chunk[17]
-            # reserved2 u16        = _u16(chunk, 18)  # not used
-
-            comp = {
-                "connection": "MCTPBridge",
-                "policy": policy,
-                "powerctrl": {"register": pwr_reg, "mask": pwr_mask},
-                "component_id": component_id,
-                "deviceid": device_id,
-                "vendorid": vendor_id,
-                "subdeviceid": subsystem_device_id,
-                "subvendorid": subsystem_vendor_id,
-                "count": components_count,
-                "eid": eid
-            }
             if "components" not in tree:
                 tree["components"] = []
             tree["components"].append(comp)
@@ -632,12 +785,14 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             # digest area starts at offset 4; length is (entry.length - 4)
             digests: List[bytes] = []
             off = 4
-            hash_len = _HASH_LEN.get(current_component["measurement_hash_type"])
+            hash_len = _HASH_LEN.get(
+                current_component["measurement_hash_type"])
             for _ in range(ca_count):
                 d = chunk[off: off + hash_len]
                 digests.append(bytes(d))
                 off += hash_len
-            current_component["root_ca_digests"] = {"allowable_digests": digests}
+            current_component["root_ca_digests"] = {
+                "allowable_digests": digests}
             continue
 
         # PMR initial value
@@ -655,14 +810,16 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             count = chunk[1]
             off = 4
             digests = []
-            hash_len = _HASH_LEN.get(current_component["measurement_hash_type"])
+            hash_len = _HASH_LEN.get(
+                current_component["measurement_hash_type"])
             for _ in range(count):
                 d = chunk[off: off + hash_len]
                 digests.append(bytes(d))
                 off += hash_len
             if "pmr_digests" not in current_component:
                 current_component["pmr_digests"] = {}
-            current_component["pmr_digests"][pmr_id] = {"allowable_digests": digests}
+            current_component["pmr_digests"][pmr_id] = {
+                "allowable_digests": digests}
             continue
 
         # Measurement
@@ -672,7 +829,8 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             count = chunk[2]
             off = 4
             digests = []
-            hash_len = _HASH_LEN.get(current_component["measurement_hash_type"])
+            hash_len = _HASH_LEN.get(
+                current_component["measurement_hash_type"])
             # Each allowable_digest entry: u16 version_set, u8 digest_count, u8 reserved, followed by digest_count * digest_len bytes
             for _ in range(count):
                 version_set = _u16(chunk, off)
@@ -685,7 +843,8 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             if "measurements" not in current_component:
                 current_component["measurements"] = {}
             current_component["measurements"].setdefault(pmr_id, {})
-            current_component["measurements"][pmr_id][measurement_id] = { "allowable_digests": digests }
+            current_component["measurements"][pmr_id][measurement_id] = {
+                "allowable_digests": digests}
             continue
 
         # Measurement Data header
@@ -712,7 +871,8 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             bitmask_len = _u16(chunk, 2)
             off = 4
 
-            group: Dict[str, Any] = {"check": check, "endianness": endianness, "data": []}
+            group: Dict[str, Any] = {"check": check,
+                                     "endianness": endianness, "data": []}
 
             if bitmask_len:
                 bitmask = bytes(chunk[off: off + bitmask_len])
@@ -742,7 +902,8 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
         ):
             manifest_index = chunk[0]   # port (PFM) or index (CFM); PCD uses 0
             platform_len = chunk[1]
-            platform = chunk[2: 2 + platform_len].decode("utf-8", errors="strict")
+            platform = chunk[2: 2 +
+                             platform_len].decode("utf-8", errors="strict")
 
             manifest_node = {"platform": platform, "manifest_id": []}
             last_allowable_manifest = manifest_node
@@ -779,9 +940,11 @@ def manifest_to_tree(m: Manifest) -> Dict[str, Any]:
             for _ in range(num_id):
                 ids.append(_u32(chunk, off))
                 off += 4
-            parent_manifest["manifest_id"].append({"check": check, "endianness": endianness, "ids": ids})
+            parent_manifest["manifest_id"].append(
+                {"check": check, "endianness": endianness, "ids": ids})
             continue
 
-        raise ValueError(f"Element with ID {entry.type_id} is not handled in the function")
+        raise ValueError(
+            f"Element with ID {entry.type_id} is not handled in the function")
 
     return tree

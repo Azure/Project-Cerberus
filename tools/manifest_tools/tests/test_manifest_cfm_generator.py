@@ -33,7 +33,7 @@ How to run (from repo root):
 
 from pathlib import Path
 import pytest
-import sys
+
 from helpers.manifest_blob_parse import load_manifest_blob, manifest_to_tree
 from helpers.manifest_blob_assert import (
     assert_header, assert_hashes_valid, assert_signature_valid
@@ -41,23 +41,22 @@ from helpers.manifest_blob_assert import (
 from helpers.utils import create_temp_config
 from helpers.utils import xsd_unexpected_child_regex
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
+from conftest import COMPONENT_JSON, MANIFEST_TOOLS_DIR, TEST_KEY, TEST_XML_DIR
 from manifest_common import CFM_MAGIC_NUM
 from cfm_generator import main as cfm_gen
 
-CERBERUS_DIR = Path(__file__).resolve().parent.parent.parent.parent
-CFM_XML_DIR = CERBERUS_DIR / "tools/testing/test_xml"
-COMPONENT_JSON = Path(__file__).resolve().parent.parent / "component_map.json"
-CFM_XML = Path(__file__).resolve().parent.parent / "cfm.xml"
-TEST_KEY = CERBERUS_DIR / "core/testing/keys" / "rsapriv.pem"
+CFM_XML_DIR = TEST_XML_DIR
+CFM_XML = MANIFEST_TOOLS_DIR / "cfm.xml"
 
-global_config_template = ["ID=1", "KeyType=RSA", "HashType=SHA256", "ComponentMap=" + str(COMPONENT_JSON), "CFM=" + str(CFM_XML)]
+global_config_template = ["ID=1", "KeyType=RSA", "HashType=SHA256",
+                          "ComponentMap=" + str(COMPONENT_JSON), "CFM=" + str(CFM_XML)]
+
 
 def test_cfm_measurement_data_first_valid(tmp_path):
     xml_file = CFM_XML_DIR / "cfm_component_measurement_data_first.xml"
     output_file = tmp_path / "output_cfm.bin"
-    config_file = create_temp_config(tmp_path, [str(xml_file)], str(output_file), str(TEST_KEY), global_config_template)
+    config_file = create_temp_config(tmp_path, [str(xml_file)], str(
+        output_file), str(TEST_KEY), global_config_template)
     cfm_gen([config_file])
     assert output_file.exists()
     m = load_manifest_blob(output_file)
@@ -164,11 +163,12 @@ def test_cfm_measurement_data_first_valid(tmp_path):
     }
     assert manifest_tree == valid_tree, "Manifest structure does not match"
 
+
 def test_cfm_empty_valid(tmp_path):
     output_file = tmp_path / "output_cfm.bin"
     config_file = create_temp_config(tmp_path, [], str(output_file), str(TEST_KEY),
-                                      ["ID=1", "KeyType=RSA", "HashType=SHA384", "ComponentMap=" + str(COMPONENT_JSON),
-                                       "CFM=" + str(CFM_XML_DIR / "cfm_empty.xml")])
+                                     ["ID=1", "KeyType=RSA", "HashType=SHA384", "ComponentMap=" + str(COMPONENT_JSON),
+                                      "CFM=" + str(CFM_XML_DIR / "cfm_empty.xml")])
     cfm_gen([config_file])
     assert output_file.exists()
     m = load_manifest_blob(output_file)
@@ -181,6 +181,7 @@ def test_cfm_empty_valid(tmp_path):
         'components': []
     }
     assert manifest_tree == valid_tree, "Manifest structure does not match"
+
 
 # List of malformed XML test cases: (case_name, xml_content, expected_error_match)
 malformed_cases = [
@@ -196,7 +197,8 @@ malformed_cases = [
                 </AllowableData>
             </Measurement>
         </CFMComponent>""",
-        xsd_unexpected_child_regex(unexpected_tag="AllowableData", expected_tag="Digest", path="/CFMComponent/Measurement")
+        xsd_unexpected_child_regex(
+            unexpected_tag="AllowableData", expected_tag="Digest", path="/CFMComponent/Measurement")
     ),
     (
         "malformed_measurementdata_not_valid",
@@ -205,7 +207,8 @@ malformed_cases = [
                 <Digest>111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111</Digest>
             </MeasurementData>
         </CFMComponent>""",
-        xsd_unexpected_child_regex(unexpected_tag="Digest", expected_tag="AllowableData", path="/CFMComponent/MeasurementData")
+        xsd_unexpected_child_regex(
+            unexpected_tag="Digest", expected_tag="AllowableData", path="/CFMComponent/MeasurementData")
     ),
     (
         "malformed_allowablepfm_not_valid",
@@ -217,7 +220,8 @@ malformed_cases = [
                 <Digest>111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111</Digest>
             </Measurement>
         </CFMComponent>""",
-        xsd_unexpected_child_regex(unexpected_tag="Digest", expected_tag="ManifestID", path="/CFMComponent/AllowablePFM")
+        xsd_unexpected_child_regex(
+            unexpected_tag="Digest", expected_tag="ManifestID", path="/CFMComponent/AllowablePFM")
     ),
     (
         "malformed_allowablecfm_not_valid",
@@ -229,7 +233,8 @@ malformed_cases = [
                 <Digest>111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111</Digest>
             </Measurement>
         </CFMComponent>""",
-        xsd_unexpected_child_regex(unexpected_tag="Digest", expected_tag="ManifestID", path="/CFMComponent/AllowableCFM")
+        xsd_unexpected_child_regex(
+            unexpected_tag="Digest", expected_tag="ManifestID", path="/CFMComponent/AllowableCFM")
     ),
     (
         "malformed_allowablepcd_not_valid",
@@ -241,9 +246,11 @@ malformed_cases = [
                 <Digest>111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111</Digest>
             </Measurement>
         </CFMComponent>""",
-        xsd_unexpected_child_regex(unexpected_tag="Digest", expected_tag="ManifestID", path="/CFMComponent/AllowablePCD")
+        xsd_unexpected_child_regex(
+            unexpected_tag="Digest", expected_tag="ManifestID", path="/CFMComponent/AllowablePCD")
     )
 ]
+
 
 @pytest.mark.parametrize("case_name, xml_content, expected_error_match", malformed_cases)
 def test_cfm_malformed_cases(tmp_path, case_name, xml_content, expected_error_match):
@@ -254,8 +261,8 @@ def test_cfm_malformed_cases(tmp_path, case_name, xml_content, expected_error_ma
     xml_file = tmp_path / f"{case_name}.xml"
     xml_file.write_text(xml_content)
     output_file = tmp_path / "output_cfm.bin"
-    config_file = create_temp_config(tmp_path, [str(xml_file)], str(output_file), str(TEST_KEY), global_config_template)
+    config_file = create_temp_config(tmp_path, [str(xml_file)], str(
+        output_file), str(TEST_KEY), global_config_template)
 
     with pytest.raises(ValueError, match=expected_error_match):
         cfm_gen([config_file])
-

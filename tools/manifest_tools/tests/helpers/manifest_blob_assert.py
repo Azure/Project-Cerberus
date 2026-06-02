@@ -14,6 +14,8 @@ from .manifest_blob_parse import (Manifest, CFM_V2_MEASUREMENT_TYPE_ID)
 # -------------------------
 # Basic checks
 # -------------------------
+
+
 def assert_header(m: Manifest, *, magic: int, sig_len: int = None) -> None:
     assert m.header.magic == magic, f"magic mismatch: 0x{m.header.magic:08x}"
     if sig_len is not None:
@@ -22,6 +24,8 @@ def assert_header(m: Manifest, *, magic: int, sig_len: int = None) -> None:
 # -------------------------
 # Hash integrity checks
 # -------------------------
+
+
 def assert_hashes_valid(m: Manifest) -> None:
     """
     Recompute element hashes and table hash and compare against parsed values.
@@ -39,6 +43,8 @@ def assert_hashes_valid(m: Manifest) -> None:
 # -------------------------
 # Signature verification
 # -------------------------
+
+
 def _load_public_key_from_pem(pem_bytes: bytes):
     """
     Load RSA public key from PEM. If PEM contains a private key, derive public key.
@@ -54,7 +60,8 @@ def assert_signature_valid(m, key_pem_path: str) -> None:
     - Raises AssertionError on mismatch; raises NotImplementedError for non-RSA sig types.
     """
     # Ensure we have the signed bytes available
-    assert hasattr(m, "signed_bytes") and m.signed_bytes is not None, "signed_bytes not present on manifest object"
+    assert hasattr(
+        m, "signed_bytes") and m.signed_bytes is not None, "signed_bytes not present on manifest object"
 
     with open(key_pem_path, "rb") as f:
         pem = f.read()
@@ -67,11 +74,13 @@ def assert_signature_valid(m, key_pem_path: str) -> None:
     elif m.header.sig_length == 512:
         hash_engine = SHA512.new(m.signed_bytes)
     else:
-        raise ValueError(f"Unsupported size for signature: {m.header.sig_length}")
+        raise ValueError(
+            f"Unsupported size for signature: {m.header.sig_length}")
 
     # For now we support RSA PKCS#1 v1.5
     if (m.header.sig_type >> 6) != 0:
-        raise NotImplementedError(f"Signature type {(m.header.sig_type >> 6)} not supported by this verifier")
+        raise NotImplementedError(
+            f"Signature type {(m.header.sig_type >> 6)} not supported by this verifier")
 
     # Load public key (from private or public PEM)
     try:

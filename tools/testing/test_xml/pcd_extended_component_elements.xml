@@ -29,6 +29,14 @@
 			<BridgeAddress>0x10</BridgeAddress>
 		</Interface>
 	</RoT>
+	<PowerController>
+		<Interface type="I2C">
+			<Bus>2</Bus>
+			<EID>0x14</EID>
+			<Address>0x22</Address>
+			<I2CMode>MultiMaster</I2CMode>
+		</Interface>
+	</PowerController>
 	<Components>
 		<Component type="Alpha" connection="TCGLog"
 			attestation_success_retry="86400000"
@@ -2792,6 +2800,39 @@
 			</PwrCtrl>
 		</Component>
 		<Component type="Component248" connection="TCGLog"
+			attestation_success_retry="86400000"
+			attestation_fail_retry="10000"
+			attestation_rsp_not_ready_max_retry="3"
+			attestation_rsp_not_ready_max_duration="1000">
+			<Policy>Active</Policy>
+			<PwrCtrl>
+				<Register>0x71</Register>
+				<Mask>0xF1</Mask>
+			</PwrCtrl>
+		</Component>
+		<Component type="Component249" connection="TCGLog"
+			attestation_success_retry="86400000"
+			attestation_fail_retry="10000"
+			attestation_rsp_not_ready_max_retry="3"
+			attestation_rsp_not_ready_max_duration="1000">
+			<Policy>Active</Policy>
+			<PwrCtrl>
+				<Register>0x71</Register>
+				<Mask>0xF1</Mask>
+			</PwrCtrl>
+		</Component>
+		<Component type="Component250" connection="TCGLog"
+			attestation_success_retry="86400000"
+			attestation_fail_retry="10000"
+			attestation_rsp_not_ready_max_retry="3"
+			attestation_rsp_not_ready_max_duration="1000">
+			<Policy>Active</Policy>
+			<PwrCtrl>
+				<Register>0x71</Register>
+				<Mask>0xF1</Mask>
+			</PwrCtrl>
+		</Component>
+		<Component type="Component251" connection="TCGLog"
 			attestation_success_retry="86400000"
 			attestation_fail_retry="10000"
 			attestation_rsp_not_ready_max_retry="3"

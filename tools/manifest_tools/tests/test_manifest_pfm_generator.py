@@ -29,7 +29,6 @@ How to run (from repo root):
 
 from pathlib import Path
 import pytest
-import sys
 
 from helpers.manifest_blob_parse import load_manifest_blob, manifest_to_tree
 from helpers.manifest_blob_assert import (
@@ -38,14 +37,12 @@ from helpers.manifest_blob_assert import (
 from helpers.utils import create_temp_config
 from helpers.utils import xsd_unexpected_child_regex
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-
+from conftest import MANIFEST_TOOLS_DIR, TEST_KEY
 from manifest_common import PFM_V2_MAGIC_NUM
 from pfm_generator import main as pfm_gen
 
-CERBERUS_DIR = Path(__file__).resolve().parent.parent.parent.parent
-PFM_XML_DIR = CERBERUS_DIR / "tools/manifest_tools"
-TEST_KEY = CERBERUS_DIR / "core/testing/keys" / "rsapriv.pem"
+# PFM fixtures live alongside the generator script (not under tools/testing/test_xml).
+PFM_XML_DIR = MANIFEST_TOOLS_DIR
 
 global_config_template = [
     "ID=1",
@@ -54,10 +51,12 @@ global_config_template = [
     "MaxRWSections=3"
 ]
 
+
 def test_pfm_valid(tmp_path):
     xml_file = PFM_XML_DIR / "pfm.xml"
     output_file = tmp_path / "output_pfm.bin"
-    config_file = create_temp_config(tmp_path, [str(xml_file)], str(output_file), str(TEST_KEY), global_config_template)
+    config_file = create_temp_config(tmp_path, [str(xml_file)], str(
+        output_file), str(TEST_KEY), global_config_template)
     pfm_gen([config_file])
     assert output_file.exists()
     m = load_manifest_blob(output_file)
@@ -68,8 +67,8 @@ def test_pfm_valid(tmp_path):
     valid_tree = {
         "platform_id": "Server-BMC",
         "unused_byte": 0xFF,
-        "fw_count" : 0x1,
-        "fw_list" : [
+        "fw_count": 0x1,
+        "fw_list": [
             {
                 "fw_id": "BMC",
                 "fw_flags": 0,
@@ -79,8 +78,10 @@ def test_pfm_valid(tmp_path):
                         "version": "1.00.0",
                         "version_addr": 0x1,
                         "rw_regions": [
-                            {"start_addr": 0x00050000, "end_addr": 0x000FFFFF, "flags": 0x1},
-                            {"start_addr": 0x00F00000, "end_addr": 0x00FFFFFF, "flags": 0x0},
+                            {"start_addr": 0x00050000,
+                                "end_addr": 0x000FFFFF, "flags": 0x1},
+                            {"start_addr": 0x00F00000,
+                                "end_addr": 0x00FFFFFF, "flags": 0x0},
                         ],
                         "images": [
                             {
@@ -100,6 +101,7 @@ def test_pfm_valid(tmp_path):
     }
     assert manifest_tree == valid_tree, "Manifest structure does not match"
 
+
 # List of malformed XML test cases: (case_name, xml_content, expected_error_match)
 malformed_cases = [
     (
@@ -111,7 +113,8 @@ malformed_cases = [
                 <Port1/>
             </ReadWrite>
         </Firmware>""",
-        xsd_unexpected_child_regex(unexpected_tag="Port1", expected_tag="Region", path="/Firmware/ReadWrite")
+        xsd_unexpected_child_regex(
+            unexpected_tag="Port1", expected_tag="Region", path="/Firmware/ReadWrite")
     ),
     (
         "malformed_signedimage_not_valid",
@@ -122,9 +125,11 @@ malformed_cases = [
                 <Port2/>
             </SignedImage>
         </Firmware>""",
-        xsd_unexpected_child_regex(unexpected_tag="Port2", expected_tag="Region", path="/Firmware/SignedImage")
+        xsd_unexpected_child_regex(
+            unexpected_tag="Port2", expected_tag="Region", path="/Firmware/SignedImage")
     )
 ]
+
 
 @pytest.mark.parametrize("case_name, xml_content, expected_error_match", malformed_cases)
 def test_pfm_malformed_cases(tmp_path, case_name, xml_content, expected_error_match):
@@ -135,7 +140,8 @@ def test_pfm_malformed_cases(tmp_path, case_name, xml_content, expected_error_ma
     xml_file = tmp_path / f"{case_name}.xml"
     xml_file.write_text(xml_content)
     output_file = tmp_path / "output_pfm.bin"
-    config_file = create_temp_config(tmp_path, [str(xml_file)], str(output_file), str(TEST_KEY), global_config_template)
+    config_file = create_temp_config(tmp_path, [str(xml_file)], str(
+        output_file), str(TEST_KEY), global_config_template)
 
     with pytest.raises(ValueError, match=expected_error_match):
         pfm_gen([config_file])

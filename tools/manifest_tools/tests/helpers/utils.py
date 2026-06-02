@@ -5,6 +5,8 @@ Licensed under the MIT license.
 import re
 
 # Helper to create a temporary config file
+
+
 def create_temp_config(tmp_path, xml_files, output_file, key_file=None, config_template=None):
     config_lines = []
     if config_template:
@@ -19,9 +21,12 @@ def create_temp_config(tmp_path, xml_files, output_file, key_file=None, config_t
     return str(config_path)
 
 # Helper to generate regex
+
+
 def xsd_unexpected_child_regex(unexpected_tag, expected_tag=None, path=None):
     # DOTALL via (?s) so ".*" matches newlines in the xmlschema dump
-    parts = [rf"Reason:\s+Unexpected child with tag\s+'{re.escape(unexpected_tag)}'"]
+    parts = [
+        rf"Reason:\s+Unexpected child with tag\s+'{re.escape(unexpected_tag)}'"]
     if expected_tag:
         parts.append(rf"Tag\s+'{re.escape(expected_tag)}'\s+expected")
     if path:

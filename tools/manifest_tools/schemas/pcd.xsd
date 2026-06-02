@@ -296,9 +296,9 @@
                         <xs:element name="ComponentType" minOccurs="0" maxOccurs="255">
                             <xs:complexType>
                                 <xs:attribute name="type" use="required" />
-                                <xs:attribute name="min" type="xs:nonNegativeInteger" use="optional"
+                                <xs:attribute name="min" type="xs:unsignedByte" use="optional"
                                     default="0" />
-                                <xs:attribute name="max" type="xs:nonNegativeInteger" use="optional"
+                                <xs:attribute name="max" type="xs:unsignedByte" use="optional"
                                     default="0" />
                             </xs:complexType>
                         </xs:element>
