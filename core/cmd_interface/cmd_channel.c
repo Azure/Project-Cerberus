@@ -12,6 +12,12 @@
 
 
 /**
+ * Default maximum time in milliseconds to wait for the I2C bus to become idle before
+ * treating a TX-bus-busy condition as a timeout.
+ */
+#define	CMD_CHANNEL_TX_BUS_IDLE_DEFAULT_TIMEOUT_MS		5000
+
+/**
  * Initialize the base channel components.
  *
  * @param channel The channel to initialize.
@@ -45,6 +51,9 @@ int cmd_channel_init_state (const struct cmd_channel *channel)
 		return CMD_CHANNEL_INVALID_ARGUMENT;
 	}
 
+	channel->state->overflow = false;
+	channel->state->tx_bus_idle_timeout_ms = CMD_CHANNEL_TX_BUS_IDLE_DEFAULT_TIMEOUT_MS;
+
 	return platform_mutex_init (&channel->state->lock);
 }
 
@@ -74,6 +83,42 @@ int cmd_channel_get_id (const struct cmd_channel *channel)
 	}
 
 	return channel->id;
+}
+
+/**
+ * Get the current TX bus idle timeout for a command channel.
+ *
+ * @param channel The command channel to query.
+ *
+ * @return The timeout in milliseconds.  Returns the default value if the channel is NULL.
+ */
+uint32_t cmd_channel_get_tx_bus_idle_timeout (const struct cmd_channel *channel)
+{
+	if (channel == NULL) {
+		return CMD_CHANNEL_TX_BUS_IDLE_DEFAULT_TIMEOUT_MS;
+	}
+
+	return channel->state->tx_bus_idle_timeout_ms;
+}
+
+/**
+ * Set the TX bus idle timeout for a command channel.  This is the maximum time the channel will
+ * wait for the bus to become idle before treating a TX-bus-busy condition as a timeout.
+ *
+ * @param channel The command channel to configure.
+ * @param timeout_ms The timeout in milliseconds.
+ *
+ * @return 0 if the timeout was set successfully or an error code.
+ */
+int cmd_channel_set_tx_bus_idle_timeout (const struct cmd_channel *channel, uint32_t timeout_ms)
+{
+	if (channel == NULL) {
+		return CMD_CHANNEL_INVALID_ARGUMENT;
+	}
+
+	channel->state->tx_bus_idle_timeout_ms = timeout_ms;
+
+	return 0;
 }
 
 /**
@@ -118,6 +163,7 @@ static int cmd_channel_send_packets (const struct cmd_channel *channel,
 	uint8_t *pkt_pos;
 	size_t msg_len;
 	size_t pkt_len;
+	platform_clock busy_timeout;
 	int status = 0;
 
 	platform_mutex_lock (&channel->state->lock);
@@ -135,10 +181,33 @@ static int cmd_channel_send_packets (const struct cmd_channel *channel,
 			memcpy (packet->data, pkt_pos, pkt_len);
 
 			packet->pkt_size = pkt_len;
-			status = channel->send_packet (channel, packet);
 
-			pkt_pos += pkt_len;
-			msg_len -= pkt_len;
+			platform_init_timeout (channel->state->tx_bus_idle_timeout_ms, &busy_timeout);
+
+			do {
+				status = channel->send_packet (channel, packet);
+
+				if (status == CMD_CHANNEL_TX_BUS_BUSY) {
+					if (platform_has_timeout_expired (&busy_timeout)) {
+						/* Bus remained active for longer than the TX timeout.
+						 * Treat this as a TX timeout rather than spinning forever. */
+						status = CMD_CHANNEL_TX_TIMEOUT;
+						break;
+					}
+
+					/* The I2C bus is active handling requests.
+					 * Release the channel lock while waiting for the bus to become idle,
+					 * then retry after a short delay. */
+					platform_mutex_unlock (&channel->state->lock);
+					platform_msleep (1);
+					platform_mutex_lock (&channel->state->lock);
+				}
+			} while (status == CMD_CHANNEL_TX_BUS_BUSY);
+
+			if (status == 0) {
+				pkt_pos += pkt_len;
+				msg_len -= pkt_len;
+			}
 		}
 	}
 	else {

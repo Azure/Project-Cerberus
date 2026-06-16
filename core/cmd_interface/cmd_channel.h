@@ -57,8 +57,9 @@ struct mctp_interface;
  * Variable state context for the command channel interface
  */
 struct cmd_channel_state {
-	platform_mutex lock;	/**< Synchronization for message transmission. */
-	bool overflow;			/**< Flag if the channel is in an overflow condition. */
+	platform_mutex lock;				/**< Synchronization for message transmission. */
+	bool overflow;						/**< Flag if the channel is in an overflow condition. */
+	uint32_t tx_bus_idle_timeout_ms;	/**< Maximum time to wait for a busy bus before timing out. */
 };
 
 /**
@@ -104,6 +105,9 @@ struct cmd_channel {
 
 int cmd_channel_get_id (const struct cmd_channel *channel);
 
+uint32_t cmd_channel_get_tx_bus_idle_timeout (const struct cmd_channel *channel);
+int cmd_channel_set_tx_bus_idle_timeout (const struct cmd_channel *channel, uint32_t timeout_ms);
+
 int cmd_channel_validate_packet_for_send (const struct cmd_packet *packet);
 int cmd_channel_receive_and_process (const struct cmd_channel *channel,
 	const struct mctp_interface *mctp, int ms_timeout);
@@ -133,6 +137,7 @@ enum {
 	CMD_CHANNEL_INVALID_PKT_SIZE = CMD_CHANNEL_ERROR (0x09),	/**< The packet size is larger than the buffer. */
 	CMD_CHANNEL_TX_ABORTED = CMD_CHANNEL_ERROR (0x0a),			/**< Packet transmission was aborted. */
 	CMD_CHANNEL_UNKNOWN_TARGET = CMD_CHANNEL_ERROR (0x0b),		/**< The target device is not available. */
+	CMD_CHANNEL_TX_BUS_BUSY = CMD_CHANNEL_ERROR (0x0c),			/**< I2C bus is active; TX deferred until bus is idle. */
 };
 
 

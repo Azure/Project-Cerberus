@@ -29,6 +29,30 @@ struct cmd_channel_testing {
 	struct mctp_interface mctp;								/**< MCTP message handler. */
 };
 
+/**
+ * Test context for a channel stub that succeeds on the first send_packet call and returns
+ * CMD_CHANNEL_TX_BUS_BUSY on all subsequent calls.
+ */
+struct cmd_channel_testing_busy_after_first {
+	struct cmd_channel base;		/**< Base channel instance. */
+	struct cmd_channel_state state;	/**< Variable context. */
+	int call_count;					/**< Number of send_packet calls. */
+};
+
+/**
+ * Test context for a channel stub that verifies per-packet timeout reset.  The first packet
+ * succeeds after a delay.  The second packet records a start time on the first call and returns
+ * CMD_CHANNEL_TX_BUS_BUSY on all calls.
+ */
+struct cmd_channel_testing_timeout_verify {
+	struct cmd_channel base;		/**< Base channel instance. */
+	struct cmd_channel_state state;	/**< Variable context. */
+	int call_count;					/**< Total send_packet calls. */
+	uint32_t first_pkt_delay_ms;	/**< Delay to inject on first packet. */
+	platform_clock busy_start;		/**< Timestamp of first BUSY return for second packet. */
+	bool busy_start_captured;		/**< Whether busy_start has been captured. */
+};
+
 
 static int cmd_channel_testing_empty_receive_packet (const struct cmd_channel *channel,
 	struct cmd_packet *packet, int ms_timeout)
@@ -47,6 +71,56 @@ static int cmd_channel_testing_empty_send_packet (const struct cmd_channel *chan
 	UNUSED (packet);
 
 	return CMD_CHANNEL_TX_FAILED;
+}
+
+static int cmd_channel_testing_bus_busy_send_packet (const struct cmd_channel *channel,
+	const struct cmd_packet *packet)
+{
+	UNUSED (channel);
+	UNUSED (packet);
+
+	return CMD_CHANNEL_TX_BUS_BUSY;
+}
+
+static int cmd_channel_testing_busy_after_first_send_packet (const struct cmd_channel *channel,
+	const struct cmd_packet *packet)
+{
+	struct cmd_channel_testing_busy_after_first *busy =
+		(struct cmd_channel_testing_busy_after_first*) channel;
+
+	UNUSED (packet);
+
+	if (busy->call_count++ == 0) {
+		return 0;
+	}
+
+	return CMD_CHANNEL_TX_BUS_BUSY;
+}
+
+static int cmd_channel_testing_timeout_verify_send_packet (const struct cmd_channel *channel,
+	const struct cmd_packet *packet)
+{
+	struct cmd_channel_testing_timeout_verify *ctx =
+		(struct cmd_channel_testing_timeout_verify*) channel;
+
+	UNUSED (packet);
+
+	ctx->call_count++;
+
+	if (ctx->call_count == 1) {
+		/* First packet: succeed after a delay. */
+		platform_msleep (ctx->first_pkt_delay_ms);
+
+		return 0;
+	}
+
+	/* Second packet onwards: capture start time on first BUSY, then keep returning BUSY. */
+	if (!ctx->busy_start_captured) {
+		platform_init_current_tick (&ctx->busy_start);
+		ctx->busy_start_captured = true;
+	}
+
+	return CMD_CHANNEL_TX_BUS_BUSY;
 }
 
 /**
@@ -213,6 +287,108 @@ static void cmd_channel_test_get_id_null (CuTest *test)
 	TEST_START;
 
 	status = cmd_channel_get_id (NULL);
+	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
+}
+
+static void cmd_channel_test_get_tx_bus_idle_timeout (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	int status;
+
+	TEST_START;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_get_tx_bus_idle_timeout (&channel.base);
+	CuAssertIntEquals (test, 5000, status);
+
+	cmd_channel_mock_release (&channel);
+}
+
+static void cmd_channel_test_get_tx_bus_idle_timeout_static (CuTest *test)
+{
+	struct cmd_channel_state state;
+	const struct cmd_channel channel = cmd_channel_static_init (&state,
+		cmd_channel_testing_empty_receive_packet, cmd_channel_testing_empty_send_packet, 0);
+	int status;
+
+	TEST_START;
+
+	status = cmd_channel_init_state (&channel);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_get_tx_bus_idle_timeout (&channel);
+	CuAssertIntEquals (test, 5000, status);
+
+	cmd_channel_release (&channel);
+}
+
+static void cmd_channel_test_get_tx_bus_idle_timeout_null (CuTest *test)
+{
+	uint32_t timeout;
+
+	TEST_START;
+
+	timeout = cmd_channel_get_tx_bus_idle_timeout (NULL);
+	CuAssertIntEquals (test, 5000, timeout);
+}
+
+static void cmd_channel_test_set_tx_bus_idle_timeout (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	int status;
+
+	TEST_START;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_get_tx_bus_idle_timeout (&channel.base);
+	CuAssertIntEquals (test, 5000, status);
+
+	status = cmd_channel_set_tx_bus_idle_timeout (&channel.base, 100);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_get_tx_bus_idle_timeout (&channel.base);
+	CuAssertIntEquals (test, 100, status);
+
+	cmd_channel_mock_release (&channel);
+}
+
+static void cmd_channel_test_set_tx_bus_idle_timeout_static (CuTest *test)
+{
+	struct cmd_channel_state state;
+	const struct cmd_channel channel = cmd_channel_static_init (&state,
+		cmd_channel_testing_empty_receive_packet, cmd_channel_testing_empty_send_packet, 0);
+	int status;
+
+	TEST_START;
+
+	status = cmd_channel_init_state (&channel);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify the default value after init. */
+	status = cmd_channel_get_tx_bus_idle_timeout (&channel);
+	CuAssertIntEquals (test, 5000, status);
+
+	/* Update to a new value and verify. */
+	status = cmd_channel_set_tx_bus_idle_timeout (&channel, 200);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_get_tx_bus_idle_timeout (&channel);
+	CuAssertIntEquals (test, 200, status);
+
+	cmd_channel_release (&channel);
+}
+
+static void cmd_channel_test_set_tx_bus_idle_timeout_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = cmd_channel_set_tx_bus_idle_timeout (NULL, 100);
 	CuAssertIntEquals (test, CMD_CHANNEL_INVALID_ARGUMENT, status);
 }
 
@@ -3032,6 +3208,605 @@ static void cmd_channel_test_send_message_multiple_packets_send_failure (CuTest 
 	CuAssertIntEquals (test, 0, status);
 }
 
+static void cmd_channel_test_send_message_bus_busy_retry_success (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet;
+	struct cmd_message tx_message;
+	struct mctp_base_protocol_transport_header *header;
+	int status;
+
+	TEST_START;
+
+	memset (&tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet.data[8] = 0x00;
+	tx_packet.data[9] = 0x00;
+	tx_packet.data[10] = 0x00;
+	tx_packet.data[11] = 0x0B;
+	tx_packet.data[12] = 0x0A;
+	tx_packet.data[13] = checksum_crc8 (0xAA, tx_packet.data, 13);
+	tx_packet.pkt_size = 14;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x55;
+	tx_packet.timeout_valid = false;
+
+	tx_message.data = tx_packet.data;
+	tx_message.msg_size = tx_packet.pkt_size;
+	tx_message.pkt_size = tx_packet.pkt_size;
+	tx_message.dest_addr = tx_packet.dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* First call returns bus busy, second call succeeds. */
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel,
+		CMD_CHANNEL_TX_BUS_BUSY,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_bus_busy_timeout (CuTest *test)
+{
+	struct cmd_channel_state state;
+	struct cmd_packet tx_packet;
+	struct cmd_message tx_message;
+	struct mctp_base_protocol_transport_header *header;
+	const struct cmd_channel channel = cmd_channel_static_init (&state,
+		cmd_channel_testing_empty_receive_packet, cmd_channel_testing_bus_busy_send_packet, 0);
+	int status;
+
+	TEST_START;
+
+	status = cmd_channel_init_state (&channel);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Use a short timeout so the test completes quickly. */
+	status = cmd_channel_set_tx_bus_idle_timeout (&channel, 50);
+	CuAssertIntEquals (test, 0, status);
+
+	memset (&tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet.data[8] = 0x00;
+	tx_packet.data[9] = 0x00;
+	tx_packet.data[10] = 0x00;
+	tx_packet.data[11] = 0x0B;
+	tx_packet.data[12] = 0x0A;
+	tx_packet.data[13] = checksum_crc8 (0xAA, tx_packet.data, 13);
+	tx_packet.pkt_size = 14;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x55;
+	tx_packet.timeout_valid = false;
+
+	tx_message.data = tx_packet.data;
+	tx_message.msg_size = tx_packet.pkt_size;
+	tx_message.pkt_size = tx_packet.pkt_size;
+	tx_message.dest_addr = tx_packet.dest_addr;
+
+	status = cmd_channel_send_message (&channel, &tx_message);
+	CuAssertIntEquals (test, CMD_CHANNEL_TX_TIMEOUT, status);
+
+	cmd_channel_release (&channel);
+}
+
+static void cmd_channel_test_send_message_bus_busy_then_fail (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet;
+	struct cmd_message tx_message;
+	struct mctp_base_protocol_transport_header *header;
+	int status;
+
+	TEST_START;
+
+	memset (&tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet.data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 11;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet.data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet.data[8] = 0x00;
+	tx_packet.data[9] = 0x00;
+	tx_packet.data[10] = 0x00;
+	tx_packet.data[11] = 0x0B;
+	tx_packet.data[12] = 0x0A;
+	tx_packet.data[13] = checksum_crc8 (0xAA, tx_packet.data, 13);
+	tx_packet.pkt_size = 14;
+	tx_packet.state = CMD_VALID_PACKET;
+	tx_packet.dest_addr = 0x55;
+	tx_packet.timeout_valid = false;
+
+	tx_message.data = tx_packet.data;
+	tx_message.msg_size = tx_packet.pkt_size;
+	tx_message.pkt_size = tx_packet.pkt_size;
+	tx_message.dest_addr = tx_packet.dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* First call returns bus busy, retry returns a hard failure. */
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel,
+		CMD_CHANNEL_TX_BUS_BUSY,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, CMD_CHANNEL_TX_FAILED,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet, sizeof (tx_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, CMD_CHANNEL_TX_FAILED, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_multiple_packets_bus_busy_first_packet (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet[2];
+	struct cmd_message tx_message;
+	const int msg_size = 300;
+	uint8_t msg_data[msg_size + (MCTP_BASE_PROTOCOL_PACKET_OVERHEAD * 2) + 4];
+	struct mctp_base_protocol_transport_header *header;
+	uint8_t payload[msg_size];
+	int status;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < (int) sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[0].data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 252;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet[0].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet[0].data[8] = 0x00;
+	tx_packet[0].data[9] = 0x00;
+	tx_packet[0].data[10] = 0x00;
+	memcpy (&tx_packet[0].data[11], payload, 255 - 12);
+	tx_packet[0].data[254] = checksum_crc8 (0xAA, tx_packet[0].data, 254);
+	tx_packet[0].pkt_size = 255;
+	tx_packet[0].state = CMD_VALID_PACKET;
+	tx_packet[0].dest_addr = 0x55;
+	tx_packet[0].timeout_valid = false;
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[1].data;
+
+	i = msg_size - (255 - 12) + 7;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = i - 2;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 1;
+
+	memcpy (&tx_packet[1].data[7], &payload[255 - 12], msg_size - (255 - 12));
+	tx_packet[1].data[i] = checksum_crc8 (0xAA, tx_packet[1].data, i);
+	tx_packet[1].pkt_size = i + 1;
+	tx_packet[1].state = CMD_VALID_PACKET;
+	tx_packet[1].dest_addr = 0x55;
+	tx_packet[1].timeout_valid = false;
+
+	memcpy (msg_data, tx_packet[0].data, tx_packet[0].pkt_size);
+	memcpy (&msg_data[tx_packet[0].pkt_size], tx_packet[1].data, tx_packet[1].pkt_size);
+
+	tx_message.data = msg_data;
+	tx_message.msg_size = sizeof (msg_data);
+	tx_message.pkt_size = tx_packet[0].pkt_size;
+	tx_message.dest_addr = tx_packet[0].dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* First packet: bus busy once, then succeeds on retry.  Second packet: succeeds. */
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel,
+		CMD_CHANNEL_TX_BUS_BUSY,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[0],
+		sizeof (struct cmd_packet)));
+	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[0],
+		sizeof (struct cmd_packet)));
+	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[1],
+		sizeof (struct cmd_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_multiple_packets_bus_busy_second_packet (CuTest *test)
+{
+	struct cmd_channel_mock channel;
+	struct cmd_packet tx_packet[2];
+	struct cmd_message tx_message;
+	const int msg_size = 300;
+	uint8_t msg_data[msg_size + (MCTP_BASE_PROTOCOL_PACKET_OVERHEAD * 2) + 4];
+	struct mctp_base_protocol_transport_header *header;
+	uint8_t payload[msg_size];
+	int status;
+	int i;
+
+	TEST_START;
+
+	for (i = 0; i < (int) sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[0].data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 252;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet[0].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet[0].data[8] = 0x00;
+	tx_packet[0].data[9] = 0x00;
+	tx_packet[0].data[10] = 0x00;
+	memcpy (&tx_packet[0].data[11], payload, 255 - 12);
+	tx_packet[0].data[254] = checksum_crc8 (0xAA, tx_packet[0].data, 254);
+	tx_packet[0].pkt_size = 255;
+	tx_packet[0].state = CMD_VALID_PACKET;
+	tx_packet[0].dest_addr = 0x55;
+	tx_packet[0].timeout_valid = false;
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[1].data;
+
+	i = msg_size - (255 - 12) + 7;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = i - 2;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 1;
+
+	memcpy (&tx_packet[1].data[7], &payload[255 - 12], msg_size - (255 - 12));
+	tx_packet[1].data[i] = checksum_crc8 (0xAA, tx_packet[1].data, i);
+	tx_packet[1].pkt_size = i + 1;
+	tx_packet[1].state = CMD_VALID_PACKET;
+	tx_packet[1].dest_addr = 0x55;
+	tx_packet[1].timeout_valid = false;
+
+	memcpy (msg_data, tx_packet[0].data, tx_packet[0].pkt_size);
+	memcpy (&msg_data[tx_packet[0].pkt_size], tx_packet[1].data, tx_packet[1].pkt_size);
+
+	tx_message.data = msg_data;
+	tx_message.msg_size = sizeof (msg_data);
+	tx_message.pkt_size = tx_packet[0].pkt_size;
+	tx_message.dest_addr = tx_packet[0].dest_addr;
+
+	status = cmd_channel_mock_init (&channel, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	/* First packet succeeds.  Second packet: bus busy once, then succeeds on retry. */
+	status = mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[0],
+		sizeof (struct cmd_packet)));
+	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel,
+		CMD_CHANNEL_TX_BUS_BUSY,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[1],
+		sizeof (struct cmd_packet)));
+	status |= mock_expect (&channel.mock, channel.base.send_packet, &channel, 0,
+		MOCK_ARG_VALIDATOR (cmd_channel_mock_validate_packet, &tx_packet[1],
+		sizeof (struct cmd_packet)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, 0, status);
+
+	status = cmd_channel_mock_validate_and_release (&channel);
+	CuAssertIntEquals (test, 0, status);
+}
+
+static void cmd_channel_test_send_message_multiple_packets_bus_busy_timeout_second_packet (
+	CuTest *test)
+{
+	struct cmd_channel_testing_busy_after_first channel;
+	struct cmd_packet tx_packet[2];
+	struct cmd_message tx_message;
+	const int msg_size = 300;
+	uint8_t msg_data[msg_size + (MCTP_BASE_PROTOCOL_PACKET_OVERHEAD * 2) + 4];
+	struct mctp_base_protocol_transport_header *header;
+	uint8_t payload[msg_size];
+	int status;
+	int i;
+
+	TEST_START;
+
+	memset (&channel, 0, sizeof (channel));
+
+	status = cmd_channel_init (&channel.base, &channel.state, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	channel.base.receive_packet = cmd_channel_testing_empty_receive_packet;
+	channel.base.send_packet = cmd_channel_testing_busy_after_first_send_packet;
+
+	/* Use a short timeout so the test completes quickly. */
+	status = cmd_channel_set_tx_bus_idle_timeout (&channel.base, 50);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < (int) sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[0].data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 252;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet[0].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet[0].data[8] = 0x00;
+	tx_packet[0].data[9] = 0x00;
+	tx_packet[0].data[10] = 0x00;
+	memcpy (&tx_packet[0].data[11], payload, 255 - 12);
+	tx_packet[0].data[254] = checksum_crc8 (0xAA, tx_packet[0].data, 254);
+	tx_packet[0].pkt_size = 255;
+	tx_packet[0].state = CMD_VALID_PACKET;
+	tx_packet[0].dest_addr = 0x55;
+	tx_packet[0].timeout_valid = false;
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[1].data;
+
+	i = msg_size - (255 - 12) + 7;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = i - 2;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 1;
+
+	memcpy (&tx_packet[1].data[7], &payload[255 - 12], msg_size - (255 - 12));
+	tx_packet[1].data[i] = checksum_crc8 (0xAA, tx_packet[1].data, i);
+	tx_packet[1].pkt_size = i + 1;
+	tx_packet[1].state = CMD_VALID_PACKET;
+	tx_packet[1].dest_addr = 0x55;
+	tx_packet[1].timeout_valid = false;
+
+	memcpy (msg_data, tx_packet[0].data, tx_packet[0].pkt_size);
+	memcpy (&msg_data[tx_packet[0].pkt_size], tx_packet[1].data, tx_packet[1].pkt_size);
+
+	tx_message.data = msg_data;
+	tx_message.msg_size = sizeof (msg_data);
+	tx_message.pkt_size = tx_packet[0].pkt_size;
+	tx_message.dest_addr = tx_packet[0].dest_addr;
+
+	/* First packet succeeds (call_count == 0), second packet always returns BUSY until timeout. */
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, CMD_CHANNEL_TX_TIMEOUT, status);
+
+	cmd_channel_release (&channel.base);
+}
+
+static void cmd_channel_test_send_message_multiple_packets_bus_busy_timeout_reset (CuTest *test)
+{
+	struct cmd_channel_testing_timeout_verify channel;
+	struct cmd_packet tx_packet[2];
+	struct cmd_message tx_message;
+	const int msg_size = 300;
+	uint8_t msg_data[msg_size + (MCTP_BASE_PROTOCOL_PACKET_OVERHEAD * 2) + 4];
+	struct mctp_base_protocol_transport_header *header;
+	uint8_t payload[msg_size];
+	platform_clock end_time;
+	uint32_t duration;
+	int status;
+	int i;
+
+	TEST_START;
+
+	memset (&channel, 0, sizeof (channel));
+
+	status = cmd_channel_init (&channel.base, &channel.state, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	channel.base.receive_packet = cmd_channel_testing_empty_receive_packet;
+	channel.base.send_packet = cmd_channel_testing_timeout_verify_send_packet;
+	channel.first_pkt_delay_ms = 50;
+
+	/* Set timeout to 100ms.  If the timeout is NOT reset between packets, the second packet would
+	 * time out after ~50ms (100ms - 50ms consumed by first packet).  With proper per-packet reset,
+	 * the second packet should time out after ~100ms. */
+	status = cmd_channel_set_tx_bus_idle_timeout (&channel.base, 100);
+	CuAssertIntEquals (test, 0, status);
+
+	for (i = 0; i < (int) sizeof (payload); i++) {
+		payload[i] = i;
+	}
+
+	memset (tx_packet, 0, sizeof (tx_packet));
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[0].data;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = 252;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 1;
+	header->eom = 0;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 0;
+
+	tx_packet[0].data[7] = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	tx_packet[0].data[8] = 0x00;
+	tx_packet[0].data[9] = 0x00;
+	tx_packet[0].data[10] = 0x00;
+	memcpy (&tx_packet[0].data[11], payload, 255 - 12);
+	tx_packet[0].data[254] = checksum_crc8 (0xAA, tx_packet[0].data, 254);
+	tx_packet[0].pkt_size = 255;
+	tx_packet[0].state = CMD_VALID_PACKET;
+	tx_packet[0].dest_addr = 0x55;
+	tx_packet[0].timeout_valid = false;
+
+	header = (struct mctp_base_protocol_transport_header*) tx_packet[1].data;
+
+	i = msg_size - (255 - 12) + 7;
+
+	header->cmd_code = SMBUS_CMD_CODE_MCTP;
+	header->byte_count = i - 2;
+	header->source_addr = 0xBB;
+	header->rsvd = 0;
+	header->header_version = 1;
+	header->destination_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	header->source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	header->som = 0;
+	header->eom = 1;
+	header->tag_owner = 0;
+	header->msg_tag = 0x00;
+	header->packet_seq = 1;
+
+	memcpy (&tx_packet[1].data[7], &payload[255 - 12], msg_size - (255 - 12));
+	tx_packet[1].data[i] = checksum_crc8 (0xAA, tx_packet[1].data, i);
+	tx_packet[1].pkt_size = i + 1;
+	tx_packet[1].state = CMD_VALID_PACKET;
+	tx_packet[1].dest_addr = 0x55;
+	tx_packet[1].timeout_valid = false;
+
+	memcpy (msg_data, tx_packet[0].data, tx_packet[0].pkt_size);
+	memcpy (&msg_data[tx_packet[0].pkt_size], tx_packet[1].data, tx_packet[1].pkt_size);
+
+	tx_message.data = msg_data;
+	tx_message.msg_size = sizeof (msg_data);
+	tx_message.pkt_size = tx_packet[0].pkt_size;
+	tx_message.dest_addr = tx_packet[0].dest_addr;
+
+	status = cmd_channel_send_message (&channel.base, &tx_message);
+	CuAssertIntEquals (test, CMD_CHANNEL_TX_TIMEOUT, status);
+
+	/* Verify the second packet timed out independently.  The duration from the first BUSY return
+	 * to completion should be approximately the full timeout (100ms), not the remaining time after
+	 * the first packet's delay (50ms). */
+	CuAssertTrue (test, channel.busy_start_captured);
+	CuAssertTrue (test, channel.call_count >= 3);
+
+	platform_init_current_tick (&end_time);
+	duration = platform_get_duration (&channel.busy_start, &end_time);
+	CuAssertTrue (test, duration >= 90);
+	CuAssertTrue (test, duration <= 110);
+
+	cmd_channel_release (&channel.base);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_channel);
@@ -3043,6 +3818,12 @@ TEST (cmd_channel_test_release_null);
 TEST (cmd_channel_test_get_id);
 TEST (cmd_channel_test_get_id_static);
 TEST (cmd_channel_test_get_id_null);
+TEST (cmd_channel_test_get_tx_bus_idle_timeout);
+TEST (cmd_channel_test_get_tx_bus_idle_timeout_static);
+TEST (cmd_channel_test_get_tx_bus_idle_timeout_null);
+TEST (cmd_channel_test_set_tx_bus_idle_timeout);
+TEST (cmd_channel_test_set_tx_bus_idle_timeout_static);
+TEST (cmd_channel_test_set_tx_bus_idle_timeout_null);
 TEST (cmd_channel_test_validate_packet_for_send_byte);
 TEST (cmd_channel_test_validate_packet_for_send_max);
 TEST (cmd_channel_test_validate_packet_for_send_null);
@@ -3070,6 +3851,13 @@ TEST (cmd_channel_test_send_message_max_message);
 TEST (cmd_channel_test_send_message_null);
 TEST (cmd_channel_test_send_message_send_failure);
 TEST (cmd_channel_test_send_message_multiple_packets_send_failure);
+TEST (cmd_channel_test_send_message_bus_busy_retry_success);
+TEST (cmd_channel_test_send_message_bus_busy_timeout);
+TEST (cmd_channel_test_send_message_bus_busy_then_fail);
+TEST (cmd_channel_test_send_message_multiple_packets_bus_busy_first_packet);
+TEST (cmd_channel_test_send_message_multiple_packets_bus_busy_second_packet);
+TEST (cmd_channel_test_send_message_multiple_packets_bus_busy_timeout_second_packet);
+TEST (cmd_channel_test_send_message_multiple_packets_bus_busy_timeout_reset);
 
 TEST_SUITE_END;
 // *INDENT-ON*
