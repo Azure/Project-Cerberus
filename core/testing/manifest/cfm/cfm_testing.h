@@ -25,6 +25,7 @@ struct cfm_testing_data {
 
 extern const struct cfm_testing_data CFM_TESTING;
 extern const struct cfm_testing_data CFM_ONLY_PMR_DIGEST_TESTING;
+extern const struct cfm_testing_data CFM_ONLY_PMR_DIGEST_TESTING_DER_SIG;
 extern const struct cfm_testing_data CFM_EMPTY_TESTING;
 extern const struct cfm_testing_data CFM_MANY_MEASUREMENTS_TESTING;
 

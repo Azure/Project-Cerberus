@@ -101,6 +101,7 @@ int manifest_flash_compare_id (const struct manifest_flash *manifest1,
 	const struct manifest_flash *manifest2);
 int manifest_flash_compare_platform_id (const struct manifest_flash *manifest1,
 	const struct manifest_flash *manifest2, bool sku_upgrade_permitted);
+int manifest_flash_get_size (const struct manifest_flash *manifest);
 
 
 #endif	//MANIFEST_FLASH_H

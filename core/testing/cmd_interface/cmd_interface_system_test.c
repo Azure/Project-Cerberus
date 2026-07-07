@@ -4356,6 +4356,643 @@ static void cmd_interface_system_test_process_get_cfm_component_ids_invalid_offs
 	complete_cmd_interface_system_mock_test (test, &cmd);
 }
 
+static void cmd_interface_system_test_process_get_manifest_size_cfm_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_active (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_active_with_signature (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_active_with_signature (
+		test, &cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_active_max_uint16 (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_active_max_uint16 (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_pending (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port0_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_active (test,
+		&cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port0_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_pending (test,
+		&cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port1_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_active (test,
+		&cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port1_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_pending (test,
+		&cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pcd_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_active (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pcd_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_pending (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_cfm_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_cfm_active (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_cfm_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_cfm_pending (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port0_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_active (test,
+		&cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port0_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_pending (test,
+		&cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port1_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_active (test,
+		&cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port1_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_pending (test,
+		&cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pcd_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pcd_active (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pcd_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pcd_pending (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_no_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_no_active (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_no_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_no_pending (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_no_manager (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_no_manager (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_invalid_length (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_invalid_length (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_cfm_invalid_type (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_invalid_type (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_unsupported (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, false, false, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_unsupported (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port0_active_no_active (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_active_no_active (
+		test, &cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port0_pending_no_pending (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_pending_no_pending
+		(test, &cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port1_active_no_active (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_active_no_active (
+		test, &cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port1_pending_no_pending (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_pending_no_pending
+		(test, &cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_port_out_of_range (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port_out_of_range (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pfm_null_manager_for_port (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_null_manager_for_port (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pcd_no_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_no_active (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pcd_no_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_no_pending (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_get_manifest_size_pcd_no_manager (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_no_manager (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_cfm_no_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_cfm_no_active (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_cfm_no_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_cfm_no_pending (test,
+		&cmd.handler.base, &cmd.cfm_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_cfm_no_manager (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, false, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_cfm_no_manager (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_cfm_invalid_length (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_cfm_invalid_length (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_cfm_invalid_type (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_cfm_invalid_type (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_unsupported (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, false, false, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_unsupported (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port0_active_no_active (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_active_no_active (
+		test, &cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port0_pending_no_pending (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_pending_no_pending (
+		test, &cmd.handler.base, &cmd.pfm_manager_0);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port1_active_no_active (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_active_no_active (
+		test, &cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port1_pending_no_pending (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_pending_no_pending (
+		test, &cmd.handler.base, &cmd.pfm_manager_1);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_port_out_of_range (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port_out_of_range (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pfm_null_manager_for_port (
+	CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, false, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pfm_null_manager_for_port (
+		test, &cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pcd_no_active (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pcd_no_active (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pcd_no_pending (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, true, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pcd_no_pending (test,
+		&cmd.handler.base, &cmd.pcd_manager);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
+static void cmd_interface_system_test_process_export_manifest_pcd_no_manager (CuTest *test)
+{
+	struct cmd_interface_system_testing cmd;
+
+	TEST_START;
+
+	setup_cmd_interface_system_mock_test (test, &cmd, true, true, true, false, false, false, true,
+		true, true, true);
+	cerberus_protocol_master_commands_testing_process_export_manifest_pcd_no_manager (test,
+		&cmd.handler.base);
+	complete_cmd_interface_system_mock_test (test, &cmd);
+}
+
 static void cmd_interface_system_test_process_log_clear_debug (CuTest *test)
 {
 	struct cmd_interface_system_testing cmd;
@@ -9626,6 +10263,54 @@ TEST (cmd_interface_system_test_process_get_cfm_component_ids_fail);
 TEST (cmd_interface_system_test_process_get_cfm_component_ids_invalid_len);
 TEST (cmd_interface_system_test_process_get_cfm_component_ids_invalid_region);
 TEST (cmd_interface_system_test_process_get_cfm_component_ids_invalid_offset);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_active_with_signature);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_active_max_uint16);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port0_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port0_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port1_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port1_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_pcd_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_pcd_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_no_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_no_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_no_manager);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_invalid_length);
+TEST (cmd_interface_system_test_process_get_manifest_size_cfm_invalid_type);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_unsupported);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port0_active_no_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port0_pending_no_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port1_active_no_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port1_pending_no_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_port_out_of_range);
+TEST (cmd_interface_system_test_process_get_manifest_size_pfm_null_manager_for_port);
+TEST (cmd_interface_system_test_process_get_manifest_size_pcd_no_active);
+TEST (cmd_interface_system_test_process_get_manifest_size_pcd_no_pending);
+TEST (cmd_interface_system_test_process_get_manifest_size_pcd_no_manager);
+TEST (cmd_interface_system_test_process_export_manifest_cfm_active);
+TEST (cmd_interface_system_test_process_export_manifest_cfm_pending);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port0_active);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port0_pending);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port1_active);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port1_pending);
+TEST (cmd_interface_system_test_process_export_manifest_pcd_active);
+TEST (cmd_interface_system_test_process_export_manifest_pcd_pending);
+TEST (cmd_interface_system_test_process_export_manifest_cfm_no_active);
+TEST (cmd_interface_system_test_process_export_manifest_cfm_no_pending);
+TEST (cmd_interface_system_test_process_export_manifest_cfm_no_manager);
+TEST (cmd_interface_system_test_process_export_manifest_cfm_invalid_length);
+TEST (cmd_interface_system_test_process_export_manifest_cfm_invalid_type);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_unsupported);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port0_active_no_active);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port0_pending_no_pending);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port1_active_no_active);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port1_pending_no_pending);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_port_out_of_range);
+TEST (cmd_interface_system_test_process_export_manifest_pfm_null_manager_for_port);
+TEST (cmd_interface_system_test_process_export_manifest_pcd_no_active);
+TEST (cmd_interface_system_test_process_export_manifest_pcd_no_pending);
+TEST (cmd_interface_system_test_process_export_manifest_pcd_no_manager);
 TEST (cmd_interface_system_test_process_log_clear_debug);
 TEST (cmd_interface_system_test_process_log_clear_attestation);
 TEST (cmd_interface_system_test_process_log_clear_invalid_len);

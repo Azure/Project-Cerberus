@@ -22,15 +22,17 @@
  * @param verify_pending_manifest_func Implementation for the verify_pending_manifest API.
  * @param clear_all_manifests_func Implementation for the clear_all_manifests API.
  * @param get_active_pcd_func Implementation for the get_active_pcd API.
+ * @param get_pending_pcd_func Implementation for the get_pending_pcd API.
  * @param free_pcd_func Implementation for the free_pcd API.
  */
 #define	pcd_manager_static_init(state_ptr, hash_ptr, port_arg, activate_pending_manifest_func, \
 	clear_pending_region_func, write_pending_data_func, verify_pending_manifest_func, \
-	clear_all_manifests_func, get_active_pcd_func, free_pcd_func)	{ \
+	clear_all_manifests_func, get_active_pcd_func, get_pending_pcd_func, free_pcd_func)	{ \
 		.base = manifest_manager_static_init (activate_pending_manifest_func, \
 			clear_pending_region_func, write_pending_data_func, verify_pending_manifest_func, \
 			clear_all_manifests_func, hash_ptr, port_arg), \
 		.get_active_pcd = get_active_pcd_func, \
+		.get_pending_pcd = get_pending_pcd_func, \
 		.free_pcd = free_pcd_func, \
 		.state = state_ptr, \
 	}

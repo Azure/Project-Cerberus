@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "cmd_interface/cerberus_protocol.h"
+#include "cmd_interface/cerberus_protocol_master_commands.h"
 #include "crypto/ecc.h"
 #include "flash/flash_common.h"
 #include "flash/spi_flash.h"
@@ -6587,6 +6589,477 @@ static void pfm_manager_flash_test_clear_all_manifests_erase_active_error_notify
 	pfm_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pfm_manager_flash_test_manifest_extract_active_pfm (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pfm *active_pfm;
+	const struct pfm_manager *pfm_mgrs[1];
+	/* DER SEQUENCE with 2-byte length 0x00fc=252: total DER size = 4 + 252 = 256 = PFM_SIGNATURE_LEN */
+	static const uint8_t pfm_der_sig_header[] = {0x30, 0x82, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00};
+	int status;
+
+	TEST_START;
+
+	/* Initialize PFM manager with active PFM in region 1 */
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	/* Get active PFM */
+	active_pfm = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pfm);
+
+	/* Prepare export_manifest request for active PFM (manifest_type=0, region=0) */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = 0;	/* PFM (CERBERUS_PROTOCOL_MANIFEST_PFM) */
+	req->region = 0;		/* Active */
+	req->port = 0;
+	req->offset = 0;
+
+	/* Set up flash read expectations for manifest_flash_get_size:
+	 * 1. Header read (12 bytes from 0x10000): returns PFM_DATA header with
+	 *    length=PFM_DATA_LEN, sig_length=PFM_SIGNATURE_LEN, magic=PFM_MAGIC_NUM
+	 * 2. DER signature header read (8 bytes from 0x10000 + PFM_SIGNATURE_OFFSET):
+	 *    DER SEQUENCE, content_len=252 => total DER size=256=PFM_SIGNATURE_LEN
+	 *    => manifest_flash_get_size returns PFM_DATA_LEN - 256 + 256 = PFM_DATA_LEN
+	 */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,	PFM_DATA,
+		sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, sizeof (struct manifest_header)));
+
+	/* DER signature header read */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,	pfm_der_sig_header,
+		sizeof (pfm_der_sig_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1,
+		sizeof (pfm_der_sig_header)));
+
+	/* Data read for the full manifest */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,	PFM_DATA, PFM_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PFM_DATA_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Set up PFM manager array and call export_manifest */
+	pfm_mgrs[0] = &manager.test.base;
+	status = cerberus_protocol_export_manifest (NULL, NULL, pfm_mgrs, 1, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify response length and manifest ID */
+	struct cerberus_protocol_export_manifest_response *rsp =
+		(struct cerberus_protocol_export_manifest_response*) buf;
+
+	CuAssertIntEquals (test,
+		sizeof (struct cerberus_protocol_export_manifest_response) + PFM_DATA_LEN, request.length);
+	CuAssertIntEquals (test, 1, rsp->manifest_id);	/* ID from PFM_DATA header */
+
+	/* Verify response data matches the PFM manifest raw bytes */
+	status = testing_validate_array (PFM_DATA, rsp->data, PFM_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Release PFM */
+	manager.test.base.free_pfm (&manager.test.base, active_pfm);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_get_manifest_size_active_pfm (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_manifest_size *req;
+	struct cerberus_protocol_get_manifest_size_response *rsp;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	const struct pfm *active_pfm;
+	const struct pfm_manager *pfm_mgrs[1];
+	static const uint8_t pfm_der_sig_header[] = {0x30, 0x82, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00};
+	int status;
+
+	TEST_START;
+
+	/* Initialize PFM manager with active PFM in region 1 */
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	/* Get active PFM */
+	active_pfm = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pfm);
+
+	/* Prepare get_manifest_size request for active PFM */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_get_manifest_size);
+
+	req = (struct cerberus_protocol_get_manifest_size*) buf;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_MANIFEST_SIZE;
+	req->manifest_type = CERBERUS_PROTOCOL_MANIFEST_PFM;
+	req->region = 0;	/* Active */
+	req->port = 0;
+
+	/* Set up flash read expectations for manifest size calculation */
+	/* Header read */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA,
+		sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_der_sig_header,
+		sizeof (pfm_der_sig_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1,
+		sizeof (pfm_der_sig_header)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the get_manifest_size function */
+	pfm_mgrs[0] = &manager.test.base;
+	status = cerberus_protocol_get_manifest_size (NULL, NULL, pfm_mgrs, 1, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify the response */
+	rsp = (struct cerberus_protocol_get_manifest_size_response*) buf;
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_manifest_size_response),
+		request.length);
+	CuAssertIntEquals (test, PFM_DATA_LEN, rsp->manifest_size);
+	CuAssertIntEquals (test, 1, rsp->manifest_id);
+
+	/* Release PFM */
+	manager.test.base.free_pfm (&manager.test.base, active_pfm);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_get_manifest_size_pending_pfm (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_manifest_size *req;
+	struct cerberus_protocol_get_manifest_size_response *rsp;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	const struct pfm *pending_pfm;
+	const struct pfm_manager *pfm_mgrs[1];
+	static const uint8_t pfm_der_sig_header[] = {0x30, 0x82, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00};
+	int status;
+
+	TEST_START;
+
+	/* Initialize PFM manager with active (region 1) and pending (region 2) PFMs */
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	/* Get pending PFM */
+	pending_pfm = manager.test.base.get_pending_pfm (&manager.test.base);
+	CuAssertPtrNotNull (test, pending_pfm);
+
+	/* Prepare get_manifest_size request for pending PFM */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_get_manifest_size);
+
+	req = (struct cerberus_protocol_get_manifest_size*) buf;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_MANIFEST_SIZE;
+	req->manifest_type = CERBERUS_PROTOCOL_MANIFEST_PFM;
+	req->region = 1;	/* Pending */
+	req->port = 0;
+
+	/* Set up flash read expectations for manifest size calculation */
+	/* Header read from region 2 (0x20000) */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_DATA,
+		sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_der_sig_header,
+		sizeof (pfm_der_sig_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM2_DATA_LEN - 256, 0, -1,
+		sizeof (pfm_der_sig_header)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the get_manifest_size function */
+	pfm_mgrs[0] = &manager.test.base;
+	status = cerberus_protocol_get_manifest_size (NULL, NULL, pfm_mgrs, 1, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify the response */
+	rsp = (struct cerberus_protocol_get_manifest_size_response*) buf;
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_manifest_size_response),
+		request.length);
+	CuAssertIntEquals (test, PFM2_DATA_LEN, rsp->manifest_size);
+	CuAssertIntEquals (test, 2, rsp->manifest_id);
+
+	/* Release PFM */
+	manager.test.base.free_pfm (&manager.test.base, pending_pfm);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_get_manifest_size_flash_read_error (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_manifest_size *req;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	const struct pfm *active_pfm;
+	const struct pfm_manager *pfm_mgrs[1];
+	int status;
+
+	TEST_START;
+
+	/* Initialize PFM manager with active PFM in region 1 */
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	/* Get active PFM */
+	active_pfm = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pfm);
+
+	/* Prepare get_manifest_size request for active PFM */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_get_manifest_size);
+
+	req = (struct cerberus_protocol_get_manifest_size*) buf;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_MANIFEST_SIZE;
+	req->manifest_type = CERBERUS_PROTOCOL_MANIFEST_PFM;
+	req->region = 0;	/* Active */
+	req->port = 0;
+
+	/* Mock flash header read failure */
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the get_manifest_size function - should propagate flash error */
+	pfm_mgrs[0] = &manager.test.base;
+	status = cerberus_protocol_get_manifest_size (NULL, NULL, pfm_mgrs, 1, &request);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	/* Release PFM */
+	manager.test.base.free_pfm (&manager.test.base, active_pfm);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_manifest_extract_pending_pfm (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pfm *pending_pfm;
+	const struct pfm_manager *pfm_mgrs[1];
+	static const uint8_t pfm_der_sig_header[] = {0x30, 0x82, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00};
+	int status;
+
+	TEST_START;
+
+	/* Initialize PFM manager with active (region 1) and pending (region 2) PFMs */
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, PFM2_DATA, PFM2_DATA_LEN, PFM2_HASH, PFM2_SIGNATURE, true);
+
+	/* Get pending PFM */
+	pending_pfm = manager.test.base.get_pending_pfm (&manager.test.base);
+	CuAssertPtrNotNull (test, pending_pfm);
+
+	/* Prepare extract request for pending PFM (manifest_type=0, region=1) */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = CERBERUS_PROTOCOL_MANIFEST_PFM;
+	req->region = 1;	/* Pending */
+	req->port = 0;
+	req->offset = 0;
+
+	/* Set up flash read expectations */
+	/* Header read */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_DATA,
+		sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_der_sig_header,
+		sizeof (pfm_der_sig_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000 + PFM2_DATA_LEN - 256, 0, -1,
+		sizeof (pfm_der_sig_header)));
+
+	/* Data read for the full manifest */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM2_DATA, PFM2_DATA_LEN,
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PFM2_DATA_LEN));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Set up PFM manager array and call export_manifest */
+	pfm_mgrs[0] = &manager.test.base;
+	status = cerberus_protocol_export_manifest (NULL, NULL, pfm_mgrs, 1, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify response length and manifest ID */
+	struct cerberus_protocol_export_manifest_response *rsp =
+		(struct cerberus_protocol_export_manifest_response*) buf;
+
+	CuAssertIntEquals (test,
+		sizeof (struct cerberus_protocol_export_manifest_response) + PFM2_DATA_LEN,	request.length);
+	CuAssertIntEquals (test, 2, rsp->manifest_id);
+
+	/* Verify response data matches the PFM2 manifest raw bytes */
+	status = testing_validate_array (PFM2_DATA, rsp->data, PFM2_DATA_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Release PFM */
+	manager.test.base.free_pfm (&manager.test.base, pending_pfm);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_manifest_extract_flash_read_error (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pfm *active_pfm;
+	const struct pfm_manager *pfm_mgrs[1];
+	int status;
+
+	TEST_START;
+
+	/* Initialize PFM manager with active PFM in region 1 */
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	/* Get active PFM */
+	active_pfm = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pfm);
+
+	/* Prepare export_manifest request for active PFM */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = CERBERUS_PROTOCOL_MANIFEST_PFM;
+	req->region = 0;	/* Active */
+	req->port = 0;
+	req->offset = 0;
+
+	/* Mock flash header read failure during manifest_flash_get_size */
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the export_manifest function - should propagate flash error */
+	pfm_mgrs[0] = &manager.test.base;
+	status = cerberus_protocol_export_manifest (NULL, NULL, pfm_mgrs, 1, &request);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	/* Release PFM */
+	manager.test.base.free_pfm (&manager.test.base, active_pfm);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pfm_manager_flash_test_manifest_extract_offset_too_large (CuTest *test)
+{
+	struct pfm_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pfm *active_pfm;
+	const struct pfm_manager *pfm_mgrs[1];
+	static const uint8_t pfm_der_sig_header[] = {0x30, 0x82, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00};
+	int status;
+
+	TEST_START;
+
+	/* Initialize PFM manager with active PFM in region 1 */
+	pfm_manager_flash_testing_init (test, &manager, 0x10000, 0x20000, PFM_DATA, PFM_DATA_LEN,
+		PFM_HASH, PFM_SIGNATURE, NULL, 0, NULL, NULL, true);
+
+	/* Get active PFM */
+	active_pfm = manager.test.base.get_active_pfm (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pfm);
+
+	/* Prepare export_manifest request with offset >= manifest_size */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = CERBERUS_PROTOCOL_MANIFEST_PFM;
+	req->region = 0;			/* Active */
+	req->port = 0;
+	req->offset = PFM_DATA_LEN;	/* Offset at manifest size */
+
+	/* Set up flash reads to get manifest size (header + DER signature header) */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, PFM_DATA,
+		sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pfm_der_sig_header,
+		sizeof (pfm_der_sig_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PFM_SIGNATURE_OFFSET, 0, -1,
+		sizeof (pfm_der_sig_header)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the export_manifest function - should return CMD_HANDLER_OUT_OF_RANGE */
+	pfm_mgrs[0] = &manager.test.base;
+	status = cerberus_protocol_export_manifest (NULL, NULL, pfm_mgrs, 1, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_OUT_OF_RANGE, status);
+
+	/* Release PFM */
+	manager.test.base.free_pfm (&manager.test.base, active_pfm);
+
+	pfm_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (pfm_manager_flash);
@@ -6741,6 +7214,13 @@ TEST (pfm_manager_flash_test_clear_all_manifests_null);
 TEST (pfm_manager_flash_test_clear_all_manifests_erase_pending_error);
 TEST (pfm_manager_flash_test_clear_all_manifests_erase_active_error);
 TEST (pfm_manager_flash_test_clear_all_manifests_erase_active_error_notify_observers);
+TEST (pfm_manager_flash_test_manifest_extract_active_pfm);
+TEST (pfm_manager_flash_test_get_manifest_size_active_pfm);
+TEST (pfm_manager_flash_test_get_manifest_size_pending_pfm);
+TEST (pfm_manager_flash_test_get_manifest_size_flash_read_error);
+TEST (pfm_manager_flash_test_manifest_extract_pending_pfm);
+TEST (pfm_manager_flash_test_manifest_extract_flash_read_error);
+TEST (pfm_manager_flash_test_manifest_extract_offset_too_large);
 
 TEST_SUITE_END;
 // *INDENT-ON*

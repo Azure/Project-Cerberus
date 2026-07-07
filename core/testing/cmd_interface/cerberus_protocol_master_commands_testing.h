@@ -15,6 +15,7 @@
 #include "testing/mock/manifest/cfm/cfm_manager_mock.h"
 #include "testing/mock/manifest/manifest_cmd_interface_mock.h"
 #include "testing/mock/manifest/pcd/pcd_manager_mock.h"
+#include "testing/mock/manifest/pfm/pfm_manager_mock.h"
 #include "testing/mock/recovery/recovery_image_cmd_interface_mock.h"
 #include "testing/mock/recovery/recovery_image_manager_mock.h"
 
@@ -306,6 +307,112 @@ void cerberus_protocol_master_commands_testing_process_get_host_flash_config_ext
 void cerberus_protocol_master_commands_testing_process_get_ext_update_status_invalid_len (
 	CuTest *test, struct cmd_interface *cmd);
 void cerberus_protocol_master_commands_testing_process_get_ext_update_status_invalid_type (
+	CuTest *test, struct cmd_interface *cmd);
+
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_active (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_active_with_signature (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_active_max_uint16 (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_pending (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_active (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_active (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_active (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_no_active (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_no_pending (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_no_manager (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_invalid_length (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_cfm_invalid_type (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_unsupported (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_active_no_active
+(
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void
+cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port0_pending_no_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_active_no_active
+(
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void
+cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port1_pending_no_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_port_out_of_range (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pfm_null_manager_for_port (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_no_active (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_no_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_get_manifest_size_pcd_no_manager (
+	CuTest *test, struct cmd_interface *cmd);
+
+void cerberus_protocol_master_commands_testing_process_export_manifest_cfm_active (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_export_manifest_cfm_pending (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_active (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_active (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pcd_active (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pcd_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+
+void cerberus_protocol_master_commands_testing_process_export_manifest_cfm_no_active (CuTest *test,
+	struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_export_manifest_cfm_no_pending (
+	CuTest *test, struct cmd_interface *cmd, struct cfm_manager_mock *cfm_manager);
+void cerberus_protocol_master_commands_testing_process_export_manifest_cfm_no_manager (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_export_manifest_cfm_invalid_length (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_export_manifest_cfm_invalid_type (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_unsupported (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_active_no_active (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port0_pending_no_pending
+(
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_0);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_active_no_active (
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port1_pending_no_pending
+(
+	CuTest *test, struct cmd_interface *cmd, struct pfm_manager_mock *pfm_manager_1);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_port_out_of_range (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pfm_null_manager_for_port (
+	CuTest *test, struct cmd_interface *cmd);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pcd_no_active (CuTest *test,
+	struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pcd_no_pending (
+	CuTest *test, struct cmd_interface *cmd, struct pcd_manager_mock *pcd_manager);
+void cerberus_protocol_master_commands_testing_process_export_manifest_pcd_no_manager (
 	CuTest *test, struct cmd_interface *cmd);
 
 

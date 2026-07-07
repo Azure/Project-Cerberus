@@ -45,6 +45,13 @@ const struct pcd* pcd_manager_flash_get_active_pcd (const struct pcd_manager *ma
 	return pcd_manager_flash_get_pcd (pcd_mgr, true);
 }
 
+const struct pcd* pcd_manager_flash_get_pending_pcd (const struct pcd_manager *manager)
+{
+	const struct pcd_manager_flash *pcd_mgr = (const struct pcd_manager_flash*) manager;
+
+	return pcd_manager_flash_get_pcd (pcd_mgr, false);
+}
+
 void pcd_manager_flash_free_pcd (const struct pcd_manager *manager, const struct pcd *pcd)
 {
 	const struct pcd_manager_flash *pcd_mgr = (const struct pcd_manager_flash*) manager;
@@ -179,6 +186,7 @@ int pcd_manager_flash_init (struct pcd_manager_flash *manager,
 	}
 
 	manager->base.get_active_pcd = pcd_manager_flash_get_active_pcd;
+	manager->base.get_pending_pcd = pcd_manager_flash_get_pending_pcd;
 	manager->base.free_pcd = pcd_manager_flash_free_pcd;
 
 	manager->base.base.activate_pending_manifest = pcd_manager_flash_activate_pending_manifest;

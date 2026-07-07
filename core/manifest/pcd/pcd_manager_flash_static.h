@@ -20,6 +20,7 @@ int pcd_manager_flash_clear_all_manifests (const struct manifest_manager *manage
 
 void pcd_manager_flash_free_pcd (const struct pcd_manager *manager, const struct pcd *pcd);
 const struct pcd* pcd_manager_flash_get_active_pcd (const struct pcd_manager *manager);
+const struct pcd* pcd_manager_flash_get_pending_pcd (const struct pcd_manager *manager);
 
 
 /**
@@ -45,7 +46,7 @@ const struct pcd* pcd_manager_flash_get_active_pcd (const struct pcd_manager *ma
 			pcd_manager_flash_activate_pending_manifest, pcd_manager_flash_clear_pending_region, \
 			pcd_manager_flash_write_pending_data, pcd_manager_flash_verify_pending_manifest, \
 			pcd_manager_flash_clear_all_manifests, pcd_manager_flash_get_active_pcd, \
-			pcd_manager_flash_free_pcd), \
+			pcd_manager_flash_get_pending_pcd, pcd_manager_flash_free_pcd), \
 		.manifest_manager = manifest_manager_flash_static_init (&(state_ptr)->flash_state, \
 			&(manager_ptr)->base.base, &(pcd_region1_ptr)->base.base, \
 			&(pcd_region2_ptr)->base.base, &(pcd_region1_ptr)->base_flash, \

@@ -42,6 +42,7 @@ struct pcd_testing_data {
 
 
 extern const struct pcd_testing_data PCD_TESTING;
+extern const struct pcd_testing_data PCD_TESTING_DER_SIG;
 extern const struct pcd_testing_data PCD_SKU_SPECIFIC_TESTING;
 extern const struct pcd_testing_data PCD_NO_COMPONENTS_TESTING;
 extern const struct pcd_testing_data PCD_NO_PORTS_TESTING;

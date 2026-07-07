@@ -2133,6 +2133,372 @@ static void manifest_flash_test_compare_id_both_null (CuTest *test)
 	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
 }
 
+static void manifest_flash_test_get_size (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state flash_state;
+	struct spi_flash flash;
+	struct manifest_flash_state manifest_state;
+	struct manifest_flash manifest_flash_inst;
+	uint32_t addr = 0x10000;
+	int status;
+	int manifest_size;
+
+	/* Create a test manifest header with:
+	 * - length = 0x0400 (1024 bytes)
+	 * - sig_length = 0x0100 (256 bytes) */
+	uint8_t header_data[12] = {
+		0x00, 0x04, 0x4d, 0x50,	/* length=1024, magic=0x504D */
+		0x01, 0x00, 0x00, 0x00,	/* id=1 */
+		0x00, 0x01, 0x01, 0x00	/* sig_length=256, sig_type=1, reserved=0 */
+	};
+
+	/* Create a DER-encoded signature header.
+	 * DER SEQUENCE: 0x30 <length> <data...>
+	 * Content length = 252 (0xFC), long form 2-byte length encoding (0x82):
+	 * header = 4 bytes, total = 252 + 4 = 256 = sig_size.
+	 * der_sig_size must not exceed sig_size — the DER must fit in the on-flash sig area. */
+	uint8_t sig_der_header[8] = {
+		0x30, 0x82, 0x00, 0xFC,	/* DER SEQUENCE, content length = 0x00FC (252 bytes) */
+		0x00, 0x00, 0x00, 0x00	/* padding */
+	};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_init (&manifest_flash_inst, &manifest_state, &flash.base, addr,
+		PFM_MAGIC_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Expect header read */
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, header_data, 12,
+		FLASH_EXP_READ_CMD (0x03, addr, 0, -1, 12));
+
+	/* Expect signature DER header read at addr + manifest_size - sig_size
+	 * = 0x10000 + 1024 - 256 = 0x10000 + 768 = 0x10300 */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, sig_der_header, 8,
+		FLASH_EXP_READ_CMD (0x03, addr + 1024 - 256, 0, -1, 8));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the function under test */
+	manifest_size = manifest_flash_get_size (&manifest_flash_inst);
+
+	/* Expected size = manifest_size (1024) - sig_size (256) + der_sig_size (252 + 4)
+	 * = 1024 - 256 + 256 = 1024 */
+	CuAssertIntEquals (test, 1024, manifest_size);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_release (&manifest_flash_inst);
+	spi_flash_release (&flash);
+}
+
+static void manifest_flash_test_get_size_no_signature (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state flash_state;
+	struct spi_flash flash;
+	struct manifest_flash_state manifest_state;
+	struct manifest_flash manifest_flash_inst;
+	uint32_t addr = 0x10000;
+	int status;
+	int manifest_size;
+
+	/* sig_length = 0: the early-return path `if (sig_size == 0) return manifest_size` fires;
+	 * no DER read should occur. */
+	uint8_t header_data[12] = {
+		0x00, 0x04, 0x4d, 0x50,	/* length=1024, magic=0x504D */
+		0x01, 0x00, 0x00, 0x00,	/* id=1 */
+		0x00, 0x00, 0x01, 0x00	/* sig_length=0, sig_type=1, reserved=0 */
+	};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_init (&manifest_flash_inst, &manifest_state, &flash.base, addr,
+		PFM_MAGIC_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Expect only a header read — no signature DER read. */
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, header_data, 12,
+		FLASH_EXP_READ_CMD (0x03, addr, 0, -1, 12));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_size = manifest_flash_get_size (&manifest_flash_inst);
+	CuAssertIntEquals (test, 1024, manifest_size);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_release (&manifest_flash_inst);
+	spi_flash_release (&flash);
+}
+
+static void manifest_flash_test_get_size_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = manifest_flash_get_size (NULL);
+	CuAssertIntEquals (test, MANIFEST_INVALID_ARGUMENT, status);
+}
+
+static void manifest_flash_test_get_size_header_read_error (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state flash_state;
+	struct spi_flash flash;
+	struct manifest_flash_state manifest_state;
+	struct manifest_flash manifest_flash_inst;
+	uint32_t addr = 0x10000;
+	int status;
+	int manifest_size;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_init (&manifest_flash_inst, &manifest_state, &flash.base, addr,
+		PFM_MAGIC_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Expect header read to fail */
+	status = flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the function under test */
+	manifest_size = manifest_flash_get_size (&manifest_flash_inst);
+
+	/* Should return the flash error */
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, manifest_size);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_release (&manifest_flash_inst);
+	spi_flash_release (&flash);
+}
+
+static void manifest_flash_test_get_size_signature_read_error (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state flash_state;
+	struct spi_flash flash;
+	struct manifest_flash_state manifest_state;
+	struct manifest_flash manifest_flash_inst;
+	uint32_t addr = 0x10000;
+	int status;
+	int manifest_size;
+
+	uint8_t header_data[12] = {
+		0x00, 0x04, 0x4d, 0x50,	/* length=1024, magic=0x504D */
+		0x01, 0x00, 0x00, 0x00,	/* id=1 */
+		0x00, 0x01, 0x01, 0x00	/* sig_length=256, sig_type=1, reserved=0 */
+	};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_init (&manifest_flash_inst, &manifest_state, &flash.base, addr,
+		PFM_MAGIC_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Expect header read to succeed */
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, header_data, 12,
+		FLASH_EXP_READ_CMD (0x03, addr, 0, -1, 12));
+
+	/* Expect signature read to fail */
+	status |= flash_master_mock_expect_xfer (&flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the function under test */
+	manifest_size = manifest_flash_get_size (&manifest_flash_inst);
+
+	/* Should return the flash error */
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, manifest_size);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_release (&manifest_flash_inst);
+	spi_flash_release (&flash);
+}
+
+static void manifest_flash_test_get_size_der_exceeds_sig_area (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state flash_state;
+	struct spi_flash flash;
+	struct manifest_flash_state manifest_state;
+	struct manifest_flash manifest_flash_inst;
+	uint32_t addr = 0x10000;
+	int status;
+	int manifest_size;
+
+	uint8_t header_data[12] = {
+		0x00, 0x04, 0x4d, 0x50,	/* length=1024, magic=0x504D */
+		0x01, 0x00, 0x00, 0x00,	/* id=1 */
+		0x00, 0x01, 0x01, 0x00	/* sig_length=256, sig_type=1, reserved=0 */
+	};
+
+	/* DER SEQUENCE with content length 257: header (4 bytes) + 257 = 261 > sig_size (256).
+	 * 0x30 0x82 0x01 0x01 → tag=SEQUENCE, 2-byte length field, content length=0x0101=257. */
+	uint8_t oversized_sig_der[8] = {
+		0x30, 0x82, 0x01, 0x01,	/* DER SEQUENCE, length = 257 bytes */
+		0x00, 0x00, 0x00, 0x00	/* padding */
+	};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_init (&manifest_flash_inst, &manifest_state, &flash.base, addr,
+		PFM_MAGIC_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Expect header read */
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, header_data, 12,
+		FLASH_EXP_READ_CMD (0x03, addr, 0, -1, 12));
+
+	/* Expect signature DER header read */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, oversized_sig_der, 8,
+		FLASH_EXP_READ_CMD (0x03, addr + 1024 - 256, 0, -1, 8));
+
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_size = manifest_flash_get_size (&manifest_flash_inst);
+	CuAssertIntEquals (test, MANIFEST_BAD_LENGTH, manifest_size);
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_release (&manifest_flash_inst);
+	spi_flash_release (&flash);
+}
+
+static void manifest_flash_test_get_size_invalid_der_signature (CuTest *test)
+{
+	struct flash_master_mock flash_mock;
+	struct spi_flash_state flash_state;
+	struct spi_flash flash;
+	struct manifest_flash_state manifest_state;
+	struct manifest_flash manifest_flash_inst;
+	uint32_t addr = 0x10000;
+	int status;
+	int manifest_size;
+
+	uint8_t header_data[12] = {
+		0x00, 0x04, 0x4d, 0x50,	/* length=1024, magic=0x504D */
+		0x01, 0x00, 0x00, 0x00,	/* id=1 */
+		0x00, 0x01, 0x01, 0x00	/* sig_length=256, sig_type=1, reserved=0 */
+	};
+
+	/* Invalid DER signature header - not a sequence tag */
+	uint8_t invalid_sig_der[8] = {
+		0xFF, 0xFF, 0xFF, 0xFF,	/* Invalid DER encoding */
+		0x00, 0x00, 0x00, 0x00
+	};
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_init (&flash, &flash_state, &flash_mock.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_set_device_size (&flash, 0x1000000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manifest_flash_init (&manifest_flash_inst, &manifest_state, &flash.base, addr,
+		PFM_MAGIC_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Expect header read */
+	status = flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, header_data, 12,
+		FLASH_EXP_READ_CMD (0x03, addr, 0, -1, 12));
+
+	/* Expect signature DER header read with invalid data */
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&flash_mock, 0, invalid_sig_der, 8,
+		FLASH_EXP_READ_CMD (0x03, addr + 1024 - 256, 0, -1, 8));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the function under test */
+	manifest_size = manifest_flash_get_size (&manifest_flash_inst);
+
+	/* Should return an ASN.1 error (ASN1_UTIL_NOT_VALID or other negative error) */
+	CuAssert (test, "Expected negative error code", ROT_IS_ERROR (manifest_size));
+
+	status = flash_master_mock_validate_and_release (&flash_mock);
+	CuAssertIntEquals (test, 0, status);
+
+	manifest_flash_release (&manifest_flash_inst);
+	spi_flash_release (&flash);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (manifest_flash);
@@ -2207,6 +2573,13 @@ TEST (manifest_flash_test_compare_id_no_manifests);
 TEST (manifest_flash_test_compare_id_null_manifest1);
 TEST (manifest_flash_test_compare_id_null_manifest2);
 TEST (manifest_flash_test_compare_id_both_null);
+TEST (manifest_flash_test_get_size);
+TEST (manifest_flash_test_get_size_no_signature);
+TEST (manifest_flash_test_get_size_null);
+TEST (manifest_flash_test_get_size_header_read_error);
+TEST (manifest_flash_test_get_size_signature_read_error);
+TEST (manifest_flash_test_get_size_der_exceeds_sig_area);
+TEST (manifest_flash_test_get_size_invalid_der_signature);
 
 TEST_SUITE_END;
 // *INDENT-ON*

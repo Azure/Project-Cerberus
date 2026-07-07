@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "cmd_interface/cerberus_protocol.h"
+#include "cmd_interface/cerberus_protocol_master_commands.h"
 #include "crypto/ecc.h"
 #include "flash/flash_common.h"
 #include "flash/spi_flash.h"
@@ -465,6 +467,7 @@ static void pcd_manager_flash_test_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, manager.test.base.get_active_pcd);
+	CuAssertPtrNotNull (test, manager.test.base.get_pending_pcd);
 	CuAssertPtrNotNull (test, manager.test.base.free_pcd);
 
 	CuAssertPtrNotNull (test, manager.test.base.base.activate_pending_manifest);
@@ -1133,6 +1136,7 @@ static void pcd_manager_flash_test_static_init (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, manager.test.base.get_active_pcd);
+	CuAssertPtrNotNull (test, manager.test.base.get_pending_pcd);
 	CuAssertPtrNotNull (test, manager.test.base.free_pcd);
 
 	CuAssertPtrNotNull (test, manager.test.base.base.activate_pending_manifest);
@@ -1859,6 +1863,20 @@ static void pcd_manager_flash_test_get_active_pcd_null (CuTest *test)
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pcd_manager_flash_test_get_pending_pcd_null (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+
+	TEST_START;
+
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	CuAssertPtrEquals (test, NULL, manager.test.base.get_pending_pcd (NULL));
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 static void pcd_manager_flash_test_activate_pending_pcd_region2_after_write (CuTest *test)
 {
 	struct pcd_manager_flash_testing manager;
@@ -1881,6 +1899,7 @@ static void pcd_manager_flash_test_activate_pending_pcd_region2_after_write (CuT
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrEquals (test, &manager.pcd1, manager.test.base.get_active_pcd (&manager.test.base));
+	CuAssertPtrEquals (test, &manager.pcd2, manager.test.base.get_pending_pcd (&manager.test.base));
 
 	status = manager.test.base.base.activate_pending_manifest (&manager.test.base.base);
 	CuAssertIntEquals (test, 0, status);
@@ -3994,6 +4013,478 @@ static void pcd_manager_flash_test_clear_all_manifests_erase_active_error_notify
 	pcd_manager_flash_testing_validate_and_release (test, &manager);
 }
 
+static void pcd_manager_flash_test_get_manifest_size_active_pcd (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_manifest_size *req;
+	struct cerberus_protocol_get_manifest_size_response *rsp;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	const struct pcd *active_pcd;
+	int status;
+
+	TEST_START;
+
+	/* Initialize the PCD manager with an active PCD */
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	/* Get active PCD */
+	active_pcd = manager.test.base.get_active_pcd (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pcd);
+
+	/* Prepare get_manifest_size request for active PCD */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_get_manifest_size);
+
+	req = (struct cerberus_protocol_get_manifest_size*) buf;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_MANIFEST_SIZE;
+	req->manifest_type = 2;	/* PCD */
+	req->region = 0;		/* Active (PCD only has active region) */
+	req->port = 0;
+
+	/* Set up flash read expectations for manifest size calculation */
+	/* Header read */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_TESTING_DER_SIG.manifest.raw, sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_TESTING_DER_SIG.manifest.raw + PCD_TESTING_DER_SIG.manifest.sig_offset, 8,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_TESTING_DER_SIG.manifest.sig_offset, 0, -1, 8));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the get_manifest_size function */
+	status = cerberus_protocol_get_manifest_size (NULL, &manager.test.base, NULL, 0, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify the response */
+	rsp = (struct cerberus_protocol_get_manifest_size_response*) buf;
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_manifest_size_response),
+		request.length);
+	CuAssertIntEquals (test, PCD_TESTING_DER_SIG.manifest.length, rsp->manifest_size);
+	CuAssertIntEquals (test, 0x1a, rsp->manifest_id);
+
+	/* Release PCD */
+	manager.test.base.free_pcd (&manager.test.base, active_pcd);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_manifest_extract_active_pcd (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pcd *active_pcd;
+	int status;
+
+	TEST_START;
+
+	/* Initialize the PCD manager with an active PCD */
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	/* Get active PCD */
+	active_pcd = manager.test.base.get_active_pcd (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pcd);
+
+	/* Prepare extract request for active PCD (manifest_type=1, region=0) */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = 2;	/* PCD */
+	req->region = 0;		/* Active (PCD only has active region) */
+	req->port = 0;
+	req->offset = 0;
+
+	/* Set up flash read expectations for manifest_flash_get_size() */
+	/* Manifest header read for size calculation */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_TESTING_DER_SIG.manifest.raw, sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_TESTING_DER_SIG.manifest.raw + PCD_TESTING_DER_SIG.manifest.sig_offset, 8,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_TESTING_DER_SIG.manifest.sig_offset, 0, -1, 8));
+
+	/* Data read - will read the entire manifest up to max payload size */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_TESTING_DER_SIG.manifest.raw, PCD_TESTING_DER_SIG.manifest.length,
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, PCD_TESTING_DER_SIG.manifest.length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the manifest extract function */
+	status = cerberus_protocol_export_manifest (NULL, &manager.test.base, NULL, 0, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify the response contains the correct data */
+	struct cerberus_protocol_export_manifest_response *rsp =
+		(struct cerberus_protocol_export_manifest_response*) buf;
+	size_t expected_data_len = PCD_TESTING_DER_SIG.manifest.length;
+
+	/* Verify response length */
+	CuAssertIntEquals (test,
+		sizeof (struct cerberus_protocol_export_manifest_response) + expected_data_len,
+		request.length);
+	CuAssertIntEquals (test, 0x1a, rsp->manifest_id);
+
+	/* Verify response data matches the PCD manifest data */
+	status = testing_validate_array (PCD_TESTING_DER_SIG.manifest.raw, rsp->data,
+		expected_data_len);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Release PCD */
+	manager.test.base.free_pcd (&manager.test.base, active_pcd);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_get_manifest_size_flash_read_error (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_manifest_size *req;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	const struct pcd *active_pcd;
+	int status;
+
+	TEST_START;
+
+	/* Initialize the PCD manager with an active PCD */
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	/* Get active PCD */
+	active_pcd = manager.test.base.get_active_pcd (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pcd);
+
+	/* Prepare get_manifest_size request for active PCD */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_get_manifest_size);
+
+	req = (struct cerberus_protocol_get_manifest_size*) buf;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_MANIFEST_SIZE;
+	req->manifest_type = 2;	/* PCD */
+	req->region = 0;		/* Active */
+	req->port = 0;
+
+	/* Mock flash header read failure */
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the get_manifest_size function - should propagate flash error */
+	status = cerberus_protocol_get_manifest_size (NULL, &manager.test.base, NULL, 0, &request);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	/* Release PCD */
+	manager.test.base.free_pcd (&manager.test.base, active_pcd);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_manifest_extract_flash_read_error (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pcd *active_pcd;
+	int status;
+
+	TEST_START;
+
+	/* Initialize the PCD manager with an active PCD */
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	/* Get active PCD */
+	active_pcd = manager.test.base.get_active_pcd (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pcd);
+
+	/* Prepare export_manifest request for active PCD */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = 2;	/* PCD */
+	req->region = 0;		/* Active */
+	req->port = 0;
+	req->offset = 0;
+
+	/* Mock flash header read failure during manifest_flash_get_size */
+	status = flash_master_mock_expect_xfer (&manager.flash_mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the export_manifest function - should propagate flash error */
+	status = cerberus_protocol_export_manifest (NULL, &manager.test.base, NULL, 0, &request);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	/* Release PCD */
+	manager.test.base.free_pcd (&manager.test.base, active_pcd);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_get_manifest_size_pending_pcd (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_get_manifest_size *req;
+	struct cerberus_protocol_get_manifest_size_response *rsp;
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY];
+	const struct pcd *pending_pcd;
+	static const uint8_t pcd_der_sig_header[] = {0x30, 0x82, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00};
+	int status;
+
+	TEST_START;
+
+	/* Initialize the PCD manager with an active PCD in region 1 */
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	/* Write and verify pending PCD in region 2 */
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_pcd2 (&manager, 0x20000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Get pending PCD */
+	pending_pcd = manager.test.base.get_pending_pcd (&manager.test.base);
+	CuAssertPtrNotNull (test, pending_pcd);
+
+	/* Prepare get_manifest_size request for pending PCD */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_get_manifest_size);
+
+	req = (struct cerberus_protocol_get_manifest_size*) buf;
+	req->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
+	req->header.pci_vendor_id = CERBERUS_PROTOCOL_MSFT_PCI_VID;
+	req->header.command = CERBERUS_PROTOCOL_GET_MANIFEST_SIZE;
+	req->manifest_type = 2;	/* PCD */
+	req->region = 1;		/* Pending */
+	req->port = 0;
+
+	/* Set up flash read expectations for manifest size calculation (pending at 0x20000) */
+	/* Header read */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_NO_PORTS_TESTING.manifest.raw, sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_der_sig_header,
+		sizeof (pcd_der_sig_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000 + PCD_NO_PORTS_TESTING.manifest.sig_offset, 0, -1,
+		sizeof (pcd_der_sig_header)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the get_manifest_size function */
+	status = cerberus_protocol_get_manifest_size (NULL, &manager.test.base, NULL, 0, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify the response */
+	rsp = (struct cerberus_protocol_get_manifest_size_response*) buf;
+	CuAssertIntEquals (test, sizeof (struct cerberus_protocol_get_manifest_size_response),
+		request.length);
+	CuAssertIntEquals (test, PCD_NO_PORTS_TESTING.manifest.length, rsp->manifest_size);
+	CuAssertIntEquals (test, PCD_NO_PORTS_TESTING.manifest.id, rsp->manifest_id);
+
+	/* Release PCD */
+	manager.test.base.free_pcd (&manager.test.base, pending_pcd);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_manifest_extract_pending_pcd (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pcd *pending_pcd;
+	static const uint8_t pcd_der_sig_header[] = {0x30, 0x82, 0x00, 0xfc, 0x00, 0x00, 0x00, 0x00};
+	int status;
+
+	TEST_START;
+
+	/* Initialize the PCD manager with an active PCD in region 1 */
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	/* Write and verify pending PCD in region 2 */
+	pcd_manager_flash_testing_write_new_pcd (test, &manager, 0x20000);
+
+	status = pcd_manager_flash_testing_verify_pcd2 (&manager, 0x20000);
+	CuAssertIntEquals (test, 0, status);
+
+	status = manager.test.base.base.verify_pending_manifest (&manager.test.base.base);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Get pending PCD */
+	pending_pcd = manager.test.base.get_pending_pcd (&manager.test.base);
+	CuAssertPtrNotNull (test, pending_pcd);
+
+	/* Prepare extract request for pending PCD (region=1) */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = 2;	/* PCD */
+	req->region = 1;		/* Pending */
+	req->port = 0;
+	req->offset = 0;
+
+	/* Set up flash read expectations (pending at 0x20000) */
+	/* Manifest header read for size calculation */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_NO_PORTS_TESTING.manifest.raw, sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, pcd_der_sig_header,
+		sizeof (pcd_der_sig_header),
+		FLASH_EXP_READ_CMD (0x03, 0x20000 + PCD_NO_PORTS_TESTING.manifest.sig_offset, 0, -1,
+		sizeof (pcd_der_sig_header)));
+
+	/* Data read for the full manifest */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_NO_PORTS_TESTING.manifest.raw, PCD_NO_PORTS_TESTING.manifest.length,
+		FLASH_EXP_READ_CMD (0x03, 0x20000, 0, -1, PCD_NO_PORTS_TESTING.manifest.length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the manifest extract function */
+	status = cerberus_protocol_export_manifest (NULL, &manager.test.base, NULL, 0, &request);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Verify the response */
+	struct cerberus_protocol_export_manifest_response *rsp =
+		(struct cerberus_protocol_export_manifest_response*) buf;
+	size_t expected_data_len = PCD_NO_PORTS_TESTING.manifest.length;
+
+	CuAssertIntEquals (test,
+		sizeof (struct cerberus_protocol_export_manifest_response) + expected_data_len,
+		request.length);
+	CuAssertIntEquals (test, PCD_NO_PORTS_TESTING.manifest.id, rsp->manifest_id);
+
+	/* Verify response data matches the PCD manifest data */
+	status = testing_validate_array (PCD_NO_PORTS_TESTING.manifest.raw, rsp->data,
+		expected_data_len);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Release PCD */
+	manager.test.base.free_pcd (&manager.test.base, pending_pcd);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
+static void pcd_manager_flash_test_manifest_extract_offset_too_large (CuTest *test)
+{
+	struct pcd_manager_flash_testing manager;
+	struct cmd_interface_msg request;
+	struct cerberus_protocol_export_manifest *req;
+	uint8_t buf[CERBERUS_PROTOCOL_MAX_PAYLOAD_PER_MSG];
+	const struct pcd *active_pcd;
+	int status;
+
+	TEST_START;
+
+	/* Initialize the PCD manager with an active PCD */
+	pcd_manager_flash_testing_init (test, &manager, 0x10000, 0x20000,
+		pcd_manager_flash_testing_verify_pcd, NULL, true);
+
+	/* Get active PCD */
+	active_pcd = manager.test.base.get_active_pcd (&manager.test.base);
+	CuAssertPtrNotNull (test, active_pcd);
+
+	/* Prepare export_manifest request with offset >= manifest_size */
+	memset (&request, 0, sizeof (request));
+	request.data = buf;
+	request.max_response = sizeof (buf);
+	request.length = sizeof (struct cerberus_protocol_export_manifest);
+
+	req = (struct cerberus_protocol_export_manifest*) buf;
+	req->manifest_type = 2;								/* PCD */
+	req->region = 0;									/* Active */
+	req->port = 0;
+	req->offset = PCD_TESTING_DER_SIG.manifest.length;	/* Offset at manifest size */
+
+	/* Set up flash reads to get manifest size (header + signature) */
+	status = flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_TESTING_DER_SIG.manifest.raw, sizeof (struct manifest_header),
+		FLASH_EXP_READ_CMD (0x03, 0x10000, 0, -1, sizeof (struct manifest_header)));
+
+	/* Signature header read for DER size calculation */
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0, &WIP_STATUS, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&manager.flash_mock, 0,
+		PCD_TESTING_DER_SIG.manifest.raw + PCD_TESTING_DER_SIG.manifest.sig_offset, 8,
+		FLASH_EXP_READ_CMD (0x03, 0x10000 + PCD_TESTING_DER_SIG.manifest.sig_offset, 0, -1, 8));
+
+	CuAssertIntEquals (test, 0, status);
+
+	/* Call the export_manifest function - should return CMD_HANDLER_OUT_OF_RANGE */
+	status = cerberus_protocol_export_manifest (NULL, &manager.test.base, NULL, 0, &request);
+	CuAssertIntEquals (test, CMD_HANDLER_OUT_OF_RANGE, status);
+
+	/* Release PCD */
+	manager.test.base.free_pcd (&manager.test.base, active_pcd);
+
+	pcd_manager_flash_testing_validate_and_release (test, &manager);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (pcd_manager_flash);
@@ -4042,6 +4533,7 @@ TEST (pcd_manager_flash_test_static_init_empty_manifest_pending_erase_error);
 TEST (pcd_manager_flash_test_static_init_empty_manifest_active_erase_error);
 TEST (pcd_manager_flash_test_release_null);
 TEST (pcd_manager_flash_test_get_active_pcd_null);
+TEST (pcd_manager_flash_test_get_pending_pcd_null);
 TEST (pcd_manager_flash_test_activate_pending_pcd_region2_after_write);
 TEST (pcd_manager_flash_test_activate_pending_pcd_region1_after_write);
 TEST (pcd_manager_flash_test_activate_pending_pcd_region2_after_write_notify_observers);
@@ -4119,6 +4611,13 @@ TEST (pcd_manager_flash_test_clear_all_manifests_null);
 TEST (pcd_manager_flash_test_clear_all_manifests_erase_pending_error);
 TEST (pcd_manager_flash_test_clear_all_manifests_erase_active_error);
 TEST (pcd_manager_flash_test_clear_all_manifests_erase_active_error_notify_observers);
+TEST (pcd_manager_flash_test_get_manifest_size_active_pcd);
+TEST (pcd_manager_flash_test_get_manifest_size_pending_pcd);
+TEST (pcd_manager_flash_test_get_manifest_size_flash_read_error);
+TEST (pcd_manager_flash_test_manifest_extract_active_pcd);
+TEST (pcd_manager_flash_test_manifest_extract_pending_pcd);
+TEST (pcd_manager_flash_test_manifest_extract_flash_read_error);
+TEST (pcd_manager_flash_test_manifest_extract_offset_too_large);
 
 TEST_SUITE_END;
 // *INDENT-ON*

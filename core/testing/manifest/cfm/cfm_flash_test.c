@@ -664,6 +664,86 @@ const struct cfm_testing_data CFM_ONLY_PMR_DIGEST_TESTING = {
 };
 
 /**
+ * CFM with DER-encoded signature for testing manifest export.
+ *
+ * This is CFM_ONLY_PMR_DIGEST_DATA with DER-encoded RSA signature:
+ * - First 252 bytes: manifest data
+ * - Next 4 bytes: DER SEQUENCE header (0x30 0x82 0x01 0x00 = length 256)
+ * - Last 256 bytes: RSA signature
+ * Total: 512 bytes (252 + 4 + 256)
+ */
+const uint8_t CFM_ONLY_PMR_DIGEST_DATA_DER_SIG[] = {
+	0x00, 0x02, 0x92, 0xa5, 0x02, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x03, 0x03, 0x00, 0x00,
+	0x00, 0xff, 0x01, 0x00, 0xa8, 0x00, 0x08, 0x00, 0x70, 0xff, 0x00, 0x01, 0xb0, 0x00, 0x08, 0x00,
+	0x72, 0x70, 0x00, 0x02, 0xb8, 0x00, 0x44, 0x00, 0x13, 0xe9, 0x1c, 0x16, 0x0e, 0xcf, 0xd2, 0xbb,
+	0x3a, 0x86, 0x83, 0xb6, 0x01, 0xc4, 0xba, 0xcb, 0x04, 0xf0, 0xa5, 0x18, 0x9b, 0x97, 0xd9, 0x2d,
+	0x67, 0xf4, 0x6d, 0x69, 0xea, 0x1e, 0x25, 0x36, 0x72, 0xe6, 0x77, 0x03, 0xde, 0xc7, 0x73, 0xfc,
+	0x1b, 0x50, 0x02, 0x03, 0x82, 0xaa, 0xce, 0x5e, 0x43, 0x16, 0x5c, 0x81, 0x62, 0xea, 0x7d, 0x4c,
+	0x50, 0xa9, 0xec, 0x6e, 0x79, 0x7f, 0xfc, 0x0c, 0x47, 0x23, 0xe5, 0x32, 0x3c, 0x50, 0xf0, 0x3f,
+	0xe3, 0xf6, 0x2e, 0x82, 0xc8, 0xbd, 0xfa, 0x7a, 0x34, 0xf0, 0xb2, 0x6b, 0xc0, 0xe0, 0xbc, 0x3f,
+	0x29, 0xfd, 0x55, 0x63, 0x5f, 0x8e, 0x23, 0x99, 0xd8, 0x54, 0xf5, 0xd6, 0x8e, 0xb9, 0xf2, 0xd9,
+	0xbf, 0x7b, 0x1e, 0x7e, 0x11, 0x37, 0x80, 0x4e, 0xa1, 0xb2, 0xcd, 0x9a, 0xf1, 0xc2, 0xf3, 0x79,
+	0xbf, 0x9f, 0x93, 0x0a, 0xd2, 0x9a, 0x85, 0x1a, 0x04, 0x00, 0x00, 0x00, 0x53, 0x4b, 0x55, 0x31,
+	0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0xaa, 0xaa, 0xaa, 0xaa,
+	0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+	0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xbb, 0xbb, 0xbb, 0xbb,
+	0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb,
+	0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0x30, 0x82, 0x01, 0x00,
+	0xb3, 0xb7, 0x1c, 0xb6, 0x69, 0x38, 0xee, 0xea, 0x02, 0xe8, 0xc1, 0xd0, 0x48, 0xcd, 0x5e, 0xf6,
+	0x33, 0x06, 0xc8, 0x33, 0xe3, 0xb5, 0x50, 0x6e, 0x91, 0x23, 0x08, 0xf8, 0x79, 0x58, 0xca, 0xc8,
+	0x16, 0xae, 0xee, 0x72, 0x27, 0x4e, 0x06, 0x9d, 0x05, 0xae, 0x51, 0x47, 0xf6, 0x1c, 0x29, 0x3f,
+	0x13, 0xb9, 0xc0, 0x78, 0x14, 0x81, 0x64, 0xa2, 0xab, 0x00, 0x18, 0xd1, 0xa2, 0x76, 0xe8, 0xc7,
+	0x79, 0x52, 0x01, 0xfb, 0x10, 0x7b, 0xc7, 0x5f, 0x0d, 0x44, 0x59, 0x28, 0x88, 0x8f, 0xb1, 0xb6,
+	0xa8, 0xed, 0xf4, 0xa4, 0x3e, 0x29, 0x66, 0x5a, 0xc5, 0xe7, 0xae, 0xd2, 0xbd, 0x26, 0xf7, 0x57,
+	0xab, 0xc0, 0x49, 0x92, 0x40, 0x32, 0xda, 0x96, 0xd8, 0x13, 0x8a, 0x0a, 0x7e, 0x6c, 0x3b, 0x05,
+	0x60, 0x9e, 0x0e, 0x4d, 0x39, 0x0f, 0x1d, 0x92, 0xd8, 0xf2, 0xf4, 0xf5, 0xb9, 0xc3, 0x50, 0xc4,
+	0x47, 0xdf, 0x1e, 0x6a, 0x04, 0x43, 0xf9, 0x02, 0xaf, 0x5c, 0x2b, 0x98, 0x28, 0x25, 0x8b, 0x33,
+	0x11, 0x52, 0xf2, 0xda, 0x11, 0xa4, 0xad, 0x7e, 0xf2, 0x50, 0x61, 0x96, 0xa1, 0x3c, 0xeb, 0xfe,
+	0x59, 0x5e, 0x5b, 0x0d, 0x95, 0x37, 0xe5, 0x08, 0xd0, 0xb7, 0x84, 0x0a, 0xde, 0x55, 0xde, 0xd1,
+	0xe3, 0x7e, 0x42, 0x54, 0xc6, 0xdd, 0xf5, 0x7f, 0x08, 0x1d, 0xa3, 0x13, 0xea, 0x09, 0xb5, 0x33,
+	0xa7, 0xb7, 0x97, 0x45, 0x0f, 0xcf, 0xd8, 0x65, 0xbf, 0x65, 0x32, 0x82, 0xf0, 0x13, 0x48, 0x14,
+	0x58, 0x88, 0xe5, 0x0f, 0xb2, 0xe1, 0x54, 0xc4, 0xdb, 0xac, 0xdd, 0xad, 0xa6, 0x86, 0x31, 0x40,
+	0xba, 0x20, 0x85, 0x49, 0x6f, 0xa3, 0xe3, 0xb6, 0x24, 0x1e, 0xa7, 0x5d, 0x64, 0xff, 0x70, 0x58,
+	0xb3, 0x04, 0x7f, 0x99, 0xdc, 0x24, 0xd8, 0xef, 0x76, 0x0b, 0x93, 0xdd, 0x70, 0xe5, 0x86, 0xa3
+};
+
+const uint32_t CFM_ONLY_PMR_DIGEST_DATA_DER_SIG_LEN = sizeof (CFM_ONLY_PMR_DIGEST_DATA_DER_SIG);
+
+const struct cfm_testing_data CFM_ONLY_PMR_DIGEST_TESTING_DER_SIG = {
+	.manifest = {
+		.raw = CFM_ONLY_PMR_DIGEST_DATA_DER_SIG,
+		.length = sizeof (CFM_ONLY_PMR_DIGEST_DATA_DER_SIG),
+		.hash = CFM_ONLY_PMR_DIGEST_HASH,
+		.hash_len = sizeof (CFM_ONLY_PMR_DIGEST_HASH),
+		.id = 0x2,
+		.signature = CFM_ONLY_PMR_DIGEST_DATA_DER_SIG + 252,
+		.sig_len = 260,
+		.sig_offset = 252,
+		.sig_hash_type = HASH_TYPE_SHA256,
+		.toc = CFM_ONLY_PMR_DIGEST_DATA_DER_SIG + MANIFEST_V2_TOC_HDR_OFFSET,
+		.toc_len = 0x78,
+		.toc_hash = CFM_ONLY_PMR_DIGEST_DATA_DER_SIG + 0x88,
+		.toc_hash_len = 32,
+		.toc_hash_offset = 0x88,
+		.toc_hash_type = HASH_TYPE_SHA256,
+		.toc_entries = 3,
+		.toc_hashes = 3,
+		.plat_id = CFM_ONLY_PMR_DIGEST_DATA_DER_SIG + 0xa8,
+		.plat_id_len = 0x8,
+		.plat_id_str = CFM_ONLY_PMR_DIGEST_PLATFORM_ID,
+		.plat_id_str_len = sizeof (CFM_ONLY_PMR_DIGEST_PLATFORM_ID) - 1,
+		.plat_id_str_pad = 0,
+		.plat_id_offset = 0xa8,
+		.plat_id_entry = 0,
+		.plat_id_hash = 0
+	},
+	.component_device1_len = 0x08,
+	.component_device1_offset = 0xb0,
+	.component_device1_entry = 1,
+	.component_device1_hash = 1,
+};
+
+/**
  * Dummy CFM with only a measurement element for testing.
  *
  * CFM file: cfm.xml
@@ -5989,44 +6069,44 @@ const struct cfm_testing_data CFM_MANY_MEASUREMENTS_TESTING = {
  * to_array.sh <output cfm bin>
  */
 const uint8_t CFM_HASH_TYPE_PER_VERSION_SET_DATA[] = {
-	0x64, 0x02, 0x92, 0xa5, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x03, 0x03, 0x00, 0x00, 
-	0x00, 0xff, 0x01, 0x00, 0xa8, 0x00, 0x08, 0x00, 0x70, 0xff, 0x00, 0x01, 0xb0, 0x00, 0x08, 0x00, 
-	0x73, 0x70, 0x00, 0x02, 0xb8, 0x00, 0xac, 0x00, 0x13, 0xe9, 0x1c, 0x16, 0x0e, 0xcf, 0xd2, 0xbb, 
-	0x3a, 0x86, 0x83, 0xb6, 0x01, 0xc4, 0xba, 0xcb, 0x04, 0xf0, 0xa5, 0x18, 0x9b, 0x97, 0xd9, 0x2d, 
-	0x67, 0xf4, 0x6d, 0x69, 0xea, 0x1e, 0x25, 0x36, 0x9a, 0xe4, 0xc9, 0xd0, 0x86, 0x4c, 0x30, 0x00, 
-	0x5a, 0xca, 0xc9, 0x1f, 0x21, 0x01, 0x5f, 0x39, 0xe3, 0x56, 0x91, 0xa0, 0x56, 0xd6, 0x06, 0xa0, 
-	0x97, 0xc8, 0xcf, 0x83, 0x80, 0x27, 0x5a, 0x17, 0x6d, 0x97, 0x25, 0x54, 0xcb, 0xba, 0x30, 0x3a, 
-	0x46, 0xa2, 0x27, 0x9e, 0x27, 0x14, 0xee, 0x3f, 0x51, 0x1c, 0x9f, 0x65, 0xbe, 0xb7, 0xf6, 0x42, 
-	0x13, 0xe3, 0x2d, 0x34, 0x7f, 0xeb, 0xda, 0xd5, 0x53, 0xf3, 0xf6, 0x8d, 0x63, 0xde, 0xa2, 0xa3, 
-	0x77, 0xb2, 0x53, 0x8b, 0x55, 0x61, 0x8d, 0x89, 0x90, 0x74, 0x16, 0x00, 0x77, 0x8e, 0x1a, 0x1c, 
-	0xdf, 0x19, 0xb3, 0x7b, 0x85, 0x7a, 0x7f, 0x0b, 0x04, 0x00, 0x00, 0x00, 0x53, 0x4b, 0x55, 0x31, 
-	0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x02, 0x02, 0x00, 0x01, 0x00, 0x02, 0x00, 
-	0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 
-	0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 
-	0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 
-	0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 
-	0x02, 0x00, 0x02, 0x03, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 
-	0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 
-	0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 
-	0xcc, 0xcc, 0xcc, 0xcc, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 
-	0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 
-	0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 
-	0xdd, 0xdd, 0xdd, 0xdd, 0x73, 0xd8, 0xc3, 0xf0, 0x0a, 0x95, 0x61, 0x32, 0x4e, 0x78, 0x0d, 0x0c, 
-	0x9a, 0xa1, 0xb7, 0xd3, 0xb3, 0x34, 0xa6, 0x2e, 0xe8, 0x2b, 0x0c, 0xbe, 0x7c, 0x70, 0xab, 0x7e, 
-	0xee, 0xfa, 0x6e, 0xdd, 0xc8, 0x6e, 0x63, 0x04, 0xd5, 0xfe, 0xd2, 0x78, 0xa6, 0xaa, 0xc8, 0x02, 
-	0xa6, 0x3e, 0x43, 0x4d, 0x8f, 0x24, 0xba, 0xa9, 0x67, 0xb3, 0xa2, 0xbf, 0x62, 0xdf, 0xbc, 0x7f, 
-	0xea, 0xc5, 0xa6, 0xdd, 0xee, 0xe9, 0x2e, 0x17, 0x1f, 0xd3, 0xc0, 0x40, 0x56, 0x2c, 0xa7, 0x27, 
-	0xcb, 0xf9, 0xe9, 0x5f, 0x12, 0xf9, 0x9f, 0x94, 0x4b, 0xb5, 0x32, 0x41, 0xe2, 0x7f, 0x23, 0xdc, 
-	0xbe, 0x84, 0x98, 0xb5, 0x86, 0x0e, 0x29, 0xaa, 0x99, 0x23, 0xa5, 0xb8, 0x25, 0x64, 0x2b, 0x88, 
-	0x1f, 0x7b, 0xd8, 0xbd, 0x0f, 0xc5, 0x8e, 0xa7, 0x60, 0x10, 0x25, 0xb6, 0xf3, 0x31, 0xdf, 0x38, 
-	0xe3, 0xa4, 0xd0, 0x0c, 0xd4, 0xcc, 0xcd, 0xd7, 0x69, 0xa8, 0x43, 0xc9, 0x87, 0x46, 0x32, 0xf9, 
-	0x3f, 0xae, 0xcf, 0xc3, 0x93, 0x51, 0x49, 0xc1, 0x17, 0x33, 0x06, 0xf6, 0xc9, 0x6f, 0xfb, 0x68, 
-	0x7c, 0xca, 0x9f, 0xa0, 0xac, 0x07, 0xf1, 0x7d, 0x48, 0xe0, 0x3b, 0x17, 0xeb, 0x09, 0x58, 0x14, 
-	0xb7, 0x2f, 0xac, 0x34, 0xe5, 0xa1, 0x84, 0x67, 0x7f, 0xb7, 0xde, 0xe0, 0x63, 0x50, 0x19, 0x21, 
-	0x17, 0xa1, 0xe5, 0xa1, 0xa6, 0x67, 0x0e, 0x26, 0x7d, 0x05, 0xf3, 0x30, 0x9b, 0xb6, 0x42, 0xf7, 
-	0x58, 0xa1, 0x55, 0xc9, 0x8e, 0xed, 0x39, 0xf5, 0xda, 0x72, 0x35, 0x26, 0xc2, 0xdf, 0x66, 0x5c, 
-	0x0d, 0x9e, 0x6f, 0x80, 0xd3, 0xc3, 0x53, 0x74, 0x8b, 0xc5, 0x01, 0x31, 0x65, 0x0a, 0x78, 0xeb, 
-	0x49, 0x3b, 0x81, 0x0a, 0x34, 0x17, 0x8d, 0x29, 0x37, 0x8f, 0x4d, 0x45, 0xe2, 0xe4, 0x78, 0x10, 
+	0x64, 0x02, 0x92, 0xa5, 0x01, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x03, 0x03, 0x00, 0x00,
+	0x00, 0xff, 0x01, 0x00, 0xa8, 0x00, 0x08, 0x00, 0x70, 0xff, 0x00, 0x01, 0xb0, 0x00, 0x08, 0x00,
+	0x73, 0x70, 0x00, 0x02, 0xb8, 0x00, 0xac, 0x00, 0x13, 0xe9, 0x1c, 0x16, 0x0e, 0xcf, 0xd2, 0xbb,
+	0x3a, 0x86, 0x83, 0xb6, 0x01, 0xc4, 0xba, 0xcb, 0x04, 0xf0, 0xa5, 0x18, 0x9b, 0x97, 0xd9, 0x2d,
+	0x67, 0xf4, 0x6d, 0x69, 0xea, 0x1e, 0x25, 0x36, 0x9a, 0xe4, 0xc9, 0xd0, 0x86, 0x4c, 0x30, 0x00,
+	0x5a, 0xca, 0xc9, 0x1f, 0x21, 0x01, 0x5f, 0x39, 0xe3, 0x56, 0x91, 0xa0, 0x56, 0xd6, 0x06, 0xa0,
+	0x97, 0xc8, 0xcf, 0x83, 0x80, 0x27, 0x5a, 0x17, 0x6d, 0x97, 0x25, 0x54, 0xcb, 0xba, 0x30, 0x3a,
+	0x46, 0xa2, 0x27, 0x9e, 0x27, 0x14, 0xee, 0x3f, 0x51, 0x1c, 0x9f, 0x65, 0xbe, 0xb7, 0xf6, 0x42,
+	0x13, 0xe3, 0x2d, 0x34, 0x7f, 0xeb, 0xda, 0xd5, 0x53, 0xf3, 0xf6, 0x8d, 0x63, 0xde, 0xa2, 0xa3,
+	0x77, 0xb2, 0x53, 0x8b, 0x55, 0x61, 0x8d, 0x89, 0x90, 0x74, 0x16, 0x00, 0x77, 0x8e, 0x1a, 0x1c,
+	0xdf, 0x19, 0xb3, 0x7b, 0x85, 0x7a, 0x7f, 0x0b, 0x04, 0x00, 0x00, 0x00, 0x53, 0x4b, 0x55, 0x31,
+	0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01, 0x02, 0x02, 0x00, 0x01, 0x00, 0x02, 0x00,
+	0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+	0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa, 0xaa,
+	0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb,
+	0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb, 0xbb,
+	0x02, 0x00, 0x02, 0x03, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
+	0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
+	0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc,
+	0xcc, 0xcc, 0xcc, 0xcc, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd,
+	0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd,
+	0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd, 0xdd,
+	0xdd, 0xdd, 0xdd, 0xdd, 0x73, 0xd8, 0xc3, 0xf0, 0x0a, 0x95, 0x61, 0x32, 0x4e, 0x78, 0x0d, 0x0c,
+	0x9a, 0xa1, 0xb7, 0xd3, 0xb3, 0x34, 0xa6, 0x2e, 0xe8, 0x2b, 0x0c, 0xbe, 0x7c, 0x70, 0xab, 0x7e,
+	0xee, 0xfa, 0x6e, 0xdd, 0xc8, 0x6e, 0x63, 0x04, 0xd5, 0xfe, 0xd2, 0x78, 0xa6, 0xaa, 0xc8, 0x02,
+	0xa6, 0x3e, 0x43, 0x4d, 0x8f, 0x24, 0xba, 0xa9, 0x67, 0xb3, 0xa2, 0xbf, 0x62, 0xdf, 0xbc, 0x7f,
+	0xea, 0xc5, 0xa6, 0xdd, 0xee, 0xe9, 0x2e, 0x17, 0x1f, 0xd3, 0xc0, 0x40, 0x56, 0x2c, 0xa7, 0x27,
+	0xcb, 0xf9, 0xe9, 0x5f, 0x12, 0xf9, 0x9f, 0x94, 0x4b, 0xb5, 0x32, 0x41, 0xe2, 0x7f, 0x23, 0xdc,
+	0xbe, 0x84, 0x98, 0xb5, 0x86, 0x0e, 0x29, 0xaa, 0x99, 0x23, 0xa5, 0xb8, 0x25, 0x64, 0x2b, 0x88,
+	0x1f, 0x7b, 0xd8, 0xbd, 0x0f, 0xc5, 0x8e, 0xa7, 0x60, 0x10, 0x25, 0xb6, 0xf3, 0x31, 0xdf, 0x38,
+	0xe3, 0xa4, 0xd0, 0x0c, 0xd4, 0xcc, 0xcd, 0xd7, 0x69, 0xa8, 0x43, 0xc9, 0x87, 0x46, 0x32, 0xf9,
+	0x3f, 0xae, 0xcf, 0xc3, 0x93, 0x51, 0x49, 0xc1, 0x17, 0x33, 0x06, 0xf6, 0xc9, 0x6f, 0xfb, 0x68,
+	0x7c, 0xca, 0x9f, 0xa0, 0xac, 0x07, 0xf1, 0x7d, 0x48, 0xe0, 0x3b, 0x17, 0xeb, 0x09, 0x58, 0x14,
+	0xb7, 0x2f, 0xac, 0x34, 0xe5, 0xa1, 0x84, 0x67, 0x7f, 0xb7, 0xde, 0xe0, 0x63, 0x50, 0x19, 0x21,
+	0x17, 0xa1, 0xe5, 0xa1, 0xa6, 0x67, 0x0e, 0x26, 0x7d, 0x05, 0xf3, 0x30, 0x9b, 0xb6, 0x42, 0xf7,
+	0x58, 0xa1, 0x55, 0xc9, 0x8e, 0xed, 0x39, 0xf5, 0xda, 0x72, 0x35, 0x26, 0xc2, 0xdf, 0x66, 0x5c,
+	0x0d, 0x9e, 0x6f, 0x80, 0xd3, 0xc3, 0x53, 0x74, 0x8b, 0xc5, 0x01, 0x31, 0x65, 0x0a, 0x78, 0xeb,
+	0x49, 0x3b, 0x81, 0x0a, 0x34, 0x17, 0x8d, 0x29, 0x37, 0x8f, 0x4d, 0x45, 0xe2, 0xe4, 0x78, 0x10,
 	0x92, 0x2e, 0x99, 0xa7
 };
 
@@ -6041,7 +6121,7 @@ const uint32_t CFM_HASH_TYPE_PER_VERSION_SET_DATA_LEN = sizeof (CFM_HASH_TYPE_PE
  * head -c -256 <file> | openssl dgst -sha256 -binary | to_array.sh -
  */
 const uint8_t CFM_HASH_TYPE_PER_VERSION_SET_HASH[] = {
-	0xd2, 0x16, 0x44, 0xf4, 0xc7, 0x1f, 0x96, 0x6d, 0x31, 0x23, 0xac, 0x10, 0xa4, 0xc1, 0x6a, 0x23, 
+	0xd2, 0x16, 0x44, 0xf4, 0xc7, 0x1f, 0x96, 0x6d, 0x31, 0x23, 0xac, 0x10, 0xa4, 0xc1, 0x6a, 0x23,
 	0xf0, 0xd8, 0xfc, 0x7e, 0xd7, 0x80, 0x72, 0xc1, 0x8a, 0xf5, 0x24, 0x08, 0xbe, 0xa5, 0xd2, 0xca
 };
 
@@ -6060,7 +6140,8 @@ const struct cfm_testing_data CFM_HASH_TYPE_PER_VERSION_SET_TESTING = {
 		.hash = CFM_HASH_TYPE_PER_VERSION_SET_HASH,
 		.hash_len = sizeof (CFM_HASH_TYPE_PER_VERSION_SET_HASH),
 		.id = 0x1,
-		.signature = CFM_HASH_TYPE_PER_VERSION_SET_DATA + (sizeof (CFM_HASH_TYPE_PER_VERSION_SET_DATA) - 256),
+		.signature = CFM_HASH_TYPE_PER_VERSION_SET_DATA +
+			(sizeof (CFM_HASH_TYPE_PER_VERSION_SET_DATA) - 256),
 		.sig_len = 256,
 		.sig_offset = (sizeof (CFM_HASH_TYPE_PER_VERSION_SET_DATA) - 256),
 		.sig_hash_type = HASH_TYPE_SHA256,
@@ -6168,7 +6249,8 @@ const struct cfm_testing_data CFM_AGGREGATED_MEASUREMENT_TESTING = {
 		.hash = CFM_AGGREGATED_MEASUREMENT_HASH,
 		.hash_len = sizeof (CFM_AGGREGATED_MEASUREMENT_HASH),
 		.id = 0x20,
-		.signature = CFM_AGGREGATED_MEASUREMENT_DATA + (sizeof (CFM_AGGREGATED_MEASUREMENT_DATA) - 256),
+		.signature = CFM_AGGREGATED_MEASUREMENT_DATA +
+			(sizeof (CFM_AGGREGATED_MEASUREMENT_DATA) - 256),
 		.sig_len = 256,
 		.sig_offset = (sizeof (CFM_AGGREGATED_MEASUREMENT_DATA) - 256),
 		.sig_hash_type = HASH_TYPE_SHA256,
@@ -6266,7 +6348,8 @@ const uint8_t CFM_SECOND_AGGREGATED_MEASUREMENT_DATA[] = {
 /**
  * Length of the test CFM data.
  */
-const uint32_t CFM_SECOND_AGGREGATED_MEASUREMENT_DATA_LEN = sizeof (CFM_SECOND_AGGREGATED_MEASUREMENT_DATA);
+const uint32_t CFM_SECOND_AGGREGATED_MEASUREMENT_DATA_LEN =
+	sizeof (CFM_SECOND_AGGREGATED_MEASUREMENT_DATA);
 
 /**
  * Hash of the CFM with an aggregated measurement element, used for testing.
@@ -6293,7 +6376,8 @@ const struct cfm_testing_data CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING = {
 		.hash = CFM_SECOND_AGGREGATED_MEASUREMENT_HASH,
 		.hash_len = sizeof (CFM_SECOND_AGGREGATED_MEASUREMENT_HASH),
 		.id = 0x20,
-		.signature = CFM_SECOND_AGGREGATED_MEASUREMENT_DATA + (sizeof (CFM_SECOND_AGGREGATED_MEASUREMENT_DATA) - 256),
+		.signature = CFM_SECOND_AGGREGATED_MEASUREMENT_DATA +
+			(sizeof (CFM_SECOND_AGGREGATED_MEASUREMENT_DATA) - 256),
 		.sig_len = 256,
 		.sig_offset = (sizeof (CFM_SECOND_AGGREGATED_MEASUREMENT_DATA) - 256),
 		.sig_hash_type = HASH_TYPE_SHA256,
@@ -9543,7 +9627,7 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_measurement_
 		container.measurement.digest.allowable_digests[0].digests.digests,
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1));
 	status |= testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2,
-		container.measurement.digest.allowable_digests[0].digests.digests +
+								container.measurement.digest.allowable_digests[0].digests.digests +\
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1),
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2));
 	CuAssertIntEquals (test, 0, status);
@@ -9639,7 +9723,7 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_measurement_
 		container.measurement.digest.allowable_digests[0].digests.digests,
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1));
 	status |= testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2,
-		container.measurement.digest.allowable_digests[0].digests.digests +
+								container.measurement.digest.allowable_digests[0].digests.digests +\
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1),
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2));
 	CuAssertIntEquals (test, 0, status);
@@ -9648,7 +9732,7 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_measurement_
 		container.measurement.digest.allowable_digests[1].digests.digests,
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_3));
 	status |= testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2,
-		container.measurement.digest.allowable_digests[1].digests.digests +
+								container.measurement.digest.allowable_digests[1].digests.digests +\
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1),
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2));
 	CuAssertIntEquals (test, 0, status);
@@ -9678,8 +9762,8 @@ cfm_flash_test_get_next_measurement_or_measurement_data_measurement_hash_type_pe
 	memset (digest_sha384_cc, 0xcc, sizeof (digest_sha384_cc));
 	memset (digest_sha384_dd, 0xdd, sizeof (digest_sha384_dd));
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_HASH_TYPE_PER_VERSION_SET_TESTING, 0,
-		false, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_HASH_TYPE_PER_VERSION_SET_TESTING,
+		0, false, 0);
 
 	// Read Component element
 	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
@@ -9720,8 +9804,8 @@ cfm_flash_test_get_next_measurement_or_measurement_data_measurement_hash_type_pe
 
 	// Read Allowable Digest 1 digests (2 x SHA256)
 	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
-		&CFM_HASH_TYPE_PER_VERSION_SET_TESTING.manifest, 2, 2, 2, 0xb8, 0xac, 2 * SHA256_HASH_LENGTH,
-		bytes_read);
+		&CFM_HASH_TYPE_PER_VERSION_SET_TESTING.manifest, 2, 2, 2, 0xb8, 0xac,
+		2 * SHA256_HASH_LENGTH,	bytes_read);
 	bytes_read += (2 * SHA256_HASH_LENGTH);
 
 	// Read Allowable Digest 2 (version_set=2, hash_type_override=1, hash_type=1 -> SHA384)
@@ -9732,8 +9816,8 @@ cfm_flash_test_get_next_measurement_or_measurement_data_measurement_hash_type_pe
 
 	// Read Allowable Digest 2 digests (2 x SHA384)
 	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
-		&CFM_HASH_TYPE_PER_VERSION_SET_TESTING.manifest, 2, 2, 2, 0xb8, 0xac, 2 * SHA384_HASH_LENGTH,
-		bytes_read);
+		&CFM_HASH_TYPE_PER_VERSION_SET_TESTING.manifest, 2, 2, 2, 0xb8, 0xac,
+		2 * SHA384_HASH_LENGTH,	bytes_read);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		true);
@@ -10069,7 +10153,7 @@ cfm_flash_test_get_next_measurement_or_measurement_data_measurement_after_measur
 		container.measurement.digest.allowable_digests[0].digests.digests,
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1));
 	status |= testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2,
-		container.measurement.digest.allowable_digests[0].digests.digests +
+								container.measurement.digest.allowable_digests[0].digests.digests +\
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1),
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2));
 	CuAssertIntEquals (test, 0, status);
@@ -12684,7 +12768,7 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_static_init 
 		container.measurement.digest.allowable_digests[0].digests.digests,
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1));
 	status |= testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2,
-		container.measurement.digest.allowable_digests[0].digests.digests +
+								container.measurement.digest.allowable_digests[0].digests.digests +\
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1),
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2));
 	CuAssertIntEquals (test, 0, status);
@@ -17376,7 +17460,9 @@ static void cfm_flash_test_free_manifest_null (CuTest *test)
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_first_valid (CuTest *test)
+static void
+cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_first_valid (
+	CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_container container;
@@ -17385,39 +17471,46 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0, false, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0,
+		false, 0);
 
 	// Read Component element
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
 		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len, 0);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	manifest_flash_v3_testing_iterate_manifest_toc_no_verify (test, &cfm.manifest,
 		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		2);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	// Read Aggregated Measurement element
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
-		0xe0, 0x48, sizeof (struct cfm_aggregated_measurement_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2, 0xe0, 0x48,
+		sizeof (struct cfm_aggregated_measurement_element), bytes_read);
 	bytes_read += sizeof (struct cfm_aggregated_measurement_element);
 
 	// Read Allowable Digest 1
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
-		0xe0, 0x48, sizeof (struct cfm_allowable_digest_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2, 0xe0, 0x48,
+		sizeof (struct cfm_allowable_digest_element), bytes_read);
 	bytes_read += sizeof (struct cfm_allowable_digest_element);
 
 	// Read Allowable Digest 1 digests
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
-		0xe0, 0x48, SHA256_HASH_LENGTH, bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2, 0xe0, 0x48, SHA256_HASH_LENGTH,
+		bytes_read);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		true);
@@ -17440,26 +17533,29 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 		sizeof (AGGREGATED_MEASUREMENT_MEASUREMENT_2_3_HASH));
 	CuAssertIntEquals (test, 0, status);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3);
 
 	bytes_read = 0;
 	// Read Measurement element
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3,
-		0x128, 0x48, sizeof (struct cfm_measurement_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3, 0x128, 0x48,
+		sizeof (struct cfm_measurement_element), bytes_read);
 	bytes_read += sizeof (struct cfm_measurement_element);
 
 	// Read Measurement element, Allowable Digest 1
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3,
-		0x128, 0x48, sizeof (struct cfm_allowable_digest_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3, 0x128, 0x48,
+		sizeof (struct cfm_allowable_digest_element), bytes_read);
 	bytes_read += sizeof (struct cfm_allowable_digest_element);
 
 	// Read Measurement element, Allowable Digest 1 digests
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3,
-		0x128, 0x48, 2 * SHA256_HASH_LENGTH, bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3, 0x128, 0x48, 2 * SHA256_HASH_LENGTH,
+		bytes_read);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		false);
@@ -17478,7 +17574,7 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 		container.measurement.digest.allowable_digests[0].digests.digests,
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1));
 	status |= testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2,
-				container.measurement.digest.allowable_digests[0].digests.digests +
+		container.measurement.digest.allowable_digests[0].digests.digests +
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1),
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2));
 	CuAssertIntEquals (test, 0, status);
@@ -17492,7 +17588,9 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_second_valid (CuTest *test)
+static void
+cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_second_valid (
+	CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_container container;
@@ -17501,39 +17599,46 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING, 0, false, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING, 0, false, 0);
 
 	// Read Component element
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest,
-		CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0, CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
-		CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset, CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest,
+		CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0,
+		CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
+		CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset,
+		CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
 		CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.component_device1_len, 0);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		2);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,	2);
 
 	manifest_flash_v3_testing_iterate_manifest_toc_no_verify (test, &cfm.manifest,
 		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,	3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,	3);
 
 	// Read Measurement element
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
-		0xe0, 0x48, sizeof (struct cfm_measurement_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2, 0xe0, 0x48,
+		sizeof (struct cfm_measurement_element), bytes_read);
 	bytes_read += sizeof (struct cfm_measurement_element);
 
 	// Read Measurement element, Allowable Digest 1
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
-		0xe0, 0x48, sizeof (struct cfm_allowable_digest_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2, 0xe0, 0x48,
+		sizeof (struct cfm_allowable_digest_element), bytes_read);
 	bytes_read += sizeof (struct cfm_allowable_digest_element);
 
 	// Read Measurement element, Allowable Digest 1 digests
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
-		0xe0, 0x48, 2 * SHA256_HASH_LENGTH, bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2, 0xe0, 0x48,
+		2 * SHA256_HASH_LENGTH, bytes_read);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		true);
@@ -17552,31 +17657,34 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 		container.measurement.digest.allowable_digests[0].digests.digests,
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1));
 	status |= testing_validate_array (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2,
-				container.measurement.digest.allowable_digests[0].digests.digests +
+		container.measurement.digest.allowable_digests[0].digests.digests +
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1),
 		sizeof (MEASUREMENT_PMR_1_MEASUREMENT_2_DEVICE_1_2));
 	CuAssertIntEquals (test, 0, status);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3,	3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3,	3);
 
 	bytes_read = 0;
 	// Read Aggregated Measurement element
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3,
-		0x128, 0x48, sizeof (struct cfm_aggregated_measurement_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3, 0x128, 0x48,
+		sizeof (struct cfm_aggregated_measurement_element), bytes_read);
 	bytes_read += sizeof (struct cfm_aggregated_measurement_element);
 
 	// Read Allowable Digest 1
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3,
-		0x128, 0x48, sizeof (struct cfm_allowable_digest_element), bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3, 0x128, 0x48,
+		sizeof (struct cfm_allowable_digest_element), bytes_read);
 	bytes_read += sizeof (struct cfm_allowable_digest_element);
 
 	// Read Allowable Digest 1 digests
-	manifest_flash_v3_testing_read_element (test, &cfm.manifest, &CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3,
-		0x128, 0x48, SHA256_HASH_LENGTH, bytes_read);
+	manifest_flash_v3_testing_read_element (test, &cfm.manifest,
+		&CFM_SECOND_AGGREGATED_MEASUREMENT_TESTING.manifest, 3, 3, 3, 0x128, 0x48,
+		SHA256_HASH_LENGTH, bytes_read);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		false);
@@ -17608,7 +17716,9 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_no_digest_invalid (CuTest *test)
+static void
+cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_no_digest_invalid (
+	CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_aggregated_measurement_element aggregated_element;
@@ -17616,7 +17726,7 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 	struct manifest_toc_entry bad_entry;
 	int status;
 
-	memset(&aggregated_element, 0, sizeof(aggregated_element));
+	memset (&aggregated_element, 0, sizeof (aggregated_element));
 
 	bad_entry.type_id = CFM_AGGREGATED_MEASUREMENT;
 	bad_entry.parent = CFM_COMPONENT_DEVICE;
@@ -17627,30 +17737,35 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0, true, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0,
+		true, 0);
 
 	// Read Component element
-	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
 		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len, 0);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	manifest_flash_v3_testing_iterate_manifest_toc_no_verify_mocked_hash (test, &cfm.manifest,
 		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		2);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	// Read Aggregated Measurement element
 	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &cfm.manifest,
-		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, bad_entry.hash_id, 2, bad_entry.hash_id, bad_entry.offset,
-		bad_entry.length, bad_entry.length, 0, &bad_entry, (uint8_t*)&aggregated_element);
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, bad_entry.hash_id, 2, bad_entry.hash_id,
+		bad_entry.offset, bad_entry.length, bad_entry.length, 0, &bad_entry,
+		(uint8_t*) &aggregated_element);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		true);
@@ -17661,7 +17776,9 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_hash_type_invalid (CuTest *test)
+static void
+cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_hash_type_invalid (
+	CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_aggregated_measurement_element aggregated_element;
@@ -17669,7 +17786,7 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 	struct manifest_toc_entry bad_entry;
 	int status;
 
-	memset(&aggregated_element, 0, sizeof(aggregated_element));
+	memset (&aggregated_element, 0, sizeof (aggregated_element));
 	aggregated_element.allowable_digest_count = 1;
 	aggregated_element.hash_type = 255;
 
@@ -17682,30 +17799,35 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0, true, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0,
+		true, 0);
 
 	// Read Component element
-	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
 		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len, 0);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	manifest_flash_v3_testing_iterate_manifest_toc_no_verify_mocked_hash (test, &cfm.manifest,
 		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		2);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	// Read Aggregated Measurement element
 	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &cfm.manifest,
-		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, bad_entry.hash_id, 2, bad_entry.hash_id, bad_entry.offset,
-		bad_entry.length, bad_entry.length, 0, &bad_entry, (uint8_t*)&aggregated_element);
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, bad_entry.hash_id, 2, bad_entry.hash_id,
+		bad_entry.offset, bad_entry.length, bad_entry.length, 0, &bad_entry,
+		(uint8_t*) &aggregated_element);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		true);
@@ -17716,7 +17838,9 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 	cfm_flash_testing_validate_and_release (test, &cfm);
 }
 
-static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_allowable_digests_invalid (CuTest *test)
+static void
+cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_measurement_allowable_digests_invalid
+	(CuTest *test)
 {
 	struct cfm_flash_testing cfm;
 	struct cfm_measurement_container container;
@@ -17733,34 +17857,40 @@ static void cfm_flash_test_get_next_measurement_or_measurement_data_aggregated_m
 
 	TEST_START;
 
-	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0, true, 0);
+	cfm_flash_testing_init_and_verify (test, &cfm, 0x10000, &CFM_AGGREGATED_MEASUREMENT_TESTING, 0,
+		true, 0);
 
 	// Read Component element
-	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
-		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset, CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_entry, 0,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_hash,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_offset,
+		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len,
 		CFM_AGGREGATED_MEASUREMENT_TESTING.component_device1_len, 0);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	manifest_flash_v3_testing_iterate_manifest_toc_no_verify_mocked_hash (test, &cfm.manifest,
 		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		2);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2);
 
-	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2,
-		3);
+	manifest_flash_v3_testing_iterate_manifest_toc_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 3);
 
 	// Read Aggregated Measurement element
-	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest, &CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2,
-		0xe0, 0x48, sizeof (struct cfm_aggregated_measurement_element), 0);
+	manifest_flash_v3_testing_read_element_mocked_hash (test, &cfm.manifest,
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, 2, 2, 2, 0xe0, 0x48,
+		sizeof (struct cfm_aggregated_measurement_element), 0);
 
 	// Read Allowable Digest 1
 	manifest_flash_v3_testing_read_element_mocked_hash_bad_entry (test, &cfm.manifest,
-		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, bad_entry.hash_id, 2, bad_entry.hash_id, bad_entry.offset,
-		bad_entry.length, bad_entry.length, sizeof (struct cfm_aggregated_measurement_element), &bad_entry, NULL);
+		&CFM_AGGREGATED_MEASUREMENT_TESTING.manifest, bad_entry.hash_id, 2, bad_entry.hash_id,
+		bad_entry.offset, bad_entry.length, bad_entry.length,
+		sizeof (struct cfm_aggregated_measurement_element), &bad_entry, NULL);
 
 	status = cfm.test.base.get_next_measurement_or_measurement_data (&cfm.test.base, 3, &container,
 		true);

@@ -35,6 +35,15 @@ struct pcd_manager {
 	const struct pcd* (*get_active_pcd) (const struct pcd_manager *manager);
 
 	/**
+	 * Get the pending PCD. The PCD instance must be released with the manager.
+	 *
+	 * @param manager The PCD manager to query.
+	 *
+	 * @return The pending PCD or null if there is no pending PCD.
+	 */
+	const struct pcd* (*get_pending_pcd) (const struct pcd_manager *manager);
+
+	/**
 	 * Release a PCD instance retrieved from the manager. PCD instances must only be released by
 	 * the manager that allocated them.
 	 *

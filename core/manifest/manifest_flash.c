@@ -7,6 +7,7 @@
 #include "manifest.h"
 #include "manifest_flash.h"
 #include "platform_api.h"
+#include "asn1/asn1_util.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "crypto/ecc.h"
@@ -1557,4 +1558,59 @@ int manifest_flash_compare_platform_id (const struct manifest_flash *manifest1,
 	else {
 		return (strcmp (manifest1->platform_id, manifest2->platform_id) != 0);
 	}
+}
+
+/**
+ * Get the actual size of a manifest including the DER-encoded signature.
+ *
+ * @param manifest The manifest to query.
+ *
+ * @return The manifest size in bytes if successful or an error code.
+ */
+int manifest_flash_get_size (const struct manifest_flash *manifest)
+{
+	struct manifest_header header;
+	uint32_t manifest_size;
+	uint32_t sig_size;
+	uint8_t sig_header[8];
+	int der_sig_size;
+	int status;
+
+	if (manifest == NULL) {
+		return MANIFEST_INVALID_ARGUMENT;
+	}
+
+	/* Read the manifest header */
+	status = manifest_flash_read_header (manifest, &header);
+	if (status != 0) {
+		return status;
+	}
+
+	/* Get manifest size and signature size from header */
+	manifest_size = header.length;
+	sig_size = header.sig_length;
+
+	if (sig_size == 0) {
+		return manifest_size;
+	}
+
+	/* Read just the DER header of the signature (first 8 bytes is sufficient) */
+	status = manifest->flash->read (manifest->flash, manifest->addr + manifest_size - sig_size,
+		sig_header, sizeof (sig_header));
+	if (status != 0) {
+		return status;
+	}
+
+	/* Get the DER-encoded signature size (header + payload) */
+	der_sig_size = asn1_get_der_item_len (sig_header, sizeof (sig_header));
+	if (ROT_IS_ERROR (der_sig_size)) {
+		return der_sig_size;
+	}
+
+	if ((uint32_t) der_sig_size > sig_size) {
+		return MANIFEST_BAD_LENGTH;
+	}
+
+	/* Calculate the real manifest size including DER-encoded signature */
+	return manifest_size - sig_size + der_sig_size;
 }

@@ -19,6 +19,18 @@ static const struct pcd* pcd_manager_mock_get_active_pcd (const struct pcd_manag
 		manager);
 }
 
+static const struct pcd* pcd_manager_mock_get_pending_pcd (const struct pcd_manager *manager)
+{
+	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
+
+	if (mock == NULL) {
+		return NULL;
+	}
+
+	MOCK_RETURN_NO_ARGS_CAST_PTR (&mock->mock, const struct pcd*, pcd_manager_mock_get_pending_pcd,
+		manager);
+}
+
 static void pcd_manager_mock_free_pcd (const struct pcd_manager *manager, const struct pcd *pcd)
 {
 	struct pcd_manager_mock *mock = (struct pcd_manager_mock*) manager;
@@ -105,6 +117,9 @@ static const char* pcd_manager_mock_func_name_map (void *func)
 {
 	if (func == pcd_manager_mock_get_active_pcd) {
 		return "get_active_pcd";
+	}
+	else if (func == pcd_manager_mock_get_pending_pcd) {
+		return "get_pending_pcd";
 	}
 	else if (func == pcd_manager_mock_free_pcd) {
 		return "free_pcd";
@@ -193,6 +208,7 @@ int pcd_manager_mock_init (struct pcd_manager_mock *mock)
 	mock_set_name (&mock->mock, "pcd_manager");
 
 	mock->base.get_active_pcd = pcd_manager_mock_get_active_pcd;
+	mock->base.get_pending_pcd = pcd_manager_mock_get_pending_pcd;
 	mock->base.free_pcd = pcd_manager_mock_free_pcd;
 	mock->base.base.activate_pending_manifest = pcd_manager_mock_activate_pending_manifest;
 	mock->base.base.clear_pending_region = pcd_manager_mock_clear_pending_region;
