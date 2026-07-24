@@ -26,6 +26,11 @@ TEST_SUITE_LABEL ("ephemeral_key_manager");
 #define EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT	(30000)
 
 /**
+ * Delay before the next execution while the cache is not full, in milliseconds.
+ */
+#define EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY		(1000)
+
+/**
  * RSA Key Size in Bytes
  */
 #define EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE	(2048)
@@ -125,8 +130,9 @@ static void ephemeral_key_manager_testing_init (CuTest *test,
 
 	status = ephemeral_key_manager_init (&manager_test->key_manager, &manager_test->state,
 		&manager_test->key_cache_mock.base, &manager_test->key_gen_mock.base,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-		manager_test->key_buffer, sizeof (manager_test->key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test->key_buffer,
+		sizeof (manager_test->key_buffer));
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -159,8 +165,9 @@ static void ephemeral_key_manager_test_init (CuTest *test)
 
 	status = ephemeral_key_manager_init (&manager_test.key_manager, &manager_test.state,
 		&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-		manager_test.key_buffer, sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+		sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, manager_test.key_manager.base.get_next_execution);
@@ -180,36 +187,38 @@ static void ephemeral_key_manager_test_init_null (CuTest *test)
 
 	status = ephemeral_key_manager_init (NULL, &manager_test.state,
 		&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-		manager_test.key_buffer, sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+		sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, EPHEMERAL_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	status = ephemeral_key_manager_init (&manager_test.key_manager, NULL,
 		&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-		manager_test.key_buffer, sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+		sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, EPHEMERAL_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	status = ephemeral_key_manager_init (&manager_test.key_manager, &manager_test.state, NULL,
 		&manager_test.key_gen_mock.base, EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT,
-		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
-		sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
+		manager_test.key_buffer, sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, EPHEMERAL_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	status = ephemeral_key_manager_init (&manager_test.key_manager, &manager_test.state,
 		&manager_test.key_cache_mock.base, NULL, EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT,
-		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
-		sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
+		manager_test.key_buffer, sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, EPHEMERAL_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	status = ephemeral_key_manager_init (NULL, NULL, NULL, NULL,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, NULL,
-		sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, NULL, sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, EPHEMERAL_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	status = ephemeral_key_manager_init (NULL, NULL, NULL, NULL,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, NULL,
-		sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, NULL, sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, EPHEMERAL_KEY_MANAGER_INVALID_ARGUMENT, status);
 
 	ephemeral_key_manager_testing_release_dependencies (test, &manager_test);
@@ -220,8 +229,9 @@ static void ephemeral_key_manager_test_static_init (CuTest *test)
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 	int status;
 
@@ -244,8 +254,9 @@ static void ephemeral_key_manager_test_static_init_null (CuTest *test)
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 	int status;
 
@@ -355,8 +366,9 @@ static void ephemeral_key_manager_test_get_key_with_static_init (CuTest *test)
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_3K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_3K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 
 	uint16_t requestor_id = 0;
@@ -417,8 +429,9 @@ static void ephemeral_key_manager_test_get_next_execution_with_static_init (CuTe
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 	/* Required API Testing */
 	const platform_clock *next_time;
@@ -474,7 +487,7 @@ static void ephemeral_key_manager_test_execute (CuTest *test)
 	manager_test.key_manager.base.execute (&manager_test.key_manager.base);
 
 	next_time = manager_test.key_manager.base.get_next_execution (&manager_test.key_manager.base);
-	CuAssertPtrEquals (test, NULL, (void*) next_time);
+	CuAssertPtrEquals (test, &manager_test.key_manager.state->next, (void*) next_time);
 
 	ephemeral_key_manager_testing_release (test, &manager_test);
 }
@@ -727,8 +740,9 @@ static void ephemeral_key_manager_test_execute_static_init (CuTest *test)
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 	const platform_clock *next_time;
 	int status = 0;
@@ -763,7 +777,7 @@ static void ephemeral_key_manager_test_execute_static_init (CuTest *test)
 	manager_test.key_manager.base.execute (&manager_test.key_manager.base);
 
 	next_time = manager_test.key_manager.base.get_next_execution (&manager_test.key_manager.base);
-	CuAssertPtrEquals (test, NULL, (void*) next_time);
+	CuAssertPtrEquals (test, &manager_test.key_manager.state->next, (void*) next_time);
 
 	ephemeral_key_manager_testing_release (test, &manager_test);
 }
@@ -773,8 +787,9 @@ static void ephemeral_key_manager_test_execute_with_is_initialized_false_static_
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 	int status = 0;
 
@@ -807,8 +822,9 @@ static void ephemeral_key_manager_test_execute_with_is_initialized_true_static_i
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_4K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_4K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 	int status = 0;
 
@@ -859,8 +875,9 @@ static void ephemeral_key_manager_test_get_key_size (CuTest *test)
 
 	status = ephemeral_key_manager_init (&manager_test.key_manager, &manager_test.state,
 		&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-		manager_test.key_buffer, sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+		sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, 0, status);
 
 	status = ephemeral_key_manager_get_key_size (&manager_test.key_manager);
@@ -874,8 +891,9 @@ static void ephemeral_key_manager_test_get_key_size_static_init (CuTest *test)
 	struct ephemeral_key_manager_testing manager_test = {
 		.key_manager = ephemeral_key_manager_static_init (&manager_test.state,
 			&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_4K_KEY_SIZE,
-			manager_test.key_buffer, sizeof (manager_test.key_buffer)),
+			EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+			EPHEMERAL_KEY_MANAGER_RSA_4K_KEY_SIZE, manager_test.key_buffer,
+			sizeof (manager_test.key_buffer)),
 	};
 	int status;
 
@@ -900,8 +918,9 @@ static void ephemeral_key_manager_test_get_key_size_with_null (CuTest *test)
 
 	status = ephemeral_key_manager_init (&manager_test.key_manager, &manager_test.state,
 		&manager_test.key_cache_mock.base, &manager_test.key_gen_mock.base,
-		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE,
-		manager_test.key_buffer, sizeof (manager_test.key_buffer));
+		EPHEMERAL_KEY_MANAGER_MAX_TASK_TIMEOUT, EPHEMERAL_KEY_MANAGER_KEY_GEN_DELAY,
+		EPHEMERAL_KEY_MANAGER_RSA_2K_KEY_SIZE, manager_test.key_buffer,
+		sizeof (manager_test.key_buffer));
 	CuAssertIntEquals (test, 0, status);
 
 	status = ephemeral_key_manager_get_key_size (NULL);

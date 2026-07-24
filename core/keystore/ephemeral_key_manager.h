@@ -31,6 +31,7 @@ struct ephemeral_key_manager {
 	const struct ephemeral_key_generation *key_gen;	/**< Key Generator object to generate key pairs. */
 	const struct key_cache *key_cache;				/**< Key Cache for handling key storage. */
 	uint32_t period_ms;								/**< Configurable Time in ms for next execution. */
+	uint32_t key_gen_delay_ms;						/**< Delay in ms before the next execution while the cache is not full. */
 	size_t key_size;								/**< Key length to use for key pair generation. */
 	uint8_t *key;									/**< Temporary buffer for storing generated keys. */
 	size_t key_buf_size;							/**< Length of the temporary key buffer. */
@@ -39,8 +40,8 @@ struct ephemeral_key_manager {
 
 int ephemeral_key_manager_init (struct ephemeral_key_manager *key_manager,
 	struct ephemeral_key_manager_state *state, const struct key_cache *key_cache,
-	const struct ephemeral_key_generation *key_gen, uint32_t period_ms, size_t key_size,
-	uint8_t *key, size_t key_buf_size);
+	const struct ephemeral_key_generation *key_gen, uint32_t period_ms, uint32_t key_gen_delay_ms,
+	size_t key_size, uint8_t *key, size_t key_buf_size);
 int ephemeral_key_manager_init_state (const struct ephemeral_key_manager *key_manager);
 void ephemeral_key_manager_release (const struct ephemeral_key_manager *key_manager);
 

@@ -14,11 +14,12 @@
  * It will schedule/set the thread execution timeout for the next execution cycle
  *
  * @param key_manager The pointer of ephemeral_key_manager.
+ * @param period_ms The delay in ms before the next execution.
  */
 static void ephemeral_key_manager_schedule_next_execute (
-	const struct ephemeral_key_manager *key_manager)
+	const struct ephemeral_key_manager *key_manager, uint32_t period_ms)
 {
-	if (platform_init_timeout (key_manager->period_ms, &key_manager->state->next) == 0) {
+	if (platform_init_timeout (period_ms, &key_manager->state->next) == 0) {
 		key_manager->state->next_valid = true;
 	}
 	else {
@@ -57,7 +58,7 @@ void ephemeral_key_manager_execute (const struct periodic_task_handler *handler)
 					KEYSTORE_LOGGING_CACHE_INIT_FAIL, status, 0);
 
 				/* Task should execute after some delay */
-				ephemeral_key_manager_schedule_next_execute (key_manager);
+				ephemeral_key_manager_schedule_next_execute (key_manager, key_manager->period_ms);
 			}
 			else {
 				/* Schedule the next execution immediately since a key cache needs to be checked */
@@ -85,19 +86,21 @@ void ephemeral_key_manager_execute (const struct periodic_task_handler *handler)
 						status);
 				}
 
-				/* Schedule the next execution immediately since another key may need to be
-				 * generated and stored. */
-				key_manager->state->next_valid = false;
+				/* The cache is not full, so more keys may still be needed.  Schedule the next
+				 * execution after a short delay, leaving an idle window between generations for
+				 * other operations to run. */
+				ephemeral_key_manager_schedule_next_execute (key_manager,
+					key_manager->key_gen_delay_ms);
 			}
 			else {
 				/* The cache is full.  Wait some time before executing again. */
-				ephemeral_key_manager_schedule_next_execute (key_manager);
+				ephemeral_key_manager_schedule_next_execute (key_manager, key_manager->period_ms);
 			}
 		}
 	}
 	else {
 		/* Task should execute after some delay */
-		ephemeral_key_manager_schedule_next_execute (key_manager);
+		ephemeral_key_manager_schedule_next_execute (key_manager, key_manager->period_ms);
 	}
 }
 
@@ -108,8 +111,9 @@ void ephemeral_key_manager_execute (const struct periodic_task_handler *handler)
  * @param state Variable context for the key manager.  This must be uninitialized.
  * @param key_cache The key cache to use for storing and retrieving generated key pairs.
  * @param key_gen A generator for ephemeral key pairs.
- * @param period_ms The time between task execution cycles while the cache is full.  The task will
- * run without delay while the cache is not full.
+ * @param period_ms The time between task execution cycles while the cache is full.
+ * @param key_gen_delay_ms The delay before the next execution while the cache is not full.  A short,
+ * non-zero delay leaves an idle window between key generations for other operations to run.
  * @param key_size Length of the private key, in bits, that should be generated.
  * @param key A pointer to a buffer to use as temporary storage for the generated key pair.
  * @param key_buf_size Size of the key buffer.
@@ -118,8 +122,8 @@ void ephemeral_key_manager_execute (const struct periodic_task_handler *handler)
  */
 int ephemeral_key_manager_init (struct ephemeral_key_manager *key_manager,
 	struct ephemeral_key_manager_state *state, const struct key_cache *key_cache,
-	const struct ephemeral_key_generation *key_gen, uint32_t period_ms, size_t key_size,
-	uint8_t *key, size_t key_buf_size)
+	const struct ephemeral_key_generation *key_gen, uint32_t period_ms, uint32_t key_gen_delay_ms,
+	size_t key_size, uint8_t *key, size_t key_buf_size)
 {
 	if ((key_manager == NULL) || (key_cache == NULL) || (key_gen == NULL) || (state == NULL) ||
 		(key == NULL)) {
@@ -137,6 +141,7 @@ int ephemeral_key_manager_init (struct ephemeral_key_manager *key_manager,
 	key_manager->key_gen = key_gen;
 
 	key_manager->period_ms = period_ms;
+	key_manager->key_gen_delay_ms = key_gen_delay_ms;
 	key_manager->key_size = key_size;
 
 	key_manager->key = key;

@@ -30,19 +30,22 @@ void ephemeral_key_manager_execute (const struct periodic_task_handler *handler)
  * @param state_ptr Variable context for the key manager.  This must be uninitialized.
  * @param key_cache_ptr The key cache to use for storing and retrieving generated key pairs.
  * @param key_gen_ptr A generator for ephemeral key pairs.
- * @param period_ms_val The time between task execution cycles while the cache is full.  The task
- * will run without delay while the cache is not full.
+ * @param period_ms_val The time between task execution cycles while the cache is full.
+ * @param key_gen_delay_ms_val The delay before the next execution while the cache is not full.  A
+ * short, non-zero delay (instead of rescheduling immediately) leaves an idle window between key
+ * generations for other operations to run.
  * @param key_size_val Length of the private key, in bits, that should be generated.
  * @param key_ptr A pointer to a buffer to use as temporary storage for the generated key pair.
  * @param key_buf_size_val Size of the key buffer.
  */
 #define	ephemeral_key_manager_static_init(state_ptr, key_cache_ptr, key_gen_ptr, period_ms_val, \
-	key_size_val, key_ptr, key_buf_size_val) { \
+	key_gen_delay_ms_val, key_size_val, key_ptr, key_buf_size_val) { \
 		.base = EPHEMERAL_KEY_MANAGER_HANDLER_API_INIT, \
 		.state = state_ptr, \
 		.key_gen = key_gen_ptr, \
 		.key_cache = key_cache_ptr, \
 		.period_ms = period_ms_val, \
+		.key_gen_delay_ms = key_gen_delay_ms_val, \
 		.key_size = key_size_val, \
 		.key = key_ptr, \
 		.key_buf_size = key_buf_size_val \
