@@ -7878,6 +7878,139 @@ static void spi_flash_sfdp_test_get_quad_enable_reserved_value_6 (CuTest *test)
 	spi_flash_sfdp_release (&sfdp);
 }
 
+static void spi_flash_sfdp_test_get_quad_enable_w25q01rv_qer_6 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	uint8_t id[] = {0xef, 0x70, 0x21};
+	uint32_t header[] = {
+		0x50444653,
+		0xff000106,
+		0x10010600,
+		0xff000010
+	};
+	uint32_t params[] = {
+		0xfff920e5,
+		0x00ffffff,
+		0x6b08eb44,
+		0xbb423b08,
+		0xfffffffe,
+		0x0000ffff,
+		0xeb40ffff,
+		0x520f200c,
+		0x0000d810,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff6df719,
+		0x80f830e4
+	};
+	enum spi_flash_sfdp_quad_enable quad;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, header, id);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) params, sizeof (params),
+		FLASH_EXP_READ_CMD (0x5a, 0x000010, 1, -1, sizeof (params)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_quad_enable (&table, &quad);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35_31, quad);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
+static void spi_flash_sfdp_test_get_quad_enable_w25q_qer_6 (CuTest *test)
+{
+	struct flash_master_mock flash;
+	struct spi_flash_sfdp sfdp;
+	struct spi_flash_sfdp_basic_table table;
+	int status;
+	uint8_t id[] = {0xef, 0x40, 0x21};
+	uint32_t header[] = {
+		0x50444653,
+		0xff000106,
+		0x10010600,
+		0xff000010
+	};
+	uint32_t params[] = {
+		0xfff920e5,
+		0x00ffffff,
+		0x6b08eb44,
+		0xbb423b08,
+		0xfffffffe,
+		0x0000ffff,
+		0xeb40ffff,
+		0x520f200c,
+		0x0000d810,
+		0x00a60236,
+		0xb314ea82,
+		0x337663e9,
+		0x757a757a,
+		0x5cd5a2f7,
+		0xff6df719,
+		0x80f830e4
+	};
+	enum spi_flash_sfdp_quad_enable quad;
+
+	TEST_START;
+
+	status = flash_master_mock_init (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_testing_init_expectations (test, &flash, header, id);
+
+	status = spi_flash_sfdp_init (&sfdp, &flash.base);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&flash, 0, (uint8_t*) params, sizeof (params),
+		FLASH_EXP_READ_CMD (0x5a, 0x000010, 1, -1, sizeof (params)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_basic_table_init (&table, &sfdp);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&flash.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_sfdp_get_quad_enable (&table, &quad);
+	CuAssertIntEquals (test, SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN, status);
+
+	status = flash_master_mock_validate_and_release (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_sfdp_basic_table_release (&table);
+	spi_flash_sfdp_release (&sfdp);
+}
+
 static void spi_flash_sfdp_test_get_quad_enable_reserved_value_7 (CuTest *test)
 {
 	struct flash_master_mock flash;
@@ -11585,6 +11718,8 @@ TEST (spi_flash_sfdp_test_get_quad_enable_bit1_sr2_with_35_read);
 TEST (spi_flash_sfdp_test_get_quad_enable_old_table_version_no_qspi);
 TEST (spi_flash_sfdp_test_get_quad_enable_null);
 TEST (spi_flash_sfdp_test_get_quad_enable_reserved_value_6);
+TEST (spi_flash_sfdp_test_get_quad_enable_w25q01rv_qer_6);
+TEST (spi_flash_sfdp_test_get_quad_enable_w25q_qer_6);
 TEST (spi_flash_sfdp_test_get_quad_enable_reserved_value_7);
 TEST (spi_flash_sfdp_test_get_quad_enable_old_table_version_with_qspi);
 TEST (spi_flash_sfdp_test_exit_4byte_mode_on_reset_mx25l1606e);
