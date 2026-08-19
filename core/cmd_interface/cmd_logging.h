@@ -46,6 +46,7 @@ enum {
 	CMD_LOGGING_CERBERUS_REQUEST_FAIL,		/**< Failed to process a MSFT Cerberus request. */
 	CMD_LOGGING_CLEAR_CERTIFICATES,			/**< Erased stored device certificates. */
 	CMD_LOGGING_CLEAR_CERTIFICATES_FAIL,	/**< Failed to erase stored certificates. */
+	CMD_LOGGING_EMMC_RESET_SET,				/**< SoC eMMC hardware reset signal has been driven. */
 };
 
 
