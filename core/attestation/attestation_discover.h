@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "cmd_interface/msg_transport.h"
 struct attestation_requester;
 struct device_manager;
 
@@ -49,12 +50,6 @@ struct attestation_discover {
 	 */
 	int (*get_device_eid_by_device_num) (const struct attestation_discover *attestation_discover,
 		const struct attestation_requester *attestation, int device_num);
-
-	/**
-	 * TODO:
-	 * Add the message transport instance to utilize for discovery operations.
-	 * This will be added in a future PR after attestation refactor.
-	 */
 };
 
 

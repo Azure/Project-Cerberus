@@ -8,23 +8,6 @@
 #include "attestation_requester.h"
 
 
-/* Internal functions declared to allow for static initialization. */
-void attestation_requester_on_mctp_set_eid_request (
-	const struct mctp_control_protocol_observer *observer);
-
-
-/**
- * Constant initializer for the MCTP response observer API.
- */
-#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-#define	ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT { \
-		.on_set_eid_request = \
-			attestation_requester_on_mctp_set_eid_request, \
-	}
-#else
-#define ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT
-#endif
-
 /**
  * Initialize a static attestation requester instance.
  * There is no validation done on the arguments.
@@ -41,12 +24,15 @@ void attestation_requester_on_mctp_set_eid_request (
  * @param riot_ptr RIoT key manager.
  * @param device_mgr_ptr Device manager instance to utilize.
  * @param cfm_manager_ptr CFM manager to utilize.
+ * @param discover_interfaces_ptr Array of attestation discover interfaces.
+ * @param interfaces_count_val Number of entries in the discover interfaces array.
  * @param mctp_control_ptr Message transport MCTP control instance to utilize.
  * @param spdm_transport_ptr Message transport SPDM instance to utilize.
  */
 #define attestation_requester_static_init(state_ptr, mctp_ptr, channel_ptr, primary_hash_ptr, \
 	secondary_hash_ptr, ecc_ptr, rsa_ptr, x509_ptr, rng_ptr, riot_ptr, device_mgr_ptr, \
-	cfm_manager_ptr, mctp_control_ptr, spdm_transport_ptr) { \
+	cfm_manager_ptr, discover_interfaces_ptr, interfaces_count_val, mctp_control_ptr, \
+	spdm_transport_ptr) { \
 		.mctp = mctp_ptr, \
 		.channel = channel_ptr, \
 		.primary_hash = primary_hash_ptr, \
@@ -59,9 +45,10 @@ void attestation_requester_on_mctp_set_eid_request (
 		.device_mgr = device_mgr_ptr, \
 		.cfm_manager = cfm_manager_ptr, \
 		.state = state_ptr, \
+		.discover_interfaces = discover_interfaces_ptr, \
+		.interfaces_count = interfaces_count_val, \
 		.mctp_control = mctp_control_ptr, \
 		.spdm_transport = spdm_transport_ptr, \
-		.mctp_rsp_observer = ATTESTATION_REQUESTER_MCTP_RSP_OBSERVER_API_INIT, \
 	}
 
 
