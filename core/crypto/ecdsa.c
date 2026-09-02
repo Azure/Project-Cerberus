@@ -1297,7 +1297,10 @@ static int ecdsa_ecc_hw_verify_digest (const struct ecc_hw *ecc_hw,
 {
 	int status;
 
-	status = ecc_hw->ecdsa_verify (ecc_hw, pub_key, signature, digest, digest_length);
+	status = ecc_hw->verify_ecc_public_key (ecc_hw, pub_key);
+	if (status == 0) {
+		status = ecc_hw->ecdsa_verify (ecc_hw, pub_key, signature, digest, digest_length);
+	}
 
 	buffer_zeroize (digest, HASH_MAX_HASH_LEN);
 

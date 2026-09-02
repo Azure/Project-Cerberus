@@ -3664,7 +3664,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256 (CuTest *test
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P256_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P256_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature,
@@ -3675,6 +3679,35 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256 (CuTest *test
 
 	status = ecdsa_kat_run_self_test_ecc_hw_verify_p256_sha256 (&ecc_hw.base, &hash.base);
 	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_hw_mock_validate_and_release (&ecc_hw);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
+static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_bad_public_key (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_hw_mock ecc_hw;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_hw_mock_init (&ecc_hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw,
+		ECC_HW_INVALID_PUBLIC_KEY,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P256_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_ecc_hw_verify_p256_sha256 (&ecc_hw.base, &hash.base);
+	CuAssertIntEquals (test, ECC_HW_INVALID_PUBLIC_KEY, status);
 
 	status = ecc_hw_mock_validate_and_release (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
@@ -3696,7 +3729,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_bad_signature
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P256_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
 		ECC_HW_ECDSA_BAD_SIGNATURE,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P256_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -3755,7 +3792,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_error (CuTest
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P256_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
 		ECC_HW_ECDSA_VERIFY_FAILED,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P256_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -3789,7 +3830,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 #if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature,
@@ -3813,6 +3858,35 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384 (CuTest *test
 }
 
 #if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_public_key (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_hw_mock ecc_hw;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_hw_mock_init (&ecc_hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw,
+		ECC_HW_INVALID_PUBLIC_KEY,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_ecc_hw_verify_p384_sha384 (&ecc_hw.base, &hash.base);
+	CuAssertIntEquals (test, ECC_HW_INVALID_PUBLIC_KEY, status);
+
+	status = ecc_hw_mock_validate_and_release (&ecc_hw);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
+
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_signature (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -3827,7 +3901,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_signature
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
 		ECC_HW_ECDSA_BAD_SIGNATURE,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -3886,7 +3964,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_error (CuTest
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
 		ECC_HW_ECDSA_VERIFY_FAILED,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P384_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -3921,7 +4003,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 #if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_ecdsa_signature,
@@ -3945,6 +4031,34 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512 (CuTest *test
 }
 
 #if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_public_key (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash);
+	struct ecc_hw_mock ecc_hw;
+	int status;
+
+	TEST_START;
+
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecc_hw_mock_init (&ecc_hw);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw,
+		ECC_HW_INVALID_PUBLIC_KEY,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = ecdsa_kat_run_self_test_ecc_hw_verify_p521_sha512 (&ecc_hw.base, &hash.base);
+	CuAssertIntEquals (test, ECC_HW_INVALID_PUBLIC_KEY, status);
+
+	status = ecc_hw_mock_validate_and_release (&ecc_hw);
+	CuAssertIntEquals (test, 0, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+}
 static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_signature (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash);
@@ -3959,7 +4073,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_signature
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
 		ECC_HW_ECDSA_BAD_SIGNATURE,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -4018,7 +4136,11 @@ static void ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_error (CuTest
 	status = ecc_hw_mock_init (&ecc_hw);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
+	status = mock_expect (&ecc_hw.mock, ecc_hw.base.verify_ecc_public_key, &ecc_hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
+		sizeof (struct ecc_point_public_key)));
+
+	status |= mock_expect (&ecc_hw.mock, ecc_hw.base.ecdsa_verify, &ecc_hw,
 		ECC_HW_ECDSA_VERIFY_FAILED,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_KAT_VECTORS_P521_ECC_PUBLIC,
 		sizeof (struct ecc_point_public_key)),
@@ -4154,17 +4276,20 @@ TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_sign_p521_sha512_error);
 #endif
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256);
+TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_bad_public_key);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_bad_signature);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p256_sha256_error);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384);
 #if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_public_key);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_bad_signature);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p384_sha384_error);
 #endif
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512);
 #if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_public_key);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_bad_signature);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_null);
 TEST (ecdsa_kat_test_run_self_test_ecc_hw_verify_p521_sha512_error);

@@ -663,6 +663,9 @@ static void backend_ecdsa_test_keygen_hw_p256 (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
 
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
@@ -798,6 +801,9 @@ static void backend_ecdsa_test_keygen_hw_p384 (CuTest *test)
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN,
 		-1);
 
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
@@ -932,6 +938,9 @@ static void backend_ecdsa_test_keygen_hw_p521 (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN,
 		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN),
@@ -1428,6 +1437,9 @@ static void backend_ecdsa_test_keygen_extra_hw_p256 (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
 
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
@@ -1558,6 +1570,9 @@ static void backend_ecdsa_test_keygen_extra_hw_p384 (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN,
 		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
@@ -1691,6 +1706,9 @@ static void backend_ecdsa_test_keygen_extra_hw_p521 (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN,
 		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN),
@@ -3425,6 +3443,11 @@ static void backend_ecdsa_test_sigver_hw_p256 (CuTest *test)
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
 
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
 		sizeof (struct ecc_point_public_key)),
@@ -3475,6 +3498,11 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_p256 (CuTest *test)
 
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
@@ -3622,6 +3650,11 @@ static void backend_ecdsa_test_sigver_hw_p384 (CuTest *test)
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
 		HASH_TYPE_SHA384);
 
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
 		sizeof (struct ecc_point_public_key)),
@@ -3672,6 +3705,11 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_p384 (CuTest *test)
 
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_384,
 		HASH_TYPE_SHA384);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC384_PUBKEY_POINT,
@@ -3820,6 +3858,11 @@ static void backend_ecdsa_test_sigver_hw_p521 (CuTest *test)
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_521,
 		HASH_TYPE_SHA512);
 
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
 		sizeof (struct ecc_point_public_key)),
@@ -3870,6 +3913,11 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_p521 (CuTest *test)
 
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_521,
 		HASH_TYPE_SHA512);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC521_PUBKEY_POINT,
@@ -3965,6 +4013,54 @@ static void backend_ecdsa_test_sigver_bad_signature (CuTest *test)
 	backend_ecdsa_testing_release (test, &backend);
 }
 
+static void backend_ecdsa_test_sigver_hw_bad_pub_key (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw,
+		ECC_HW_INVALID_PUBLIC_KEY,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key,	&ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, 0, backend.data.sigver.sigver_success);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
 static void backend_ecdsa_test_sigver_hw_bad_signature (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash_engine);
@@ -3987,6 +4083,11 @@ static void backend_ecdsa_test_sigver_hw_bad_signature (CuTest *test)
 
 	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
 		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw,
 		ECC_HW_ECDSA_BAD_SIGNATURE,
@@ -4637,6 +4738,66 @@ static void backend_ecdsa_test_sigver_hw_hash_and_finish_hash_update_error (CuTe
 	backend_ecdsa_testing_release (test, &backend);
 }
 
+static void backend_ecdsa_test_sigver_hw_verify_pub_key_error (CuTest *test)
+{
+	HASH_TESTING_ENGINE (hash_engine);
+	const struct ecdsa_backend *ecdsa_impl;
+	struct backend_ecdsa_testing backend;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_ACVP,
+		.msg_index = ACVP_LOGGING_TEST_FAILURE,
+		.arg1 = ECC_HW_VERIFY_PUBLIC_FAILED,
+		.arg2 = ACVP_ALGORITHM_ECDSA
+	};
+	uint32_t implementation = 0;
+	struct backend_ecdsa_engine ecdsa_engines[] = {
+		{
+			.impl_id = implementation,
+			.is_hw = true,
+			.ecc.hw = &backend.hw.base,
+			.hash = &hash_engine.base,
+			.keygen_type = BACKEND_ECDSA_KEYGEN_TYPE_TESTING_CANDIDATES,
+			.api_type = BACKEND_ECDSA_API_TYPE_MESSAGE
+		}
+	};
+	int status;
+
+	TEST_START;
+
+	backend_ecdsa_testing_init (test, &backend, ECDSA_TEST_TYPE_SIGVER, ECDSA_TEST_ECC_KEY_TYPE_256,
+		HASH_TYPE_SHA256);
+
+	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
+		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw,
+		ECC_HW_VERIFY_PUBLIC_FAILED,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key,	&ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = HASH_TESTING_ENGINE_INIT (&hash_engine);
+	CuAssertIntEquals (test, 0, status);
+
+	acvp_implementation = implementation;
+
+	backend_ecdsa_register_engines (ecdsa_engines, 1);
+
+	ecdsa_impl = backend_ecdsa_get_impl ();
+	CuAssertPtrNotNull (test, ecdsa_impl);
+
+	status = ecdsa_impl->ecdsa_sigver (&backend.data.sigver, 0);
+	CuAssertIntEquals (test, -1, status);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash_engine);
+
+	backend_ecdsa_testing_release (test, &backend);
+}
+
 static void backend_ecdsa_test_sigver_hw_verify_error (CuTest *test)
 {
 	HASH_TESTING_ENGINE (hash_engine);
@@ -4671,6 +4832,11 @@ static void backend_ecdsa_test_sigver_hw_verify_error (CuTest *test)
 	status = mock_expect (&backend.logger.mock, backend.logger.base.create_entry, &backend.logger,
 		0, MOCK_ARG_PTR_CONTAINS ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
 		MOCK_ARG (sizeof (entry)));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_VALIDATOR (ecc_mock_validate_point_public_key, &ECC_PUBKEY_POINT,
+		sizeof (struct ecc_point_public_key)));
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw,
@@ -4794,6 +4960,9 @@ static void backend_ecdsa_test_keygen_en_hw_p256 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC_PRIVKEY, ECC_PRIVKEY_LEN), MOCK_ARG (ECC_KEY_LENGTH_256),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, -1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN),
@@ -4928,6 +5097,9 @@ static void backend_ecdsa_test_keygen_en_hw_p384 (CuTest *test)
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN,
 		-1);
 
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
+
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST, ECC384_SIG_TEST_LEN),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY);
@@ -5061,6 +5233,9 @@ static void backend_ecdsa_test_keygen_en_hw_p521 (CuTest *test)
 		MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL);
 	status |= mock_expect_output (&backend.hw.mock, 5, ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN,
 		-1);
+
+	status |= mock_expect (&backend.hw.mock, backend.hw.base.verify_ecc_public_key, &backend.hw, 0,
+		MOCK_ARG_NOT_NULL);
 
 	status |= mock_expect (&backend.hw.mock, backend.hw.base.ecdsa_verify, &backend.hw, 0,
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (ECC521_SIGNATURE_TEST, ECC521_SIG_TEST_LEN),
@@ -5462,6 +5637,7 @@ TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_p521);
 #endif
 TEST (backend_ecdsa_test_sigver_bad_signature);
 TEST (backend_ecdsa_test_sigver_hw_bad_signature);
+TEST (backend_ecdsa_test_sigver_hw_bad_pub_key);
 TEST (backend_ecdsa_test_sigver_null);
 TEST (backend_ecdsa_test_sigver_invalid_component_type);
 TEST (backend_ecdsa_test_sigver_no_engine);
@@ -5473,6 +5649,7 @@ TEST (backend_ecdsa_test_sigver_hash_and_finish_hash_update_error);
 TEST (backend_ecdsa_test_sigver_verify_error);
 TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_hash_start_error);
 TEST (backend_ecdsa_test_sigver_hw_hash_and_finish_hash_update_error);
+TEST (backend_ecdsa_test_sigver_hw_verify_pub_key_error);
 TEST (backend_ecdsa_test_sigver_hw_verify_error);
 TEST (backend_ecdsa_test_keygen_en_p256);
 TEST (backend_ecdsa_test_keygen_en_hw_p256);

@@ -735,9 +735,11 @@ static int backend_ecdsa_sigver (struct ecdsa_sigver_data *data, flags_t parsed_
 		}
 	}
 
-	// If signature verification fails, the returned status should be 0.
+	/* If signature verification fails, the returned status should be 0.  Negative ACVP test
+	 * vectors also provide public keys that are not valid points on the curve, which must be
+	 * reported as a failed verification rather than an execution error. */
 	if ((status == SIG_VERIFICATION_BAD_SIGNATURE) || (status == ECC_ENGINE_BAD_SIGNATURE) ||
-		(status == ECC_HW_ECDSA_BAD_SIGNATURE)) {
+		(status == ECC_HW_ECDSA_BAD_SIGNATURE) || (status == ECC_HW_INVALID_PUBLIC_KEY)) {
 		data->sigver_success = 0;
 		status = 0;
 	}
