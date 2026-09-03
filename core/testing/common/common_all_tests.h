@@ -87,6 +87,12 @@ static void add_all_common_tests (CuSuite *suite)
 	!defined TESTING_SKIP_OBSERVABLE_SUITE
 	TESTING_RUN_SUITE (observable);
 #endif
+#if (defined TESTING_RUN_SHARED_BUFFER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SHARED_BUFFER_SUITE
+	TESTING_RUN_SUITE (shared_buffer);
+#endif
 }
 
 
