@@ -23,6 +23,7 @@ enum {
 	SYSTEM_LOGGING_REFRESH_WATCHDOG_FAIL,	/**< Failed to refresh the hardware watchdog timer. */
 	SYSTEM_LOGGING_START_WATCHDOG_FAIL,		/**< Failed to start the hardware watchdog timer. */
 	SYSTEM_LOGGING_FATAL_ERROR,				/**< The device encountered a fatal error. */
+	SYSTEM_LOGGING_BMC_RESET_TRIGGERED,		/**< A BMC reset was triggered; arg0 is a platform-defined reset-source bitmask. */
 };
 
 /**
