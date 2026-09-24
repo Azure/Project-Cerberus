@@ -188,6 +188,7 @@ enum {
 	ROT_MODULE_SPDM_CERT_CHAIN = 0x00b0,				/**< SPDM certificate chain manager. */
 	ROT_MODULE_SHARED_BUFFER = 0x00b1,					/**< Shared buffer access arbitration. */
 	ROT_MODULE_WORK_TASK = 0x00b2,						/**< Dynamic work queue task. */
+	ROT_MODULE_CERT_CHAIN_VERIFIER = 0x00b3,			/**< SPDM certificate chain verifier. */
 };
 
 
