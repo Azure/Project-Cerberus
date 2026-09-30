@@ -10638,6 +10638,12 @@ static void spdm_test_get_certificate_sha256 (CuTest *test)
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock, 0,
+		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
 		MOCK_ARG_PTR (&testing.hash_engine_mock[0]), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (&cert_buf_length, sizeof (cert_buf_length)),
@@ -10749,6 +10755,12 @@ static void spdm_test_get_certificate_sha384 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_certificate_request)),
 		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock, 0,
+		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
@@ -10864,6 +10876,12 @@ static void spdm_test_get_certificate_sha512 (CuTest *test)
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock, 0,
+		MOCK_ARG (HASH_TYPE_SHA512), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
 		MOCK_ARG_PTR (&testing.hash_engine_mock[0]), MOCK_ARG (HASH_TYPE_SHA512), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (&cert_buf_length, sizeof (cert_buf_length)),
@@ -10977,6 +10995,12 @@ static void spdm_test_get_certificate_multiple_cert_slots (CuTest *test)
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.cert_chain_mock[3].mock,
+		testing.cert_chain_mock[3].base.get_certificate_chain_length, &testing.cert_chain_mock[3],
+		0, MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[3].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
+
+	status |= mock_expect (&testing.cert_chain_mock[3].mock,
 		testing.cert_chain_mock[3].base.get_certificate_chain, &testing.cert_chain_mock[3], 0,
 		MOCK_ARG_PTR (&testing.hash_engine_mock[0]), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (&cert_buf_length, sizeof (cert_buf_length)),
@@ -11088,6 +11112,12 @@ static void spdm_test_get_certificate_last_cert_slot (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_certificate_request)),
 		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.cert_chain_mock[7].mock,
+		testing.cert_chain_mock[7].base.get_certificate_chain_length, &testing.cert_chain_mock[7],
+		0, MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[7].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
 
 	status |= mock_expect (&testing.cert_chain_mock[7].mock,
 		testing.cert_chain_mock[7].base.get_certificate_chain, &testing.cert_chain_mock[7], 0,
@@ -11204,6 +11234,12 @@ static void spdm_test_get_certificate_request_length_less_than_cert_chain_length
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		0, MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
 		MOCK_ARG_PTR (&testing.hash_engine_mock[0]), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (&portion_length, sizeof (portion_length)),
@@ -11317,6 +11353,12 @@ static void spdm_test_get_certificate_request_offset (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_certificate_request)),
 		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		0, MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
@@ -11435,6 +11477,12 @@ static void spdm_test_get_certificate_request_offset_and_length_less_than_cert_c
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		0, MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
 		MOCK_ARG_PTR (&testing.hash_engine_mock[0]), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG (offset),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (&portion_length, sizeof (portion_length)),
@@ -11496,11 +11544,9 @@ static void spdm_test_get_certificate_request_offset_larger_than_cert_chain (CuT
 	struct cmd_interface_msg msg;
 	int status;
 	struct spdm_get_certificate_request rq = {0};
-	struct spdm_get_certificate_response *rsp = (struct spdm_get_certificate_response*) buf;
-	size_t cert_buf_length = sizeof (buf) - sizeof (struct spdm_get_certificate_response);
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
 	size_t cert_chain_length = HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN;
 	size_t offset = cert_chain_length + 1;
-	size_t portion_length = 0;
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
@@ -11536,37 +11582,11 @@ static void spdm_test_get_certificate_request_offset_larger_than_cert_chain (CuT
 		testing.session_manager_mock.base.is_last_session_id_valid,
 		&testing.session_manager_mock.base, 0);
 
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.reset_transcript,
-		&testing.transcript_manager_mock.base, 0, MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_L1L2),
-		MOCK_ARG (false), MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
-		MOCK_ARG_PTR_CONTAINS (&rq, sizeof (struct spdm_get_certificate_request)),
-		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	status |= mock_expect (&testing.cert_chain_mock[0].mock,
-		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
-		MOCK_ARG_PTR (&testing.hash_engine_mock[0]), MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG (offset),
-		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (&cert_buf_length, sizeof (cert_buf_length)),
-		MOCK_ARG_NOT_NULL);
-	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 4, &portion_length,
-		sizeof (portion_length), -1);
-	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 5, &cert_chain_length,
+	status = mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		0, MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
 		sizeof (cert_chain_length), -1);
-
-	status |= mock_expect (&testing.transcript_manager_mock.mock,
-		testing.transcript_manager_mock.base.update, &testing.transcript_manager_mock.base, 0,
-		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2),
-		MOCK_ARG_PTR_CONTAINS (rsp,
-		(portion_length + sizeof (struct spdm_get_certificate_response))),
-		MOCK_ARG (portion_length + sizeof (struct spdm_get_certificate_response)), MOCK_ARG (false),
-		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
-
-	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&testing.persistent_context_mock.mock,
 		testing.persistent_context_mock.base.get_responder_state,
@@ -11580,19 +11600,10 @@ static void spdm_test_get_certificate_request_offset_larger_than_cert_chain (CuT
 	status = spdm_get_certificate (spdm_responder, &msg);
 
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct spdm_get_certificate_response) + portion_length,
-		msg.length);
-	CuAssertIntEquals (test, msg.length, msg.payload_length);
-	CuAssertPtrEquals (test, buf, msg.data);
-	CuAssertPtrEquals (test, rsp, msg.payload);
-	CuAssertIntEquals (test, 2, rsp->header.spdm_minor_version);
-	CuAssertIntEquals (test, SPDM_MAJOR_VERSION, rsp->header.spdm_major_version);
-	CuAssertIntEquals (test, SPDM_RESPONSE_GET_CERTIFICATE, rsp->header.req_rsp_code);
-	CuAssertIntEquals (test, 0, rsp->slot_num);
-	CuAssertIntEquals (test, portion_length, rsp->portion_len);
-	CuAssertIntEquals (test, 0, rsp->remainder_len);
-	CuAssertIntEquals (test, SPDM_CONNECTION_STATE_AFTER_CERTIFICATE,
-		spdm_state->connection_info.connection_state);
+	CuAssertIntEquals (test, SPDM_ERROR_INVALID_REQUEST, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
 
 	spdm_command_testing_release_dependencies (test, &testing);
 }
@@ -12156,6 +12167,7 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
+	size_t cert_chain_length = HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN;
 
 	TEST_START;
 
@@ -12187,6 +12199,12 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 	status = mock_expect (&testing.session_manager_mock.mock,
 		testing.session_manager_mock.base.is_last_session_id_valid,
 		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		0, MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
 
 	status |= mock_expect (&testing.transcript_manager_mock.mock,
 		testing.transcript_manager_mock.base.reset_transcript,
@@ -12221,6 +12239,74 @@ static void spdm_test_get_certificate_add_request_to_transcript_hash_fail (CuTes
 	spdm_command_testing_release_dependencies (test, &testing);
 }
 
+static void spdm_test_get_certificate_cert_chain_length_fail (CuTest *test)
+{
+	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
+	struct cmd_interface_msg msg;
+	int status;
+	struct spdm_get_certificate_request *rq = (struct spdm_get_certificate_request*) buf;
+	struct spdm_error_response *error_response = (struct spdm_error_response*) buf;
+	struct cmd_interface_spdm_responder *spdm_responder;
+	struct spdm_responder_state *spdm_state;
+	struct spdm_command_testing testing;
+
+	TEST_START;
+
+	spdm_command_testing_init_dependencies (test, &testing, SPDM_TPM_ALG_SHA_384,
+		SPDM_TPM_ALG_ECDSA_ECC_NIST_P384, SPDM_MEAS_RSP_TPM_ALG_SHA_384);
+	spdm_responder = &testing.spdm_responder;
+	spdm_state = testing.spdm_responder_state_ptr;
+
+	memset (&msg, 0, sizeof (msg));
+	msg.data = buf;
+	msg.payload = (uint8_t*) rq;
+	msg.max_response = sizeof (buf);
+	msg.payload_length = sizeof (struct spdm_get_certificate_request);
+	msg.length = msg.payload_length;
+
+	spdm_state->connection_info.version.major_version = SPDM_MAJOR_VERSION;
+	spdm_state->connection_info.version.minor_version = 2;
+	spdm_state->response_state = SPDM_RESPONSE_STATE_NORMAL;
+	spdm_state->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
+	spdm_state->connection_info.peer_algorithms.base_hash_algo = SPDM_TPM_ALG_SHA_384;
+
+	rq->header.spdm_major_version = SPDM_MAJOR_VERSION;
+	rq->header.spdm_minor_version = 2;
+	rq->slot_num = 0;
+	rq->offset = 0;
+	rq->length = 0xFFFF;
+
+	status = mock_expect (&testing.session_manager_mock.mock,
+		testing.session_manager_mock.base.is_last_session_id_valid,
+		&testing.session_manager_mock.base, 0);
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		SPDM_CERT_CHAIN_GET_CERT_LENGTH_CHAIN_FAILED, MOCK_ARG (HASH_TYPE_SHA384),
+		MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.get_responder_state,
+		&testing.persistent_context_mock.base, 0, MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.persistent_context_mock.mock, 0,
+		&testing.spdm_responder_state_ptr, sizeof (testing.spdm_responder_state_ptr), -1);
+	status |= mock_expect (&testing.persistent_context_mock.mock,
+		testing.persistent_context_mock.base.unlock, &testing.persistent_context_mock.base, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = spdm_get_certificate (spdm_responder, &msg);
+
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, SPDM_ERROR_UNSPECIFIED, error_response->error_code);
+	CuAssertIntEquals (test, 0, error_response->error_data);
+	CuAssertIntEquals (test, SPDM_RESPONSE_ERROR, error_response->header.req_rsp_code);
+	CuAssertIntEquals (test, sizeof (struct spdm_error_response), msg.payload_length);
+
+	spdm_command_testing_release_dependencies (test, &testing);
+}
+
 static void spdm_test_get_certificate_cert_chain_fail (CuTest *test)
 {
 	uint8_t buf[MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY] = {0};
@@ -12232,6 +12318,7 @@ static void spdm_test_get_certificate_cert_chain_fail (CuTest *test)
 	struct cmd_interface_spdm_responder *spdm_responder;
 	struct spdm_responder_state *spdm_state;
 	struct spdm_command_testing testing;
+	size_t cert_chain_length = HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN;
 
 	TEST_START;
 
@@ -12273,6 +12360,12 @@ static void spdm_test_get_certificate_cert_chain_fail (CuTest *test)
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG_PTR (rq),
 		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		0, MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0],
@@ -12355,6 +12448,12 @@ static void spdm_test_get_certificate_add_response_to_transcript_hash_fail (CuTe
 		MOCK_ARG (TRANSCRIPT_CONTEXT_TYPE_M1M2), MOCK_ARG_PTR (rq),
 		MOCK_ARG (sizeof (struct spdm_get_certificate_request)), MOCK_ARG (false),
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
+
+	status |= mock_expect (&testing.cert_chain_mock[0].mock,
+		testing.cert_chain_mock[0].base.get_certificate_chain_length, &testing.cert_chain_mock[0],
+		0, MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock[0].mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
 
 	status |= mock_expect (&testing.cert_chain_mock[0].mock,
 		testing.cert_chain_mock[0].base.get_certificate_chain, &testing.cert_chain_mock[0], 0,
@@ -19537,11 +19636,11 @@ static void spdm_test_key_exchange_multiple_cert_slots (CuTest *test)
 
 	/* TODO: This doesn't verify the correct data is being signed, just the length. */
 	status |= mock_expect (&testing.cert_chain_mock[2].mock,
-		testing.cert_chain_mock[2].base.sign_message, &testing.cert_chain_mock[2],
-		ECC_SIG_TEST_LEN, MOCK_ARG_PTR (&testing.ecc_mock.base),
-		MOCK_ARG_PTR (&testing.hash_engine_mock[0].base), MOCK_ARG (HASH_TYPE_SHA256),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA256_HASH_LENGTH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+		testing.cert_chain_mock[2].base.sign_message, &testing.cert_chain_mock[2], ECC_SIG_TEST_LEN,
+		MOCK_ARG_PTR (&testing.ecc_mock.base), MOCK_ARG_PTR (&testing.hash_engine_mock[0].base),
+		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 	status |= mock_expect_output (&testing.cert_chain_mock[2].mock, 5, ECC_SIGNATURE_TEST,
 		ECC_SIG_TEST_LEN, 6);
 
@@ -19800,11 +19899,11 @@ static void spdm_test_key_exchange_last_cert_slot (CuTest *test)
 
 	/* TODO: This doesn't verify the correct data is being signed, just the length. */
 	status |= mock_expect (&testing.cert_chain_mock[7].mock,
-		testing.cert_chain_mock[7].base.sign_message, &testing.cert_chain_mock[7],
-		ECC_SIG_TEST_LEN, MOCK_ARG_PTR (&testing.ecc_mock.base),
-		MOCK_ARG_PTR (&testing.hash_engine_mock[0].base), MOCK_ARG (HASH_TYPE_SHA256),
-		MOCK_ARG_NOT_NULL, MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA256_HASH_LENGTH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+		testing.cert_chain_mock[7].base.sign_message, &testing.cert_chain_mock[7], ECC_SIG_TEST_LEN,
+		MOCK_ARG_PTR (&testing.ecc_mock.base), MOCK_ARG_PTR (&testing.hash_engine_mock[0].base),
+		MOCK_ARG (HASH_TYPE_SHA256), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 	status |= mock_expect_output (&testing.cert_chain_mock[7].mock, 5, ECC_SIGNATURE_TEST,
 		ECC_SIG_TEST_LEN, 6);
 
@@ -28639,6 +28738,7 @@ TEST (spdm_test_get_certificate_unsupported_slot_num);
 TEST (spdm_test_get_certificate_invalid_slot_num);
 TEST (spdm_test_get_certificate_unsuported_hash_algo);
 TEST (spdm_test_get_certificate_add_request_to_transcript_hash_fail);
+TEST (spdm_test_get_certificate_cert_chain_length_fail);
 TEST (spdm_test_get_certificate_cert_chain_fail);
 TEST (spdm_test_get_certificate_add_response_to_transcript_hash_fail);
 TEST (spdm_test_generate_get_certificate_request);

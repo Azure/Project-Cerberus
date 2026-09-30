@@ -21,6 +21,19 @@ static int spdm_certificate_chain_mock_get_digest (const struct spdm_certificate
 		MOCK_ARG_CALL (length));
 }
 
+static int spdm_certificate_chain_mock_get_certificate_chain_length (
+	const struct spdm_certificate_chain *chain, enum hash_type hash_type, size_t *total_length)
+{
+	struct spdm_certificate_chain_mock *mock = (struct spdm_certificate_chain_mock*) chain;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, spdm_certificate_chain_mock_get_certificate_chain_length, chain,
+		MOCK_ARG_CALL (hash_type), MOCK_ARG_PTR_CALL (total_length));
+}
+
 static int spdm_certificate_chain_mock_get_certificate_chain (
 	const struct spdm_certificate_chain *chain, const struct hash_engine *hash,
 	enum hash_type root_ca_hash, size_t offset, uint8_t *buffer, size_t *length,
@@ -62,6 +75,11 @@ MOCK_FUNCTION_TABLE_BEGIN (spdm_certificate_chain, 7)
 		MOCK_FUNCTION_ARGS ("hash", "hash_type", "digest", "length"))
 	MOCK_FUNCTION (
 		spdm_certificate_chain,
+		get_certificate_chain_length,
+		2,
+		MOCK_FUNCTION_ARGS ("hash_type", "total_length"))
+	MOCK_FUNCTION (
+		spdm_certificate_chain,
 		get_certificate_chain,
 		6,
 		MOCK_FUNCTION_ARGS ("hash", "root_ca_hash", "offset", "buffer", "length", "total_length"))
@@ -100,6 +118,8 @@ int spdm_certificate_chain_mock_init (struct spdm_certificate_chain_mock *mock)
 
 	mock->base.get_digest = spdm_certificate_chain_mock_get_digest;
 	mock->base.get_certificate_chain = spdm_certificate_chain_mock_get_certificate_chain;
+	mock->base.get_certificate_chain_length =
+		spdm_certificate_chain_mock_get_certificate_chain_length;
 	mock->base.sign_message = spdm_certificate_chain_mock_sign_message;
 
 	MOCK_INTERFACE_INIT (mock->mock, spdm_certificate_chain);

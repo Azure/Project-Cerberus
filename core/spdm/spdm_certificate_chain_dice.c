@@ -34,29 +34,45 @@ static int spdm_certificate_chain_dice_prepare_header (
 	const struct der_cert **intermediate_ca)
 {
 	int status;
+	const struct riot_keys *local_keys;
+	const struct der_cert *local_root_ca;
+	const struct der_cert *local_intermediate_ca;
 
-	*keys = riot_key_manager_get_riot_keys (dice->certs);
+	local_keys = riot_key_manager_get_riot_keys (dice->certs);
 
 	/* There should never be a scenario where either the Device ID or Alias cert don't have valid
 	 * data, but just sanity check them to make sure. */
-	if (((*keys)->devid_cert == NULL) || ((*keys)->devid_cert_length == 0) ||
-		((*keys)->alias_cert == NULL) || ((*keys)->alias_cert_length == 0)) {
+	if ((local_keys->devid_cert == NULL) || (local_keys->devid_cert_length == 0) ||
+		(local_keys->alias_cert == NULL) || (local_keys->alias_cert_length == 0)) {
 		status = SPDM_CERT_CHAIN_MISSING_CERT;
 		goto error;
 	}
 
-	*root_ca = riot_key_manager_get_root_ca (dice->certs);
-	*intermediate_ca = riot_key_manager_get_intermediate_ca (dice->certs);
+	local_root_ca = riot_key_manager_get_root_ca (dice->certs);
+	local_intermediate_ca = riot_key_manager_get_intermediate_ca (dice->certs);
+
+	if (root_ca != NULL) {
+		*root_ca = local_root_ca;
+	}
+	if (intermediate_ca != NULL) {
+		*intermediate_ca = local_intermediate_ca;
+	}
 
 	/* Get the appropriate digest for the current root CA certificate. */
-	if (*root_ca != NULL) {
-		*digest_length = hash_calculate (hash, root_ca_hash, (*root_ca)->cert, (*root_ca)->length,
-			header->root_hash, sizeof (header->root_hash));
+	if (hash != NULL) {
+		if (local_root_ca != NULL) {
+			*digest_length = hash_calculate (hash, root_ca_hash, (local_root_ca)->cert,
+				(local_root_ca)->length, header->root_hash, sizeof (header->root_hash));
+		}
+		else {
+			*digest_length = hash_calculate (hash, root_ca_hash, local_keys->devid_cert,
+				local_keys->devid_cert_length, header->root_hash, sizeof (header->root_hash));
+		}
 	}
 	else {
-		*digest_length = hash_calculate (hash, root_ca_hash, (*keys)->devid_cert,
-			(*keys)->devid_cert_length, header->root_hash, sizeof (header->root_hash));
+		*digest_length = hash_get_hash_length (root_ca_hash);
 	}
+
 	if (ROT_IS_ERROR (*digest_length)) {
 		status = *digest_length;
 		goto error;
@@ -64,19 +80,26 @@ static int spdm_certificate_chain_dice_prepare_header (
 
 	/* Calculate the total length of the SPDM certificate chain. */
 	header->min_hdr.length = sizeof (header->min_hdr) + *digest_length;
-	if (*root_ca != NULL) {
-		header->min_hdr.length += (*root_ca)->length;
+	if (local_root_ca != NULL) {
+		header->min_hdr.length += local_root_ca->length;
 	}
-	if (*intermediate_ca != NULL) {
-		header->min_hdr.length += (*intermediate_ca)->length;
+	if (local_intermediate_ca != NULL) {
+		header->min_hdr.length += local_intermediate_ca->length;
 	}
-	header->min_hdr.length += (*keys)->devid_cert_length;
-	header->min_hdr.length += (*keys)->alias_cert_length;
+	header->min_hdr.length += local_keys->devid_cert_length;
+	header->min_hdr.length += local_keys->alias_cert_length;
 
-	return 0;
+	if (keys != NULL) {
+		*keys = local_keys;
+		local_keys = NULL;
+	}
+
+	status = 0;
 
 error:
-	riot_key_manager_release_riot_keys (dice->certs, *keys);
+	if (local_keys != NULL) {
+		riot_key_manager_release_riot_keys (dice->certs, local_keys);
+	}
 
 	return status;
 }
@@ -146,6 +169,30 @@ cancel:
 
 exit:
 	riot_key_manager_release_riot_keys (dice->certs, keys);
+
+	return status;
+}
+
+int spdm_certificate_chain_dice_get_certificate_chain_length (
+	const struct spdm_certificate_chain *chain, enum hash_type hash_type, size_t *total_length)
+{
+	const struct spdm_certificate_chain_dice *dice = TO_DERIVED_TYPE (chain,
+		const struct spdm_certificate_chain_dice, base);
+	struct spdm_certificate_chain_header header = {0};
+	int digest_length;
+	int status;
+
+	if ((chain == NULL) || (total_length == NULL)) {
+		return SPDM_CERT_CHAIN_INVALID_ARGUMENT;
+	}
+
+	status = spdm_certificate_chain_dice_prepare_header (dice, NULL, hash_type, &header,
+		&digest_length, NULL, NULL, NULL);
+	if (status != 0) {
+		return status;
+	}
+
+	*total_length = header.min_hdr.length;
 
 	return status;
 }
@@ -244,6 +291,8 @@ int spdm_certificate_chain_dice_init (struct spdm_certificate_chain_dice *chain,
 	memset (chain, 0, sizeof (*chain));
 
 	chain->base.get_digest = spdm_certificate_chain_dice_get_digest;
+	chain->base.get_certificate_chain_length =
+		spdm_certificate_chain_dice_get_certificate_chain_length;
 	chain->base.get_certificate_chain = spdm_certificate_chain_dice_get_certificate_chain;
 	chain->base.sign_message = spdm_certificate_chain_dice_sign_message;
 

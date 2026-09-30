@@ -2570,6 +2570,7 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
 	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
+	size_t cert_chain_length = 0;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
@@ -2662,9 +2663,23 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 		goto exit;
 	}
 
+	status =
+		spdm_responder->cert_chains[slot_id]->get_certificate_chain_length (
+		spdm_responder->cert_chains[slot_id], hash_type, &cert_chain_length);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	requested_offset = spdm_request->offset;
 	requested_length = spdm_request->length;
 
+	/* Check if the requested cert. chain offset is valid. */
+	if (requested_offset >= cert_chain_length) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
 	/* Reset transcript manager state as per request code. */
 	spdm_reset_transcript_via_request_code (state, transcript_manager,
 		SPDM_REQUEST_GET_CERTIFICATE);

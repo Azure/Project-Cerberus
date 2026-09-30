@@ -9,6 +9,8 @@
 /* Internal function declarations to allow for static initialization. */
 int spdm_certificate_chain_dice_get_digest (const struct spdm_certificate_chain *chain,
 	const struct hash_engine *hash, enum hash_type hash_type, uint8_t *digest, size_t length);
+int spdm_certificate_chain_dice_get_certificate_chain_length (
+	const struct spdm_certificate_chain *chain, enum hash_type hash_type, size_t *total_length);
 int spdm_certificate_chain_dice_get_certificate_chain (const struct spdm_certificate_chain *chain,
 	const struct hash_engine *hash, enum hash_type root_ca_hash, size_t offset, uint8_t *buffer,
 	size_t *length, size_t *total_length);
@@ -22,6 +24,7 @@ int spdm_certificate_chain_dice_sign_message (const struct spdm_certificate_chai
  */
 #define	SPDM_CERTIFICATE_CHAIN_DICE_API_INIT  { \
 		.get_digest = spdm_certificate_chain_dice_get_digest, \
+		.get_certificate_chain_length = spdm_certificate_chain_dice_get_certificate_chain_length, \
 		.get_certificate_chain = spdm_certificate_chain_dice_get_certificate_chain, \
 		.sign_message = spdm_certificate_chain_dice_sign_message, \
 	}

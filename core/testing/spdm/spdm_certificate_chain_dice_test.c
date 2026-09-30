@@ -1101,6 +1101,162 @@ static void spdm_certificate_chain_dice_test_get_digest_hash_finish_error (CuTes
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length (CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA256_HASH_LENGTH;
+	const size_t cert_length = RIOT_CORE_DEVID_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, false, false);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA256,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA256_HASH_LENGTH;
+	const size_t cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN + X509_CERTCA_ECC_CA_NOPL_DER_LEN +
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, true);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA256,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_null (CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, false, false);
+
+	status = chain.test.base.get_certificate_chain_length (NULL, HASH_TYPE_SHA256, &total_length);
+	CuAssertIntEquals (test, SPDM_CERT_CHAIN_INVALID_ARGUMENT, status);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA256,
+		NULL);
+	CuAssertIntEquals (test, SPDM_CERT_CHAIN_INVALID_ARGUMENT, status);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_no_key (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const uint8_t *dev_cert;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, true);
+
+	dev_cert = chain.test.certs->state->keys.devid_cert;
+	chain.test.certs->state->keys.devid_cert = NULL;
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA256,
+		&total_length);
+	CuAssertIntEquals (test, SPDM_CERT_CHAIN_MISSING_CERT, status);
+
+	chain.test.certs->state->keys.devid_cert = dev_cert;
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_no_root_ca_sha256 (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA256_HASH_LENGTH;
+	const size_t cert_length = RIOT_CORE_DEVID_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, false, false);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA256,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca_sha256 (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA256_HASH_LENGTH;
+	const size_t cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN + X509_CERTCA_ECC_CA_NOPL_DER_LEN +
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, true);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA256,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_no_intermediate_ca_sha256
+(
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA256_HASH_LENGTH;
+	const size_t cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN + RIOT_CORE_DEVID_SIGNED_CERT_LEN +
+		RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, false);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA256,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
 static void spdm_certificate_chain_dice_test_get_certificate_chain_no_root_ca_sha256 (CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -1268,6 +1424,77 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_no_intermedia
 }
 
 #ifdef HASH_ENABLE_SHA384
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_no_root_ca_sha384 (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA384_HASH_LENGTH;
+	const size_t cert_length = RIOT_CORE_DEVID_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, false, false);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA384,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca_sha384 (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA384_HASH_LENGTH;
+	const size_t cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN + X509_CERTCA_ECC_CA_NOPL_DER_LEN +
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, true);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA384,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_no_intermediate_ca_sha384
+(
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA384_HASH_LENGTH;
+	const size_t cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN + RIOT_CORE_DEVID_SIGNED_CERT_LEN +
+		RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, false);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA384,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+
+
 static void spdm_certificate_chain_dice_test_get_certificate_chain_no_root_ca_sha384 (CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -1436,6 +1663,77 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_no_intermedia
 #endif
 
 #ifdef HASH_ENABLE_SHA512
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_no_root_ca_sha512 (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA512_HASH_LENGTH;
+	const size_t cert_length = RIOT_CORE_DEVID_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, false, false);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA512,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca_sha512 (
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA512_HASH_LENGTH;
+	const size_t cert_length = X509_CERTSS_RSA_CA_NOPL_DER_LEN + X509_CERTCA_ECC_CA_NOPL_DER_LEN +
+		RIOT_CORE_DEVID_INTR_SIGNED_CERT_LEN + RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, true);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA512,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+static void spdm_certificate_chain_dice_test_get_certificate_chain_length_no_intermediate_ca_sha512
+(
+	CuTest *test)
+{
+	struct spdm_certificate_chain_dice_testing chain;
+	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
+		SHA512_HASH_LENGTH;
+	const size_t cert_length = X509_CERTSS_ECC_CA_NOPL_DER_LEN + RIOT_CORE_DEVID_SIGNED_CERT_LEN +
+		RIOT_CORE_ALIAS_CERT_LEN;
+	int status;
+	size_t total_length;
+
+	TEST_START;
+
+	spdm_certificate_chain_dice_testing_init (test, &chain, true, false);
+
+	status = chain.test.base.get_certificate_chain_length (&chain.test.base, HASH_TYPE_SHA512,
+		&total_length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, hdr_length + cert_length, total_length);
+
+	spdm_certificate_chain_dice_testing_release (test, &chain);
+}
+
+
+
 static void spdm_certificate_chain_dice_test_get_certificate_chain_no_root_ca_sha512 (CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -1603,7 +1901,7 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_no_intermedia
 }
 #endif
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_min_header (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_min_header (
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -1660,7 +1958,7 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_t
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_min_header (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_min_header (
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -1717,8 +2015,9 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_ca_digest_sha256
-	(CuTest *test)
+static void
+spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_ca_digest_sha256 (
+	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
 	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
@@ -1774,7 +2073,8 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_t
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_ca_digest_sha256 (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_ca_digest_sha256
+(
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -1832,8 +2132,9 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_
 }
 
 #ifdef HASH_ENABLE_SHA384
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_ca_digest_sha384
-	(CuTest *test)
+static void
+spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_ca_digest_sha384 (
+	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
 	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
@@ -1889,7 +2190,8 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_t
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_ca_digest_sha384 (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_ca_digest_sha384
+(
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -1948,8 +2250,9 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_
 #endif
 
 #ifdef HASH_ENABLE_SHA512
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_ca_digest_sha512
-	(CuTest *test)
+static void
+spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_ca_digest_sha512 (
+	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
 	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
@@ -2005,7 +2308,8 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_t
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_ca_digest_sha512 (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_ca_digest_sha512
+(
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -2063,7 +2367,7 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_
 }
 #endif
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_root_ca (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_root_ca (
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -2120,7 +2424,7 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_t
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_root_ca (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_root_ca (
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -2177,8 +2481,9 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_intermediate_ca
-	(CuTest *test)
+static void
+spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_intermediate_ca	(
+	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
 	const size_t hdr_length = sizeof (struct spdm_certificate_chain_min_header) +
@@ -2235,7 +2540,8 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_t
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_intermediate_ca (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_intermediate_ca
+(
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -2293,7 +2599,7 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_device_id (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_device_id (
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -2351,7 +2657,7 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_t
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_device_id (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_device_id (
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -2409,7 +2715,7 @@ static void spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_
 	spdm_certificate_chain_dice_testing_release (test, &chain);
 }
 
-static void spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_alias (
+static void spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_alias (
 	CuTest *test)
 {
 	struct spdm_certificate_chain_dice_testing chain;
@@ -4432,38 +4738,51 @@ TEST (spdm_certificate_chain_dice_test_get_digest_hash_intermediate_ca_error);
 TEST (spdm_certificate_chain_dice_test_get_digest_hash_device_id_error);
 TEST (spdm_certificate_chain_dice_test_get_digest_hash_alias_error);
 TEST (spdm_certificate_chain_dice_test_get_digest_hash_finish_error);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_null);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_no_key);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_no_root_ca_sha256);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca_sha256);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_no_intermediate_ca_sha256);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_no_root_ca_sha256);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_with_root_ca_sha256);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_no_intermediate_ca_sha256);
 #ifdef HASH_ENABLE_SHA384
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_no_root_ca_sha384);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca_sha384);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_no_intermediate_ca_sha384);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_no_root_ca_sha384);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_with_root_ca_sha384);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_no_intermediate_ca_sha384);
 #endif
 #ifdef HASH_ENABLE_SHA512
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_no_root_ca_sha512);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_with_root_ca_sha512);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_no_intermediate_ca_sha512);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_no_root_ca_sha512);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_with_root_ca_sha512);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_no_intermediate_ca_sha512);
 #endif
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_min_header);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_min_header);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_ca_digest_sha256);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_ca_digest_sha256);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_min_header);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_min_header);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_ca_digest_sha256);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_ca_digest_sha256);
 #ifdef HASH_ENABLE_SHA384
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_ca_digest_sha384);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_ca_digest_sha384);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_ca_digest_sha384);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_ca_digest_sha384);
 #endif
 #ifdef HASH_ENABLE_SHA512
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_ca_digest_sha512);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_ca_digest_sha512);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_ca_digest_sha512);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_ca_digest_sha512);
 #endif
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_root_ca);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_root_ca);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_intermediate_ca);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_intermediate_ca);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_device_id);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_up_to_device_id);
-TEST (spdm_certificate_chain_dice_test_get_certificate_chain_length_less_than_alias);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_root_ca);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_root_ca);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_intermediate_ca);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_intermediate_ca);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_device_id);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_up_to_device_id);
+TEST (spdm_certificate_chain_dice_test_get_certificate_chain_req_length_less_than_alias);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_offset_less_than_min_header);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_offset_skip_min_header);
 TEST (spdm_certificate_chain_dice_test_get_certificate_chain_offset_less_than_ca_digest_sha256);

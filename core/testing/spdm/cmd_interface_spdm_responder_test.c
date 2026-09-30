@@ -1996,6 +1996,12 @@ static void cmd_interface_spdm_responder_test_process_request_get_certificate (C
 		MOCK_ARG (SPDM_MAX_SESSION_COUNT));
 
 	status |= mock_expect (&testing.cert_chain_mock.mock,
+		testing.cert_chain_mock.base.get_certificate_chain_length, &testing.cert_chain_mock, 0,
+		MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&testing.cert_chain_mock.mock, 1, &cert_chain_length,
+		sizeof (cert_chain_length), -1);
+
+	status |= mock_expect (&testing.cert_chain_mock.mock,
 		testing.cert_chain_mock.base.get_certificate_chain, &testing.cert_chain_mock, 0,
 		MOCK_ARG_PTR (&testing.hash_engine_mock[0]), MOCK_ARG (HASH_TYPE_SHA384), MOCK_ARG (0),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_PTR_CONTAINS (&cert_buf_length, sizeof (cert_buf_length)),
