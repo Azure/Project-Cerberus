@@ -1138,3 +1138,38 @@ def get_manifest_components (xml_file, sku_id):
             if result is not None:
                 component_list.append(result)
     return component_list
+
+
+def get_manifest_component_sources (xml_file, sku_id):
+    """
+    For parsed xml files whose sku matches the sku_id provided, this function returns a dictionary
+    mapping each component "type" to its list of allowed source ComponentType "type" values.
+    Components without ComponentTypes will map to an empty list.
+
+    :param xml_file: XML manifest to analyze
+    :param sku_id: Valid platform SKU to check for
+
+    :return dictionary of {component_type: [source_type, ...]}
+    """
+
+    component_sources = {}
+    root = et.parse (xml_file).getroot ()
+    components_tag = xml_find_single_tag (root, XML_COMPONENTS_TAG, xml_file, False)
+    if components_tag is not None:
+        for component in components_tag.findall (XML_COMPONENT_TAG):
+            result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
+            if (result == None or result != sku_id):
+                continue
+            comp_type = xml_extract_attrib (component, XML_TYPE_ATTRIB, True, xml_file)
+            if comp_type is not None:
+                comp_types_tag = component.find (PCD_COMPONENT_TYPES)
+                if comp_types_tag is not None:
+                    source_types = []
+                    for comp_type_entry in comp_types_tag.findall (PCD_COMPONENT_TYPE):
+                        src_type = comp_type_entry.get (XML_TYPE_ATTRIB)
+                        if src_type:
+                            source_types.append (src_type)
+                    component_sources[comp_type] = source_types
+                else:
+                    component_sources[comp_type] = []
+    return component_sources

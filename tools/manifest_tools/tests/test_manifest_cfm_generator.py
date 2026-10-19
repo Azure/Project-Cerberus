@@ -44,6 +44,7 @@ from helpers.utils import xsd_unexpected_child_regex
 from conftest import COMPONENT_JSON, MANIFEST_TOOLS_DIR, TEST_KEY, TEST_XML_DIR
 from manifest_common import CFM_MAGIC_NUM
 from cfm_generator import main as cfm_gen
+import manifest_parser
 
 CFM_XML_DIR = TEST_XML_DIR
 CFM_XML = MANIFEST_TOOLS_DIR / "cfm.xml"
@@ -266,3 +267,29 @@ def test_cfm_malformed_cases(tmp_path, case_name, xml_content, expected_error_ma
 
     with pytest.raises(ValueError, match=expected_error_match):
         cfm_gen([config_file])
+
+
+# ---------------------------------------------------------------------------
+# Multi-source support: ``get_manifest_component_sources`` maps a PCD component
+# to its allowed source ``ComponentType``s, which the CFM flow expands into
+# per-source sub-types. ``pcd_v3.xml`` (sku ``SKU1``) has one multi-source
+# component (``Gamma``) plus three single-source components.
+# ---------------------------------------------------------------------------
+def test_cfm_multi_source_component_expands_to_source_types():
+    """A multi-source component maps to its ordered ``ComponentType`` sources;
+    single-source components map to ``[]``."""
+    sources = manifest_parser.get_manifest_component_sources(
+        str(TEST_XML_DIR / "pcd_v3.xml"), "SKU1")
+    assert sources == {
+        "Alpha": [],
+        "Beta": [],
+        "Gamma": ["Component1", "Component2", "Sigma"],
+        "Theta": [],
+    }
+
+
+def test_cfm_multi_source_non_matching_sku_returns_empty():
+    """A sku that doesn't match the manifest's ``sku`` attribute yields ``{}``."""
+    sources = manifest_parser.get_manifest_component_sources(
+        str(TEST_XML_DIR / "pcd_v3.xml"), "NoSuchSKU")
+    assert sources == {}
