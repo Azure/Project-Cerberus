@@ -24,6 +24,8 @@ enum {
 	SYSTEM_LOGGING_START_WATCHDOG_FAIL,		/**< Failed to start the hardware watchdog timer. */
 	SYSTEM_LOGGING_FATAL_ERROR,				/**< The device encountered a fatal error. */
 	SYSTEM_LOGGING_BMC_RESET_TRIGGERED,		/**< A BMC reset was triggered; arg0 is a platform-defined reset-source bitmask. */
+	SYSTEM_LOGGING_OUT_OF_MEMORY,			/**< The device ran out of memory. */
+	SYSTEM_LOGGING_STACK_OVERFLOW,			/**< A stack overflow was detected. */
 };
 
 /**
