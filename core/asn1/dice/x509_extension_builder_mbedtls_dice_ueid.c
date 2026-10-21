@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
+#include "tcg_dice_oid.h"
 #include "x509_extension_builder_dice_ueid.h"
 #include "x509_extension_builder_mbedtls_dice_ueid.h"
 #include "common/unused.h"
@@ -21,13 +22,17 @@
  *
  * @return 0 if the extension was created successfully or an error code.
  */
-int x509_extension_builder_mbedtls_dice_ueid_create_extension (
+static int x509_extension_builder_mbedtls_dice_ueid_create_extension (
 	const struct x509_extension_builder_mbedtls_dice_ueid *dice, uint8_t *buffer, size_t length,
 	struct x509_extension *extension)
 {
 	uint8_t *pos;
 	size_t enc_length = 0;
 	int ret;
+
+	if ((dice->ueid == NULL) || (dice->ueid_length == 0)) {
+		return DICE_UEID_EXTENSION_INVALID_ARGUMENT;
+	}
 
 	pos = buffer + length;
 
@@ -44,9 +49,8 @@ int x509_extension_builder_mbedtls_dice_ueid_create_extension (
 		memmove (buffer, pos, enc_length);
 	}
 
-	x509_extension_builder_init_extension_descriptor (extension, false,
-		X509_EXTENSION_BUILDER_DICE_UEID_OID, X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH, buffer,
-		enc_length);
+	x509_extension_builder_init_extension_descriptor (extension, false, TCG_DICE_OID_UEID_EXTENSION,
+		TCG_DICE_OID_UEID_EXTENSION_LENGTH, buffer, enc_length);
 
 	return 0;
 }
@@ -76,7 +80,7 @@ int x509_extension_builder_mbedtls_dice_ueid_build_dynamic (
 		platform_free (buffer);
 	}
 
-	return 0;
+	return status;
 }
 
 int x509_extension_builder_mbedtls_dice_ueid_build_static (
@@ -104,7 +108,7 @@ void x509_extension_builder_mbedtls_dice_ueid_free_dynamic (
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 void x509_extension_builder_mbedtls_dice_ueid_free_static (

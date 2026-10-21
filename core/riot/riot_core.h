@@ -120,6 +120,7 @@ enum {
 	RIOT_CORE_NO_CDI = RIOT_CORE_ERROR (0x05),					/**< The CDI is not available for use. */
 	RIOT_CORE_BAD_CDI = RIOT_CORE_ERROR (0x06),					/**< The CDI was determined to be invalid. */
 	RIOT_CORE_UNSUPPORTED_KEY_LENGTH = RIOT_CORE_ERROR (0x07),	/**< The DICE key length is not supported. */
+	RIOT_CORE_BAD_PATHLEN_CONSTRAINT = RIOT_CORE_ERROR (0x08),	/**< A DICE CA path length is not valid. */
 };
 
 

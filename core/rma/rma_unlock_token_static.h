@@ -10,10 +10,13 @@
 /* Internal functions declared to allow for static initialization. */
 int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const uint8_t *data,
 	size_t length);
+int rma_unlock_token_authenticate_no_signature (const struct rma_unlock_token *handler,
+	const uint8_t *data, size_t length);
 
 
 /**
- * Initialize a static instance of a handler authorizing RMA unlock tokens.  This can be a constant
+ * Initialize a static instance of a handler authorizing RMA unlock tokens.  The token will be
+ * signed by external authority, granting permission for the RMA transition.  This can be a constant
  * instance.
  *
  * There is no validation done on the arguments.
@@ -40,6 +43,36 @@ int rma_unlock_token_authenticate (const struct rma_unlock_token *handler, const
 		.authority_key = authority_key_ptr, \
 		.auth_key_length = key_length_arg, \
 		.auth_hash = auth_hash_arg, \
+		.uuid = uuid_ptr, \
+		.oid = oid_ptr, \
+		.oid_length = oid_length_arg, \
+		.dice_hash = dice_hash_ptr, \
+		.dice_length = hash_length_arg, \
+	}
+
+/**
+ * Initialize a static instance of a handler authorizing RMA unlock tokens.  The token will not
+ * contain any signature authorizing it's use.  Authorization for the operation will be managed
+ * separately.  This can be a constant instance.
+ *
+ * There is no validation done on the arguments.
+ *
+ * @param uuid_ptr Interface for retrieving the device UUID.
+ * @param oid_ptr The OID indicating the type of device generating the tokens.  This must be a
+ * base128 encoded value.
+ * @param oid_length_arg Length of the device type OID.
+ * @param dice_hash_ptr Digest of the DICE Device ID public key.  This would typically be available
+ * through the DME structure.
+ * @param hash_length_arg Length of the Device ID digest.
+ */
+#define	rma_unlock_token_static_init_no_signature(uuid_ptr, oid_ptr, oid_length_arg, \
+	dice_hash_ptr, hash_length_arg)	{ \
+        .authenticate = rma_unlock_token_authenticate_no_signature, \
+		.hash = NULL, \
+		.authority = NULL, \
+		.authority_key = NULL, \
+		.auth_key_length = 0, \
+		.auth_hash = HASH_TYPE_INVALID, \
 		.uuid = uuid_ptr, \
 		.oid = oid_ptr, \
 		.oid_length = oid_length_arg, \

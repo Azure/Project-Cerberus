@@ -7,7 +7,8 @@
 #include "host_processor_observer_mock.h"
 
 
-static void host_processor_observer_mock_on_soft_reset (struct host_processor_observer *observer)
+static void host_processor_observer_mock_on_soft_reset (
+	const struct host_processor_observer *observer)
 {
 	struct host_processor_observer_mock *mock = (struct host_processor_observer_mock*) observer;
 
@@ -18,7 +19,8 @@ static void host_processor_observer_mock_on_soft_reset (struct host_processor_ob
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, host_processor_observer_mock_on_soft_reset, observer);
 }
 
-static void host_processor_observer_mock_on_bypass_mode (struct host_processor_observer *observer)
+static void host_processor_observer_mock_on_bypass_mode (
+	const struct host_processor_observer *observer)
 {
 	struct host_processor_observer_mock *mock = (struct host_processor_observer_mock*) observer;
 
@@ -29,7 +31,8 @@ static void host_processor_observer_mock_on_bypass_mode (struct host_processor_o
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, host_processor_observer_mock_on_bypass_mode, observer);
 }
 
-static void host_processor_observer_mock_on_active_mode (struct host_processor_observer *observer)
+static void host_processor_observer_mock_on_active_mode (
+	const struct host_processor_observer *observer)
 {
 	struct host_processor_observer_mock *mock = (struct host_processor_observer_mock*) observer;
 
@@ -40,7 +43,8 @@ static void host_processor_observer_mock_on_active_mode (struct host_processor_o
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, host_processor_observer_mock_on_active_mode, observer);
 }
 
-static void host_processor_observer_mock_on_recovery (struct host_processor_observer *observer)
+static void host_processor_observer_mock_on_recovery (
+	const struct host_processor_observer *observer)
 {
 	struct host_processor_observer_mock *mock = (struct host_processor_observer_mock*) observer;
 

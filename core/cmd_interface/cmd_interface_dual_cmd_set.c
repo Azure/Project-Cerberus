@@ -31,31 +31,6 @@ int cmd_interface_dual_cmd_set_process_request (const struct cmd_interface *intf
 	}
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_dual_cmd_set_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	const struct cmd_interface_dual_cmd_set *interface =
-		(const struct cmd_interface_dual_cmd_set*) intf;
-	uint8_t command_id;
-	uint8_t command_set;
-	int status;
-
-	status = cmd_interface_process_cerberus_protocol_message (intf, response, &command_id,
-		&command_set, false, false);
-	if (status != 0) {
-		return status;
-	}
-
-	if (command_set == 0) {
-		return interface->intf_0->process_response (interface->intf_0, response);
-	}
-	else {
-		return interface->intf_1->process_response (interface->intf_1, response);
-	}
-}
-#endif
-
 /**
  * Initialize a command interface instance with two command sets supported. Requests from each
  * command set get routed to the appropiate command interface. Issuing requests from this interface
@@ -80,9 +55,6 @@ int cmd_interface_dual_cmd_set_init (struct cmd_interface_dual_cmd_set *intf,
 	intf->intf_1 = intf_1;
 
 	intf->base.process_request = cmd_interface_dual_cmd_set_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_dual_cmd_set_process_response;
-#endif
 
 	return 0;
 }

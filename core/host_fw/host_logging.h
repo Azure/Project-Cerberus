@@ -73,6 +73,12 @@ enum {
 	HOST_LOGGING_RECOVERY_RETRIES,				/**< Number of recovery attempts. */
 	HOST_LOGGING_ACTIVE_UPDATE_SUCCESSFUL,		/**< Host active flash update successful. */
 	HOST_LOGGING_ACTIVE_UPDATE_FAIL,			/**< Host active flash update failed. */
+	HOST_LOGGING_ACTIVATION_FAILURE,			/**< Failed to activate Host firmware Image */
+	HOST_LOGGING_UPDATE_NOTIFICATION_ERROR,		/**< Notification status for host firmware update. */
+	HOST_LOGGING_ACTIVATION_SUCCESSFUL,			/**< Host firmware activation successful. */
+	HOST_LOGGING_DIRTY_RESET_ERROR,				/**< Failed to notify the host of dirty flash. */
+	HOST_LOGGING_FORCE_DIRTY,					/**< Forced the host flash to be marked dirty. */
+	HOST_LOGGING_FORCE_NOT_DIRTY,				/**< Forced the host flash to be marked not dirty. */
 };
 
 

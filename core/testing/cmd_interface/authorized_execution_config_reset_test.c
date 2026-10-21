@@ -35,7 +35,7 @@ struct authorized_execution_config_reset_testing {
 	const struct manifest_manager *bypass[1];			/**< List of bypass manifests. */
 	const struct manifest_manager *config[1];			/**< List of config manifests. */
 	const struct manifest_manager *components[1];		/**< List of component manifests. */
-	struct state_manager *state_list[1];				/**< List of state managers. */
+	const struct state_manager *state_list[1];			/**< List of state managers. */
 	const struct keystore *keystores[1];				/**< List of keystores. */
 	struct config_reset reset;							/**< Configuration reset manager. */
 	struct logging_mock log;							/**< Mock for debug logging. */
@@ -195,6 +195,25 @@ static void authorized_execution_config_reset_testing_init_clear_component_manif
 }
 
 /**
+ * Initialize a clear provisioned certificates instance for testing.
+ *
+ * @param test The testing framework.
+ * @param execution The testing components to initialize.
+ */
+static void authorized_execution_config_reset_testing_init_clear_provisioned_certificates (
+	CuTest *test, struct authorized_execution_config_reset_testing *execution)
+{
+	int status;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, execution);
+
+	status =
+		authorized_execution_config_reset_init_clear_provisioned_certificates (&execution->test,
+		&execution->reset);
+	CuAssertIntEquals (test, 0, status);
+}
+
+/**
  * Release a test instance and validate all mocks.
  *
  * @param test The testing framework.
@@ -227,6 +246,7 @@ static void authorized_execution_config_reset_test_init_restore_bypass (CuTest *
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
@@ -264,6 +284,7 @@ static void authorized_execution_config_reset_test_init_restore_defaults (CuTest
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
@@ -278,7 +299,7 @@ static void authorized_execution_config_reset_test_init_restore_defaults_null (C
 
 	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
 
-	status = authorized_execution_config_reset_init_restore_defaults (NULL,	&execution.reset);
+	status = authorized_execution_config_reset_init_restore_defaults (NULL, &execution.reset);
 	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
 
 	status = authorized_execution_config_reset_init_restore_defaults (&execution.test, NULL);
@@ -301,6 +322,7 @@ static void authorized_execution_config_reset_test_init_restore_platform_config 
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
@@ -339,6 +361,7 @@ static void authorized_execution_config_reset_test_init_clear_component_manifest
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
@@ -365,6 +388,48 @@ static void authorized_execution_config_reset_test_init_clear_component_manifest
 	authorized_execution_config_reset_testing_release_dependencies (test, &execution);
 }
 
+static void authorized_execution_config_reset_test_init_clear_provisioned_certificates (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = authorized_execution_config_reset_init_clear_provisioned_certificates (&execution.test,
+		&execution.reset);
+	CuAssertIntEquals (test, 0, status);
+
+	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
+	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_init_clear_provisioned_certificates_null (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = authorized_execution_config_reset_init_clear_provisioned_certificates (NULL,
+		&execution.reset);
+	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
+
+	status = authorized_execution_config_reset_init_clear_provisioned_certificates (&execution.test,
+		NULL);
+	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
+
+	authorized_execution_config_reset_testing_release_dependencies (test, &execution);
+}
+
 static void authorized_execution_config_reset_test_static_init_restore_bypass (CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution = {
@@ -374,6 +439,7 @@ static void authorized_execution_config_reset_test_static_init_restore_bypass (C
 	TEST_START;
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
@@ -390,6 +456,7 @@ static void authorized_execution_config_reset_test_static_init_restore_defaults 
 	TEST_START;
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
@@ -408,6 +475,7 @@ static void authorized_execution_config_reset_test_static_init_restore_platform_
 	TEST_START;
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
@@ -427,6 +495,27 @@ static void authorized_execution_config_reset_test_static_init_clear_component_m
 	TEST_START;
 
 	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
+	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_static_init_clear_provisioned_certificates (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test =
+			authorized_execution_config_reset_static_init_clear_provisioned_certificates (
+			&execution.reset)
+	};
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, execution.test.base.execute);
+	CuAssertPtrNotNull (test, execution.test.base.validate_data);
 	CuAssertPtrNotNull (test, execution.test.base.get_status_identifiers);
 
 	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
@@ -468,7 +557,7 @@ static void authorized_execution_config_reset_test_execute_restore_bypass (CuTes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -503,7 +592,7 @@ static void authorized_execution_config_reset_test_execute_restore_bypass_failur
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -539,7 +628,7 @@ static void authorized_execution_config_reset_test_execute_restore_bypass_static
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, true, reset_req);
 
@@ -598,7 +687,7 @@ static void authorized_execution_config_reset_test_execute_restore_defaults (CuT
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -633,7 +722,7 @@ static void authorized_execution_config_reset_test_execute_restore_defaults_fail
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -695,7 +784,7 @@ static void authorized_execution_config_reset_test_execute_restore_defaults_stat
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, true, reset_req);
 
@@ -729,7 +818,7 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, true, reset_req);
 
@@ -765,7 +854,7 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -799,7 +888,7 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, NULL);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, NULL);
 	CuAssertIntEquals (test, 0, status);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
@@ -836,7 +925,7 @@ static void authorized_execution_config_reset_test_execute_clear_platform_config
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, true, reset_req);
 
@@ -870,7 +959,7 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -906,7 +995,7 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, MANIFEST_MANAGER_CLEAR_ALL_FAILED, status);
 	CuAssertIntEquals (test, false, reset_req);
 
@@ -945,7 +1034,134 @@ static void authorized_execution_config_reset_test_execute_clear_component_manif
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = execution.test.base.execute (&execution.test.base, &reset_req);
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, true, reset_req);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_execute_clear_provisioned_certificates (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CLEAR_CERTIFICATES,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_clear_provisioned_certificates (test,
+		&execution);
+
+	status = mock_expect (&execution.keys.riot_keystore.mock,
+		execution.keys.riot_keystore.base.erase_key, &execution.keys.riot_keystore, 0,
+		MOCK_ARG (0));
+	status |= mock_expect (&execution.keys.riot_keystore.mock,
+		execution.keys.riot_keystore.base.erase_key, &execution.keys.riot_keystore, 0,
+		MOCK_ARG (1));
+	status |= mock_expect (&execution.keys.riot_keystore.mock,
+		execution.keys.riot_keystore.base.erase_key, &execution.keys.riot_keystore, 0,
+		MOCK_ARG (2));
+
+	status |= mock_expect (&execution.log.mock, execution.log.base.create_entry, &execution.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, false, reset_req);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_execute_clear_provisioned_certificates_failure (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	bool reset_req = false;
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_ERROR,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CLEAR_CERTIFICATES_FAIL,
+		.arg1 = KEYSTORE_ERASE_FAILED,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_clear_provisioned_certificates (test,
+		&execution);
+
+	status = mock_expect (&execution.keys.riot_keystore.mock,
+		execution.keys.riot_keystore.base.erase_key, &execution.keys.riot_keystore,
+		KEYSTORE_ERASE_FAILED, MOCK_ARG (0));
+
+	status |= mock_expect (&execution.log.mock, execution.log.base.create_entry, &execution.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
+	CuAssertIntEquals (test, KEYSTORE_ERASE_FAILED, status);
+	CuAssertIntEquals (test, false, reset_req);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void
+authorized_execution_config_reset_test_execute_clear_provisioned_certificates_static_init (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test =
+			authorized_execution_config_reset_static_init_clear_provisioned_certificates (
+			&execution.reset)
+	};
+	bool reset_req = true;
+	int status;
+	struct debug_log_entry_info entry = {
+		.format = DEBUG_LOG_ENTRY_FORMAT,
+		.severity = DEBUG_LOG_SEVERITY_INFO,
+		.component = DEBUG_LOG_COMPONENT_CMD_INTERFACE,
+		.msg_index = CMD_LOGGING_CLEAR_CERTIFICATES,
+		.arg1 = 0,
+		.arg2 = 0
+	};
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = mock_expect (&execution.keys.riot_keystore.mock,
+		execution.keys.riot_keystore.base.erase_key, &execution.keys.riot_keystore, 0,
+		MOCK_ARG (0));
+	status |= mock_expect (&execution.keys.riot_keystore.mock,
+		execution.keys.riot_keystore.base.erase_key, &execution.keys.riot_keystore, 0,
+		MOCK_ARG (1));
+	status |= mock_expect (&execution.keys.riot_keystore.mock,
+		execution.keys.riot_keystore.base.erase_key, &execution.keys.riot_keystore, 0,
+		MOCK_ARG (2));
+
+	status |= mock_expect (&execution.log.mock, execution.log.base.create_entry, &execution.log, 0,
+		MOCK_ARG_PTR_CONTAINS_TMP ((uint8_t*) &entry, LOG_ENTRY_SIZE_TIME_FIELD_NOT_INCLUDED),
+		MOCK_ARG (sizeof (entry)));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = execution.test.base.execute (&execution.test.base, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, true, reset_req);
 
@@ -962,9 +1178,202 @@ static void authorized_execution_config_reset_test_execute_null (CuTest *test)
 
 	authorized_execution_config_reset_testing_init_restore_bypass (test, &execution);
 
-	status = execution.test.base.execute (NULL, &reset_req);
+	status = execution.test.base.execute (NULL, NULL, 0, &reset_req);
 	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
 	CuAssertIntEquals (test, false, reset_req);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_restore_bypass (CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_restore_bypass (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_restore_bypass_static_init (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test = authorized_execution_config_reset_static_init_restore_bypass (&execution.reset)
+	};
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_restore_defaults (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_restore_defaults (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_restore_defaults_static_init (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test = authorized_execution_config_reset_static_init_restore_defaults (&execution.reset)
+	};
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_restore_platform_config (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_restore_platform_config (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_restore_platform_config_static_init
+(
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test =
+			authorized_execution_config_reset_static_init_restore_platform_config (&execution.reset)
+	};
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_clear_component_manifests (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_clear_component_manifests (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void
+authorized_execution_config_reset_test_validate_data_clear_component_manifests_static_init (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test =
+			authorized_execution_config_reset_static_init_clear_component_manifests (
+			&execution.reset)
+	};
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_clear_provisioned_certificates (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_clear_provisioned_certificates (test,
+		&execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void
+authorized_execution_config_reset_test_validate_data_clear_provisioned_certificates_static_init (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test =
+			authorized_execution_config_reset_static_init_clear_provisioned_certificates (
+			&execution.reset)
+	};
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	status = execution.test.base.validate_data (&execution.test.base, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void authorized_execution_config_reset_test_validate_data_null (CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	int status;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_restore_bypass (test, &execution);
+
+	status = execution.test.base.validate_data (NULL, NULL, 0);
+	CuAssertIntEquals (test, AUTHORIZED_EXECUTION_INVALID_ARGUMENT, status);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -1088,8 +1497,7 @@ authorized_execution_config_reset_test_get_status_identifiers_restore_platform_c
 }
 
 static void authorized_execution_config_reset_test_get_status_identifiers_clear_component_manifests
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution;
 	uint8_t start;
@@ -1108,8 +1516,7 @@ static void authorized_execution_config_reset_test_get_status_identifiers_clear_
 
 static void
 authorized_execution_config_reset_test_get_status_identifiers_clear_component_manifests_static_init
-(
-	CuTest *test)
+	(CuTest *test)
 {
 	struct authorized_execution_config_reset_testing execution = {
 		.test =
@@ -1126,6 +1533,49 @@ authorized_execution_config_reset_test_get_status_identifiers_clear_component_ma
 	execution.test.base.get_status_identifiers (&execution.test.base, &start, &error);
 	CuAssertIntEquals (test, CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS, start);
 	CuAssertIntEquals (test, CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED, error);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void
+authorized_execution_config_reset_test_get_status_identifiers_clear_provisioned_certificates (
+	CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution;
+	uint8_t start;
+	uint8_t error;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_clear_provisioned_certificates (test,
+		&execution);
+
+	execution.test.base.get_status_identifiers (&execution.test.base, &start, &error);
+	CuAssertIntEquals (test, CONFIG_RESET_STATUS_AUTHORIZED_OPERATION, start);
+	CuAssertIntEquals (test, CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED, error);
+
+	authorized_execution_config_reset_testing_release (test, &execution);
+}
+
+static void
+authorized_execution_config_reset_test_get_status_identifiers_clear_provisioned_certificates_static_init
+	(CuTest *test)
+{
+	struct authorized_execution_config_reset_testing execution = {
+		.test =
+			authorized_execution_config_reset_static_init_clear_provisioned_certificates (
+			&execution.reset)
+	};
+	uint8_t start;
+	uint8_t error;
+
+	TEST_START;
+
+	authorized_execution_config_reset_testing_init_dependencies (test, &execution);
+
+	execution.test.base.get_status_identifiers (&execution.test.base, &start, &error);
+	CuAssertIntEquals (test, CONFIG_RESET_STATUS_AUTHORIZED_OPERATION, start);
+	CuAssertIntEquals (test, CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED, error);
 
 	authorized_execution_config_reset_testing_release (test, &execution);
 }
@@ -1165,10 +1615,13 @@ TEST (authorized_execution_config_reset_test_init_restore_platform_config);
 TEST (authorized_execution_config_reset_test_init_restore_platform_config_null);
 TEST (authorized_execution_config_reset_test_init_clear_component_manifests);
 TEST (authorized_execution_config_reset_test_init_clear_component_manifests_null);
+TEST (authorized_execution_config_reset_test_init_clear_provisioned_certificates);
+TEST (authorized_execution_config_reset_test_init_clear_provisioned_certificates_null);
 TEST (authorized_execution_config_reset_test_static_init_restore_bypass);
 TEST (authorized_execution_config_reset_test_static_init_restore_defaults);
 TEST (authorized_execution_config_reset_test_static_init_restore_platform_config);
 TEST (authorized_execution_config_reset_test_static_init_clear_component_manifests);
+TEST (authorized_execution_config_reset_test_static_init_clear_provisioned_certificates);
 TEST (authorized_execution_config_reset_test_release_null);
 TEST (authorized_execution_config_reset_test_execute_restore_bypass);
 TEST (authorized_execution_config_reset_test_execute_restore_bypass_failure);
@@ -1183,7 +1636,21 @@ TEST (authorized_execution_config_reset_test_execute_clear_platform_config_stati
 TEST (authorized_execution_config_reset_test_execute_clear_component_manifests);
 TEST (authorized_execution_config_reset_test_execute_clear_component_manifests_failure);
 TEST (authorized_execution_config_reset_test_execute_clear_component_manifests_static_init);
+TEST (authorized_execution_config_reset_test_execute_clear_provisioned_certificates);
+TEST (authorized_execution_config_reset_test_execute_clear_provisioned_certificates_failure);
+TEST (authorized_execution_config_reset_test_execute_clear_provisioned_certificates_static_init);
 TEST (authorized_execution_config_reset_test_execute_null);
+TEST (authorized_execution_config_reset_test_validate_data_restore_bypass);
+TEST (authorized_execution_config_reset_test_validate_data_restore_bypass_static_init);
+TEST (authorized_execution_config_reset_test_validate_data_restore_defaults);
+TEST (authorized_execution_config_reset_test_validate_data_restore_defaults_static_init);
+TEST (authorized_execution_config_reset_test_validate_data_restore_platform_config);
+TEST (authorized_execution_config_reset_test_validate_data_restore_platform_config_static_init);
+TEST (authorized_execution_config_reset_test_validate_data_clear_component_manifests);
+TEST (authorized_execution_config_reset_test_validate_data_clear_component_manifests_static_init);
+TEST (authorized_execution_config_reset_test_validate_data_clear_provisioned_certificates);
+TEST (authorized_execution_config_reset_test_validate_data_clear_provisioned_certificates_static_init);
+TEST (authorized_execution_config_reset_test_validate_data_null);
 TEST (authorized_execution_config_reset_test_get_status_identifiers_restore_bypass);
 TEST (authorized_execution_config_reset_test_get_status_identifiers_restore_bypass_static_init);
 TEST (authorized_execution_config_reset_test_get_status_identifiers_restore_defaults);
@@ -1192,6 +1659,8 @@ TEST (authorized_execution_config_reset_test_get_status_identifiers_restore_plat
 TEST (authorized_execution_config_reset_test_get_status_identifiers_restore_platform_config_static_init);
 TEST (authorized_execution_config_reset_test_get_status_identifiers_clear_component_manifests);
 TEST (authorized_execution_config_reset_test_get_status_identifiers_clear_component_manifests_static_init);
+TEST (authorized_execution_config_reset_test_get_status_identifiers_clear_provisioned_certificates);
+TEST (authorized_execution_config_reset_test_get_status_identifiers_clear_provisioned_certificates_static_init);
 TEST (authorized_execution_config_reset_test_get_status_identifiers_null);
 
 TEST_SUITE_END;

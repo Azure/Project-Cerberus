@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include "platform_api.h"
 #include "x509_extension_builder.h"
 
 
@@ -31,5 +32,25 @@ void x509_extension_builder_init_extension_descriptor (struct x509_extension *ex
 		data_tmp = (const uint8_t**) &extension->data;
 		*data_tmp = data;
 		extension->data_length = data_length;
+	}
+}
+
+/**
+ * Free the extension data referenced by an extension descriptor.
+ *
+ * This must only be called for extensions that used dynamically allocated buffers.
+ *
+ * @param extension The extension descriptor to free.
+ */
+void x509_extension_builder_free_extension_descriptor (struct x509_extension *extension)
+{
+	/* A temp pointer is needed to get around the const pointer in the descriptor */
+	void **data_tmp;
+
+	if ((extension != NULL) && (extension->data != NULL)) {
+		data_tmp = (void**) &extension->data;
+		platform_free (*data_tmp);
+		*data_tmp = NULL;
+		extension->data_length = 0;
 	}
 }

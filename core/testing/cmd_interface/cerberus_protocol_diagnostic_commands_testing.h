@@ -15,6 +15,14 @@ void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_invalid_le
 	struct cmd_interface *cmd);
 void cerberus_protocol_diagnostic_commands_testing_process_heap_stats_fail (CuTest *test,
 	struct cmd_interface *cmd, struct cmd_device_mock *device);
+void cerberus_protocol_diagnostic_commands_testing_process_stack_stats (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_device_mock *device);
+void cerberus_protocol_diagnostic_commands_testing_process_stack_stats_non_zero_offset (
+	CuTest *test, struct cmd_interface *cmd, struct cmd_device_mock *device);
+void cerberus_protocol_diagnostic_commands_testing_process_stack_stats_invalid_len (CuTest *test,
+	struct cmd_interface *cmd);
+void cerberus_protocol_diagnostic_commands_testing_process_stack_stats_fail (CuTest *test,
+	struct cmd_interface *cmd, struct cmd_device_mock *device);
 
 
 #endif	/* CERBERUS_PROTOCOL_DIAGNOSTIC_COMMANDS_TESTING_H_ */

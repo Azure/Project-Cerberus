@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "platform_io.h"
+#include "platform_io_api.h"
 
 
 /*-------------------------------------------------------------------------*
@@ -224,11 +224,11 @@ void CuAssertStrEquals_LineMsg (CuTest *tc, const char *file, int line, const ch
 		CuStringAppend (&string, message);
 		CuStringAppend (&string, ": ");
 	}
-	CuStringAppend (&string, "expected <");
+	CuStringAppend (&string, "expected [");
 	CuStringAppend (&string, expected);
-	CuStringAppend (&string, "> but was <");
+	CuStringAppend (&string, "] but was [");
 	CuStringAppend (&string, actual);
-	CuStringAppend (&string, ">");
+	CuStringAppend (&string, "]");
 	CuFailInternal (tc, file, line, &string);
 }
 
@@ -240,7 +240,7 @@ void CuAssertIntEquals_LineMsg (CuTest *tc, const char *file, int line, const ch
 	if (expected == actual) {
 		return;
 	}
-	sprintf (buf, "expected <%d> but was <%d>", expected, actual);
+	sprintf (buf, "expected [%d] but was [%d]", expected, actual);
 	CuFail_Line (tc, file, line, message, buf);
 }
 
@@ -252,7 +252,7 @@ void CuAssertInt64Equals_LineMsg (CuTest *tc, const char *file, int line, const 
 	if (expected == actual) {
 		return;
 	}
-	sprintf (buf, "expected <%lld> but was <%lld>", expected, actual);
+	sprintf (buf, "expected [%lld] but was [%lld]", expected, actual);
 	CuFail_Line (tc, file, line, message, buf);
 }
 
@@ -264,20 +264,20 @@ void CuAssertDblEquals_LineMsg (CuTest *tc, const char *file, int line, const ch
 	if (fabs (expected - actual) <= delta) {
 		return;
 	}
-	sprintf (buf, "expected <%f> but was <%f>", expected, actual);
+	sprintf (buf, "expected [%f] but was [%f]", expected, actual);
 
 	CuFail_Line (tc, file, line, message, buf);
 }
 
 void CuAssertPtrEquals_LineMsg (CuTest *tc, const char *file, int line, const char *message,
-	void *expected, void *actual)
+	const void *expected, const void *actual)
 {
 	char buf[STRING_MAX];
 
 	if (expected == actual) {
 		return;
 	}
-	sprintf (buf, "expected pointer <0x%p> but was <0x%p>", expected, actual);
+	sprintf (buf, "expected pointer [0x%p] but was [0x%p]", expected, actual);
 	CuFail_Line (tc, file, line, message, buf);
 }
 
@@ -401,4 +401,30 @@ void CuSuiteDetails (CuSuite *testSuite, CuString *details)
 			testSuite->count - testSuite->failCount);
 		platform_CuStringAppendFormat (details, "Fails: %d" NEWLINE, testSuite->failCount);
 	}
+}
+
+void CuSuiteToJUnitXML (CuSuite *testSuite, CuString *report)
+{
+	int i;
+
+	// XML header and suite information
+	platform_CuStringAppend (report, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" NEWLINE);
+	platform_CuStringAppendFormat (report,
+		"<testsuite name=\"CuTest\" tests=\"%d\" failures=\"%d\" errors=\"%d\">" NEWLINE,
+		testSuite->count, testSuite->failCount, testSuite->failCount);
+
+	for (i = 0; i < testSuite->count; ++i) {
+		CuTest *testCase = testSuite->list[i];
+
+		platform_CuStringAppendFormat (report, "    <testcase classname=\"CuTest\" name=\"%s\">",
+			testCase->name);
+
+		if (testCase->failed) {
+			platform_CuStringAppendFormat (report, NEWLINE "        <failure>%s</failure>" NEWLINE,
+				testCase->message->buffer);
+		}
+		platform_CuStringAppend (report, "    </testcase>" NEWLINE);
+	}
+
+	platform_CuStringAppend (report, "</testsuite>" NEWLINE);
 }

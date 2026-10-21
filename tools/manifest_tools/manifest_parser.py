@@ -10,7 +10,9 @@ import binascii
 import traceback
 import xml.etree.ElementTree as et
 import manifest_types
-
+import xmlschema
+from dataclasses import dataclass
+from pathlib import Path
 
 XML_ATTESTATION_FAIL_RETRY_ATTRIB = "attestation_fail_retry"
 XML_ATTESTATION_PROTOCOL_ATTRIB = "attestation_protocol"
@@ -38,6 +40,10 @@ XML_SLOT_NUM_ATTRIB = "slot_num"
 XML_TRANSCRIPT_HASH_TYPE_ATTRIB = "transcript_hash_type"
 XML_TYPE_ATTRIB = "type"
 XML_VERSION_ATTRIB = "version"
+XML_FORMAT_VERSION_ATTRIB = "format_version"
+XML_COMPONENT_TYPE_MAX_ATTRIB = "max"
+XML_COMPONENT_TYPE_MIN_ATTRIB = "min"
+
 
 XML_ACTIVE_TAG = "Active"
 XML_ADDRESS_TAG = "Address"
@@ -127,8 +133,11 @@ PCD_INTERFACE_I2C_MODE_MM = "MultiMaster"
 PCD_INTERFACE_I2C_MODE_MS = "MasterSlave"
 PCD_COMPONENT_CONNECTION_DIRECT = "Direct"
 PCD_COMPONENT_CONNECTION_MCTP_BRIDGE = "MCTPBridge"
+PCD_COMPONENT_CONNECTION_TCG_LOG = "TCGLog"
 PCD_ENABLED = "Enabled"
 PCD_DISABLED = "Disabled"
+PCD_COMPONENT_TYPES = "ComponentTypes"
+PCD_COMPONENT_TYPE = "ComponentType"
 
 CFM_CHECK_EQUAL = "Equal"
 CFM_CHECK_NOT_EQUAL = "NotEqual"
@@ -163,6 +172,25 @@ def xml_extract_attrib (root, attrib_name, string, xml_file, required=True):
         attrib.encode ("utf8")
 
     return attrib.strip ()
+
+
+def xml_extract_attrib_int (root, attrib_name, xml_file, default=0):
+    """
+    Fetch integer attribute from an XML tag.
+
+    :param root: XML tag to utilize
+    :param attrib_name: Attribute to fetch
+    :param xml_file: Filename of XML
+    :param default: Return value in case if no attribute present
+
+    :return Attribute value
+    """
+    
+    try:
+        return int(xml_extract_attrib(root, attrib_name, False, xml_file, True))
+    except (TypeError, ValueError, KeyError):
+        return default
+
 
 def xml_find_single_tag (root, tag_name, xml_file, required=True):
     """
@@ -292,7 +320,7 @@ def process_pfm (root, xml_file):
 
         if pfm_version == manifest_types.VERSION_2:
             img_hash = xml_find_single_tag (img, XML_HASH_TAG, xml_file)
-            image["hash"] = binascii.a2b_hex (re.sub ("\s", "", img_hash.text.strip ()))
+            image["hash"] = binascii.a2b_hex (re.sub (r"\s", "", img_hash.text.strip ()))
 
             hash_type = xml_find_single_tag (img, XML_HASH_TYPE_TAG, xml_file, False)
             if hash_type is None or hash_type.text.strip () == "SHA256":
@@ -309,7 +337,7 @@ def process_pfm (root, xml_file):
             image["pbkey"] = pbkey.text.strip ()
 
             sig = xml_find_single_tag (img, XML_SIG_TAG, xml_file)
-            image["signature"] = binascii.a2b_hex (re.sub ("\s", "", sig.text.strip ()))
+            image["signature"] = binascii.a2b_hex (re.sub (r"\s", "", sig.text.strip ()))
 
         for region in img.findall (XML_REGION_TAG):
             processed_region = process_region (region, xml["version_id"], xml_file)
@@ -374,13 +402,14 @@ def process_cfm_allowable_manifest (root, manifest_name, component_type, xml_fil
 
     return output
 
-def process_cfm (root, xml_file, selection_list):
+def process_cfm (root, xml_file, selection_list, format):
     """
     Process CFM XML and generate list of element and attribute values.
 
     :param root: XML to utilize
     :param xml_file: Filename of XML
     :param selection_list: List of component types to include
+    :param format: expected manifest format version
 
     :return List of CFM values, manifest version, boolean for whether manifest is for an empty CFM
     """
@@ -391,7 +420,7 @@ def process_cfm (root, xml_file, selection_list):
     component_type = component_type.strip ('\"')
 
     if component_type not in selection_list:
-        return None, manifest_types.VERSION_2, False
+        return None, format, False
 
     xml[component_type] = {}
     component = xml[component_type]
@@ -412,6 +441,8 @@ def process_cfm (root, xml_file, selection_list):
         component["attestation_protocol"] = 0
     elif result.lower () == "spdm":
         component["attestation_protocol"] = 1
+    elif result.lower () == "tcglog":
+        component["attestation_protocol"] = 2
     else:
         raise ValueError ("Component {0} has unknown attestation protocol '{1}' in {2}".format (
             component_type, result, xml_file))
@@ -450,7 +481,7 @@ def process_cfm (root, xml_file, selection_list):
 
         for allowable_digest in root_ca_digests.findall (XML_DIGEST_TAG):
             component["root_ca_digests"]["allowable_digests"].append (
-                binascii.a2b_hex (re.sub ("\s", "", allowable_digest.text.strip ())))
+                binascii.a2b_hex (re.sub (r"\s", "", allowable_digest.text.strip ())))
 
     for pmr in root.findall (XML_PMR_TAG):
         if "pmr" not in component:
@@ -467,7 +498,7 @@ def process_cfm (root, xml_file, selection_list):
             {"initial_value": XML_INITIAL_VALUE_TAG}, xml_file)
 
         component["pmr"][pmr_id]["initial_value"] = binascii.a2b_hex (
-            re.sub ("\s", "", component["pmr"][pmr_id]["initial_value"]))
+            re.sub (r"\s", "", component["pmr"][pmr_id]["initial_value"]))
 
     for pmr_digest in root.findall (XML_PMR_DIGEST_TAG):
         if "pmr_digests" not in component:
@@ -485,7 +516,7 @@ def process_cfm (root, xml_file, selection_list):
 
         for allowable_digest in pmr_digest.findall (XML_DIGEST_TAG):
             component["pmr_digests"][pmr_id]["allowable_digests"].append (
-                binascii.a2b_hex (re.sub ("\s", "", allowable_digest.text.strip ())))
+                binascii.a2b_hex (re.sub (r"\s", "", allowable_digest.text.strip ())))
 
     for measurement in root.findall (XML_MEASUREMENT_TAG):
         if "measurements" not in component:
@@ -508,7 +539,7 @@ def process_cfm (root, xml_file, selection_list):
 
         for allowable_digest in measurement.findall (XML_DIGEST_TAG):
             component["measurements"][pmr_id][measurement_id]["allowable_digests"].append (
-                binascii.a2b_hex (re.sub ("\s", "", allowable_digest.text.strip ())))
+                binascii.a2b_hex (re.sub (r"\s", "", allowable_digest.text.strip ())))
 
     for measurement_data in root.findall (XML_MEASUREMENT_DATA_TAG):
         if "measurement_data" not in component:
@@ -536,7 +567,7 @@ def process_cfm (root, xml_file, selection_list):
             bitmask_tag = xml_find_single_tag (allowable_data, XML_BITMASK_TAG, xml_file, False)
 
             if bitmask_tag is not None:
-                bitmask_text = binascii.a2b_hex (re.sub ("\s", "", bitmask_tag.text.strip ()))
+                bitmask_text = binascii.a2b_hex (re.sub (r"\s", "", bitmask_tag.text.strip ()))
                 data_dict["bitmask"] = bitmask_text
                 data_dict["bitmask_length"] = len (bitmask_text)
 
@@ -559,19 +590,12 @@ def process_cfm (root, xml_file, selection_list):
                 if data_text[0] == '"' and data_text[-1] == '"':
                     data_text = binascii.hexlify (data_text.strip ('\"').encode ())
                 else:
-                    data_text = re.sub ("\s", "", data_text)
+                    data_text = re.sub (r"\s", "", data_text)
 
                 data_text = binascii.a2b_hex (data_text)
 
-                if "data_len" in component["measurement_data"][pmr_id][measurement_id]:
-                    data_len = component["measurement_data"][pmr_id][measurement_id]["data_len"]
-                    if len (data_text) != data_len:
-                        raise ValueError (
-                            "Data {0} has different length than other data for component {1} in manifest {2}: {3} vs {4}".format (
-                                data_text, component_type, xml_file, len (data_text), data_len))
-                else:
-                    component["measurement_data"][pmr_id][measurement_id]["data_len"] = \
-                        len (data_text)
+                component["measurement_data"][pmr_id][measurement_id]["data_len"] = \
+                    len (data_text)
 
                 if "bitmask" in data_dict and len (data_text) > len (data_dict["bitmask"]):
                     raise ValueError (
@@ -579,6 +603,23 @@ def process_cfm (root, xml_file, selection_list):
                             data_text, data_dict["bitmask"], component_type, xml_file))
 
                 data_dict["data"].append (data_text)
+
+            # Validate that GreaterThan, LessThan, GreaterOrEqual, and LessOrEqual checks
+            # have only one data entry per allowable data element (per version set)
+            # per Cerberus specification
+            if check in [2, 3, 4, 5]:  # LessThan=2, LessOrEqual=3, GreaterThan=4, GreaterOrEqual=5
+                if len(data_dict["data"]) > 1:
+                    check_names = {2: "LessThan", 3: "LessOrEqual", 4: "GreaterThan", 5: "GreaterOrEqual"}
+                    error_msg = (
+                        "ERROR: Allowable Data with check type '{0}' has {1} data entries in PMR {2}, "
+                        "measurement {3} for component {4} in manifest {5}. "
+                        "Per Cerberus specification, for {0} checks, there should be only a single data entry "
+                        "in the Allowable Data element per version_set identifier. "
+                        "Only Equal and NotEqual checks can have multiple data entries."
+                    ).format(check_names[check], len(data_dict["data"]), pmr_id, measurement_id, 
+                            component_type, xml_file)
+                    print(error_msg)
+                    raise ValueError(error_msg)
 
             component["measurement_data"][pmr_id][measurement_id]["allowable_data"].append (
                 data_dict)
@@ -620,7 +661,16 @@ def process_cfm (root, xml_file, selection_list):
             component_type, xml_file)
         component["allowable_pcd"]["platform"] = platform
 
-    return xml, manifest_types.VERSION_2, False
+    return xml, format, False
+
+
+# TODO: improve typing of parsed structures
+@dataclass(frozen=True)
+class ComponentTypeSpec:
+    type: str
+    min: int
+    max: int
+
 
 def process_pcd (root, xml_file):
     """
@@ -634,6 +684,12 @@ def process_pcd (root, xml_file):
 
     xml = {}
 
+    format = xml_extract_attrib (root, XML_FORMAT_VERSION_ATTRIB, True, xml_file, False)
+    if (format == "3"):
+        format = manifest_types.VERSION_3
+    else:
+        format = manifest_types.VERSION_2
+
     result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
     xml.update ({"platform_id":result})
 
@@ -642,7 +698,7 @@ def process_pcd (root, xml_file):
 
     result = xml_extract_attrib (root, XML_EMPTY_ATTRIB, True, xml_file, False)
     if result and result.lower () == "true":
-        return xml, manifest_types.VERSION_2, True
+        return xml, format, True
 
     rot = xml_find_single_tag (root, XML_ROT_TAG, xml_file)
 
@@ -831,6 +887,17 @@ def process_pcd (root, xml_file):
                 False, xml_file)
             curr_component.update ({"attestation_rsp_not_ready_max_retry":int (result)})
 
+            comp_types = xml_find_single_tag (component, PCD_COMPONENT_TYPES, xml_file, False)
+            if comp_types:
+                curr_component["multi_sources"] = [
+                    ComponentTypeSpec(
+                        type=xml_extract_attrib (comp_type, XML_TYPE_ATTRIB, True, xml_file),
+                        min=xml_extract_attrib_int (comp_type, XML_COMPONENT_TYPE_MIN_ATTRIB, xml_file, 0),
+                        max=xml_extract_attrib_int (comp_type, XML_COMPONENT_TYPE_MAX_ATTRIB, xml_file, 0)
+                    )
+                    for comp_type in comp_types.findall(PCD_COMPONENT_TYPE)
+                ]
+            
             cnxn_type = xml_extract_attrib (component, XML_CONNECTION_ATTRIB, True, xml_file)
             if cnxn_type == PCD_COMPONENT_CONNECTION_DIRECT:
                 curr_component.update ({"connection":PCD_COMPONENT_CONNECTION_DIRECT})
@@ -907,6 +974,8 @@ def process_pcd (root, xml_file):
                 result["subvendorid"] = int (result["subvendorid"], 16)
 
                 curr_component.update (result)
+            elif cnxn_type == PCD_COMPONENT_CONNECTION_TCG_LOG:
+                curr_component.update ({"connection":PCD_COMPONENT_CONNECTION_TCG_LOG})
             else:
                 raise ValueError ("Unknown component {0} connection type: {1}".format (
                     curr_component["type"], cnxn_type))
@@ -936,7 +1005,7 @@ def process_pcd (root, xml_file):
 
             xml["components"].append (curr_component)
 
-    return xml, manifest_types.VERSION_2, False
+    return xml, format, False
 
 def load_and_process_xml (xml_file, xml_type, selection_list=None):
     """
@@ -952,11 +1021,20 @@ def load_and_process_xml (xml_file, xml_type, selection_list=None):
 
     root = et.parse (xml_file).getroot ()
 
+    schemas_path = Path(__file__).parent / "schemas"
+
     if xml_type is manifest_types.PFM:
+        schema = xmlschema.XMLSchema11(schemas_path / "pfm.xsd")
+        schema.validate(root)
         return process_pfm (root, xml_file)
     elif xml_type is manifest_types.CFM:
-        return process_cfm (root, xml_file, selection_list["selection"])
+        schema = xmlschema.XMLSchema11(schemas_path / "cfm.xsd")
+        schema.validate(root)
+        return process_cfm (root, xml_file, selection_list["selection"], 
+                            selection_list["format"])
     elif xml_type is manifest_types.PCD:
+        schema = xmlschema.XMLSchema11(schemas_path / "pcd.xsd")
+        schema.validate(root)
         return process_pcd (root, xml_file)
     else:
         raise ValueError ("Unknown XML type: {0}".format (xml_type))
@@ -977,6 +1055,9 @@ def load_and_process_selection_xml (xml_file):
     result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
     result_dict.update ({"platform_id":result})
 
+    format = xml_extract_attrib (root, XML_FORMAT_VERSION_ATTRIB, False, xml_file, False)
+    result_dict["format"] = int (format) if format else manifest_types.VERSION_2
+
     result_dict["selection"] = []
 
     for component in root.findall (XML_COMPONENT_TAG):
@@ -985,3 +1066,110 @@ def load_and_process_selection_xml (xml_file):
 
     return result_dict
 
+def get_manifest_format (xml_file, manifest_type):
+    """
+    Returns the xml manifest format.  Extracts the "type" attribute from the root of the parsed 
+    xml file.  Returns 1 if "type" attribute is None and this is PFM, returns format version 3
+    if format version is 3, otherwise returns 2.
+
+    :param xml_file: XML to utilize
+    :param manifest_type: Type of manifest (PFM, CFM, PCD)
+
+    :return manifest_format int
+    """
+
+    root = et.parse (xml_file).getroot ()
+    fw_type = xml_extract_attrib (root, XML_TYPE_ATTRIB, True, xml_file, False)
+
+    if ((fw_type is None) and (manifest_type is manifest_types.PFM)):
+        return manifest_types.VERSION_1
+
+    format_version = xml_extract_attrib (root, XML_FORMAT_VERSION_ATTRIB, True, xml_file, False)
+    if (format_version == "3"):
+        return manifest_types.VERSION_3
+
+    return manifest_types.VERSION_2
+
+def get_manifest_version (xml_file):
+    """
+    Extracts the "version" attribute from the root of the parsed xml file and returns it.
+
+    :param xml_file: XML to utilize
+
+    :return manifest version str
+    """
+
+    root = et.parse (xml_file).getroot ()
+    return xml_extract_attrib (root, XML_VERSION_ATTRIB, True, xml_file, False)
+
+def get_manifest_type (xml_file):
+    """
+    Extracts the "type" attribute from the root of the parsed xml file and returns it.
+
+    :param xml_file: XML to utilize
+
+    :return manifest type str
+    """
+
+    root = et.parse (xml_file).getroot ()
+    return xml_extract_attrib (root, XML_TYPE_ATTRIB, True,xml_file,  False)
+
+def get_manifest_components (xml_file, sku_id):
+    """
+    For parsed xml files whose sku matches the sku_id provided, this function returns a list
+    "type" attribute values extracted from the "Component" tags under "Components".
+
+    :param xml_file: XML manifest to analyze
+    :param sku_id: Valid platform SKU to check for
+
+    :return list of component values (e.g. "type" attribute value for each "Component" tag) 
+            under the matching sku_id
+    """
+
+    component_list = []
+    root = et.parse (xml_file).getroot ()
+    components_tag = xml_find_single_tag (root, XML_COMPONENTS_TAG, xml_file, False)
+    if components_tag is not None:
+        for component in components_tag.findall (XML_COMPONENT_TAG):
+            result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
+            if (result == None or result != sku_id):
+                continue
+            result = xml_extract_attrib (component, XML_TYPE_ATTRIB, True, xml_file)
+            if result is not None:
+                component_list.append(result)
+    return component_list
+
+
+def get_manifest_component_sources (xml_file, sku_id):
+    """
+    For parsed xml files whose sku matches the sku_id provided, this function returns a dictionary
+    mapping each component "type" to its list of allowed source ComponentType "type" values.
+    Components without ComponentTypes will map to an empty list.
+
+    :param xml_file: XML manifest to analyze
+    :param sku_id: Valid platform SKU to check for
+
+    :return dictionary of {component_type: [source_type, ...]}
+    """
+
+    component_sources = {}
+    root = et.parse (xml_file).getroot ()
+    components_tag = xml_find_single_tag (root, XML_COMPONENTS_TAG, xml_file, False)
+    if components_tag is not None:
+        for component in components_tag.findall (XML_COMPONENT_TAG):
+            result = xml_extract_attrib (root, XML_SKU_ATTRIB, True, xml_file)
+            if (result == None or result != sku_id):
+                continue
+            comp_type = xml_extract_attrib (component, XML_TYPE_ATTRIB, True, xml_file)
+            if comp_type is not None:
+                comp_types_tag = component.find (PCD_COMPONENT_TYPES)
+                if comp_types_tag is not None:
+                    source_types = []
+                    for comp_type_entry in comp_types_tag.findall (PCD_COMPONENT_TYPE):
+                        src_type = comp_type_entry.get (XML_TYPE_ATTRIB)
+                        if src_type:
+                            source_types.append (src_type)
+                    component_sources[comp_type] = source_types
+                else:
+                    component_sources[comp_type] = []
+    return component_sources

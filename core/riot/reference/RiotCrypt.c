@@ -188,7 +188,7 @@ RIOT_STATUS RiotCrypt_Sign (
 	const void *data,				// IN:  TODO
 	size_t dataSize,				// IN:  TODO
 	const RIOT_ECC_PRIVATE *key,	// IN:  TODO
-	struct rng_engine *rng			// IN:  TODO
+	const struct rng_engine *rng	// IN:  TODO
 )
 {
 	size_t max_sig_len = RIOT_ECC_PRIVATE_BYTES * 4;
@@ -214,7 +214,7 @@ RIOT_STATUS RiotCrypt_SignDigest (
 	const uint8_t *digest,			// IN:  TODO
 	size_t digestSize,				// IN:  TODO
 	const RIOT_ECC_PRIVATE *key,	// IN:  TODO
-	struct rng_engine *rng			// IN:  TODO
+	const struct rng_engine *rng	// IN:  TODO
 )
 {
 	size_t max_sig_len = RIOT_ECC_PRIVATE_BYTES * 4;
@@ -266,13 +266,13 @@ RIOT_STATUS RiotCrypt_VerifyDigest (
 #if USES_EPHEMERAL
 #define RIOT_LABEL_EXCHANGE     "Exchange"
 RIOT_STATUS RiotCrypt_EccEncrypt (
-	uint8_t *result,			// OUT: Buffer to receive encrypted data
-	size_t resultCapacity,		// IN:  Capacity of the result buffer
-	RIOT_ECC_PUBLIC *ephKey,	// OUT: Ephemeral key to produce
-	const void *data,			// IN:  Data to encrypt
-	size_t dataSize,			// IN:  Data size in bytes
-	const RIOT_ECC_PUBLIC *key,	// IN:  Encryption key
-	struct rng_engine *rng		// IN:  Random number generator engine
+	uint8_t *result,				// OUT: Buffer to receive encrypted data
+	size_t resultCapacity,			// IN:  Capacity of the result buffer
+	RIOT_ECC_PUBLIC *ephKey,		// OUT: Ephemeral key to produce
+	const void *data,				// IN:  Data to encrypt
+	size_t dataSize,				// IN:  Data size in bytes
+	const RIOT_ECC_PUBLIC *key,		// IN:  Encryption key
+	const struct rng_engine *rng	// IN:  Random number generator engine
 )
 {
 	ecc_privatekey ephPriv;

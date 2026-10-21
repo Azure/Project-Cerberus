@@ -16,7 +16,7 @@ struct base64_engine_mbedtls {
 
 
 int base64_mbedtls_init (struct base64_engine_mbedtls *engine);
-void base64_mbedtls_release (struct base64_engine_mbedtls *engine);
+void base64_mbedtls_release (const struct base64_engine_mbedtls *engine);
 
 
 #endif	/* BASE64_MBEDTLS_H_ */

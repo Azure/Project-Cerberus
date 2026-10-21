@@ -283,7 +283,7 @@ Error:
 	return -1;
 }
 
-static int DERAddTaggedIntegerFromArray (
+int DERAddTaggedIntegerFromArray (
 	DERBuilderContext *Context,	const uint8_t *Val,	uint32_t NumBytes, uint8_t Tag)
 // Input integer is assumed unsigned with most signficant byte first.
 // A leading zero will be added if the most significant input bit is set.
@@ -302,7 +302,6 @@ static int DERAddTaggedIntegerFromArray (
 		numLeadingZeros++;
 	}
 
-	negative = Val[numLeadingZeros] >= 128;
 	Context->Buffer[Context->Position++] = Tag;
 
 	if (NumBytes == numLeadingZeros) {	//integer is zero
@@ -310,6 +309,8 @@ static int DERAddTaggedIntegerFromArray (
 		Context->Buffer[Context->Position++] = 0;
 	}
 	else {
+		negative = Val[numLeadingZeros] >= 128;
+
 		if (negative) {
 			Context->Buffer[Context->Position++] = (uint8_t) (NumBytes - numLeadingZeros + 1);
 			Context->Buffer[Context->Position++] = 0;
@@ -608,7 +609,7 @@ const PEMHeadersFooters PEMhf[LAST_CERT_TYPE] = {
 
 int DERtoPEM (
 	DERBuilderContext *Context, uint32_t Type, char *PEM, uint32_t *Length,
-	struct base64_engine *base64)
+	const struct base64_engine *base64)
 // Note that this function does not support extra header information for
 // encrypted keys. Expand the header buffer to ~128 bytes to support this.
 {
@@ -616,7 +617,7 @@ int DERtoPEM (
 	int status;
 
 	// Parameter validation
-	if (!(Context) || !(Type < LAST_CERT_TYPE) || !(PEM)) {
+	if (!(Context) || !(Type < LAST_CERT_TYPE) || !(PEM) || !(Length)) {
 		return -1;
 	}
 
@@ -625,7 +626,7 @@ int DERtoPEM (
 	reqLen = b64Len + PEMhf[Type].hLen + PEMhf[Type].fLen;
 
 	// Validate length of output buffer
-	if (Length && (*Length < reqLen)) {
+	if (*Length < reqLen) {
 		*Length = reqLen;
 
 		return -1;
@@ -648,9 +649,7 @@ int DERtoPEM (
 	PEM += PEMhf[Type].fLen;
 
 	// Output buffer length
-	if (Length) {
-		*Length = reqLen;
-	}
+	*Length = reqLen;
 
 	return 0;
 }

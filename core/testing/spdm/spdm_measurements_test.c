@@ -24,12 +24,12 @@ TEST_SUITE_LABEL ("spdm_measurements");
  * Dependencies for testing SPDM measurement handling.
  */
 struct spdm_measurements_testing {
-	HASH_TESTING_ENGINE hash;			/**< Hash engine for testing measurements. */
-	HASH_TESTING_ENGINE hash2;			/**< A second hash engine for testing summary hashes. */
+	HASH_TESTING_ENGINE (hash);			/**< Hash engine for testing measurements. */
+	HASH_TESTING_ENGINE (hash2);		/**< A second hash engine for testing summary hashes. */
 	struct hash_engine_mock hash_mock;	/**< Mock for hash operations. */
 	struct flash_mock flash;			/**< Mock for measurement flash operations. */
 	struct pcr_store store;				/**< Measurement storage. */
-	struct spdm_measurements test;		/**< PCR store under test. */
+	struct spdm_measurements test;		/**< SPDM measurement handler under test. */
 };
 
 

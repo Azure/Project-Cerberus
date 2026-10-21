@@ -10,29 +10,16 @@
 /* Internal functions declared to allow for static initialization. */
 int cmd_interface_multi_handler_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request);
-int cmd_interface_multi_handler_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response);
 
 int cmd_interface_multi_handler_is_message_type_supported (
 	const struct cmd_interface_multi_handler *intf, uint32_t message_type);
 
 
 /**
- * Constant initializer for response handling.
- */
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-#define	CMD_INTERFACE_MULTI_HANDLER_RESPONSE_API    \
-	.process_response = cmd_interface_multi_handler_process_response,
-#else
-#define	CMD_INTERFACE_MULTI_HANDLER_RESPONSE_API
-#endif
-
-/**
  * Constant initializer for the command interface API.
  */
 #define	CMD_INTERFACE_MULTI_HANDLER_API_INIT { \
 		.process_request = cmd_interface_multi_handler_process_request, \
-		CMD_INTERFACE_MULTI_HANDLER_RESPONSE_API \
 		.session = NULL, \
 	}
 

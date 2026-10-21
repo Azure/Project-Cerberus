@@ -25,12 +25,20 @@ struct cmd_interface_recovery {
 	const struct firmware_update_control *control;		/**< FW update control instance */
 	const struct cmd_interface_fw_version *fw_version;	/**< FW version numbers */
 	struct device_manager *device_manager;				/**< Device manager instance */
+	struct cmd_interface_device_id device_id;			/**< Device ID information */
+	const struct riot_key_manager *riot;				/**< RIoT key manager */
+	struct attestation_responder *attestation;			/**< Attestation responder instance */
+	const struct cmd_device *cmd_device;				/**< Device command handler instance */
+	const struct cmd_background *background;			/**< Context for completing background commands */
 };
 
 
 int cmd_interface_recovery_init (struct cmd_interface_recovery *intf,
-	const struct firmware_update_control *control, struct device_manager *device_manager,
-	const struct cmd_interface_fw_version *fw_version);
+	struct attestation_responder *attestation, const struct firmware_update_control *control,
+	struct device_manager *device_manager, const struct cmd_background *background,
+	const struct riot_key_manager *riot, const struct cmd_interface_fw_version *fw_version,
+	uint16_t vendor_id, uint16_t device_id,	uint16_t subsystem_vid,	uint16_t subsystem_id,
+	const struct cmd_device *cmd_device);
 
 void cmd_interface_recovery_deinit (const struct cmd_interface_recovery *intf);
 

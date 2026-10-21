@@ -46,7 +46,7 @@ struct firmware_image {
 	 * incorrect signature, FIRMWARE_IMAGE_BAD_SIGNATURE will be returned, regardless of the
 	 * underlying signature verification algorithm.
 	 */
-	int (*verify) (const struct firmware_image *fw, struct hash_engine *hash);
+	int (*verify) (const struct firmware_image *fw, const struct hash_engine *hash);
 
 	/**
 	 * Get the total size of the firmware image.
@@ -104,6 +104,7 @@ enum {
 	FIRMWARE_IMAGE_FORCE_RECOVERY = FIRMWARE_IMAGE_ERROR (0x0d),		/**< Force loading the recovery firmware image. */
 	FIRMWARE_IMAGE_BAD_SIGNATURE = FIRMWARE_IMAGE_ERROR (0x0e),			/**< Signature verification of the image failed. */
 	FIRMWARE_IMAGE_REVOKED = FIRMWARE_IMAGE_ERROR (0x0f),				/**< Firmware data contained in the image has been revoked. */
+	FIRMWARE_IMAGE_INCOMPATIBLE = FIRMWARE_IMAGE_ERROR (0x10),			/**< Image is not compatible with the device or current state. */
 };
 
 

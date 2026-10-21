@@ -19,7 +19,7 @@ static const uint8_t base64_core_encoding[64] = {
 };
 
 
-int base64_core_encode (struct base64_engine *engine, const uint8_t *data, size_t length,
+int base64_core_encode (const struct base64_engine *engine, const uint8_t *data, size_t length,
 	uint8_t *encoded, size_t enc_length)
 {
 	size_t in_pos = 0;
@@ -96,7 +96,7 @@ int base64_core_init (struct base64_engine_core *engine)
  *
  * @param engine The base64 engine to release.
  */
-void base64_core_release (struct base64_engine_core *engine)
+void base64_core_release (const struct base64_engine_core *engine)
 {
 	UNUSED (engine);
 }

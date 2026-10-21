@@ -41,6 +41,7 @@ enum {
 	FLASH_CMD_4BYTE_QUAD_READ = 0x6c,		/**< Quad output read with 4 byte address */
 	FLASH_CMD_RDSR_FLAG = 0x70,				/**< Read flag status register */
 	FLASH_CMD_INFINEON_WR_ARG = 0x71,		/**< Write any register in an Infineon OSPI flash. */
+	FLASH_CMD_MACRONIX_WRCR2 = 0x72,		/**< Write configuration register 2 in a Macronix OSPI flash. */
 	FLASH_CMD_INFINEON_CLR_ERROR = 0x82,	/**< Clear erase error and program error status register in Infineon device. */
 	FLASH_CMD_GBULK = 0x98,					/**< Global block protection unlock */
 	FLASH_CMD_RST = 0x99,					/**< Reset device */
@@ -80,6 +81,7 @@ enum {
 enum {
 	FLASH_ID_MX25L = 0x2000,	/**< Macronix MX25L flash device IDs. */
 	FLASH_ID_MX25U = 0x2500,	/**< Macronix MX25U flash device IDs. */
+	FLASH_ID_MX66UW = 0x9400,	/**< Macronix MX66UW flash device IDs. */
 	FLASH_ID_SST26VF = 0x2600,	/**< Microchip SST26VF flash device IDs. */
 	FLASH_ID_W25Q = 0x4000,		/**< Winbond W25Q flash device IDs. */
 	FLASH_ID_W25Q_DTR = 0x7000,	/**< Winbond W25Q-DTR flash device IDs. */

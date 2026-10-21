@@ -10,18 +10,18 @@
 /* Internal function declarations to allow for static initialization. */
 int spdm_measurements_discovery_get_measurement_count (const struct spdm_measurements *handler);
 int spdm_measurements_discovery_get_measurement_block (const struct spdm_measurements *handler,
-	uint8_t block_id, bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type,
+	uint8_t block_id, bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t *buffer, size_t length);
 int spdm_measurements_discovery_get_measurement_block_length (
 	const struct spdm_measurements *handler, uint8_t block_id);
 int spdm_measurements_discovery_get_all_measurement_blocks (const struct spdm_measurements *handler,
-	bool raw_bit_stream, struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
+	bool raw_bit_stream, const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer,
 	size_t length);
 int spdm_measurements_discovery_get_all_measurement_blocks_length (
 	const struct spdm_measurements *handler, bool raw_bit_stream, enum hash_type hash_type);
 int spdm_measurements_discovery_get_measurement_summary_hash (
-	const struct spdm_measurements *handler, struct hash_engine *summary_hash,
-	enum hash_type summary_hash_type, struct hash_engine *measurement_hash,
+	const struct spdm_measurements *handler, const struct hash_engine *summary_hash,
+	enum hash_type summary_hash_type, const struct hash_engine *measurement_hash,
 	enum hash_type measurement_hash_type, bool only_tcb, uint8_t *buffer, size_t length);
 
 

@@ -9,7 +9,7 @@
 
 static int cmd_authorization_mock_authorize_operation (const struct cmd_authorization *auth,
 	uint32_t operation_id, const uint8_t **token, size_t *length,
-	const struct authorized_execution **execution)
+	struct cmd_authorization_operation_context *op_context)
 {
 	struct cmd_authorization_mock *mock = (struct cmd_authorization_mock*) auth;
 
@@ -19,7 +19,7 @@ static int cmd_authorization_mock_authorize_operation (const struct cmd_authoriz
 
 	MOCK_RETURN (&mock->mock, cmd_authorization_mock_authorize_operation, auth,
 		MOCK_ARG_CALL (operation_id), MOCK_ARG_PTR_CALL (token), MOCK_ARG_PTR_CALL (length),
-		MOCK_ARG_PTR_CALL (execution));
+		MOCK_ARG_PTR_CALL (op_context));
 }
 
 static int cmd_authorization_mock_func_arg_count (void *func)
@@ -56,7 +56,7 @@ static const char* cmd_authorization_mock_arg_name_map (void *func, int arg)
 				return "length";
 
 			case 3:
-				return "execution";
+				return "op_context";
 		}
 	}
 

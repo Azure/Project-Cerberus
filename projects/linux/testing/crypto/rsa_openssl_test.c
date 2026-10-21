@@ -1,18 +1,20 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/rsa.h>
+#include <openssl/sha.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "platform_api.h"
 #include "testing.h"
 #include "crypto/rsa_openssl.h"
-#include <openssl/rsa.h>
-#include <openssl/sha.h>
-#include <openssl/obj_mac.h>
-#include "testing/crypto/rsa_testing.h"
+#include "crypto/rsa_openssl_static.h"
 #include "testing/crypto/ecc_testing.h"
+#include "testing/crypto/rsa_testing.h"
 #include "testing/crypto/signature_testing.h"
 
 
@@ -32,13 +34,22 @@ TEST_SUITE_LABEL ("rsa_openssl");
 static void rsa_openssl_testing_encrypt_data (CuTest *test, struct rsa_engine_openssl *engine,
 	struct rsa_private_key *key, const char *message, uint8_t *out, size_t *out_len)
 {
+	EVP_PKEY_CTX *ctx;
 	int status;
 
-	status = RSA_public_encrypt (strlen (message), (uint8_t*) message, out, (RSA*) key->context,
-		RSA_PKCS1_OAEP_PADDING);
-	CuAssertIntEquals (test, RSA_size ((RSA*) key->context), status);
+	ctx = EVP_PKEY_CTX_new ((EVP_PKEY*) key->context, NULL);
+	CuAssertPtrNotNull (test, ctx);
 
-	*out_len = status;
+	status = EVP_PKEY_encrypt_init (ctx);
+	CuAssertIntEquals (test, 1, status);
+
+	status = EVP_PKEY_CTX_set_rsa_padding (ctx, RSA_PKCS1_OAEP_PADDING);
+	CuAssertIntEquals (test, 1, status);
+
+	status = EVP_PKEY_encrypt (ctx, out, out_len, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 1, status);
+
+	EVP_PKEY_CTX_free (ctx);
 }
 
 /**
@@ -51,26 +62,47 @@ static void rsa_openssl_testing_encrypt_data (CuTest *test, struct rsa_engine_op
  * @param signature Output buffer for the signature.
  * @param sig_length The length of the signature buffer.
  *
- * @return 0 if the signature was successfully generated or an error cdoe.
+ * @return 0 if the signature was successfully generated or an error code.
  */
 int rsa_openssl_testing_sign_data (const uint8_t *data, size_t length, const uint8_t *key,
 	size_t key_length, uint8_t *signature, size_t sig_length)
 {
-	RSA *rsa;
+	EVP_PKEY *rsa;
+	EVP_PKEY_CTX *ctx;
 	uint8_t hash[SHA256_HASH_LENGTH];
 	int status;
-	unsigned int length_out;
 
-	SHA256 (data, length, hash);
-	rsa = d2i_RSAPrivateKey (NULL, &key, key_length);
+	rsa = d2i_PrivateKey (EVP_PKEY_RSA, NULL, &key, key_length);
 	if (rsa == NULL) {
-		return -1;
+		return -ERR_get_error ();
 	}
 
-	status = RSA_sign (NID_sha256, hash, sizeof (hash), signature, &length_out, rsa);
-	RSA_free (rsa);
+	ctx = EVP_PKEY_CTX_new (rsa, NULL);
+	if (ctx == NULL) {
+		return -ERR_get_error ();
+	}
 
-	return (status) ? 0 : -1;
+	status = EVP_PKEY_CTX_set_rsa_padding (ctx, RSA_PKCS1_PADDING);
+	if (status == 1) {
+		return -ERR_get_error ();
+	}
+
+	status = EVP_PKEY_CTX_set_signature_md (ctx, EVP_sha256 ());
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	SHA256 (data, length, hash);
+
+	status = EVP_PKEY_sign (ctx, signature, &sig_length, hash, sizeof (hash));
+	EVP_PKEY_CTX_free (ctx);
+	if (status != 1) {
+		return -ERR_get_error ();
+	}
+
+	EVP_PKEY_free (rsa);
+
+	return 0;
 }
 
 
@@ -110,22 +142,29 @@ static void rsa_openssl_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 }
 
+static void rsa_openssl_test_static_init (CuTest *test)
+{
+	struct rsa_engine_openssl engine = rsa_openssl_static_init;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, engine.base.generate_key);
+	CuAssertPtrNotNull (test, engine.base.init_private_key);
+	CuAssertPtrNotNull (test, engine.base.init_public_key);
+	CuAssertPtrNotNull (test, engine.base.release_key);
+	CuAssertPtrNotNull (test, engine.base.get_private_key_der);
+	CuAssertPtrNotNull (test, engine.base.get_public_key_der);
+	CuAssertPtrNotNull (test, engine.base.decrypt);
+	CuAssertPtrNotNull (test, engine.base.sig_verify);
+
+	rsa_openssl_release (&engine);
+}
+
 static void rsa_openssl_test_release_null (CuTest *test)
 {
 	TEST_START;
 
 	rsa_openssl_release (NULL);
-}
-
-static void rsa_openssl_test_release_no_init (CuTest *test)
-{
-	struct rsa_engine_openssl engine;
-
-	TEST_START;
-
-	memset (&engine, 0, sizeof (engine));
-
-	rsa_openssl_release (&engine);
 }
 
 static void rsa_openssl_test_sig_verify (CuTest *test)
@@ -179,6 +218,20 @@ static void rsa_openssl_test_sig_verify_sha512 (CuTest *test)
 	rsa_openssl_release (&engine);
 }
 
+static void rsa_openssl_test_sig_verify_static_init (CuTest *test)
+{
+	struct rsa_engine_openssl engine = rsa_openssl_static_init;
+	int status;
+
+	TEST_START;
+
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
+		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	rsa_openssl_release (&engine);
+}
+
 static void rsa_openssl_test_sig_verify_null (CuTest *test)
 {
 	struct rsa_engine_openssl engine;
@@ -189,20 +242,20 @@ static void rsa_openssl_test_sig_verify_null (CuTest *test)
 	status = rsa_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (NULL, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,	RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, NULL, RSA_SIGNATURE_TEST,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, NULL, RSA_SIGNATURE_TEST, RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, NULL,
-		RSA_ENCRYPT_LEN, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, NULL, RSA_ENCRYPT_LEN,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
-		0, HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
+	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,	0,
+		HASH_TYPE_SHA256, SIG_HASH_TEST, SIG_HASH_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.sig_verify (&engine.base, &RSA_PUBLIC_KEY, RSA_SIGNATURE_TEST,
@@ -379,6 +432,43 @@ static void rsa_openssl_test_init_private_key (CuTest *test)
 	rsa_openssl_release (&engine);
 }
 
+static void rsa_openssl_test_init_private_key_static_init (CuTest *test)
+{
+	struct rsa_engine_openssl engine = rsa_openssl_static_init;
+	struct rsa_private_key key;
+	int status;
+	uint8_t *der;
+	size_t length;
+
+	TEST_START;
+
+	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,
+		RSA_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, key.context);
+
+	status = engine.base.get_private_key_der (&engine.base, &key, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_PRIVKEY_DER_LEN, length);
+
+	status = testing_validate_array (RSA_PRIVKEY_DER, der, RSA_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (der);
+
+	status = engine.base.get_public_key_der (&engine.base, &key, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_PUBKEY_DER_LEN, length);
+
+	status = testing_validate_array (RSA_PUBKEY_DER, der, RSA_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (der);
+	engine.base.release_key (&engine.base, &key);
+
+	rsa_openssl_release (&engine);
+}
+
 static void rsa_openssl_test_init_private_key_null (CuTest *test)
 {
 	struct rsa_engine_openssl engine;
@@ -390,20 +480,17 @@ static void rsa_openssl_test_init_private_key_null (CuTest *test)
 	status = rsa_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,
-		RSA_PRIVKEY_DER_LEN);
+	status = engine.base.init_private_key (NULL, &key, RSA_PRIVKEY_DER,	RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.init_private_key (&engine.base, NULL, RSA_PRIVKEY_DER,
 		RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_private_key (&engine.base, &key, NULL,
-		RSA_PRIVKEY_DER_LEN);
+	status = engine.base.init_private_key (&engine.base, &key, NULL, RSA_PRIVKEY_DER_LEN);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,
-		0);
+	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,	0);
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	rsa_openssl_release (&engine);
@@ -492,6 +579,26 @@ static void rsa_openssl_test_init_public_key_4k (CuTest *test)
 	rsa_openssl_release (&engine);
 }
 #endif
+
+static void rsa_openssl_test_init_public_key_static_init (CuTest *test)
+{
+	struct rsa_engine_openssl engine = rsa_openssl_static_init;
+	struct rsa_public_key key;
+	int status;
+
+	TEST_START;
+
+	status = engine.base.init_public_key (&engine.base, &key, RSA_PUBKEY_DER, RSA_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, RSA_PUBLIC_KEY.mod_length, key.mod_length);
+	CuAssertIntEquals (test, RSA_PUBLIC_KEY.exponent, key.exponent);
+
+	status = testing_validate_array (RSA_PUBLIC_KEY.modulus, key.modulus,
+		RSA_PUBLIC_KEY.mod_length);
+	CuAssertIntEquals (test, 0, status);
+
+	rsa_openssl_release (&engine);
+}
 
 static void rsa_openssl_test_init_public_key_null (CuTest *test)
 {
@@ -685,6 +792,32 @@ static void rsa_openssl_test_generate_key (CuTest *test)
 
 	status = rsa_openssl_init (&engine);
 	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.generate_key (&engine.base, &key, 2048);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, key.context);
+
+	status = engine.base.get_private_key_der (&engine.base, &key, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertTrue (test,
+		((length >= (RSA_PRIVKEY_DER_LEN - 3)) && (length <= (RSA_PRIVKEY_DER_LEN + 3))));
+
+	platform_free (der);
+
+	engine.base.release_key (&engine.base, &key);
+
+	rsa_openssl_release (&engine);
+}
+
+static void rsa_openssl_test_generate_key_static_init (CuTest *test)
+{
+	struct rsa_engine_openssl engine = rsa_openssl_static_init;
+	struct rsa_private_key key;
+	int status;
+	uint8_t *der;
+	size_t length;
+
+	TEST_START;
 
 	status = engine.base.generate_key (&engine.base, &key, 2048);
 	CuAssertIntEquals (test, 0, status);
@@ -918,6 +1051,32 @@ static void rsa_openssl_test_decrypt_differest_hashes (CuTest *test)
 	rsa_openssl_release (&engine);
 }
 
+static void rsa_openssl_test_decrypt_static_init (CuTest *test)
+{
+	struct rsa_engine_openssl engine = rsa_openssl_static_init;
+	struct rsa_private_key key;
+	int status;
+	const char *expected = "Test";
+	char message[RSA_ENCRYPT_LEN];
+
+	TEST_START;
+
+	status = engine.base.init_private_key (&engine.base, &key, RSA_PRIVKEY_DER,
+		RSA_PRIVKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN, NULL, 0,
+		HASH_TYPE_SHA1, (uint8_t*) message, sizeof (message));
+	CuAssertIntEquals (test, strlen (expected), status);
+
+	message[status] = '\0';
+	CuAssertStrEquals (test, expected, message);
+
+	engine.base.release_key (&engine.base, &key);
+
+	rsa_openssl_release (&engine);
+}
+
 static void rsa_openssl_test_decrypt_null (CuTest *test)
 {
 	struct rsa_engine_openssl engine;
@@ -946,8 +1105,8 @@ static void rsa_openssl_test_decrypt_null (CuTest *test)
 		HASH_TYPE_SHA1, (uint8_t*) message, sizeof (message));
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
-	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, 0, NULL, 0,
-		HASH_TYPE_SHA1, (uint8_t*) message, sizeof (message));
+	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, 0, NULL, 0,	HASH_TYPE_SHA1,
+		(uint8_t*) message, sizeof (message));
 	CuAssertIntEquals (test, RSA_ENGINE_INVALID_ARGUMENT, status);
 
 	status = engine.base.decrypt (&engine.base, &key, RSA_ENCRYPT_TEST, RSA_ENCRYPT_LEN, NULL, 0,
@@ -1088,11 +1247,12 @@ TEST_SUITE_START (rsa_openssl);
 
 TEST (rsa_openssl_test_init);
 TEST (rsa_openssl_test_init_null);
+TEST (rsa_openssl_test_static_init);
 TEST (rsa_openssl_test_release_null);
-TEST (rsa_openssl_test_release_no_init);
 TEST (rsa_openssl_test_sig_verify);
 TEST (rsa_openssl_test_sig_verify_sha384);
 TEST (rsa_openssl_test_sig_verify_sha512);
+TEST (rsa_openssl_test_sig_verify_static_init);
 TEST (rsa_openssl_test_sig_verify_null);
 TEST (rsa_openssl_test_sig_verify_unsupported_sig_type);
 TEST (rsa_openssl_test_sig_verify_no_match);
@@ -1102,6 +1262,7 @@ TEST (rsa_openssl_test_sig_verify_wrong_length);
 TEST (rsa_openssl_test_sig_verify_bad_signature);
 TEST (rsa_openssl_test_sig_verify_bad_signature_wrong_hash);
 TEST (rsa_openssl_test_init_private_key);
+TEST (rsa_openssl_test_init_private_key_static_init);
 TEST (rsa_openssl_test_init_private_key_null);
 TEST (rsa_openssl_test_init_private_key_with_public_key);
 TEST (rsa_openssl_test_init_private_key_with_ecc_key);
@@ -1109,6 +1270,7 @@ TEST (rsa_openssl_test_init_public_key);
 #if (RSA_MAX_KEY_LENGTH >= RSA_KEY_LENGTH_4K)
 TEST (rsa_openssl_test_init_public_key_4k);
 #endif
+TEST (rsa_openssl_test_init_public_key_static_init);
 TEST (rsa_openssl_test_init_public_key_null);
 TEST (rsa_openssl_test_init_public_key_with_private_key);
 TEST (rsa_openssl_test_init_public_key_with_ecc_key);
@@ -1117,6 +1279,7 @@ TEST (rsa_openssl_test_get_private_key_der_null);
 TEST (rsa_openssl_test_get_public_key_der_null);
 TEST (rsa_openssl_test_release_key_null);
 TEST (rsa_openssl_test_generate_key);
+TEST (rsa_openssl_test_generate_key_static_init);
 TEST (rsa_openssl_test_generate_key_null);
 TEST (rsa_openssl_test_decrypt);
 TEST (rsa_openssl_test_decrypt_with_label);
@@ -1124,6 +1287,7 @@ TEST (rsa_openssl_test_decrypt_sha256);
 TEST (rsa_openssl_test_decrypt_sha256_with_label);
 TEST (rsa_openssl_test_decrypt_random_key);
 TEST (rsa_openssl_test_decrypt_differest_hashes);
+TEST (rsa_openssl_test_decrypt_static_init);
 TEST (rsa_openssl_test_decrypt_null);
 TEST (rsa_openssl_test_decrypt_unknown_hash_type);
 TEST (rsa_openssl_test_decrypt_small_buffer);

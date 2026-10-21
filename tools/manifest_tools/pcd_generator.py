@@ -54,23 +54,20 @@ def get_lower_timeout (curr, check):
     else:
        return curr
 
-def generate_ports (xml_ports, hash_engine):
+def generate_ports (xml_ports):
     """
     Create a list of SPI flash port objects from parsed XML list
 
     :param xml_ports: List of parsed XML of ports to be included in PCD
 
-    :return Ports buffer, number of ports, list of port ToC entries, list of port hashes
+    :return List of (Ports, port ToC entry)
     """
 
-    if xml_ports is None or len (xml_ports) < 1:
-        return None, 0, None, None
-
     ports = []
-    toc_entries = []
-    hashes = []
-    num_ports = len (xml_ports)
-    ports_len = 0
+
+    if xml_ports is None or len (xml_ports) < 1:
+        return ports
+
     class pcd_port (ctypes.LittleEndianStructure):
         _pack_ = 1
         _fields_ = [('port_id', ctypes.c_ubyte),
@@ -99,20 +96,12 @@ def generate_ports (xml_ports, hash_engine):
         port_toc_entry = manifest_common.manifest_toc_entry (
             manifest_common.PCD_V2_SPI_FLASH_PORT_TYPE_ID, manifest_common.PCD_V2_ROT_TYPE_ID, 1, 0,
             0, ctypes.sizeof (pcd_port))
-        port_hash = manifest_common.generate_hash (port_buf, hash_engine)
 
-        ports.append (port_buf)
-        toc_entries.append (port_toc_entry)
-        hashes.append (port_hash)
+        ports.append ((port_buf, port_toc_entry))
 
-        ports_len += ctypes.sizeof (port_buf)
+    return ports
 
-    ports_buf = (ctypes.c_ubyte * ports_len) ()
-    ports_buf_len = manifest_common.move_list_to_buffer (ports_buf, 0, ports)
-
-    return ports_buf, num_ports, toc_entries, hashes
-
-def generate_rot (xml_rot, num_components, num_ports, hash_engine, timeouts):
+def generate_rot (xml_rot, num_components, num_ports, timeouts):
     """
     Create an RoT object from parsed XML list and ports buffer
 
@@ -122,7 +111,7 @@ def generate_rot (xml_rot, num_components, num_ports, hash_engine, timeouts):
     :param hash_engine: Hashing engine
     :param timeouts: Dictionary of component timeouts
 
-    :return Instance of an RoT object, RoT's TOC entry, RoT hash
+    :return (Instance of an RoT object, RoT's TOC entry)
     """
 
     rot_type = int (manifest_common.get_key_from_dict (xml_rot, "type", "RoT"))
@@ -203,9 +192,7 @@ def generate_rot (xml_rot, num_components, num_ports, hash_engine, timeouts):
     rot_toc_entry = manifest_common.manifest_toc_entry (manifest_common.PCD_V2_ROT_TYPE_ID,
         manifest_common.V2_BASE_TYPE_ID, 2, 0, 0, rot_len)
 
-    rot_hash = manifest_common.generate_hash (rot, hash_engine)
-
-    return rot, rot_toc_entry, rot_hash
+    return (rot, rot_toc_entry)
 
 def generate_muxes_buf (xml_muxes):
     """
@@ -232,7 +219,7 @@ def generate_muxes_buf (xml_muxes):
 
     return muxes_buf, muxes_len, num_muxes
 
-def generate_power_controller (xml_power_controller, hash_engine):
+def generate_power_controller (xml_power_controller):
     """
     Create a power_controller object from parsed XML list
 
@@ -240,8 +227,7 @@ def generate_power_controller (xml_power_controller, hash_engine):
         power_controller object
     :param hash_engine: Hashing engine
 
-    :return Instance of a power_controller object, power_controller's TOC entry,
-        hash of power_controller object
+    :return (Instance of a power_controller object, power_controller's TOC entry)
     """
 
     if xml_power_controller["interface"]["type"] != 0:
@@ -282,19 +268,84 @@ def generate_power_controller (xml_power_controller, hash_engine):
         manifest_common.PCD_V2_I2C_POWER_CONTROLLER_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 1, 0,
         0, power_controller_len)
 
-    power_controller_hash = manifest_common.generate_hash (power_controller, hash_engine)
+    return (power_controller, power_controller_toc_entry)
 
-    return power_controller, power_controller_toc_entry, power_controller_hash
 
-def generate_direct_component_buf (xml_component, component_map, component_map_file):
+class pcd_component_common_v2 (ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('policy', ctypes.c_ubyte),
+                ('power_ctrl_reg', ctypes.c_ubyte),
+                ('power_ctrl_mask', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte),
+                ('component_id', ctypes.c_uint32)]
+    
+class pcd_component_common_v3 (ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('policy', ctypes.c_ubyte),
+                ('power_ctrl_reg', ctypes.c_ubyte),
+                ('power_ctrl_mask', ctypes.c_ubyte),
+                ('instances_count', ctypes.c_ubyte),
+                ('component_id', ctypes.c_uint32),
+                ('component_types_count', ctypes.c_uint8),
+                ('reserved', ctypes.c_uint8 * 3)]
+    
+class pcd_allowed_component_type (ctypes.LittleEndianStructure):
+    _pack_ = 1
+    _fields_ = [('cfm_component_id', ctypes.c_uint32),
+                ('min_usage', ctypes.c_ubyte),
+                ('max_usage', ctypes.c_ubyte),
+                ('reserved', ctypes.c_ubyte * 2)]
+
+def generate_component_common (xml_component, component_map, component_map_file, xml_version):
+
+    policy = int (manifest_common.get_key_from_dict (xml_component, "policy",
+        "Component"))
+    powerctrl_reg = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "register",
+        "Component"))
+    powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
+        "Component"))
+    component_type = manifest_common.get_key_from_dict (xml_component, "type",
+        "Component")
+    
+    component_id = component_map.get (component_type)
+    if component_id is None:
+        component_id = manifest_common.add_component_mapping (component_type, component_map_file)
+    
+    if xml_version <= manifest_types.VERSION_2:
+        # Single source components only
+        return bytes(pcd_component_common_v2 (
+            policy, powerctrl_reg, powerctrl_mask, 0, int(component_id)))
+    
+    instances_count = int (manifest_common.get_key_from_dict (
+        xml_component, "count", "Component", False) or 1)
+    
+    sources_bytes = bytearray()
+
+    sources = manifest_common.get_key_from_dict (xml_component, "multi_sources", "Component", False) or []
+    for src in sources:
+        src_component_id = component_map.get (src.type)
+        if src_component_id is None:
+            src_component_id = manifest_common.add_component_mapping (src.type, component_map_file)
+
+        sources_bytes.extend (
+            pcd_allowed_component_type (src_component_id, src.min, src.max, (ctypes.c_ubyte * 2)(0, 0))
+        )
+
+    return bytes (pcd_component_common_v3 (
+        policy, powerctrl_reg, powerctrl_mask, instances_count, int(component_id), len(sources), (ctypes.c_ubyte * 3)(0, 0, 0)
+        )) + sources_bytes
+
+
+def generate_direct_component (xml_component, component_map, component_map_file, xml_version):
     """
     Create a direct component object from parsed XML list. Create new component type to ID mapping
     in provided component map file if a mapping doesn't exist.
 
     :param xml_component: List of parsed XML of component to be included in direct component object
     :param component_map_file: Component map file to add mapping to
+    :param xml_version: Version of manifest format
 
-    :return Instance of a component object, component's TOC entry, component hash, dictionary of
+    :return (Instance of a component object, component's TOC entry), dictionary of
         component's timeouts
     """
 
@@ -304,8 +355,6 @@ def generate_direct_component_buf (xml_component, component_map, component_map_f
 
     timeouts = {}
 
-    policy = int (manifest_common.get_key_from_dict (xml_component, "policy", "Direct Component"))
-    component_type = manifest_common.get_key_from_dict (xml_component, "type", "Direct Component")
     timeouts["attestation_success_retry"] = int (manifest_common.get_key_from_dict (xml_component,
         "attestation_success_retry", "Direct Component"))
     timeouts["attestation_fail_retry"] = int (manifest_common.get_key_from_dict (xml_component,
@@ -314,10 +363,6 @@ def generate_direct_component_buf (xml_component, component_map, component_map_f
         xml_component, "attestation_rsp_not_ready_max_retry", "Direct Component"))
     timeouts["attestation_rsp_not_ready_max_duration"] = int (
         manifest_common.get_key_from_dict (xml_component, "attestation_rsp_not_ready_max_duration",
-        "Direct Component"))
-    powerctrl_reg = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "register",
-        "Direct Component"))
-    powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
         "Direct Component"))
     i2c_mode = int (manifest_common.get_key_from_dict (xml_component["interface"], "i2c_mode",
         "Direct Component"))
@@ -328,9 +373,7 @@ def generate_direct_component_buf (xml_component, component_map, component_map_f
     eid = int (manifest_common.get_key_from_dict (xml_component["interface"], "eid",
         "Direct Component"))
 
-    component_id = component_map.get (component_type)
-    if component_id is None:
-        component_id = manifest_common.add_component_mapping (component_type, component_map_file)
+    component_header = generate_component_common (xml_component, component_map, component_map_file, xml_version)
 
     i2c_flags = i2c_mode
 
@@ -341,33 +384,27 @@ def generate_direct_component_buf (xml_component, component_map, component_map_f
         muxes_len = 0
         num_muxes = 0
 
-    class pcd_direct_i2c_component_element (ctypes.LittleEndianStructure):
+    class pcd_direct_i2c_connection (ctypes.LittleEndianStructure):
         _pack_ = 1
-        _fields_ = [('policy', ctypes.c_ubyte),
-                    ('power_ctrl_reg', ctypes.c_ubyte),
-                    ('power_ctrl_mask', ctypes.c_ubyte),
-                    ('reserved', ctypes.c_ubyte),
-                    ('component_id', ctypes.c_int32),
-                    ('mux_count', ctypes.c_ubyte, 4),
+        _fields_ = [('mux_count', ctypes.c_ubyte, 4),
                     ('i2c_flags', ctypes.c_ubyte, 4),
                     ('bus', ctypes.c_ubyte),
                     ('address', ctypes.c_ubyte),
                     ('eid', ctypes.c_ubyte),
                     ('muxes', ctypes.c_ubyte * muxes_len)]
 
-    component = pcd_direct_i2c_component_element (policy, powerctrl_reg, powerctrl_mask, 0,
-        int (component_id), num_muxes, i2c_flags, bus, address, eid, muxes)
-    component_len = ctypes.sizeof (component)
+    component = component_header + bytes(
+        pcd_direct_i2c_connection (num_muxes, i2c_flags, bus, address, eid, muxes)
+    )
 
+    component_format_version = 3 if xml_version == manifest_types.VERSION_3 else 2
     component_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PCD_V2_DIRECT_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 2,
-        0, 0, component_len)
+        manifest_common.PCD_V2_DIRECT_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 
+        component_format_version, 0, 0, len(component))
 
-    component_hash = manifest_common.generate_hash (component, hash_engine)
+    return (component, component_toc_entry), timeouts
 
-    return component, component_toc_entry, component_hash, timeouts
-
-def generate_mctp_bridge_component_buf (xml_component, component_map, component_map_file):
+def generate_mctp_bridge_component (xml_component, component_map, component_map_file, xml_version):
     """
     Create an MCTP bridges component object from parsed XML list. Create new component type to ID
     mapping in provided component map file if a mapping doesn't exist.
@@ -376,21 +413,14 @@ def generate_mctp_bridge_component_buf (xml_component, component_map, component_
         object
     :param component_map: Dictionary mapping component types to component IDs
     :param component_map_file: Component map file to add mapping to
+    :param xml_version: Version of manifest format
 
-    :return Instance of a component object, component's TOC entry, component hash, dictionary of
+    :return (Instance of a component object, component's TOC entry), dictionary of
         component's timeouts
     """
 
     timeouts = {}
 
-    policy = int (manifest_common.get_key_from_dict (xml_component, "policy",
-        "MCTP Bridge Component"))
-    powerctrl_reg = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "register",
-        "MCTP Bridge Component"))
-    powerctrl_mask = int (manifest_common.get_key_from_dict (xml_component["powerctrl"], "mask",
-        "MCTP Bridge Component"))
-    component_type = manifest_common.get_key_from_dict (xml_component, "type",
-        "MCTP Bridge Component")
     timeouts["attestation_success_retry"] = int (manifest_common.get_key_from_dict (xml_component,
         "attestation_success_retry", "MCTP Bridge Component"))
     timeouts["attestation_fail_retry"] = int (manifest_common.get_key_from_dict (xml_component,
@@ -418,18 +448,11 @@ def generate_mctp_bridge_component_buf (xml_component, component_map, component_
         "MCTP Bridge Component"))
     eid = int (manifest_common.get_key_from_dict (xml_component, "eid", "MCTP Bridge Component"))
 
-    component_id = component_map.get (component_type)
-    if component_id is None:
-        component_id = manifest_common.add_component_mapping (component_type, component_map_file)
+    component_header = generate_component_common (xml_component, component_map, component_map_file, xml_version)
 
-    class pcd_mctp_bridge_component_element (ctypes.LittleEndianStructure):
+    class pcd_mctp_bridge_connection (ctypes.LittleEndianStructure):
         _pack_ = 1
-        _fields_ = [('policy', ctypes.c_ubyte),
-                    ('power_ctrl_reg', ctypes.c_ubyte),
-                    ('power_ctrl_mask', ctypes.c_ubyte),
-                    ('reserved', ctypes.c_ubyte),
-                    ('component_id', ctypes.c_int32),
-                    ('device_id', ctypes.c_ushort),
+        _fields_ = [('device_id', ctypes.c_ushort),
                     ('vendor_id', ctypes.c_ushort),
                     ('subsystem_device_id', ctypes.c_ushort),
                     ('subsystem_vendor_id', ctypes.c_ushort),
@@ -437,38 +460,77 @@ def generate_mctp_bridge_component_buf (xml_component, component_map, component_
                     ('eid', ctypes.c_ubyte),
                     ('reserved2', ctypes.c_ushort)]
 
-    component = pcd_mctp_bridge_component_element (policy, powerctrl_reg, powerctrl_mask, 0,
-        int (component_id), device_id, vendor_id, sub_device_id, sub_vendor_id, components_count,
-        eid, 0)
-    component_len = ctypes.sizeof (component)
+    component = component_header + bytes(
+        pcd_mctp_bridge_connection (device_id, vendor_id, sub_device_id, sub_vendor_id, 
+                                    components_count, eid, 0))
 
+    component_format_version = 3 if xml_version == manifest_types.VERSION_3 else 2
     component_toc_entry = manifest_common.manifest_toc_entry (
-        manifest_common.PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 2,
-        0, 0, component_len)
+        manifest_common.PCD_V2_MCTP_BRIDGE_COMPONENT_TYPE_ID, 
+        manifest_common.V2_BASE_TYPE_ID, 
+        component_format_version,
+        0, 0, len(component))
 
-    component_hash = manifest_common.generate_hash (component, hash_engine)
+    return (component, component_toc_entry), timeouts
 
-    return component, component_toc_entry, component_hash, timeouts
+def generate_tcg_log_component (xml_component, component_map, component_map_file, xml_version):
+    """
+    Create a TCG log component object from parsed XML list. Create new component type to ID
+    mapping in provided component map file if a mapping doesn't exist.
 
-def generate_components (xml_components, hash_engine, component_map, component_map_file):
+    :param xml_component: List of parsed XML of component to be included in TCG log component
+        object
+    :param component_map: Dictionary mapping component types to component IDs
+    :param component_map_file: Component map file to add mapping to
+    :param xml_version: Version of manifest format
+
+    :return (Instance of a component object, component's TOC entry), dictionary of
+        component's timeouts
+    """
+
+    timeouts = {}
+
+    timeouts["attestation_success_retry"] = int (manifest_common.get_key_from_dict (xml_component,
+        "attestation_success_retry", "TCG Log Component"))
+    timeouts["attestation_fail_retry"] = int (manifest_common.get_key_from_dict (xml_component,
+        "attestation_fail_retry", "TCG Log Component"))
+    timeouts["attestation_rsp_not_ready_max_retry"] = int (manifest_common.get_key_from_dict (
+        xml_component, "attestation_rsp_not_ready_max_retry", "TCG Log Component"))
+    timeouts["attestation_rsp_not_ready_max_duration"] = int (
+        manifest_common.get_key_from_dict (xml_component, "attestation_rsp_not_ready_max_duration",
+        "TCG Log Component"))
+    
+    component_header = generate_component_common (xml_component, component_map, component_map_file, xml_version)
+
+    class pcd_tcg_log_connection (ctypes.LittleEndianStructure):
+        _pack_ = 1
+        _fields_ = []
+
+    component = component_header + bytes (pcd_tcg_log_connection ())
+
+    component_format_version = 3 if xml_version == manifest_types.VERSION_3 else 2
+    component_toc_entry = manifest_common.manifest_toc_entry (
+        manifest_common.PCD_V2_TCG_LOG_COMPONENT_TYPE_ID, manifest_common.V2_BASE_TYPE_ID, 
+        component_format_version, 0, 0, len (component))
+
+    return (component, component_toc_entry), timeouts
+
+def generate_components (xml_components, component_map, component_map_file, xml_version):
     """
     Create a buffer of component section struct instances from parsed XML list
 
     :param xml_components: List of parsed XML of components to be included in PCD
-    :param hash_engine: Hashing engine
     :param component_map: Dictionary mapping component types to component IDs
     :param component_map_file: Path to component map file
+    :param xml_version: Version of manifest format
 
-    :return Components buffer, number of components, list of component TOC entries,
-        list of component hashes, list of extreme component timeout values
+    :return List of (Component, TOC entry), list of extreme component timeout values
     """
 
     if xml_components is None or len (xml_components) < 1:
-        return None, 0, None, None, None
+        return [], {}
 
     components_list = []
-    components_toc_list = []
-    hash_list = []
     timeout_common = {
         "attestation_success_retry": None,
         "attestation_fail_retry": None,
@@ -480,31 +542,34 @@ def generate_components (xml_components, hash_engine, component_map, component_m
         "mctp_bridge_additional_timeout": None
     }
     timeouts = {}
-    components_len = 0
 
     for component in xml_components:
         connection = manifest_common.get_key_from_dict (component, "connection", "Component")
 
         if connection is manifest_parser.PCD_COMPONENT_CONNECTION_DIRECT:
-            component_buf, component_toc_entry, component_hash, curr_timeouts = \
-                generate_direct_component_buf (component, component_map, component_map_file)
+            component, curr_timeouts = generate_direct_component (
+                component, component_map, component_map_file, xml_version)
+            
         elif connection is manifest_parser.PCD_COMPONENT_CONNECTION_MCTP_BRIDGE:
-            component_buf, component_toc_entry, component_hash, curr_timeouts = \
-                generate_mctp_bridge_component_buf (component, component_map, component_map_file)
-
-            timeout_mctp_bridge["mctp_bridge_additional_timeout"] = \
-                get_greater_timeout (timeout_mctp_bridge["mctp_bridge_additional_timeout"],
+            component, curr_timeouts = generate_mctp_bridge_component (
+                component, component_map, component_map_file, xml_version)
+            
+            timeout_mctp_bridge["mctp_bridge_additional_timeout"] = get_greater_timeout (
+                timeout_mctp_bridge["mctp_bridge_additional_timeout"],
                     curr_timeouts["mctp_bridge_additional_timeout"])
 
-            timeout_mctp_bridge["discovery_fail_retry"] = \
-                get_lower_timeout (timeout_mctp_bridge["discovery_fail_retry"],
+            timeout_mctp_bridge["discovery_fail_retry"] = get_lower_timeout (
+                timeout_mctp_bridge["discovery_fail_retry"],
                     curr_timeouts["discovery_fail_retry"])
+            
+        elif connection is manifest_parser.PCD_COMPONENT_CONNECTION_TCG_LOG:
+            component, curr_timeouts = generate_tcg_log_component (
+                component, component_map, component_map_file, xml_version)
+            
         else:
             raise ValueError ("Unsupported component connection type: {0}".format (connection))
 
-        components_list.append (component_buf)
-        components_toc_list.append (component_toc_entry)
-        hash_list.append (component_hash)
+        components_list.append (component)
 
         timeout_common["attestation_rsp_not_ready_max_retry"] = \
             get_greater_timeout (timeout_common["attestation_rsp_not_ready_max_retry"],
@@ -522,89 +587,74 @@ def generate_components (xml_components, hash_engine, component_map, component_m
             get_lower_timeout (timeout_common["attestation_fail_retry"],
                 curr_timeouts["attestation_fail_retry"])
 
-        components_len += ctypes.sizeof (component_buf)
-
     timeouts.update (timeout_common)
     timeouts.update (timeout_mctp_bridge)
 
-    components_buf = (ctypes.c_ubyte * components_len) ()
-    components_buf_len = manifest_common.move_list_to_buffer (components_buf, 0, components_list)
-
-    return components_buf, len (xml_components), components_toc_list, hash_list, timeouts
+    return components_list, timeouts
 
 
 #*************************************** Start of Script ***************************************
 
-default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PCD_CONFIG_FILENAME)
-parser = argparse.ArgumentParser (description = 'Create a PCD')
-parser.add_argument ('config', nargs = '?', default = default_config,
-    help = 'Path to configuration file')
-args = parser.parse_args ()
+def main(argv=None):
+    """
+    Usage:
+        python3 pcd_generator.py [path/to/pcd_generator.config]
 
-processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty, \
-    max_num_rw_sections, selection_list, component_map, component_map_file = \
-        manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
+    Required input:
+        A generator configuration file that references the PCD XML input and output/signing
+        options. If omitted, the script uses the default pcd_generator.config beside this file.
+    """
+    default_config = os.path.join (os.path.dirname (os.path.abspath (__file__)), PCD_CONFIG_FILENAME)
+    parser = argparse.ArgumentParser (description = 'Create a PCD')
+    parser.add_argument ('config', nargs = '?', default = default_config,
+        help = 'Path to configuration file')
+    args = parser.parse_args (argv)
 
-hash_engine = manifest_common.get_hash_engine (hash_type)
+    processed_xml, sign, key_size, key, key_type, hash_type, pcd_id, output, xml_version, empty, \
+        max_num_rw_sections, selection_list, component_map, component_map_file = \
+            manifest_common.load_xmls (args.config, 1, manifest_types.PCD)
 
-processed_xml = list (processed_xml.items())[0][1]
+    hash_engine = manifest_common.get_hash_engine (hash_type)
 
-num_components = 0
-num_ports = 0
-elements_list = []
-toc_list = []
-hash_list = []
-timeouts_dict = {}
+    processed_xml = list (processed_xml.items())[0][1]
 
-platform_id, platform_id_toc_entry, platform_id_hash = manifest_common.generate_platform_id_buf (
-    processed_xml, hash_engine)
+    components = []
+    ports = []
 
-pcd_len = ctypes.sizeof (platform_id)
-elements_list.append (platform_id)
-toc_list.append (platform_id_toc_entry)
-hash_list.append (platform_id_hash)
+    elements_list = []
+    timeouts_dict = {}
 
-if not empty:
-    if "power_controller" in processed_xml:
-        power_controller, power_controller_toc_entry, power_controller_hash = \
-            generate_power_controller (processed_xml["power_controller"], hash_engine)
+    platform_id = manifest_common.generate_platform_id (processed_xml)
+    elements_list.append (platform_id)
 
-        pcd_len += ctypes.sizeof (power_controller)
-        elements_list.append (power_controller)
-        toc_list.append (power_controller_toc_entry)
-        hash_list.append (power_controller_hash)
+    if not empty:
+        if "power_controller" in processed_xml:
+            power_controller = generate_power_controller (processed_xml["power_controller"])
 
-    if "components" in processed_xml:
-        components, num_components, components_toc_list, components_hash_list, timeouts_dict = \
-            generate_components (processed_xml["components"], hash_engine, component_map,
-                component_map_file)
+            elements_list.append (power_controller)
 
-        pcd_len += ctypes.sizeof (components)
-        elements_list.append (components)
-        toc_list.extend (components_toc_list)
-        hash_list.extend (components_hash_list)
+        if "components" in processed_xml:
+            components, timeouts_dict = generate_components (processed_xml["components"], component_map,
+                    component_map_file, xml_version)
 
-    if "ports" in processed_xml["rot"]:
-        ports, num_ports, ports_toc_entries, ports_hash = generate_ports (
-            processed_xml["rot"]["ports"], hash_engine)
+            if (len (components) > 255):
+                raise ValueError ("Number of components cannot exceed 255, current number of components: {0}"
+                    .format (len (components)))
 
-    rot, rot_toc_entry, rot_hash = generate_rot (processed_xml["rot"], num_components, num_ports,
-        hash_engine, timeouts_dict)
+        if "ports" in processed_xml["rot"]:
+            ports = generate_ports (processed_xml["rot"]["ports"])
+        
+        rot = generate_rot (processed_xml["rot"], len(components), len(ports), timeouts_dict)
 
-    pcd_len += ctypes.sizeof (rot)
-    elements_list.append (rot)
-    toc_list.append (rot_toc_entry)
-    hash_list.append (rot_hash)
+        elements_list.extend (components)
+        elements_list.append (rot)
+        elements_list.extend (ports)
 
-    if num_ports > 0:
-        pcd_len += ctypes.sizeof (ports)
-        elements_list.append (ports)
-        toc_list.extend (ports_toc_entries)
-        hash_list.extend (ports_hash)
+    manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version,
+        sign, key, key_size, key_type, elements_list, output)
 
-manifest_common.generate_manifest (hash_engine, hash_type, pcd_id, manifest_types.PCD, xml_version,
-    sign, key, key_size, key_type, toc_list, hash_list, elements_list, pcd_len, output)
-
-print ("Completed PCD generation: {0}".format (output))
+    print ("Completed PCD generation: {0}".format (output))
 
 
+if __name__ == '__main__':
+    main()

@@ -7,7 +7,7 @@
 #include "state_manager_mock.h"
 
 
-static int state_manager_mock_save_active_manifest (struct state_manager *manager,
+static int state_manager_mock_save_active_manifest (const struct state_manager *manager,
 	uint8_t manifest_index, enum manifest_region active)
 {
 	struct state_manager_mock *mock = (struct state_manager_mock*) manager;
@@ -20,8 +20,8 @@ static int state_manager_mock_save_active_manifest (struct state_manager *manage
 		MOCK_ARG_CALL (manifest_index), MOCK_ARG_CALL (active));
 }
 
-static enum manifest_region state_manager_mock_get_active_manifest (struct state_manager *manager,
-	uint8_t manifest_index)
+static enum manifest_region state_manager_mock_get_active_manifest (
+	const struct state_manager *manager, uint8_t manifest_index)
 {
 	struct state_manager_mock *mock = (struct state_manager_mock*) manager;
 
@@ -33,7 +33,7 @@ static enum manifest_region state_manager_mock_get_active_manifest (struct state
 		manager, MOCK_ARG_CALL (manifest_index));
 }
 
-static int state_manager_mock_restore_default_state (struct state_manager *manager)
+static int state_manager_mock_restore_default_state (const struct state_manager *manager)
 {
 	struct state_manager_mock *mock = (struct state_manager_mock*) manager;
 
@@ -44,7 +44,7 @@ static int state_manager_mock_restore_default_state (struct state_manager *manag
 	MOCK_RETURN_NO_ARGS (&mock->mock, state_manager_mock_restore_default_state, manager);
 }
 
-static int state_manager_mock_is_manifest_valid (struct state_manager *manager,
+static int state_manager_mock_is_manifest_valid (const struct state_manager *manager,
 	uint8_t manifest_index)
 {
 	struct state_manager_mock *mock = (struct state_manager_mock*) manager;

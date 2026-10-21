@@ -71,17 +71,6 @@ int cmd_interface_multi_handler_process_request (const struct cmd_interface *int
 	return status;
 }
 
-int cmd_interface_multi_handler_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	UNUSED (intf);
-	UNUSED (response);
-
-	/* No need to support response processing through this interface, as this functionality will
-	 * likely be handled differently and removed from the command handler interface. */
-	return CMD_HANDLER_UNSUPPORTED_OPERATION;
-}
-
 int cmd_interface_multi_handler_is_message_type_supported (
 	const struct cmd_interface_multi_handler *intf, uint32_t message_type)
 {
@@ -145,9 +134,6 @@ int cmd_interface_multi_handler_init (struct cmd_interface_multi_handler *intf,
 	memset (intf, 0, sizeof (struct cmd_interface_multi_handler));
 
 	intf->base.process_request = cmd_interface_multi_handler_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_multi_handler_process_response;
-#endif
 
 	intf->is_message_type_supported = cmd_interface_multi_handler_is_message_type_supported;
 

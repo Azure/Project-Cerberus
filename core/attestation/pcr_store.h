@@ -124,23 +124,23 @@ int pcr_store_is_measurement_in_tcb (struct pcr_store *store, uint16_t measureme
 
 int pcr_store_update_digest (struct pcr_store *store, uint16_t measurement_type,
 	const uint8_t *digest, size_t digest_len);
-int pcr_store_update_buffer (struct pcr_store *store, struct hash_engine *hash,
+int pcr_store_update_buffer (struct pcr_store *store, const struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event);
-int pcr_store_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
+int pcr_store_update_versioned_buffer (struct pcr_store *store, const struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
 	uint8_t version);
 
 int pcr_store_const_update_digest (struct pcr_store *store, uint16_t measurement_type,
 	const uint8_t *digest, size_t digest_len);
-int pcr_store_const_update_buffer (struct pcr_store *store, struct hash_engine *hash,
+int pcr_store_const_update_buffer (struct pcr_store *store, const struct hash_engine *hash,
 	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event);
-int pcr_store_const_update_versioned_buffer (struct pcr_store *store, struct hash_engine *hash,
-	uint16_t measurement_type, const uint8_t *buf, size_t buf_len, bool include_event,
-	uint8_t version);
+int pcr_store_const_update_versioned_buffer (struct pcr_store *store, const
+	struct hash_engine *hash, uint16_t measurement_type, const uint8_t *buf, size_t buf_len,
+	bool include_event, uint8_t version);
 
 int pcr_store_invalidate_measurement (struct pcr_store *store, uint16_t measurement_type);
 
-int pcr_store_compute_pcr (struct pcr_store *store, struct hash_engine *hash, uint8_t pcr_num,
+int pcr_store_compute_pcr (struct pcr_store *store, const struct hash_engine *hash, uint8_t pcr_num,
 	uint8_t *measurement, size_t length);
 int pcr_store_get_measurement (struct pcr_store *store, uint16_t measurement_type,
 	struct pcr_measurement *measurement);
@@ -150,14 +150,14 @@ int pcr_store_set_measurement_data (struct pcr_store *store, uint16_t measuremen
 int pcr_store_get_measurement_data (struct pcr_store *store, uint16_t measurement_type,
 	size_t offset, uint8_t *buffer, size_t length);
 int pcr_store_hash_measurement_data (struct pcr_store *store, uint16_t measurement_type,
-	struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
+	const struct hash_engine *hash, enum hash_type hash_type, uint8_t *buffer, size_t length);
 
 int pcr_store_is_measurement_data_available (struct pcr_store *store, uint16_t measurement_type);
 int pcr_store_get_measurement_data_length (struct pcr_store *store, uint16_t measurement_type);
 
 int pcr_store_get_attestation_log_size (struct pcr_store *store);
-int pcr_store_get_attestation_log (struct pcr_store *store, struct hash_engine *hash, size_t offset,
-	uint8_t *contents, size_t length);
+int pcr_store_get_attestation_log (struct pcr_store *store, const struct hash_engine *hash,
+	size_t offset, uint8_t *contents, size_t length);
 
 int pcr_store_get_tcg_log (struct pcr_store *store, size_t offset, uint8_t *buffer, size_t length);
 

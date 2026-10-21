@@ -5,7 +5,6 @@
 #define CMD_INTERFACE_SPDM_H_
 
 #include <stdint.h>
-#include "spdm_protocol_observer.h"
 #include "cmd_interface/cmd_interface.h"
 #include "common/observable.h"
 #include "crypto/hash.h"
@@ -25,12 +24,6 @@ struct cmd_interface_spdm {
 /* TODO:  Observable needs to support const model in order to support static/const instances. */
 int cmd_interface_spdm_init (struct cmd_interface_spdm *intf);
 void cmd_interface_spdm_deinit (struct cmd_interface_spdm *intf);
-
-int cmd_interface_spdm_add_spdm_protocol_observer (struct cmd_interface_spdm *intf,
-	const struct spdm_protocol_observer *observer);
-int cmd_interface_spdm_remove_spdm_protocol_observer (struct cmd_interface_spdm *intf,
-	const struct spdm_protocol_observer *observer);
-
 
 #define	CMD_HANDLER_SPDM_ERROR(code)				ROT_ERROR (ROT_MODULE_CMD_HANDLER_SPDM, code)
 
@@ -54,6 +47,7 @@ enum {
 	CMD_HANDLER_SPDM_UNSUPPORTED_HASH_ALGO = CMD_HANDLER_SPDM_ERROR (0x0b),	/**< Requested hashing algorithm unsupported  */
 	CMD_HANDLER_SPDM_UNSUPPORTED_SLOT_ID = CMD_HANDLER_SPDM_ERROR (0x0c),	/**< Requested slot id unsupported  */
 	CMD_HANDLER_SPDM_BAD_RESPONSE = CMD_HANDLER_SPDM_ERROR (0x0d),			/**< Received bad response to request */
+	CMD_HANDLER_SPDM_SIG_CONTEXT_TOO_LONG = CMD_HANDLER_SPDM_ERROR (0x0e),	/**< SPDM signature context too long */
 };
 
 

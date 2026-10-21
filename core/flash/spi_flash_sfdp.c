@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "flash_common.h"
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "spi_flash_sfdp.h"
 #include "common/common_math.h"
 #include "common/unused.h"
@@ -115,7 +115,7 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 #define	SPI_FLASH_SFDP_QER_BIT7_SR2_3E			3
 #define	SPI_FLASH_SFDP_QER_BIT1_SR2_NO_CLR		4
 #define	SPI_FLASH_SFDP_QER_BIT1_SR2_35			5
-#define	SPI_FLASH_SFDP_QER_RESERVED1			6
+#define	SPI_FLASH_SFDP_QER_BIT1_SR2_31			6
 #define	SPI_FLASH_SFDP_QER_RESERVED2			7
 #define	SPI_FLASH_SFDP_HOLD_RST_DISABLE		(1U << 23)
 	uint8_t sr_write_enable;	/**< 16th DWORD: Status register 1 write enable. */
@@ -580,7 +580,8 @@ bool spi_flash_sfdp_supports_4byte_commands (const struct spi_flash_sfdp_basic_t
 	bool opcodes_4b = false;
 
 	if (table != NULL) {
-		if (table->sfdp->vendor == FLASH_ID_MACRONIX) {
+		if ((table->sfdp->vendor == FLASH_ID_MACRONIX) &&
+			(FLASH_ID_DEVICE_SERIES (table->sfdp->device) != FLASH_ID_MX66UW)) {
 			/* SFDP tables can't be used for some Macronix devices.  Earlier devices
 			 * (e.g. MX25L25635F) don't support version 1.5, and at least some newer ones
 			 * (e.g. MX25L25645G) don't correctly report support for 4-byte commands. */
@@ -629,8 +630,7 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 		if ((params->enter_4b & 0x7f) == 0) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_UNSUPPORTED;
 		}
-		else if ((params->enter_4b & SPI_FLASH_SFDP_ALWAYS_4B) ||
-			((params->reset_exit_4b & SPI_FLASH_SFDP_SUPPORTS_4B_EXIT) == 0)) {
+		else if (params->enter_4b & SPI_FLASH_SFDP_ALWAYS_4B) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_FIXED;
 		}
 		else if ((params->enter_4b & SPI_FLASH_SFDP_4B_ENTER_B7) &&
@@ -640,6 +640,9 @@ int spi_flash_sfdp_get_4byte_mode_switch (const struct spi_flash_sfdp_basic_tabl
 		else if ((params->enter_4b & SPI_FLASH_SFDP_4B_ENTER_06_B7) &&
 			(params->reset_exit_4b & SPI_FLASH_SFDP_4B_EXIT_06_E9)) {
 			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_COMMAND_WRITE_ENABLE;
+		}
+		else if (params->enter_4b & SPI_FLASH_SFDP_4B_OPCODES) {
+			*addr_4byte = SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET;
 		}
 		else {
 			return SPI_FLASH_SFDP_4BYTE_INCOMPATIBLE;
@@ -676,6 +679,18 @@ bool spi_flash_sfdp_exit_4byte_mode_on_reset (const struct spi_flash_sfdp_basic_
 {
 	struct spi_flash_sfdp_basic_parameter_table_1_5 *params;
 	bool revert = true;	// Assume a device will revert unless SFDP explicitly says otherwise.
+	enum spi_flash_sfdp_4byte_addressing switch_4byte;
+	int status;
+
+	status = spi_flash_sfdp_get_4byte_mode_switch (table, &switch_4byte);
+	if (status != 0) {
+		return true;	// Assume a device will revert if we can't determine the switch method.
+	}
+	else if (switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		/* As the device can't enter 4byte addressing mode, it will be in 3byte addressing mode
+		 * after reset. */
+		return true;
+	}
 
 	if ((table != NULL) && (table->sfdp->sfdp_header.parameter0.minor_revision >= 5)) {
 		params = (struct spi_flash_sfdp_basic_parameter_table_1_5*) table->data;
@@ -709,7 +724,6 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 		quad = SPI_FLASH_SFDP_QER (params->quad_enable);
 
 		switch (quad) {
-			case SPI_FLASH_SFDP_QER_RESERVED1:
 			case SPI_FLASH_SFDP_QER_RESERVED2:
 				if (table->sfdp->vendor == FLASH_ID_MICRON_X) {
 					/* The Micron Xcella flash device follows SFDP parameter version 1.6,
@@ -721,6 +735,23 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 				else {
 					return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
 				}
+
+			case SPI_FLASH_SFDP_QER_BIT1_SR2_31:
+				/* QER value 6 is reserved in BFPT revisions before 1.7. */
+				if (table->sfdp->sfdp_header.parameter0.minor_revision < 7) {
+					return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
+				}
+				break;
+
+			case SPI_FLASH_SFDP_QER_BIT1_SR2_NO_CLR:
+				if ((table->sfdp->vendor == FLASH_ID_WINBOND) &&
+					(FLASH_ID_DEVICE_SERIES (table->sfdp->device) == FLASH_ID_W25Q)) {
+					/* Winbond WQ25 devices incorrectly reports QER value 4 in the SFDP table.
+					 * It should report SPI_FLASH_SFDP_QER_BIT1_SR2_35 instead, since SR2 must be
+					 * read individually using command code 0x35. */
+					quad = SPI_FLASH_SFDP_QER_BIT1_SR2_35;
+				}
+				break;
 
 			case SPI_FLASH_SFDP_QER_NO_QUAD_ENABLE:
 				if (params->quad_enable & SPI_FLASH_SFDP_HOLD_RST_DISABLE) {

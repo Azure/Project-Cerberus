@@ -7,6 +7,7 @@
 #include "host_control.h"
 #include "host_irq_control.h"
 #include "host_irq_handler.h"
+#include "host_state_manager.h"
 
 
 /**
@@ -14,17 +15,18 @@
  * authentication is required on the next host reset.
  */
 struct host_irq_handler_auth_check {
-	struct host_irq_handler base;		/**< The base IRQ handler. */
-	const struct host_control *control;	/**< The interface for host control signals. */
+	struct host_irq_handler base;					/**< The base IRQ handler. */
+	const struct host_control *control;				/**< The interface for host control signals. */
+	const struct host_state_manager *host_state;	/**< State tracking for the host. */
 };
 
 
 int host_irq_handler_auth_check_init (struct host_irq_handler_auth_check *handler,
-	struct host_processor *host, struct hash_engine *hash, struct rsa_engine *rsa,
+	const struct host_processor *host, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	struct bmc_recovery *recovery, const struct host_control *control,
-	const struct host_irq_control *irq);
-int host_irq_handler_auth_check_config_interrupts (const struct host_irq_handler *handler,
-	const struct host_control *control);
+	const struct host_irq_control *irq, const struct host_state_manager *host_state);
+int host_irq_handler_auth_check_config_interrupts (
+	const struct host_irq_handler_auth_check *handler);
 void host_irq_handler_auth_check_release (const struct host_irq_handler_auth_check *handler);
 
 

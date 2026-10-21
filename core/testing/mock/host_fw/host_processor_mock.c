@@ -7,8 +7,8 @@
 #include "host_processor_mock.h"
 
 
-static int host_processor_mock_power_on_reset (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+static int host_processor_mock_power_on_reset (const struct host_processor *host,
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -20,8 +20,8 @@ static int host_processor_mock_power_on_reset (struct host_processor *host,
 		MOCK_ARG_PTR_CALL (rsa));
 }
 
-static int host_processor_mock_soft_reset (struct host_processor *host, struct hash_engine *hash,
-	struct rsa_engine *rsa)
+static int host_processor_mock_soft_reset (const struct host_processor *host,
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -33,8 +33,8 @@ static int host_processor_mock_soft_reset (struct host_processor *host, struct h
 		MOCK_ARG_PTR_CALL (rsa));
 }
 
-static int host_processor_mock_run_time_verification (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa)
+static int host_processor_mock_run_time_verification (const struct host_processor *host,
+	const struct hash_engine *hash, const struct rsa_engine *rsa)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -46,8 +46,9 @@ static int host_processor_mock_run_time_verification (struct host_processor *hos
 		MOCK_ARG_PTR_CALL (hash), MOCK_ARG_PTR_CALL (rsa));
 }
 
-static int host_processor_mock_flash_rollback (struct host_processor *host,
-	struct hash_engine *hash, struct rsa_engine *rsa, bool disable_bypass, bool no_reset)
+static int host_processor_mock_flash_rollback (const struct host_processor *host,
+	const struct hash_engine *hash, const struct rsa_engine *rsa, bool disable_bypass,
+	bool no_reset)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -59,7 +60,7 @@ static int host_processor_mock_flash_rollback (struct host_processor *host,
 		MOCK_ARG_PTR_CALL (rsa), MOCK_ARG_CALL (disable_bypass), MOCK_ARG_CALL (no_reset));
 }
 
-static int host_processor_mock_recover_active_read_write_data (struct host_processor *host)
+static int host_processor_mock_recover_active_read_write_data (const struct host_processor *host)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -70,7 +71,8 @@ static int host_processor_mock_recover_active_read_write_data (struct host_proce
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_processor_mock_recover_active_read_write_data, host);
 }
 
-static int host_processor_mock_get_next_reset_verification_actions (struct host_processor *host)
+static int host_processor_mock_get_next_reset_verification_actions (
+	const struct host_processor *host)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -82,7 +84,7 @@ static int host_processor_mock_get_next_reset_verification_actions (struct host_
 		host);
 }
 
-static int host_processor_mock_needs_config_recovery (struct host_processor *host)
+static int host_processor_mock_needs_config_recovery (const struct host_processor *host)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -93,7 +95,8 @@ static int host_processor_mock_needs_config_recovery (struct host_processor *hos
 	MOCK_RETURN_NO_ARGS (&mock->mock, host_processor_mock_needs_config_recovery, host);
 }
 
-static int host_processor_mock_apply_recovery_image (struct host_processor *host, bool no_reset)
+static int host_processor_mock_apply_recovery_image (const struct host_processor *host,
+	bool no_reset)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -105,7 +108,7 @@ static int host_processor_mock_apply_recovery_image (struct host_processor *host
 		MOCK_ARG_CALL (no_reset));
 }
 
-static int host_processor_mock_bypass_mode (struct host_processor *host, bool swap_flash)
+static int host_processor_mock_bypass_mode (const struct host_processor *host, bool swap_flash)
 {
 	struct host_processor_mock *mock = (struct host_processor_mock*) host;
 
@@ -116,10 +119,44 @@ static int host_processor_mock_bypass_mode (struct host_processor *host, bool sw
 	MOCK_RETURN (&mock->mock, host_processor_mock_bypass_mode, host, MOCK_ARG_CALL (swap_flash));
 }
 
+static int host_processor_mock_get_flash_config (const struct host_processor *host,
+	spi_filter_flash_mode *mode, spi_filter_cs *current_ro, spi_filter_cs *next_ro,
+	enum host_read_only_activation *apply_next_ro)
+{
+	struct host_processor_mock *mock = (struct host_processor_mock*) host;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, host_processor_mock_get_flash_config, host, MOCK_ARG_PTR_CALL (mode),
+		MOCK_ARG_PTR_CALL (current_ro), MOCK_ARG_PTR_CALL (next_ro),
+		MOCK_ARG_PTR_CALL (apply_next_ro));
+}
+
+static int host_processor_mock_config_read_only_flash (const struct host_processor *host,
+	const spi_filter_cs *current_ro, const spi_filter_cs *next_ro,
+	const enum host_read_only_activation *apply_next_ro)
+{
+	struct host_processor_mock *mock = (struct host_processor_mock*) host;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, host_processor_mock_config_read_only_flash, host,
+		MOCK_ARG_PTR_CALL (current_ro), MOCK_ARG_PTR_CALL (next_ro),
+		MOCK_ARG_PTR_CALL (apply_next_ro));
+}
+
 static int host_processor_mock_func_arg_count (void *func)
 {
-	if (func == host_processor_mock_flash_rollback) {
+	if ((func == host_processor_mock_flash_rollback) ||
+		(func == host_processor_mock_get_flash_config)) {
 		return 4;
+	}
+	else if (func == host_processor_mock_config_read_only_flash) {
+		return 3;
 	}
 	else if ((func == host_processor_mock_power_on_reset) ||
 		(func == host_processor_mock_soft_reset) ||
@@ -163,6 +200,12 @@ static const char* host_processor_mock_func_name_map (void *func)
 	}
 	else if (func == host_processor_mock_bypass_mode) {
 		return "bypass_mode";
+	}
+	else if (func == host_processor_mock_get_flash_config) {
+		return "get_flash_config";
+	}
+	else if (func == host_processor_mock_config_read_only_flash) {
+		return "config_read_only_flash";
 	}
 	else {
 		return "unknown";
@@ -208,6 +251,33 @@ static const char* host_processor_mock_arg_name_map (void *func, int arg)
 				return "swap_flash";
 		}
 	}
+	else if (func == host_processor_mock_get_flash_config) {
+		switch (arg) {
+			case 0:
+				return "mode";
+
+			case 1:
+				return "current_ro";
+
+			case 2:
+				return "next_ro";
+
+			case 3:
+				return "apply_next_ro";
+		}
+	}
+	else if (func == host_processor_mock_config_read_only_flash) {
+		switch (arg) {
+			case 0:
+				return "current_ro";
+
+			case 1:
+				return "next_ro";
+
+			case 2:
+				return "apply_next_ro";
+		}
+	}
 
 	return "unknown";
 }
@@ -229,8 +299,15 @@ int host_processor_mock_init (struct host_processor_mock *mock)
 
 	memset (mock, 0, sizeof (struct host_processor_mock));
 
+	status = host_processor_init (&mock->base, &mock->state);
+	if (status != 0) {
+		return status;
+	}
+
 	status = mock_init (&mock->mock);
 	if (status != 0) {
+		host_processor_release (&mock->base);
+
 		return status;
 	}
 
@@ -246,6 +323,8 @@ int host_processor_mock_init (struct host_processor_mock *mock)
 	mock->base.needs_config_recovery = host_processor_mock_needs_config_recovery;
 	mock->base.apply_recovery_image = host_processor_mock_apply_recovery_image;
 	mock->base.bypass_mode = host_processor_mock_bypass_mode;
+	mock->base.get_flash_config = host_processor_mock_get_flash_config;
+	mock->base.config_read_only_flash = host_processor_mock_config_read_only_flash;
 
 	mock->mock.func_arg_count = host_processor_mock_func_arg_count;
 	mock->mock.func_name_map = host_processor_mock_func_name_map;
@@ -262,6 +341,7 @@ int host_processor_mock_init (struct host_processor_mock *mock)
 void host_processor_mock_release (struct host_processor_mock *mock)
 {
 	if (mock != NULL) {
+		host_processor_release (&mock->base);
 		mock_release (&mock->mock);
 	}
 }

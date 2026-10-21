@@ -1,0 +1,50 @@
+<!--
+cfm_component_aggreg_m.xml — Component1, Version Set 1
+Component1: unique==0 (first XML tag is <Measurement>).
+
+Layout:
+- pmr_id=0, measurement_id=1: 1 digest → FORCED to regular_measurements (unique==0, first by insertion order).
+- pmr_id=0, measurement_id=2: 1 digest → temp_aggregatable.
+- pmr_id=0, measurement_id=3: 1 digest → temp_aggregatable.
+  Together measurement_id=2 and measurement_id=3 form total=2 >= 2 → AGGREGATED.
+  measurements_mask: bits 2 and 3 in byte 0 → 0x0C.
+  aggregated_hash = (BBBB...||CCCC...).
+  This is version_set=1 allowable_digest_element for the aggregated element.
+- pmr_id=0, measurement_id=4: 2 digests → non-aggregatable → regular_measurements.
+-->
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA384" measurement_hash_type="SHA256">
+    <RootCADigest>
+        <Digest>
+            EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        </Digest>
+        <Digest>
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        </Digest>
+    </RootCADigest>
+    <!--
+    measurement_id=1: 1 digest, but FORCED into regular_measurements because unique==0
+    and this is the first measurement by insertion order.
+    -->
+    <Measurement pmr_id="0" measurement_id="1">
+        <Digest>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</Digest>
+    </Measurement>
+    <!--
+    measurement_id=2 and measurement_id=3: 1 digest each → temp_aggregatable.
+    total_measurements_for_aggregation = 2 >= 2 → AGGREGATED.
+    measurements_mask: bits 2 and 3 → byte 0 = 0x0C.
+    aggregated_hash (version_set=1) = (BBBB...||CCCC...).
+    -->
+    <Measurement pmr_id="0" measurement_id="2">
+        <Digest>BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB</Digest>
+    </Measurement>
+    <Measurement pmr_id="0" measurement_id="3">
+        <Digest>CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC</Digest>
+    </Measurement>
+    <!--
+    measurement_id=4: 2 digests → non-aggregatable → regular_measurements.
+    -->
+    <Measurement pmr_id="0" measurement_id="4">
+        <Digest>DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD</Digest>
+        <Digest>EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE</Digest>
+    </Measurement>
+</CFMComponent>

@@ -13,6 +13,7 @@ int signature_verification_rsa_verify_signature (const struct signature_verifica
 {
 	const struct signature_verification_rsa *rsa =
 		(const struct signature_verification_rsa*) verification;
+	enum hash_type sig_algo;
 	int status;
 
 	if (rsa == NULL) {
@@ -23,14 +24,39 @@ int signature_verification_rsa_verify_signature (const struct signature_verifica
 		return SIG_VERIFICATION_NO_KEY;
 	}
 
-	status = rsa->rsa->sig_verify (rsa->rsa, rsa->state->key, signature, sig_length,
-		HASH_TYPE_SHA256, digest, length);
+	sig_algo = hash_get_type_from_length (length);
+	if (sig_algo == HASH_TYPE_INVALID) {
+		return SIG_VERIFICATION_UNKNOWN_HASH;
+	}
+
+	status = rsa->rsa->sig_verify (rsa->rsa, rsa->state->key, signature, sig_length, sig_algo,
+		digest, length);
 	if (status == RSA_ENGINE_BAD_SIGNATURE) {
 		return SIG_VERIFICATION_BAD_SIGNATURE;
 	}
 	else {
 		return status;
 	}
+}
+
+int signature_verification_rsa_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length)
+{
+	const struct signature_verification_rsa *rsa =
+		(const struct signature_verification_rsa*) verification;
+
+	if ((rsa == NULL) || (max_length == NULL)) {
+		return SIG_VERIFICATION_INVALID_ARGUMENT;
+	}
+
+	if (rsa->state->key != NULL) {
+		*max_length = rsa->state->key->mod_length;
+	}
+	else {
+		*max_length = RSA_MAX_KEY_LENGTH;
+	}
+
+	return 0;
 }
 
 int signature_verification_rsa_set_verification_key (
@@ -80,7 +106,7 @@ int signature_verification_rsa_is_key_valid (const struct signature_verification
  * @return 0 if the verification instance was successfully initialized or an error code.
  */
 int signature_verification_rsa_init (struct signature_verification_rsa *verification,
-	struct signature_verification_rsa_state *state, struct rsa_engine *rsa,
+	struct signature_verification_rsa_state *state, const struct rsa_engine *rsa,
 	const struct rsa_public_key *key)
 {
 	int status;
@@ -107,7 +133,7 @@ int signature_verification_rsa_init (struct signature_verification_rsa *verifica
  * SIG_VERIFICATION_INVALID_ARGUMENT if there are null parameters.
  */
 int signature_verification_rsa_init_api (struct signature_verification_rsa *verification,
-	struct signature_verification_rsa_state *state, struct rsa_engine *rsa)
+	struct signature_verification_rsa_state *state, const struct rsa_engine *rsa)
 {
 	if ((verification == NULL) || (state == NULL) || (rsa == NULL)) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
@@ -116,6 +142,8 @@ int signature_verification_rsa_init_api (struct signature_verification_rsa *veri
 	memset (verification, 0, sizeof (struct signature_verification_rsa));
 
 	verification->base.verify_signature = signature_verification_rsa_verify_signature;
+	verification->base.get_max_signature_length =
+		signature_verification_rsa_get_max_signature_length;
 	verification->base.set_verification_key = signature_verification_rsa_set_verification_key;
 	verification->base.is_key_valid = signature_verification_rsa_is_key_valid;
 

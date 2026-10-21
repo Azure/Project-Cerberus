@@ -47,7 +47,7 @@ static int attestation_responder_mock_challenge_response (struct attestation_res
 }
 
 static int attestation_responder_mock_aux_attestation_unseal (
-	struct attestation_responder *attestation, struct hash_engine *hash,
+	struct attestation_responder *attestation, const struct hash_engine *hash,
 	enum aux_attestation_key_length key_type, const uint8_t *seed, size_t seed_length,
 	enum aux_attestation_seed_type seed_type, enum aux_attestation_seed_param seed_param,
 	const uint8_t *hmac, enum hmac_hash hmac_type, const uint8_t *ciphertext, size_t cipher_length,

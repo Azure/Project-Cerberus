@@ -22,29 +22,29 @@
 
 
 int app_image_verification (const struct flash *flash, uint32_t start_addr,
-	struct hash_engine *hash, struct rsa_engine *rsa, const struct rsa_public_key *pub_key,
-	uint8_t *hash_out, size_t hash_length);
+	const struct hash_engine *hash, const struct rsa_engine *rsa,
+	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
 int app_image_verification_with_header (const struct flash *flash, uint32_t start_addr,
-	size_t header_length, struct hash_engine *hash, struct rsa_engine *rsa,
+	size_t header_length, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length);
 
 int app_image_load (const struct flash *flash, uint32_t start_addr, uint8_t *load_addr,
 	size_t max_length, size_t *load_length);
 int app_image_load_and_verify (const struct flash *flash, uint32_t start_addr, uint8_t *load_addr,
-	size_t max_length, struct hash_engine *hash, struct rsa_engine *rsa,
+	size_t max_length, const struct hash_engine *hash, const struct rsa_engine *rsa,
 	const struct rsa_public_key *pub_key, uint8_t *hash_out, size_t hash_length,
 	size_t *load_length);
 int app_image_load_and_verify_with_header (const struct flash *flash, uint32_t start_addr,
-	size_t header_length, uint8_t *load_addr, size_t max_length, struct hash_engine *hash,
-	struct rsa_engine *rsa, const struct rsa_public_key *pub_key, uint8_t *hash_out,
+	size_t header_length, uint8_t *load_addr, size_t max_length, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, const struct rsa_public_key *pub_key, uint8_t *hash_out,
 	size_t hash_length, size_t *load_length);
 
 int app_image_get_signature (const struct flash *flash, uint32_t start_addr, uint8_t *sig_out,
 	size_t sig_length);
-int app_image_get_hash (const struct flash *flash, uint32_t start_addr, struct hash_engine *hash,
-	uint8_t *hash_out, size_t hash_length);
+int app_image_get_hash (const struct flash *flash, uint32_t start_addr,
+	const struct hash_engine *hash, uint8_t *hash_out, size_t hash_length);
 int app_image_get_hash_with_header (const struct flash *flash, uint32_t start_addr,
-	size_t header_length, struct hash_engine *hash, uint8_t *hash_out, size_t hash_length);
+	size_t header_length, const struct hash_engine *hash, uint8_t *hash_out, size_t hash_length);
 
 int app_image_get_data_addr (const struct flash *flash, uint32_t start_addr, uint32_t *data_addr);
 int app_image_get_length (const struct flash *flash, uint32_t start_addr, uint32_t *img_length);

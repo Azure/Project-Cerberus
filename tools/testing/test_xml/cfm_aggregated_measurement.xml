@@ -1,0 +1,20 @@
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA384" measurement_hash_type="SHA256">
+	<Measurement pmr_id="0" measurement_id="2">
+		<Digest>
+			CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+		</Digest>
+	</Measurement>
+	<Measurement pmr_id="0" measurement_id="3">
+		<Digest>
+			DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+		</Digest>
+	</Measurement>
+	<Measurement pmr_id="1" measurement_id="1">
+		<Digest>
+			DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+		</Digest>
+		<Digest>
+			EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+		</Digest>
+	</Measurement>
+</CFMComponent>

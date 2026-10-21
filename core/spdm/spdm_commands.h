@@ -8,6 +8,7 @@
 #include "cmd_interface_spdm_responder.h"
 #include "platform_config.h"
 #include "spdm_protocol.h"
+#include "spdm_state.h"
 #include "spdm_transcript_manager.h"
 #include "attestation/attestation_responder.h"
 #include "cmd_interface/cmd_interface.h"
@@ -95,7 +96,7 @@ struct spdm_get_version_response {
 /**
  * SPDM version entry format
  */
-struct spdm_version_num_entry {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_version_num_entry {
 	uint8_t alpha:4;			/**< Pre-release WIP version of the specification */
 	uint8_t update_version:4;	/**< Specification update version */
 	uint8_t minor_version:4;	/**< Specification minor version */
@@ -133,31 +134,6 @@ struct spdm_version_num_entry {
 #define SPDM_MIN_DATA_TRANSFER_SIZE_VERSION_1_2		42
 
 /**
- * SPDM get capabilities flags format
- */
-struct spdm_get_capabilities_flags_format {
-	uint8_t cache_cap:1;					/**< Supports ability to cache negotiated state across reset. Only set in response messages */
-	uint8_t cert_cap:1;						/**< Supports Get Digests and Get Certificate commands */
-	uint8_t chal_cap:1;						/**< Supports Challenge command */
-	uint8_t meas_cap:2;						/**< Measurement response capabilities. Only set in response messages */
-	uint8_t meas_fresh_cap:1;				/**< Measurement response capabilities. Only set in response messages */
-	uint8_t encrypt_cap:1;					/**< Supports message encryption */
-	uint8_t mac_cap:1;						/**< Supports message authentication */
-	uint8_t mut_auth_cap:1;					/**< Supports mutual authentication */
-	uint8_t key_ex_cap:1;					/**< Supports Key Exchange command */
-	uint8_t psk_cap:2;						/**< Pre-shared key capabilities */
-	uint8_t encap_cap:1;					/**< Supports encapsulated requests */
-	uint8_t hbeat_cap:1;					/**< Supports heartbeat command */
-	uint8_t key_upd_cap:1;					/**< Supports Key Update command */
-	uint8_t handshake_in_the_clear_cap:1;	/**< Supports communication with messages exchanged during the Session Handshake Phase in the clear */
-	uint8_t pub_key_id_cap:1;				/**< Public key of device was provisioned to target */
-	uint8_t chunk_cap:1;					/**< Supports large SPDM message transfer mechanism */
-	uint8_t alias_cert_cap:1;				/**< Uses the AliasCert model */
-	uint8_t reserved:5;						/**< Reserved */
-	uint8_t reserved2;						/**< Reserved */
-};
-
-/**
  * SPDM measurement capability flag values.
  */
 enum spm_measurement_capability_options {
@@ -187,7 +163,7 @@ struct spdm_get_capabilities_1_0 {
 /**
  * SPDM get capabilities request/response format for SPDM 1.1
  */
-struct spdm_get_capabilities_1_1 {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_capabilities_1_1 {
 	struct spdm_protocol_header header;					/**< Message header */
 	uint8_t reserved;									/**< Reserved */
 	uint8_t reserved2;									/**< Reserved */
@@ -200,7 +176,7 @@ struct spdm_get_capabilities_1_1 {
 /**
  * SPDM get capabilities request/response format
  */
-struct spdm_get_capabilities {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_capabilities {
 	struct spdm_get_capabilities_1_1 base_capabilities;	/**< Common capabilities segment with v1.1 get capabilities format*/
 	uint32_t data_transfer_size;						/**< Maximum buffer size in bytes of the device for receiving a single SPDM message */
 	uint32_t max_spdm_msg_size;							/**< Maximum size in bytes of the internal buffer for processing a single large SPDM message */
@@ -338,18 +314,11 @@ struct spdm_opaque_element_table_header {
 #define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG	4
 #define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE		5
 
-/**
- * SPDM Negotiate Algorithm 'OtherParamsSupport' format.
- */
-struct spdm_other_params_support {
-	uint8_t opaque_data_format:4;	/**< Opaque Data Format Support and Selection */
-	uint8_t reserved:4;				/**< Reserved */
-};
 
 /**
  * SPDM negotiate algorithms request format
  */
-struct spdm_negotiate_algorithms_request {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_negotiate_algorithms_request {
 	struct spdm_protocol_header header;						/**< Message header */
 	uint8_t num_alg_structure_tables;						/**< Number of algorithm structure tables in request */
 	uint8_t reserved;										/**< Reserved */
@@ -367,7 +336,7 @@ struct spdm_negotiate_algorithms_request {
 /**
  * SPDM extended algorithm format
  */
-struct spdm_extended_algorithm {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_extended_algorithm {
 	uint8_t registry_id;	/**< Registry or standards body */
 	uint8_t reserved;		/**< Reserved */
 	uint16_t algorithm_id;	/**< Algorithm ID */
@@ -376,7 +345,7 @@ struct spdm_extended_algorithm {
 /**
  * SPDM algorithm request structure format
  */
-struct spdm_algorithm_request {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_algorithm_request {
 	uint8_t alg_type;			/**< Type of algorithm */
 	uint8_t ext_alg_count:4;	/**< Number of supported extended algorithms */
 	uint8_t fixed_alg_count:4;	/**< Number of supported SPDM-enumerated fixed algorithms */
@@ -400,7 +369,7 @@ struct spdm_algorithm_request {
  * @param curr_alg_struct_table_entry Current algorithm struct table entry.
 */
 #define spdm_negotiate_algorithms_get_next_alg_struct_table_entry(curr_alg_struct_table_entry) ( \
-	(struct spdm_algorithm_request*)((size_t) curr_alg_struct_table_entry + \
+	(struct spdm_algorithm_request*)((uint8_t*) curr_alg_struct_table_entry + \
 	sizeof (struct spdm_algorithm_request) + \
 	sizeof (struct spdm_extended_algorithm) * curr_alg_struct_table_entry->ext_alg_count))
 
@@ -451,7 +420,7 @@ struct spdm_algorithm_request {
 /**
  * SPDM negotiate algorithms response format
  */
-struct spdm_negotiate_algorithms_response {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_negotiate_algorithms_response {
 	struct spdm_protocol_header header;							/**< Message header */
 	uint8_t num_alg_structure_tables;							/**< Number of algorithm structure tables in request */
 	uint8_t reserved;											/**< Reserved */
@@ -537,19 +506,8 @@ struct spdm_negotiate_algorithms_response_no_ext_alg {
 
 /**
  * SPDM certificate slot maximum count.
- * [TODO] This will be removed when the Certificate Manager component is available.
  */
-#ifndef SPDM_MAX_SLOT_COUNT
-#define SPDM_MAX_SLOT_COUNT		1
-#endif
-
-/**
- * SPDM max. certificates in a chain.
- * [TODO] This will be removed when the Certificate Manager component is available.
- */
-#ifndef SPDM_MAX_CERT_COUNT_IN_CHAIN
-#define SPDM_MAX_CERT_COUNT_IN_CHAIN		4
-#endif
+#define SPDM_MAX_SLOT_COUNT					8
 
 /**
  * SPDM get digests request format
@@ -569,31 +527,6 @@ struct spdm_get_digests_response {
 	uint8_t slot_mask;					/**< Slot mask */
 };
 
-/**
- * SPDM cert chain header
- */
-struct spdm_cert_chain_header {
-	uint16_t length;	/**< Length of the cert chain including this struct. */
-	uint16_t reserved;	/**< Reserved */
-};
-
-/**
- * SPDM cert chain format
- */
-struct spdm_cert_chain {
-	struct spdm_cert_chain_header header;	/**< Cert chain header */
-	uint8_t root_hash[HASH_MAX_HASH_LEN];	/**< Max. hash size of the root cert. */
-};
-
-
-/**
- * Get the total length of a SPDM certificate chain.
- *
- * @param hash_size Size of the cert chain hash.
- * @param cert_chain_length Length of the cert chain.
- */
-#define	spdm_get_digests_cert_chain_length(hash_size, cert_chain_length)    \
-	(offsetof (struct spdm_cert_chain, root_hash) + hash_size + cert_chain_length)
 
 /**
  * Get the total length of a SPDM get digests response message
@@ -625,7 +558,7 @@ struct spdm_cert_chain {
 /**
  * SPDM get certificate request format
  */
-struct spdm_get_certificate_request {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_certificate_request {
 	struct spdm_protocol_header header;	/**< Message header */
 	uint8_t slot_num;					/**< Slot number to read certificate chain from */
 	uint8_t reserved;					/**< Reserved */
@@ -636,7 +569,7 @@ struct spdm_get_certificate_request {
 /**
  * SPDM get certificate response format
  */
-struct spdm_get_certificate_response {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_certificate_response {
 	struct spdm_protocol_header header;	/**< Message header */
 	uint8_t slot_num;					/**< Slot number of the certificate chain returned */
 	uint8_t reserved;					/**< Reserved */
@@ -673,14 +606,6 @@ struct spdm_get_certificate_response {
 #define	spdm_get_certificate_resp_cert_chain(resp)	(((uint8_t*) resp) + sizeof (*resp))
 
 /**
- * SPDM certificate chain format
- */
-struct spdm_certificate_chain {
-	uint16_t length;	/**< Total length of certificate chain including all fields */
-	uint16_t reserved;	/**< Reserved */
-};
-
-/**
  * SPDM measurement summary hash types for Challenge command, from section 10.9 in DSP0274 SPDM
  * spec.
  */
@@ -701,7 +626,7 @@ struct spdm_challenge_request {
 /**
  * SPDM challenge response format
  */
-struct spdm_challenge_response {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_challenge_response {
 	struct spdm_protocol_header header;	/**< Message header */
 	uint8_t slot_num:4;					/**< Slot number selected in request */
 	uint8_t reserved:3;					/**< Reserved */
@@ -853,7 +778,7 @@ struct spdm_challenge_response {
 /**
  * SPDM get measurements request format
  */
-struct spdm_get_measurements_request {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_measurements_request {
 	struct spdm_protocol_header header;	/**< Message header */
 	uint8_t sig_required:1;				/**< Signature required in response */
 	uint8_t raw_bit_stream_requested:1;	/**< Raw measurement block requested */
@@ -906,7 +831,7 @@ struct spdm_get_measurements_request {
 /**
  * SPDM get measurements response format
  */
-struct spdm_get_measurements_response {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_get_measurements_response {
 	struct spdm_protocol_header header;	/**< Message header */
 	uint8_t num_measurement_indices;	/**< Number of measurement indices in device */
 	uint8_t slot_id:4;					/**< Slot ID */
@@ -1067,7 +992,7 @@ struct spdm_respond_if_ready_request {
 /**
  * SPDM KEY_EXCHANGE request format.
  */
-struct spdm_key_exchange_request {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_key_exchange_request {
 	struct spdm_protocol_header header;		/**< Message header */
 	uint8_t measurement_summary_hash_type;	/**< Type of measurement summary hash requested. */
 	uint8_t slot_id;						/**< Slot number of the Responder certificate chain that shall be used for authentication. */
@@ -1080,7 +1005,7 @@ struct spdm_key_exchange_request {
 /**
  * SPDM KEY_EXCHANGE response format.
  */
-struct spdm_key_exchange_response {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_key_exchange_response {
 	struct spdm_protocol_header header;	/**< Message header */
 	uint8_t heartbeat_period;			/**< Heartbeat period. */
 	uint8_t reserved;					/**< Reserved */
@@ -1121,14 +1046,6 @@ struct spdm_finish_response {
 #define SPDM_DATA_HANDLE_ERROR_RETURN_POLICY_DROP_ON_DECRYPT_ERROR		0x1
 
 /**
- * SPDM END SESSION 'Negotiated State Preservation Indicator' format per DSP0274 Table 77.
- */
-struct spdm_end_session_request_attributes {
-	uint8_t negotiated_state_preservation_indicator:1;	/**< State preservation config */
-	uint8_t reserved:7;									/**< Reserved */
-};
-
-/**
  *  SPDM END_SESSION request format.
  */
 struct spdm_end_session_request {
@@ -1157,6 +1074,14 @@ struct spdm_key_update_request {
 	uint8_t key_operation;				/**< Key update operation. */
 	uint8_t tag;						/**< Key update tag. */
 };
+
+
+/**
+ * NOTE: This is SPDM defined struct, however, it also might be used some binary data compatibility
+ * make sure its size stays consistent.
+ */
+_Static_assert (sizeof (struct spdm_key_update_request) == 4,
+	"Unexpected size of struct spdm_key_update_request");
 
 /**
  * SPDM VENDOR_DEFINED request/response format.
@@ -1202,63 +1127,11 @@ struct spdm_vendor_defined_request_response {
  */
 #define SPDM_INVALID_SESSION_ID		0
 
-/**
- * SPDM connection states.
- */
-enum spdm_connection_state {
-	SPDM_CONNECTION_STATE_NOT_STARTED,			/**< Before GET_VERSION/VERSION. */
-	SPDM_CONNECTION_STATE_AFTER_VERSION,		/**< After GET_VERSION/VERSION. */
-	SPDM_CONNECTION_STATE_AFTER_CAPABILITIES,	/**< After GET_CAPABILITIES/CAPABILITIES. */
-	SPDM_CONNECTION_STATE_NEGOTIATED,			/**< After NEGOTIATE_ALGORITHMS/ALGORITHMS. */
-	SPDM_CONNECTION_STATE_AFTER_DIGESTS,		/**< After GET_DIGESTS/DIGESTS. */
-	SPDM_CONNECTION_STATE_AFTER_CERTIFICATE,	/**< After GET_CERTIFICATE/CERTIFICATE. */
-	SPDM_CONNECTION_STATE_AUTHENTICATED,		/**< After CHALLENGE/CHALLENGE_AUTH, and ENCAP CHALLENGE/CHALLENGE_AUTH if MUT_AUTH is enabled. */
-	SPDM_CONNECTION_STATE_MAX,					/**< MAX */
-};
-
-/**
- * SPDM version info.
- */
-struct spdm_version_number {
-	uint16_t alpha:4;					/**< Pre-release version nubmer. */
-	uint16_t update_version_number:4;	/**< Update version number. */
-	uint16_t minor_version:4;			/**< Major version number. */
-	uint16_t major_version:4;			/**< Minor version number. */
-};
-
-/**
- * SPDM device capabilities.
- */
-struct spdm_device_capability {
-	/**
-	 * Maximum amount of time the endpoint has to provide any response requiring
-	 * cryptographic processing such as the GET_MEASUREMENTS or CHALLENGE request messages.
-	 */
-	uint8_t ct_exponent;
-	struct spdm_get_capabilities_flags_format flags;	/**< Capabilities flags */
-	uint32_t data_transfer_size;						/**< Maximum buffer size of the device. */
-	uint32_t max_spdm_msg_size;							/**< Maximum size for a single SPDM message */
-};
-
-/**
- * SPDM algorithms.
- */
-struct spdm_device_algorithms {
-	uint8_t measurement_spec;								/**< Measurement specification */
-	struct spdm_other_params_support other_params_support;	/**< Additional params supported */
-	uint32_t measurement_hash_algo;							/**< Measurement hash algorithm. */
-	uint32_t base_asym_algo;								/**< Base asymmetric algorithm. */
-	uint32_t base_hash_algo;								/**< Base hash algorithm. */
-	uint16_t dhe_named_group;								/**< DHE named group. */
-	uint16_t aead_cipher_suite;								/**< AEAD cipher suite. */
-	uint16_t req_base_asym_alg;								/**< Requested base asymmetric algorithm. */
-	uint16_t key_schedule;									/**< Key schedule. */
-};
 
 /**
  * SPDM local device algorithms priority tables.
  */
-struct spdm_local_device_algorithms_priority_table {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_local_device_algorithms_priority_table {
 	const uint32_t *hash_priority_table;					/**< Hash algorithms priority table. */
 	const uint32_t *asym_priority_table;					/**< Asymmetric key signature algorithms priority table. */
 	const uint32_t *req_asym_priority_table;				/**< Requested asymmetric key signature algorithms priority table. */
@@ -1285,51 +1158,12 @@ struct spdm_local_device_algorithms {
 	struct spdm_local_device_algorithms_priority_table algorithms_priority_table;	/**< Algorithm priority tables. */
 };
 
-/**
- * SPDM connection info.
- */
-struct spdm_connection_info {
-	enum spdm_connection_state connection_state;		/**< State of the SPDM connection. */
-	struct spdm_version_number version;					/**< Negotiated version */
-	struct spdm_device_capability peer_capabilities;	/**< Peer capabilities. */
-	struct spdm_device_algorithms peer_algorithms;		/**< Negotiated algorithms. */
-	struct spdm_version_number secure_message_version;	/**< Negotiated secure message version. */
-	/** Specifies whether the cached negotiated state should be invalidated. (responder only)
-	 * This is a sticky bit wherein if it is set to 1 then it cannot be set to 0.
-	 */
-	struct spdm_end_session_request_attributes end_session_attributes;
-};
-
-/**
- * Response states of the responder.
- */
-enum spdm_response_state {
-	SPDM_RESPONSE_STATE_NORMAL,				/**< Normal response. */
-	SPDM_RESPONSE_STATE_BUSY,				/**< Other component is busy. */
-	SPDM_RESPONSE_STATE_NOT_READY,			/**< Hardware is not ready. */
-	SPDM_RESPONSE_STATE_NEED_RESYNC,		/**< Firmware Update is done. Need resync. */
-	SPDM_RESPONSE_STATE_PROCESSING_ENCAP,	/**< Processing Encapsulated message. */
-	SPDM_RESPONSE_STATE_MAX,				/**< MAX */
-};
-
-/**
- * SPDM context for a requester/responder.
- */
-struct spdm_state {
-	struct spdm_connection_info connection_info;	/**< Connection info. */
-	enum spdm_response_state response_state;		/**< Responder response state */
-	uint64_t max_spdm_session_sequence_number;		/**< Max SPDM session sequence number. */
-	uint16_t current_local_session_id;				/**< Current local session Id. */
-	uint8_t handle_error_return_policy;				/**< Handle error return policy. */
-};
 
 /* TODO:  This is a temporary work-around in the absence of a SPDM connection handler that is
  * currently represented by the responder cmd_interface.  Delete this as part of connection
  * refactoring. */
 struct cmd_interface_spdm_responder;
 
-
-int spdm_init_state (struct spdm_state *state);
 
 bool spdm_check_request_flag_compatibility (struct spdm_get_capabilities_flags_format flags,
 	uint8_t version);
@@ -1395,7 +1229,7 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct cmd_interface_msg *request);
 
-int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_type,
+int spdm_format_signature_digest (const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t spdm_minor_version, char *spdm_state, uint8_t *digest);
 
 enum hash_type spdm_get_hash_type (uint32_t hash_algo);

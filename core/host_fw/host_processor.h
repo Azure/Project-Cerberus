@@ -7,19 +7,21 @@
 #include <stdbool.h>
 #include "host_fw_util.h"
 #include "host_processor_observer.h"
+#include "host_state_manager.h"
 #include "common/observable.h"
 #include "crypto/hash.h"
 #include "crypto/rsa.h"
 #include "flash/flash_util.h"
+#include "spi_filter/spi_filter_interface.h"
 #include "status/rot_status.h"
 
 
 /**
  * Boolean macro to determine if a status code represents a validation failure of flash.
  */
-#define	IS_VALIDATION_FAILURE(\
-	x)\
-		((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || (x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
+#define	IS_VALIDATION_FAILURE(x) \
+	((x == RSA_ENGINE_BAD_SIGNATURE) || (x == HOST_FW_UTIL_BAD_IMAGE_HASH) || \
+	(x == FLASH_UTIL_UNEXPECTED_VALUE) || (x == HOST_FW_UTIL_UNSUPPORTED_VERSION))
 
 
 /**
@@ -33,6 +35,14 @@ enum host_processor_reset_actions {
 	HOST_PROCESSOR_ACTION_ACTIVATE_UPDATE,			/**< A prevalidated host FW update will be made active. */
 	HOST_PROCESSOR_ACTION_ACTIVATE_PFM_AND_UPDATE,	/**< A prevalidated pending PFM and host FW update will both be made active. */
 	HOST_PROCESSOR_ACTION_VERIFY_BYPASS_FLASH,		/**< A PFM will be used to verify flash, which is being accessed in bypass mode. */
+};
+
+/**
+ * Variable context for host processor protection.
+ */
+struct host_processor_state {
+	int port;						/**< The port identifier of the host. */
+	struct observable observable;	/**< Observer manager for the port handler. */
 };
 
 /**
@@ -55,8 +65,8 @@ struct host_processor {
 	 *
 	 * @return 0 if all power-on reset tasks were completed successfully or an error code.
 	 */
-	int (*power_on_reset) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa);
+	int (*power_on_reset) (const struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa);
 
 	/**
 	 * Execute soft reset firmware verification for the host processor.
@@ -67,8 +77,8 @@ struct host_processor {
 	 *
 	 * @return 0 if all soft reset tasks were completed successfully or an error code.
 	 */
-	int (*soft_reset) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa);
+	int (*soft_reset) (const struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa);
 
 	/**
 	 * Execute run-time firmware verification for the host processor.
@@ -86,8 +96,8 @@ struct host_processor {
 	 *
 	 * @return 0 if firmware verification was completed successfully or an error code.
 	 */
-	int (*run_time_verification) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa);
+	int (*run_time_verification) (const struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa);
 
 	/**
 	 * Attempt to rollback to a previously valid image.  Rollback will only be allowed to an image
@@ -103,8 +113,8 @@ struct host_processor {
 	 *
 	 * @return 0 if the rollback was successful or an error code.
 	 */
-	int (*flash_rollback) (struct host_processor *host, struct hash_engine *hash,
-		struct rsa_engine *rsa, bool disable_bypass, bool no_reset);
+	int (*flash_rollback) (const struct host_processor *host, const struct hash_engine *hash,
+		const struct rsa_engine *rsa, bool disable_bypass, bool no_reset);
 
 	/**
 	 * Recover read/write data for the active image.
@@ -113,7 +123,7 @@ struct host_processor {
 	 *
 	 * @return 0 if read/write recovery was successful or an error code.
 	 */
-	int (*recover_active_read_write_data) (struct host_processor *host);
+	int (*recover_active_read_write_data) (const struct host_processor *host);
 
 	/**
 	 * Determine the verification actions that will be performed on the next host reset.
@@ -124,7 +134,7 @@ struct host_processor {
 	 * verification status will be one of {@link enum host_processor_reset_actions}.  Use
 	 * ROT_IS_ERROR to determine if the call failed.
 	 */
-	int (*get_next_reset_verification_actions) (struct host_processor *host);
+	int (*get_next_reset_verification_actions) (const struct host_processor *host);
 
 	/**
 	 * Determine if the system is in a state that requires recovery steps to restore an operational
@@ -134,7 +144,7 @@ struct host_processor {
 	 *
 	 * @return 0 if the system configuration is good, 1 if it is not, or an error code.
 	 */
-	int (*needs_config_recovery) (struct host_processor *host);
+	int (*needs_config_recovery) (const struct host_processor *host);
 
 	/**
 	 * Apply to host flash a valid recovery image and release the host reset line.
@@ -144,7 +154,7 @@ struct host_processor {
 	 *
 	 * @return 0 if the host recovery image application was successful or an error code.
 	 */
-	int (*apply_recovery_image) (struct host_processor *host, bool no_reset);
+	int (*apply_recovery_image) (const struct host_processor *host, bool no_reset);
 
 	/**
 	 * Boot the host in bypass mode regardless of the PFM state.  The host will be bypassed to the
@@ -159,24 +169,74 @@ struct host_processor {
 	 *
 	 * @return 0 if bypass mode was configured successfully or an error code.
 	 */
-	int (*bypass_mode) (struct host_processor *host, bool swap_flash);
+	int (*bypass_mode) (const struct host_processor *host, bool swap_flash);
 
-	int port;						/**< The port identifier of the host. */
-	struct observable observable;	/**< Observer manager for the port handler. */
+	/**
+	 * Retrieve the current configuration of the flash protection for the host processor.
+	 *
+	 * Since host processor workflows can be very time consuming, this function will return the
+	 * flash protection state without synchronizing with other host processor operations.  If this
+	 * called during host verification flows, which causes the configuration to change, it is
+	 * possible for some the reported configuration to not accurately represent the current state.
+	 *
+	 * @param host The host processor instance to query.
+	 * @param mode Output for the current flash management mode.
+	 * @param current_ro Output for the flash that is currently designated as the read-only flash
+	 * for the host.
+	 * @param next_ro Output for the flash that will be designated as the read-only flash during the
+	 * next host verification event.
+	 * @param apply_next_ro Output for the host events that will trigger the next read-only flash to
+	 * be get used.
+	 *
+	 * @return 0 if the host flash configuration was retrieved successfully or an error code.
+	 */
+	int (*get_flash_config) (const struct host_processor *host, spi_filter_flash_mode *mode,
+		spi_filter_cs *current_ro, spi_filter_cs *next_ro,
+		enum host_read_only_activation *apply_next_ro);
+
+	/**
+	 * Specify which physical flash device should be used as the read-only flash for host processor
+	 * accesses.  Depending on the flash configuration, this request may get rejected if the
+	 * requested configuration violates firmware protection guarantees.
+	 *
+	 * This call will be synchronized with other host processor workflows, so it could take a long
+	 * time before completeing.
+	 *
+	 * @param host The instance for the host processor to configure.
+	 * @param current_ro The flash device that should be used immediately as the read-only flash.
+	 * If the specified flash is already the read-only flash, this option will not have any effect.
+	 * If this is null, the current read-only flash will not be changed.  If the current read-only
+	 * flash is being changed, the host will be disconnected from flash during the transition.
+	 * @param next_ro The flash device that should be used as the new read-only flash while
+	 * processing the next host verification event.  If the specified flash is already the read-only
+	 * flash that will be used next, this option will not have any effect.  If this is null, the
+	 * next read-only flash will not be changed.
+	 * @param apply_next_ro The host events that will trigger the next read-only flash to be used by
+	 * the host.  If this is null, the host events will not be changed.
+	 *
+	 * @return 0 if all the requested configuration was applied successfully or an error code.  A
+	 * failure could result in a partial change to the flash configuration.
+	 */
+	int (*config_read_only_flash) (const struct host_processor *host,
+		const spi_filter_cs *current_ro, const spi_filter_cs *next_ro,
+		const enum host_read_only_activation *apply_next_ro);
+
+	struct host_processor_state *state;	/**< Variable context the host processor handling. */
 };
 
 
-void host_processor_set_port (struct host_processor *host, int port);
-int host_processor_get_port (struct host_processor *host);
+void host_processor_set_port (const struct host_processor *host, int port);
+int host_processor_get_port (const struct host_processor *host);
 
-int host_processor_add_observer (struct host_processor *host,
-	struct host_processor_observer *observer);
-int host_processor_remove_observer (struct host_processor *host,
-	struct host_processor_observer *observer);
+int host_processor_add_observer (const struct host_processor *host,
+	const struct host_processor_observer *observer);
+int host_processor_remove_observer (const struct host_processor *host,
+	const struct host_processor_observer *observer);
 
 /* Internal functions for use by derived types. */
-int host_processor_init (struct host_processor *host);
-void host_processor_release (struct host_processor *host);
+int host_processor_init (struct host_processor *host, struct host_processor_state *state);
+int host_processor_init_state (const struct host_processor *host);
+void host_processor_release (const struct host_processor *host);
 
 
 #define	HOST_PROCESSOR_ERROR(code)		ROT_ERROR (ROT_MODULE_HOST_PROCESSOR, code)
@@ -205,6 +265,12 @@ enum {
 	HOST_PROCESSOR_RW_RECOVERY_FAILED = HOST_PROCESSOR_ERROR (0x11),		/**< Failed to recover active read/write data. */
 	HOST_PROCESSOR_RW_RECOVERY_UNSUPPORTED = HOST_PROCESSOR_ERROR (0x12),	/**< Recovery of active read/write data is not supported. */
 	HOST_PROCESSOR_NO_ACTIVE_RW_DATA = HOST_PROCESSOR_ERROR (0x13),			/**< There is no active image for read/write recovery. */
+	HOST_PROCESSOR_GET_CONFIG_FAILED = HOST_PROCESSOR_ERROR (0x14),			/**< Failed to retrieve the current host flash configuration. */
+	HOST_PROCESSOR_CONFIG_RO_FAILED = HOST_PROCESSOR_ERROR (0x15),			/**< Failed to configure the host read-only flash. */
+	HOST_PROCESSOR_FLASH_CONFIG_UNSUPPORTED = HOST_PROCESSOR_ERROR (0x16),	/**< Changing the flash configuration is not supported.  */
+	HOST_PROCESSOR_NO_TASK = HOST_PROCESSOR_ERROR (0x17),					/**< No host command task is running. */
+	HOST_PROCESSOR_TASK_BUSY = HOST_PROCESSOR_ERROR (0x18),					/**< The command task is busy performing an operation. */
+	HOST_PROCESSOR_UNSUPPORTED_CMD = HOST_PROCESSOR_ERROR (0x19),			/**< The requested command is not supported by the host. */
 };
 
 

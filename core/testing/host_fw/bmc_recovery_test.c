@@ -279,8 +279,8 @@ static void bmc_recovery_test_state_running_cs0_irq (CuTest *test)
 
 static void bmc_recovery_test_state_running_cs1_irq (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -551,8 +551,8 @@ static void bmc_recovery_test_state_in_reset_cs0_irq (CuTest *test)
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_rw_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -616,8 +616,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_rw_recovery (CuTest *test)
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_rw_recovery_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -688,8 +688,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_rw_recovery_error (CuTest *
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -766,8 +766,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_rollback (CuTest *test)
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_rollback_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -851,8 +851,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_rollback_error (CuTest *tes
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -941,8 +941,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image (CuTest *tes
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1038,8 +1038,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_error (CuTes
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_extra_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1149,8 +1149,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_recovery (CuTest *tes
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1218,8 +1218,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery (CuTest *tes
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_unsupported_rw_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1287,8 +1287,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_unsupported_rw_recovery (Cu
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1357,8 +1357,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback 
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_dirty_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1428,8 +1428,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_dirty_rollba
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_sig_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1498,8 +1498,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_sig_roll
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_hash_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1569,8 +1569,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_bad_hash_rol
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_blank_fail_rollback (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1639,8 +1639,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_blank_fail_r
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_unknown_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1711,8 +1711,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_unknown_roll
 static void bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_no_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1789,8 +1789,8 @@ static void
 bmc_recovery_test_state_in_reset_cs1_irq_no_rw_recovery_no_rollback_unsupported_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1867,8 +1867,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_auth_error_r
 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -1953,8 +1953,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_auth_error_r
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -2059,8 +2059,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_1 (C
 
 static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -2182,8 +2182,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_2 (C
 static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_1_with_timeout (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -2284,8 +2284,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_recovery_image_min_wdt_1_wi
 static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_no_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -2405,8 +2405,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_no_recov
 static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_unsupported_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -2526,8 +2526,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_unsuppor
 static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_recovery_image_error (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -2645,8 +2645,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_extra_events_after_recovery
 static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -2761,8 +2761,8 @@ static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_recovery_imag
 static void bmc_recovery_test_state_in_reset_cs1_irq_timeout_after_no_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3041,8 +3041,8 @@ static void bmc_recovery_test_state_exit_reset_cs0_irq (CuTest *test)
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_rw_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3106,8 +3106,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_rw_recovery (CuTest *test
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_rw_recovery_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3178,8 +3178,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_rw_recovery_error (CuTest
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3256,8 +3256,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_rollback (CuTest *test)
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_rollback_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3341,8 +3341,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_rollback_error (CuTest *t
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3431,8 +3431,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image (CuTest *t
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3528,8 +3528,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_error (CuT
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3639,8 +3639,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_recovery (CuTest *t
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3708,8 +3708,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery (CuTest *t
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_unsupported_rw_recovery (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3777,8 +3777,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_unsupported_rw_recovery (
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3847,8 +3847,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollbac
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_dirty_rollback (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3919,8 +3919,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_dirty_roll
 static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_sig_rollback (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -3990,8 +3990,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_sig_ro
 static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_hash_rollback (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4061,8 +4061,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_bad_hash_r
 static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_blank_fail_rollback (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4132,8 +4132,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_blank_fail
 static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_unknown_rollback (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4205,8 +4205,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollbac
 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4283,8 +4283,8 @@ static void
 bmc_recovery_test_state_exit_reset_cs1_irq_no_rw_recovery_no_rollback_unsupported_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4361,8 +4361,8 @@ static void
 bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_auth_error_recovery_image_error (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4447,8 +4447,8 @@ bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_auth_error_recovery_im
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_1 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4553,8 +4553,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_1 
 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_2 (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4676,8 +4676,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_2 
 static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_1_with_timeout (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4778,8 +4778,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_recovery_image_min_wdt_1_
 static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_no_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -4900,8 +4900,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_unsupp
 (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -5021,8 +5021,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_unsupp
 static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_recovery_image_error (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -5140,8 +5140,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_extra_events_after_recove
 static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -5256,8 +5256,8 @@ static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_recovery_im
 static void bmc_recovery_test_state_exit_reset_cs1_irq_timeout_after_no_recovery_image (
 	CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -5530,8 +5530,8 @@ static void bmc_recovery_test_state_rollback_done_cs0_irq (CuTest *test)
 
 static void bmc_recovery_test_state_rollback_done_cs1_irq (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;
@@ -5736,8 +5736,8 @@ static void bmc_recovery_test_on_host_cs0_null (CuTest *test)
 
 static void bmc_recovery_test_on_host_cs1_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct host_irq_control_mock irq;
 	struct host_processor_mock host;
 	struct bmc_recovery recovery;

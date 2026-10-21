@@ -218,7 +218,7 @@ static int ecc_der_encode_public_key_bit_string (const uint8_t *pub_key_x, const
 int ecc_der_decode_private_key (const uint8_t *der, size_t length, uint8_t *priv_key,
 	size_t key_length)
 {
-	const uint8_t *pos;
+	const uint8_t *pos = NULL;
 	int type_len;
 	int key_len;
 
@@ -560,7 +560,7 @@ size_t ecc_der_get_private_key_length (const uint8_t *der, size_t max_length)
 int ecc_der_decode_public_key (const uint8_t *der, size_t length, uint8_t *pub_key_x,
 	uint8_t *pub_key_y, size_t key_length)
 {
-	const uint8_t *pos;
+	const uint8_t *pos = NULL;
 	int type_len;
 	size_t key_len;
 
@@ -658,7 +658,36 @@ int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const 
 		return status;
 	}
 
-	key_len = (type_len - 2) / 2;
+	/* Every public key bit string must have a leading zero and a format identifier. */
+	if (type_len < 2) {
+		return ECC_DER_UTIL_MALFORMED;
+	}
+
+	/* Skip over the leading zero in the public key bit string. */
+	pos++;
+	type_len--;
+
+	/* Confirm a valid ECPoint format for the public key. */
+	switch (pos[0]) {
+		case 0x00:
+			/* The point at infinity, which is not a valid public key. */
+			return ECC_DER_UTIL_INFINITY_ECPOINT;
+
+		case 0x02:
+		case 0x03:
+			/* Compressed ECPoint */
+			break;
+
+		case 0x04:
+			/* Uncompressed ECPoint */
+			break;
+
+		default:
+			return ECC_DER_UTIL_INVALID_ECPOINT;
+	}
+
+	/* TODO: This check will not work with compressed ECPoints. */
+	key_len = (type_len - 1) / 2;
 
 	switch (key_len) {
 		case ECC_KEY_LENGTH_256:
@@ -688,25 +717,6 @@ int ecc_der_decode_public_key_no_copy (const uint8_t *der, size_t length, const 
 
 		default:
 			return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
-	}
-
-	/* Skip over the leading zero in the public key bit string. */
-	pos++;
-	type_len--;
-
-	/* Confirm a valid ECPoint format for the public key. */
-	switch (pos[0]) {
-		case 0x02:
-		case 0x03:
-			/* Compressed ECPoint */
-			break;
-
-		case 0x04:
-			/* Uncompressed ECPoint */
-			break;
-
-		default:
-			return ECC_DER_UTIL_INVALID_ECPOINT;
 	}
 
 	*pub_key = pos;
@@ -961,12 +971,22 @@ int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *
 		return status;
 	}
 
-	status = ecc_der_decode_ecdsa_integer (&pos, &length, sig_r, key_length);
+	status = ecc_der_decode_ecdsa_integer (&pos, &type_len, sig_r, key_length);
 	if (status != 0) {
 		return status;
 	}
 
-	return ecc_der_decode_ecdsa_integer (&pos, &length, sig_s, key_length);
+	status = ecc_der_decode_ecdsa_integer (&pos, &type_len, sig_s, key_length);
+	if (status != 0) {
+		return status;
+	}
+
+	if (type_len != 0) {
+		/* There should not be any data left after the signature components. */
+		return ECC_DER_UTIL_INVALID_SIGNATURE;
+	}
+
+	return 0;
 }
 
 /**
@@ -1044,4 +1064,33 @@ int ecc_der_encode_ecdsa_signature (const uint8_t *sig_r, const uint8_t *sig_s, 
 size_t ecc_der_get_ecdsa_signature_length (const uint8_t *der, size_t max_length)
 {
 	return asn1_get_der_encoded_length (der, max_length);
+}
+
+/**
+ * Get the maximum length of an ECDSA signature for a given key length.
+ *
+ * @param key_length Length of the ECC key.
+ *
+ * @return Maximum length of the ECDSA signature or ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH.  Only
+ * supported key lengths will return a valid signature length, even if the key length is valid.
+ */
+int ecc_der_get_ecdsa_max_signature_length (size_t key_length)
+{
+	switch (key_length) {
+		case ECC_KEY_LENGTH_256:
+			return ECC_DER_P256_ECDSA_MAX_LENGTH;
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+		case ECC_KEY_LENGTH_384:
+			return ECC_DER_P384_ECDSA_MAX_LENGTH;
+#endif
+
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+		case ECC_KEY_LENGTH_521:
+			return ECC_DER_P521_ECDSA_MAX_LENGTH;
+#endif
+
+		default:
+			return ECC_DER_UTIL_UNSUPPORTED_KEY_LENGTH;
+	}
 }

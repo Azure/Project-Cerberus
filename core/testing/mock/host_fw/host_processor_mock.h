@@ -12,8 +12,9 @@
  * Mock for host processor actions.
  */
 struct host_processor_mock {
-	struct host_processor base;	/**< The base processor instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct host_processor base;			/**< The base processor instance. */
+	struct mock mock;					/**< The base mock interface. */
+	struct host_processor_state state;	/**< Variable context for the base processor instance. */
 };
 
 

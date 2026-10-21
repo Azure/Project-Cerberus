@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "spi_flash.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 #include "flash/flash_common.h"
 #include "flash/flash_logging.h"
@@ -46,6 +47,10 @@
 #define INFINEON_CFR3N				0x00000004
 #define INFINEON_CFR4N				0x00000005
 #define INFINEON_CFR5N				0x00000006
+
+/* Macronix MX66UW flash volatile configuration register 2 address
+ * that controls the error correction signal. */
+#define MX66UW_CFR2V_ECS			0x00000400
 
 /**
  * Check the requested operation to ensure it is valid for the device.
@@ -440,8 +445,212 @@ int spi_flash_restore_device_state (const struct spi_flash *flash,
 	return 0;
 }
 
+
 /**
- * Initialize the SPI flash interface API.
+ * Flash API wrapper to get the size of the flash device.
+ *
+ * @param flash The flash to query.
+ * @param bytes The buffer that will hold the number of bytes in the device.
+ *
+ * @return 0 if the device size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_device_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_device_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to read data from the SPI flash.
+ *
+ * @param flash The flash to read from.
+ * @param address The address to start reading from.
+ * @param data The buffer to hold the data that has been read.
+ * @param length The number of bytes to read.
+ *
+ * @return 0 if the bytes were read from flash or an error code.
+ */
+int spi_flash_flash_api_read (const struct flash *flash, uint32_t address, uint8_t *data,
+	size_t length)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_read (spi_flash, address, data, length);
+}
+
+/**
+ * Flash API wrapper to get the size of a flash page for write operations.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the number of bytes in a flash page.
+ *
+ * @return 0 if the page size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_page_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_page_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to get the minimum number of bytes that must be written to
+ * a single flash page.  Writing fewer bytes than the minimum to any page will
+ * still result in a minimum sized write to flash. The extra bytesthat were written
+ * must be erased before they can be written again.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the minimum number of bytes for a page write.
+ *
+ * @return 0 if the minimum write size was successfully read or an error code.
+ */
+int spi_flash_flash_api_minimum_write_per_page (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_minimum_write_per_page (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to Write data to the SPI flash.
+ * The flash needs to be erased prior to writing.
+ *
+ * @param flash The flash to write to.
+ * @param address The address to start writing to.
+ * @param data The data to write.
+ * @param length The number of bytes to write.
+ *
+ * @return The number of bytes written to the flash or an error code.  Use ROT_IS_ERROR to check the
+ * return value.
+ */
+int spi_flash_flash_api_write (const struct flash *flash, uint32_t address, const uint8_t *data,
+	size_t length)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_write (spi_flash, address, data, length);
+}
+
+/**
+ * Flash API wrapper to get the size of a flash sector for erase operations.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the number of bytes in a flash sector.
+ *
+ * @return 0 if the sector size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_sector_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_sector_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to erase a 4kB sector of flash.
+ *
+ * @param flash The flash to erase.
+ * @param sector_addr An address within the sector to erase.
+ *
+ * @return 0 if the sector was erased or an error code.
+ */
+int spi_flash_flash_api_sector_erase (const struct flash *flash, uint32_t sector_addr)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_sector_erase (spi_flash, sector_addr);
+}
+
+/**
+ * Flash API wrapper to get the size of a flash block for erase operations.
+ *
+ * @param flash The flash to query.
+ * @param bytes Output for the number of bytes in a flash block.
+ *
+ * @return 0 if the block size was successfully read or an error code.
+ */
+int spi_flash_flash_api_get_block_size (const struct flash *flash, uint32_t *bytes)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_get_block_size (spi_flash, bytes);
+}
+
+/**
+ * Flash API wrapper to erase a 64kB block of flash.
+ *
+ * @param flash The flash to erase.
+ * @param block_addr An address within the block to erase.
+ *
+ * @return 0 if the block was erased or an error code.
+ */
+int spi_flash_flash_api_block_erase (const struct flash *flash, uint32_t block_addr)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_block_erase (spi_flash, block_addr);
+}
+
+/**
+ * Erase the entire flash chip.
+ *
+ * @param flash The flash to erase.
+ *
+ * @return 0 if the flash chip was erased or an error code.
+ */
+int spi_flash_flash_api_chip_erase (const struct flash *flash)
+{
+	struct spi_flash *spi_flash = TO_DERIVED_TYPE (flash, struct spi_flash, base);
+
+	if (flash == NULL) {
+		return SPI_FLASH_INVALID_ARGUMENT;
+	}
+
+	return spi_flash_chip_erase (spi_flash);
+}
+
+/**
+ * Initialize only the constant portions of the SPI flash interface API.  This produces an instance
+ * initialized in the same way as if it were initialized statically.
+ *
+ * Instances that only have the API initialized should not be released.
  *
  * @param flash The flash interface to initialize.
  * @param state Variable context for the flash interface.  This must be uninitialized.
@@ -449,7 +658,7 @@ int spi_flash_restore_device_state (const struct spi_flash *flash,
  *
  * @return 0 if the flash API was initialized or an error code.
  */
-static int spi_flash_init_api (struct spi_flash *flash, struct spi_flash_state *state,
+int spi_flash_init_api (struct spi_flash *flash, struct spi_flash_state *state,
 	const struct flash_master *spi)
 {
 	if ((flash == NULL) || (state == NULL) || (spi == NULL)) {
@@ -458,21 +667,16 @@ static int spi_flash_init_api (struct spi_flash *flash, struct spi_flash_state *
 
 	memset (flash, 0, sizeof (struct spi_flash));
 
-	flash->base.get_device_size =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_get_device_size;
-	flash->base.read = (int (*) (const struct flash*, uint32_t, uint8_t*, size_t)) spi_flash_read;
-	flash->base.get_page_size = (int (*) (const struct flash*, uint32_t*)) spi_flash_get_page_size;
-	flash->base.minimum_write_per_page =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_minimum_write_per_page;
-	flash->base.write =
-		(int (*) (const struct flash*, uint32_t, const uint8_t*, size_t)) spi_flash_write;
-	flash->base.get_sector_size =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_get_sector_size;
-	flash->base.sector_erase = (int (*) (const struct flash*, uint32_t)) spi_flash_sector_erase;
-	flash->base.get_block_size =
-		(int (*) (const struct flash*, uint32_t*)) spi_flash_get_block_size;
-	flash->base.block_erase = (int (*) (const struct flash*, uint32_t)) spi_flash_block_erase;
-	flash->base.chip_erase = (int (*) (const struct flash*)) spi_flash_chip_erase;
+	flash->base.get_device_size = spi_flash_flash_api_get_device_size;
+	flash->base.read = spi_flash_flash_api_read;
+	flash->base.get_page_size = spi_flash_flash_api_get_page_size;
+	flash->base.minimum_write_per_page = spi_flash_flash_api_minimum_write_per_page;
+	flash->base.write = spi_flash_flash_api_write;
+	flash->base.get_sector_size = spi_flash_flash_api_get_sector_size;
+	flash->base.sector_erase = spi_flash_flash_api_sector_erase;
+	flash->base.get_block_size = spi_flash_flash_api_get_block_size;
+	flash->base.block_erase = spi_flash_flash_api_block_erase;
+	flash->base.chip_erase = spi_flash_flash_api_chip_erase;
 
 	flash->state = state;
 	flash->spi = spi;
@@ -798,18 +1002,19 @@ static int spi_flash_wait_for_write_completion (const struct spi_flash *flash, i
 }
 
 /**
- * Send a write command that writes to Infineon flash register that requires addressing.
+ * Send a write command that writes to a register that requires a 4byte address.
  * This will block until the register write has completed.
  *
  * @param flash The flash instance to use to send the command.
+ * @param cmd The command code that writes the register.
  * @param addr The address of the register to write.
  * @param data The data to write to the register.
  * @param length The length of the data to write.
  *
  * @return 0 if the command was successfully completed or an error code.
  */
-static int spi_flash_infineon_write_register (const struct spi_flash *flash, uint32_t addr,
-	uint8_t *data, size_t length)
+static int spi_flash_write_register_with_4byte_address (const struct spi_flash *flash, uint8_t cmd,
+	uint32_t addr, uint8_t *data, size_t length)
 {
 	struct flash_xfer xfer;
 	int status;
@@ -824,9 +1029,7 @@ static int spi_flash_infineon_write_register (const struct spi_flash *flash, uin
 		return status;
 	}
 
-	/* Assume 4byte address mode. */
-	FLASH_XFER_INIT_WRITE (xfer, FLASH_CMD_INFINEON_WR_ARG, addr, 0, data, length,
-		FLASH_FLAG_4BYTE_ADDRESS);
+	FLASH_XFER_INIT_WRITE (xfer, cmd, addr, 0, data, length, FLASH_FLAG_4BYTE_ADDRESS);
 	status = flash->spi->xfer (flash->spi, &xfer);
 	if (status != 0) {
 		return status;
@@ -1338,24 +1541,29 @@ int spi_flash_force_reset_device (const struct spi_flash *flash, uint32_t wait_m
 int spi_flash_clear_block_protect (const struct spi_flash *flash)
 {
 	struct flash_xfer xfer;
-	uint8_t reg[2];
+	uint8_t reg[2] = {0};
 	uint8_t cmd_len = 1;
 	uint8_t mask = 0x83;
+	uint8_t cmpl_bp = 0;
+	uint8_t cmpl_mask = 0xff;
 	uint8_t vendor;
+	uint16_t device_id;
 	int status;
 
 	if (flash == NULL) {
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
-	status = spi_flash_get_device_id (flash, &vendor, NULL);
+	status = spi_flash_get_device_id (flash, &vendor, &device_id);
 	if (status != 0) {
 		return status;
 	}
 
 	platform_mutex_lock (&flash->state->lock);
 
-	if ((vendor != FLASH_ID_MICROCHIP) && (vendor != FLASH_ID_INFINEON)) {
+	if ((vendor != FLASH_ID_MICROCHIP) && (vendor != FLASH_ID_INFINEON) &&
+		(!((vendor == FLASH_ID_MACRONIX) &&
+		(FLASH_ID_DEVICE_SERIES (device_id) == FLASH_ID_MX66UW)))) {
 		/* Depending on the quad enable bit, the block clear needs to be handled differently:
 		 *   - If the quad bit is in SR1, then we need to be sure not to clear it.
 		 *   - On some devices, writing only 1 byte to SR1 will automatically clear SR2.  On these
@@ -1370,6 +1578,7 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 				cmd_len = 2;
 				break;
 
+			case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
 			case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
 				FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR2, &reg[1], 1, 0);
 				status = flash->spi->xfer (flash->spi, &xfer);
@@ -1388,12 +1597,39 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 			goto exit;
 		}
 
-		if (reg[0] & ~mask) {
+		/* On Winbond devices with QE bit in SR2, ensure bit 6 in SR2
+		 * (complement block protect in SR1) is cleared to ensure block protection is cleared. */
+		if (vendor == FLASH_ID_WINBOND) {
+			cmpl_bp = 0x40;
+			cmpl_mask = 0x03;
+
+			if (flash->state->quad_enable == SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31) {
+				/* CMP is a Winbond protection bit independent of QER.  QER 6 requires SR2 to be
+				 * written separately with 31h, so clear SR1 BP and SR2 CMP independently. */
+				if (reg[0] & ~mask) {
+					reg[0] &= mask;
+					status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, 1,
+						flash->state->sr1_volatile);
+					if (status != 0) {
+						goto exit;
+					}
+				}
+
+				if (reg[1] & cmpl_bp) {
+					reg[1] &= cmpl_mask;
+					status = spi_flash_write_register (flash, FLASH_CMD_WRSR2, &reg[1], 1, false);
+				}
+				goto exit;
+			}
+		}
+
+		if ((reg[0] & ~mask) || (reg[1] & cmpl_bp)) {
 			if (flash->state->quad_enable == SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35) {
 				cmd_len = 2;
 			}
 
 			reg[0] &= mask;
+			reg[1] &= cmpl_mask;
 			status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
 				flash->state->sr1_volatile);
 		}
@@ -1411,7 +1647,8 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 
 		if (reg[0] & 0x1c) {
 			reg[0] &= ~0x1c;
-			status = spi_flash_infineon_write_register (flash, INFINEON_STR1V, reg, 1);
+			status = spi_flash_write_register_with_4byte_address (flash, FLASH_CMD_INFINEON_WR_ARG,
+				INFINEON_STR1V, reg, 1);
 			if (status != 0) {
 				goto exit;
 			}
@@ -1419,7 +1656,36 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 
 		/* Enable single byte write */
 		reg[0] = 0xC0;
-		status = spi_flash_infineon_write_register (flash, INFINEON_CFR4V, reg, 1);
+		status = spi_flash_write_register_with_4byte_address (flash, FLASH_CMD_INFINEON_WR_ARG,
+			INFINEON_CFR4V, reg, 1);
+	}
+	else if ((vendor == FLASH_ID_MACRONIX) &&
+		(FLASH_ID_DEVICE_SERIES (device_id) == FLASH_ID_MX66UW)) {
+		/* Macronix MX66U OSPI flash device has different block protect mechanism from Macronix
+		 * SPI flash devices.  The block protect bits in status register are different.  Double page
+		 * programming has to be enabled by writing to volatile configuration register 2. */
+		FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR, reg, 1, 0);
+		status = flash->spi->xfer (flash->spi, &xfer);
+		if (status != 0) {
+			goto exit;
+		}
+
+		if (reg[0] & 0x3c) {
+			reg[0] &= ~0x3c;
+			status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, cmd_len,
+				flash->state->sr1_volatile);
+			if (status != 0) {
+				goto exit;
+			}
+		}
+
+		/* Modify ECC configuration to enable double page programming. */
+		reg[0] = 0x02;
+		status = spi_flash_write_register_with_4byte_address (flash, FLASH_CMD_MACRONIX_WRCR2,
+			MX66UW_CFR2V_ECS, reg, 1);
+		if (status != 0) {
+			goto exit;
+		}
 	}
 	else {
 		/* Microchip flash does not have block protect bits in the status register.  Instead, there
@@ -1489,6 +1755,10 @@ int spi_flash_is_address_mode_fixed (const struct spi_flash *flash)
 		return SPI_FLASH_INVALID_ARGUMENT;
 	}
 
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		return 1;
+	}
+
 	return ((flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) !=
 		(FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR));
 }
@@ -1544,6 +1814,11 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
 			return 1;
 	}
 
+	/* Handle devices which don't support address mode switching. */
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		return 0;
+	}
+
 	/* Detecting address state on reset is vendor dependent. */
 	status = spi_flash_get_device_id (flash, &vendor, NULL);
 	if (status != 0) {
@@ -1597,6 +1872,14 @@ int spi_flash_is_4byte_address_mode_on_reset (const struct spi_flash *flash)
  */
 static int spi_flash_supports_address_mode (const struct spi_flash *flash, uint8_t mode)
 {
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		/* These devices don't support address mode switching. It is not recommended
+		 * to send commands to flash that are not in the command list. Returning 3byte mode
+		 * here ensures that upper layers like spi_flash_enable_4byte_address_mode don't send
+		 * unsupported commands to flash. */
+		return (mode) ? SPI_FLASH_UNSUPPORTED_ADDR_MODE : SPI_FLASH_ADDR_MODE_FIXED;
+	}
+
 	switch (flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) {
 		case FLASH_CAP_3BYTE_ADDR:
 			return (mode) ? SPI_FLASH_UNSUPPORTED_ADDR_MODE : SPI_FLASH_ADDR_MODE_FIXED;
@@ -1703,6 +1986,11 @@ int spi_flash_detect_4byte_address_mode (const struct spi_flash *flash)
 
 	if ((flash->state->capabilities & (FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) !=
 		(FLASH_CAP_3BYTE_ADDR | FLASH_CAP_4BYTE_ADDR)) {
+		return 0;
+	}
+
+	if (flash->state->switch_4byte == SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET) {
+		/* These devices support 3 byte commands to be sent with 3 byte address. */
 		return 0;
 	}
 
@@ -1833,6 +2121,11 @@ int spi_flash_enable_quad_spi (const struct spi_flash *flash, uint8_t enable)
 			cmd_len = 1;
 			break;
 
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
+			cmd = FLASH_CMD_RDSR2;
+			cmd_len = 1;
+			break;
+
 		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
 			cmd_len = 1;
 			break;
@@ -1879,6 +2172,19 @@ int spi_flash_enable_quad_spi (const struct spi_flash *flash, uint8_t enable)
 			}
 
 			cmd_len = 2;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
+			if (enable) {
+				reg[0] |= QSPI_ENABLE_BIT1;
+			}
+			else {
+				reg[0] &= ~QSPI_ENABLE_BIT1;
+			}
+
+			cmd = FLASH_CMD_WRSR2;
+			cmd_len = 1;
+			volatile_wren = false;
 			break;
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
@@ -1945,6 +2251,7 @@ int spi_flash_is_quad_spi_enabled (const struct spi_flash *flash)
 			break;
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
 			cmd = FLASH_CMD_RDSR2;
 			cmd_len = 1;
 			break;
@@ -1974,6 +2281,7 @@ int spi_flash_is_quad_spi_enabled (const struct spi_flash *flash)
 			break;
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
 			reg[1] = reg[0];
 		/* fall through */ /* no break */
 
@@ -2119,7 +2427,7 @@ int spi_flash_get_page_size (const struct spi_flash *flash, uint32_t *bytes)
 
 /* API handler for get_page_size, minimum_write_per_page, get_sector_size, and get_block_size when
  * statically initialized for read only access. */
-int spi_flash_get_size_read_only (const struct flash *flash, uint32_t *bytes)
+int spi_flash_flash_api_get_size_read_only (const struct flash *flash, uint32_t *bytes)
 {
 	UNUSED (flash);
 	UNUSED (bytes);
@@ -2232,8 +2540,8 @@ exit:
 }
 
 /* API handler for write when statically initialized for read only access. */
-int spi_flash_write_read_only (const struct flash *flash, uint32_t address, const uint8_t *data,
-	size_t length)
+int spi_flash_flash_api_write_read_only (const struct flash *flash, uint32_t address,
+	const uint8_t *data, size_t length)
 {
 	UNUSED (flash);
 	UNUSED (address);
@@ -2331,7 +2639,7 @@ int spi_flash_sector_erase (const struct spi_flash *flash, uint32_t sector_addr)
 }
 
 /* API handler for sector_erase and block_erase when statically initialized for read only access. */
-int spi_flash_erase_read_only (const struct flash *flash, uint32_t addr)
+int spi_flash_flash_api_erase_read_only (const struct flash *flash, uint32_t addr)
 {
 	UNUSED (flash);
 	UNUSED (addr);
@@ -2420,7 +2728,7 @@ exit:
 }
 
 /* API handler for chip_erase when statically initialized for read only access. */
-int spi_flash_chip_erase_read_only (const struct flash *flash)
+int spi_flash_flash_api_chip_erase_read_only (const struct flash *flash)
 {
 	UNUSED (flash);
 

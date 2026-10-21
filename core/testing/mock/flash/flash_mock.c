@@ -701,6 +701,34 @@ int flash_mock_expect_verify_flash_and_hash (struct flash_mock *mock, struct has
 }
 
 /**
+ * Set up expectations for successfully reading data from flash and updating hash with the content.
+ *
+ * @param mock The mock for the flash to read data from.
+ * @param hash The mock for hashing the flash data. Set to null to skip hash mocking.
+ * @param start The address to start reading.
+ * @param data The data that should be returned from the flash.
+ * @param length The length of data being read.
+ *
+ * @return 0 if the expectations were added successfully or non-zero if not.
+ */
+int flash_mock_expect_read_and_hash (struct flash_mock *mock, struct hash_engine_mock *hash,
+	uint32_t start, const uint8_t *data, size_t length)
+{
+	int status;
+
+	status = mock_expect (&mock->mock, mock->base.read, mock, 0, MOCK_ARG (start),
+		MOCK_ARG_NOT_NULL, MOCK_ARG (length));
+	status |= mock_expect_output_tmp (&mock->mock, 1, data, length, 2);
+
+	if (hash) {
+		status |= mock_expect (&hash->mock, hash->base.update, hash, 0,
+			MOCK_ARG_PTR_CONTAINS_TMP (data, length), MOCK_ARG (length));
+	}
+
+	return status;
+}
+
+/**
  * Set up expectations for successfully comparing the contents of two regions of flash.
  *
  * @param mock1 The mock for the first flash being compared

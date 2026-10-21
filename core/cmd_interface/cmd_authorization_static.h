@@ -10,7 +10,7 @@
 /* Internal functions declared to allow for static initialization. */
 int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
 	uint32_t operation_id, const uint8_t **token, size_t *length,
-	const struct authorized_execution **execution);
+	struct cmd_authorization_operation_context *op_context);
 
 
 /**
@@ -26,12 +26,16 @@ int cmd_authorization_authorize_operation (const struct cmd_authorization *auth,
  * @param id_arg Identifier for the operation.
  * @param authorization_ptr Authorization context for the operation.  This can be null to always
  * disallow the operation.
+ * @param data_ptr Parser context for the operation.  This can be null if data is never needed
+ * during execution.
  * @param execution_ptr Execution context for the operation.  This can be null if no operation will
  * ever be executed.
  */
-#define	cmd_authorization_operation_static_init(id_arg, authorization_ptr, execution_ptr)	{ \
+#define	cmd_authorization_operation_static_init(id_arg, authorization_ptr, data_ptr, \
+	execution_ptr)	{ \
 		.id = id_arg, \
 		.authorization = authorization_ptr, \
+		.data = data_ptr, \
 		.execution = execution_ptr, \
 	}
 

@@ -121,25 +121,27 @@ struct recovery_image_manager {
 	struct observable observable;						/**< The manager for recovery image observers. */
 	struct recovery_image_manager_flash_region region1;	/**< The first flash region for a recovery image. */
 	struct recovery_image_manager_flash_region region2;	/**< The second flash region for a recovery image. */
-	struct hash_engine *hash;							/**< The hash engine for recovery image validation. */
+	const struct hash_engine *hash;						/**< The hash engine for recovery image validation. */
 	const struct signature_verification *verification;	/**< Verification module for verifying recovery
 															 image signatures. */
-	struct pfm_manager *pfm;							/**< The PFM manager for recovery image verification. */
+	const struct pfm_manager *pfm;						/**< The PFM manager for recovery image verification. */
 	platform_mutex lock;								/**< Synchronization for recovery image manager state. */
 	int port;											/**< Port identifier for the manager. */
-	struct host_state_manager *state;					/**< State manager interface. */
+	const struct host_state_manager *state;				/**< State manager interface. */
 	struct flash_updater *updating;						/**< The update manager being used to write
 															 new recovery image data. */
 };
 
 
 int recovery_image_manager_init (struct recovery_image_manager *manager,
-	struct recovery_image *image, struct hash_engine *hash,
-	const struct signature_verification *verification, struct pfm_manager *pfm, size_t max_size);
+	struct recovery_image *image, const struct hash_engine *hash,
+	const struct signature_verification *verification, const struct pfm_manager *pfm,
+	size_t max_size);
 int recovery_image_manager_init_two_region (struct recovery_image_manager *manager,
-	struct recovery_image *image1, struct recovery_image *image2, struct host_state_manager *state,
-	struct hash_engine *hash, const struct signature_verification *verification,
-	struct pfm_manager *pfm, size_t max_size);
+	struct recovery_image *image1, struct recovery_image *image2,
+	const struct host_state_manager *state, const struct hash_engine *hash,
+	const struct signature_verification *verification, const struct pfm_manager *pfm,
+	size_t max_size);
 void recovery_image_manager_release (struct recovery_image_manager *manager);
 
 int recovery_image_manager_add_observer (struct recovery_image_manager *manager,
@@ -153,7 +155,7 @@ int recovery_image_manager_get_port (struct recovery_image_manager *manager);
 int recovery_image_manager_get_measured_data (struct recovery_image_manager *manager, size_t offset,
 	uint8_t *buffer, size_t length, uint32_t *total_len);
 int recovery_image_manager_hash_measured_data (struct recovery_image_manager *manager,
-	struct hash_engine *hash);
+	const struct hash_engine *hash);
 
 
 #define	RECOVERY_IMAGE_MANAGER_ERROR(code)		ROT_ERROR (ROT_MODULE_RECOVERY_IMAGE_MANAGER, code)

@@ -147,5 +147,10 @@
  */
 // #define SPDM_MAX_CT_EXPONENT			31
 
+/**
+ * Maximum supported transfer size for SPDM 1.0 and 1.1 messages.
+ */
+// #define SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN				MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY
+
 
 #endif /* PLATFORM_CONFIG_H_ */

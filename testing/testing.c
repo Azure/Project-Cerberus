@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "testing.h"
 
 

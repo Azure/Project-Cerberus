@@ -8,24 +8,24 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int x509_cert_build_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
+int x509_cert_build_create_csr (const struct x509_engine *engine, const uint8_t *priv_key,
 	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
 	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
 	size_t ext_count, uint8_t **csr, size_t *csr_length);
-int x509_cert_build_create_self_signed_certificate (struct x509_engine *engine,
+int x509_cert_build_create_self_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
-int x509_cert_build_create_ca_signed_certificate (struct x509_engine *engine,
+int x509_cert_build_create_ca_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
-int x509_cert_build_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
-	const uint8_t *der, size_t length);
-void x509_cert_build_release_certificate (struct x509_engine *engine,
+int x509_cert_build_load_certificate (const struct x509_engine *engine,
+	struct x509_certificate *cert, const uint8_t *der, size_t length);
+void x509_cert_build_release_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert);
-int x509_cert_build_get_certificate_der (struct x509_engine *engine,
+int x509_cert_build_get_certificate_der (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **der, size_t *length);
 
 

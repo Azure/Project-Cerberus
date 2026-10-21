@@ -7,14 +7,149 @@
 #include "cmd_interface/cerberus_protocol.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
+#include "cmd_interface/msg_transport.h"
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "spdm/spdm_protocol.h"
+#include "testing/mock/cmd_interface/cmd_channel_mock.h"
 #include "testing/mock/cmd_interface/cmd_interface_mock.h"
-
+#include "testing/mock/cmd_interface/msg_transport_mock.h"
 
 TEST_SUITE_LABEL ("mctp_control_protocol_commands");
 
+
+/**
+ * Setup mock send and receive MCTP control protocol Get Routing Table transactions.
+ *
+ * @param test The testing framework.
+ * @param mctp_control MCTP control mock message transport instance.
+ * @param device_mgr Device manager instance to utilize.
+ * @param resp Flag indicating whether to receive a response.
+ * @param invalid_bridge Flag indicating whether to send a invalid_bridge response.
+ */
+static void mctp_control_protocol_commands_setup_send_discovery_notify (CuTest *test,
+	struct msg_transport_mock *mctp_control, struct device_manager *device_mgr, bool no_resp,
+	bool invalid_bridge)
+{
+	struct cmd_interface_msg *req_expected = NULL;
+	struct cmd_interface_msg *resp_expected = NULL;
+	struct mctp_control_discovery_notify *request;
+	struct mctp_control_discovery_notify_response *response;
+	uint8_t bridge_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	uint8_t *rx_message = NULL;
+	uint8_t *tx_message = NULL;
+	uint32_t timeout_ms = 0;
+	int status = 0;
+
+	status = device_manager_init (device_mgr, 2, 0, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (device_mgr,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, bridge_eid, 0x10,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	status = msg_transport_mock_init (mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	/* Request contruction starts */
+	tx_message = platform_calloc (1, sizeof (struct mctp_control_discovery_notify));
+	req_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+	req_expected->data = (uint8_t*) tx_message;
+	req_expected->length = sizeof (struct mctp_control_discovery_notify);
+	req_expected->max_response = MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN;
+	req_expected->payload = tx_message;
+	req_expected->payload_length = sizeof (struct mctp_control_discovery_notify);
+	req_expected->target_eid = bridge_eid;
+
+	request = (struct mctp_control_discovery_notify*) req_expected->payload;
+	request->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
+	request->header.rq = 1;
+	/* Request contruction ends. */
+
+	status = mock_expect (&mctp_control->mock, mctp_control->base.get_buffer_overhead, mctp_control,
+		0, MOCK_ARG (bridge_eid), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mctp_control->mock, mctp_control->base.get_max_message_payload_length,
+		mctp_control, MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN, MOCK_ARG (bridge_eid));
+	CuAssertIntEquals (test, 0, status);
+
+	if (invalid_bridge) {
+		status = mock_expect (&mctp_control->mock, mctp_control->base.send_request_message,
+			&mctp_control->base, DEVICE_MGR_UNKNOWN_DEVICE,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG (timeout_ms), MOCK_ARG_ANY);
+	}
+	else if (no_resp) {
+		status = mock_expect (&mctp_control->mock, mctp_control->base.send_request_message,
+			&mctp_control->base, MSG_TRANSPORT_NO_WAIT_RESPONSE,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected), cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),
+			MOCK_ARG (timeout_ms), MOCK_ARG_ANY);
+	}
+	else {
+		rx_message = platform_calloc (1, sizeof (struct mctp_control_discovery_notify_response) +
+			1);
+		resp_expected = platform_calloc (1, sizeof (struct cmd_interface_msg));
+		resp_expected->data = rx_message;
+		resp_expected->payload = rx_message;
+		resp_expected->target_eid = bridge_eid;
+		resp_expected->max_response = MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN;
+
+		/* Added header info for message transport get message type response payload*/
+		response = (struct mctp_control_discovery_notify_response*)
+			resp_expected->payload;
+		response->header.command_code = 0;
+		response->header.rq = 0;
+		response->header.instance_id = 0;
+		response->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+
+		resp_expected->payload_length = sizeof (struct mctp_control_discovery_notify_response);
+		resp_expected->length = resp_expected->payload_length;
+		/* Response contruction ends. */
+
+		status = mock_expect (&mctp_control->mock, mctp_control->base.send_request_message,
+			&mctp_control->base, 0,
+			MOCK_ARG_VALIDATOR_DEEP_COPY_TMP (cmd_interface_mock_validate_request, req_expected,
+			sizeof (*req_expected),	cmd_interface_mock_save_request,
+			cmd_interface_mock_free_request, cmd_interface_mock_duplicate_request),	MOCK_ARG (5),
+			MOCK_ARG_ANY);
+
+		status = mock_expect_output_deep_copy_tmp (&mctp_control->mock, 2, resp_expected,
+			sizeof (*resp_expected), cmd_interface_mock_copy_request,
+			cmd_interface_mock_duplicate_request, cmd_interface_mock_free_request);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	cmd_interface_mock_free_request (req_expected);
+	cmd_interface_mock_free_request (resp_expected);
+
+	return;
+}
+
+/**
+ * Helper function to release send_discovery_notify testing instances
+ *
+ * @param test The test framework
+ * @param mctp_control mctp control message transport mock instance to release.
+ * @param device_mgr device manager mock instance to release.
+ */
+static void mctp_control_protocol_commands_release_send_discovery_notify (CuTest *test,
+	struct msg_transport_mock *mctp_control, struct device_manager *device_mgr)
+{
+	int status;
+
+	if (mctp_control) {
+		status = msg_transport_mock_validate_and_release (mctp_control);
+		CuAssertIntEquals (test, 0, status);
+	}
+
+	device_manager_release (device_mgr);
+}
 
 /*******************
  * Test cases
@@ -23,7 +158,7 @@ TEST_SUITE_LABEL ("mctp_control_protocol_commands");
 static void mctp_control_protocol_commands_test_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x7e, 0xf5, 0xaa
+		0xf5, 0xaa
 	};
 	struct mctp_control_protocol_header *header;
 
@@ -32,32 +167,26 @@ static void mctp_control_protocol_commands_test_header_format (CuTest *test)
 	CuAssertIntEquals (test, sizeof (raw_buffer), sizeof (struct mctp_control_protocol_header));
 
 	header = (struct mctp_control_protocol_header*) raw_buffer;
-	CuAssertIntEquals (test, 0, header->integrity_check);
-	CuAssertIntEquals (test, 0x7e, header->msg_type);
 	CuAssertIntEquals (test, 1, header->rq);
 	CuAssertIntEquals (test, 1, header->d_bit);
 	CuAssertIntEquals (test, 1, header->rsvd);
 	CuAssertIntEquals (test, 0x15, header->instance_id);
 	CuAssertIntEquals (test, 0xaa, header->command_code);
 
-	raw_buffer[0] = 0xfe;
-	CuAssertIntEquals (test, 1, header->integrity_check);
-	CuAssertIntEquals (test, 0x7e, header->msg_type);
-
-	raw_buffer[1] = 0x75;
+	raw_buffer[0] = 0x75;
 	CuAssertIntEquals (test, 0, header->rq);
 	CuAssertIntEquals (test, 1, header->d_bit);
 	CuAssertIntEquals (test, 1, header->rsvd);
 	CuAssertIntEquals (test, 0x15, header->instance_id);
 
-	raw_buffer[2] = 0x35;
+	raw_buffer[1] = 0x35;
 	CuAssertIntEquals (test, 0x35, header->command_code);
 }
 
 static void mctp_control_protocol_commands_test_resp_header_format (CuTest *test)
 {
 	uint8_t raw_buffer[] = {
-		0x7e, 0xf5, 0xaa, 0xcc
+		0xf5, 0xaa, 0xcc
 	};
 	struct mctp_control_protocol_resp_header *header;
 
@@ -67,8 +196,7 @@ static void mctp_control_protocol_commands_test_resp_header_format (CuTest *test
 		sizeof (struct mctp_control_protocol_resp_header));
 
 	header = (struct mctp_control_protocol_resp_header*) raw_buffer;
-	CuAssertIntEquals (test, 0, header->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, header->header.msg_type);
+
 	CuAssertIntEquals (test, 1, header->header.rq);
 	CuAssertIntEquals (test, 1, header->header.d_bit);
 	CuAssertIntEquals (test, 1, header->header.rsvd);
@@ -76,31 +204,27 @@ static void mctp_control_protocol_commands_test_resp_header_format (CuTest *test
 	CuAssertIntEquals (test, 0xaa, header->header.command_code);
 	CuAssertIntEquals (test, 0xcc, header->completion_code);
 
-	raw_buffer[0] = 0xfe;
-	CuAssertIntEquals (test, 1, header->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, header->header.msg_type);
-
-	raw_buffer[1] = 0x75;
+	raw_buffer[0] = 0x75;
 	CuAssertIntEquals (test, 0, header->header.rq);
 	CuAssertIntEquals (test, 1, header->header.d_bit);
 	CuAssertIntEquals (test, 1, header->header.rsvd);
 	CuAssertIntEquals (test, 0x15, header->header.instance_id);
 
-	raw_buffer[2] = 0x35;
+	raw_buffer[1] = 0x35;
 	CuAssertIntEquals (test, 0x35, header->header.command_code);
 
-	raw_buffer[3] = 0x15;
+	raw_buffer[2] = 0x15;
 	CuAssertIntEquals (test, 0x15, header->completion_code);
 }
 
 static void mctp_control_protocol_commands_test_set_eid_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e, 0x03, 0x01,
+		0x03, 0x01,
 		0x12, 0x34
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e, 0x03, 0x01,
+		0x03, 0x01,
 		0x11, 0xe1, 0x33, 0x44
 	};
 	struct mctp_control_set_eid *req;
@@ -113,8 +237,6 @@ static void mctp_control_protocol_commands_test_set_eid_format (CuTest *test)
 		sizeof (struct mctp_control_set_eid_response));
 
 	req = (struct mctp_control_set_eid*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, 0, req->header.d_bit);
 	CuAssertIntEquals (test, 0, req->header.rsvd);
@@ -126,8 +248,6 @@ static void mctp_control_protocol_commands_test_set_eid_format (CuTest *test)
 	CuAssertIntEquals (test, 0x34, req->eid);
 
 	resp = (struct mctp_control_set_eid_response*) raw_buffer_resp;
-	CuAssertIntEquals (test, 0, resp->header.header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, resp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, resp->header.header.rq);
 	CuAssertIntEquals (test, 0, resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, resp->header.header.rsvd);
@@ -146,10 +266,10 @@ static void mctp_control_protocol_commands_test_set_eid_format (CuTest *test)
 static void mctp_control_protocol_commands_test_get_eid_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e, 0x03, 0x02
+		0x03, 0x02
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e, 0x03, 0x02,
+		0x03, 0x02,
 		0x11, 0xBB, 0x9C, 0xCC
 	};
 	struct mctp_control_get_eid *req;
@@ -162,8 +282,6 @@ static void mctp_control_protocol_commands_test_get_eid_format (CuTest *test)
 		sizeof (struct mctp_control_get_eid_response));
 
 	req = (struct mctp_control_get_eid*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, 0, req->header.d_bit);
 	CuAssertIntEquals (test, 0, req->header.rsvd);
@@ -171,8 +289,6 @@ static void mctp_control_protocol_commands_test_get_eid_format (CuTest *test)
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_EID, req->header.command_code);
 
 	resp = (struct mctp_control_get_eid_response*) raw_buffer_resp;
-	CuAssertIntEquals (test, 0, resp->header.header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, resp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, resp->header.header.rq);
 	CuAssertIntEquals (test, 0, resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, resp->header.header.rsvd);
@@ -191,11 +307,11 @@ static void mctp_control_protocol_commands_test_get_eid_format (CuTest *test)
 static void mctp_control_protocol_commands_test_get_mctp_version_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e, 0x03, 0x04,
+		0x03, 0x04,
 		0x01
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e, 0x03, 0x04,
+		0x03, 0x04,
 		0x11, 0x02,
 		0xDD, 0xCC, 0xBB, 0xAA,
 		0xFF, 0xEE, 0x22, 0x11
@@ -212,8 +328,6 @@ static void mctp_control_protocol_commands_test_get_mctp_version_format (CuTest 
 		mctp_control_get_mctp_version_response_length (2));
 
 	req = (struct mctp_control_get_mctp_version*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, 0, req->header.d_bit);
 	CuAssertIntEquals (test, 0, req->header.rsvd);
@@ -223,8 +337,6 @@ static void mctp_control_protocol_commands_test_get_mctp_version_format (CuTest 
 	CuAssertIntEquals (test, 0x01, req->message_type_num);
 
 	resp = (struct mctp_control_get_mctp_version_response*) raw_buffer_resp;
-	CuAssertIntEquals (test, 0, resp->header.header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, resp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, resp->header.header.rq);
 	CuAssertIntEquals (test, 0, resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, resp->header.header.rsvd);
@@ -253,10 +365,10 @@ static void mctp_control_protocol_commands_test_get_mctp_version_format (CuTest 
 static void mctp_control_protocol_commands_test_get_message_type_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e, 0x03, 0x05
+		0x03, 0x05
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e, 0x03, 0x05,
+		0x03, 0x05,
 		0x11, 0x02,
 		0xAA, 0xBB
 	};
@@ -272,8 +384,6 @@ static void mctp_control_protocol_commands_test_get_message_type_format (CuTest 
 		mctp_control_get_message_type_response_length (2));
 
 	req = (struct mctp_control_get_message_type*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, 0, req->header.d_bit);
 	CuAssertIntEquals (test, 0, req->header.rsvd);
@@ -281,8 +391,6 @@ static void mctp_control_protocol_commands_test_get_message_type_format (CuTest 
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE, req->header.command_code);
 
 	resp = (struct mctp_control_get_message_type_response*) raw_buffer_resp;
-	CuAssertIntEquals (test, 0, resp->header.header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, resp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, resp->header.header.rq);
 	CuAssertIntEquals (test, 0, resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, resp->header.header.rsvd);
@@ -302,15 +410,15 @@ static void mctp_control_protocol_commands_test_get_message_type_format (CuTest 
 static void mctp_control_protocol_commands_test_get_vendor_def_msg_support_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e, 0x03, 0x06,
+		0x03, 0x06,
 		0x12
 	};
 	uint8_t raw_buffer_pci_resp[] = {
-		0x7e, 0x03, 0x06,
+		0x03, 0x06,
 		0x11, 0x22, 0x00, 0x44, 0x55, 0x66, 0x77
 	};
 	uint8_t raw_buffer_iana_resp[] = {
-		0x7e, 0x03, 0x06,
+		0x03, 0x06,
 		0x11, 0x22, 0x01, 0xAA, 0xBB, 0x44, 0x55, 0x66, 0x77
 	};
 	struct mctp_control_get_vendor_def_msg_support *req;
@@ -327,8 +435,6 @@ static void mctp_control_protocol_commands_test_get_vendor_def_msg_support_forma
 		sizeof (struct mctp_control_get_vendor_def_msg_support_iana_response));
 
 	req = (struct mctp_control_get_vendor_def_msg_support*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, 0, req->header.d_bit);
 	CuAssertIntEquals (test, 0, req->header.rsvd);
@@ -339,8 +445,6 @@ static void mctp_control_protocol_commands_test_get_vendor_def_msg_support_forma
 	CuAssertIntEquals (test, 0x12, req->vid_set_selector);
 
 	pci_resp = (struct mctp_control_get_vendor_def_msg_support_pci_response*) raw_buffer_pci_resp;
-	CuAssertIntEquals (test, 0, pci_resp->header.header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, pci_resp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, pci_resp->header.header.rq);
 	CuAssertIntEquals (test, 0, pci_resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, pci_resp->header.header.rsvd);
@@ -356,8 +460,6 @@ static void mctp_control_protocol_commands_test_get_vendor_def_msg_support_forma
 
 	iana_resp =
 		(struct mctp_control_get_vendor_def_msg_support_iana_response*) raw_buffer_iana_resp;
-	CuAssertIntEquals (test, 0, iana_resp->header.header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, iana_resp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, iana_resp->header.header.rq);
 	CuAssertIntEquals (test, 0, iana_resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, iana_resp->header.header.rsvd);
@@ -375,11 +477,11 @@ static void mctp_control_protocol_commands_test_get_vendor_def_msg_support_forma
 static void mctp_control_protocol_commands_test_get_routing_table_entries_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e, 0x03, 0x0A,
+		0x03, 0x0A,
 		0x12
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e, 0x03, 0x0A,
+		0x03, 0x0A,
 		0x11, 0x22, 2,
 		0x02, 0xAA, 0xB5, 0x55, 0x66, 0x77, 0x88,
 		0x03, 0xFF, 0xCA, 0x11, 0x22, 0x33, 0x44,
@@ -396,8 +498,6 @@ static void mctp_control_protocol_commands_test_get_routing_table_entries_format
 		mctp_control_get_routing_table_entries_response_length (2));
 
 	req = (struct mctp_control_get_routing_table_entries*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, 0, req->header.d_bit);
 	CuAssertIntEquals (test, 0, req->header.rsvd);
@@ -408,8 +508,6 @@ static void mctp_control_protocol_commands_test_get_routing_table_entries_format
 	CuAssertIntEquals (test, 0x12, req->entry_handle);
 
 	resp = (struct mctp_control_get_routing_table_entries_response*) raw_buffer_resp;
-	CuAssertIntEquals (test, 0, resp->header.header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, resp->header.header.msg_type);
 	CuAssertIntEquals (test, 0, resp->header.header.rq);
 	CuAssertIntEquals (test, 0, resp->header.header.d_bit);
 	CuAssertIntEquals (test, 0, resp->header.header.rsvd);
@@ -449,10 +547,10 @@ static void mctp_control_protocol_commands_test_get_routing_table_entries_format
 static void mctp_control_protocol_commands_test_discovery_notify_format (CuTest *test)
 {
 	uint8_t raw_buffer_req[] = {
-		0x7e, 0x03, 0x0d
+		0x03, 0x0d
 	};
 	uint8_t raw_buffer_resp[] = {
-		0x7e, 0x03, 0x0d,
+		0x03, 0x0d,
 		0x11
 	};
 	struct mctp_control_discovery_notify *req;
@@ -466,8 +564,6 @@ static void mctp_control_protocol_commands_test_discovery_notify_format (CuTest 
 		sizeof (struct mctp_control_discovery_notify_response));
 
 	req = (struct mctp_control_discovery_notify*) raw_buffer_req;
-	CuAssertIntEquals (test, 0, req->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, req->header.msg_type);
 	CuAssertIntEquals (test, 0, req->header.rq);
 	CuAssertIntEquals (test, 0, req->header.d_bit);
 	CuAssertIntEquals (test, 0, req->header.rsvd);
@@ -475,8 +571,6 @@ static void mctp_control_protocol_commands_test_discovery_notify_format (CuTest 
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY, req->header.command_code);
 
 	resp = (struct mctp_control_discovery_notify_response*) raw_buffer_resp;
-	CuAssertIntEquals (test, 0, resp->header.integrity_check);
-	CuAssertIntEquals (test, 0x7e, resp->header.msg_type);
 	CuAssertIntEquals (test, 0, resp->header.rq);
 	CuAssertIntEquals (test, 0, resp->header.d_bit);
 	CuAssertIntEquals (test, 0, resp->header.rsvd);
@@ -499,9 +593,7 @@ static void mctp_control_protocol_commands_test_process_set_eid (CuTest *test)
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
-
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
+	request.payload = data;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_SET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
@@ -509,7 +601,7 @@ static void mctp_control_protocol_commands_test_process_set_eid (CuTest *test)
 	rq->reserved = 0;
 	rq->operation = MCTP_CONTROL_SET_EID_OPERATION_SET_ID;
 	rq->eid = 0xBB;
-	request.length = sizeof (struct mctp_control_set_eid);
+	request.payload_length = sizeof (struct mctp_control_set_eid);
 	request.source_eid = 0xAA;
 	request.source_addr = 0x20;
 	request.target_eid = MCTP_BASE_PROTOCOL_NULL_EID;
@@ -529,7 +621,7 @@ static void mctp_control_protocol_commands_test_process_set_eid (CuTest *test)
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, 0, response->reserved1);
@@ -561,9 +653,8 @@ static void mctp_control_protocol_commands_test_process_set_eid_force (CuTest *t
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_SET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
@@ -571,7 +662,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_force (CuTest *t
 	rq->reserved = 0;
 	rq->operation = MCTP_CONTROL_SET_EID_OPERATION_FORCE_ID;
 	rq->eid = 0xBB;
-	request.length = sizeof (struct mctp_control_set_eid);
+	request.payload_length = sizeof (struct mctp_control_set_eid);
 	request.source_eid = 0xAA;
 	request.source_addr = 0x20;
 	request.target_eid = MCTP_BASE_PROTOCOL_NULL_EID;
@@ -591,7 +682,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_force (CuTest *t
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.length);
+	CuAssertIntEquals (test, sizeof (struct mctp_control_set_eid_response), request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, 0, response->reserved1);
@@ -622,9 +713,8 @@ static void mctp_control_protocol_commands_test_process_set_eid_null (CuTest *te
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_SET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
@@ -632,7 +722,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_null (CuTest *te
 	rq->reserved = 0;
 	rq->operation = MCTP_CONTROL_SET_EID_OPERATION_SET_ID;
 	rq->eid = 0xBB;
-	request.length = sizeof (struct mctp_control_set_eid);
+	request.payload_length = sizeof (struct mctp_control_set_eid);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_NULL_EID;
 
@@ -671,14 +761,13 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_len (CuT
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_SET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_set_eid) + 1;
+	request.payload_length = sizeof (struct mctp_control_set_eid) + 1;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -697,18 +786,18 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_len (CuT
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR_INVALID_LEN,
 		response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
 
 	response->header.completion_code = 0;
-	request.length = sizeof (struct mctp_control_set_eid) - 1;
+	request.payload_length = sizeof (struct mctp_control_set_eid) - 1;
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR_INVALID_LEN,
 		response->header.completion_code);
@@ -730,9 +819,8 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_SET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
@@ -740,7 +828,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	rq->reserved = 0;
 	rq->operation = 0;
 	rq->eid = MCTP_BASE_PROTOCOL_NULL_EID;
-	request.length = sizeof (struct mctp_control_set_eid);
+	request.payload_length = sizeof (struct mctp_control_set_eid);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -759,7 +847,7 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
@@ -768,11 +856,11 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	rq->reserved = 0;
 	rq->operation = 0;
 	rq->eid = MCTP_BASE_PROTOCOL_BROADCAST_EID;
-	request.length = sizeof (struct mctp_control_set_eid);
+	request.payload_length = sizeof (struct mctp_control_set_eid);
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
@@ -781,11 +869,11 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	rq->reserved = 0;
 	rq->operation = 2;
 	rq->eid = 0xAA;
-	request.length = sizeof (struct mctp_control_set_eid);
+	request.payload_length = sizeof (struct mctp_control_set_eid);
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
@@ -794,11 +882,11 @@ static void mctp_control_protocol_commands_test_process_set_eid_invalid_data (Cu
 	rq->reserved = 1;
 	rq->operation = 0;
 	rq->eid = 0xAA;
-	request.length = sizeof (struct mctp_control_set_eid);
+	request.payload_length = sizeof (struct mctp_control_set_eid);
 
 	status = mctp_control_protocol_set_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 1, response->header.header.command_code);
 	CuAssertIntEquals (test, 2, response->header.completion_code);
 	CuAssertIntEquals (test, 0x0B, device_manager_get_device_eid (&device_manager, 0));
@@ -819,14 +907,13 @@ static void mctp_control_protocol_commands_test_process_get_eid (CuTest *test)
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_get_eid);
+	request.payload_length = sizeof (struct mctp_control_get_eid);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -840,7 +927,7 @@ static void mctp_control_protocol_commands_test_process_get_eid (CuTest *test)
 
 	status = mctp_control_protocol_get_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, sizeof (struct mctp_control_get_eid_response), request.length);
+	CuAssertIntEquals (test, sizeof (struct mctp_control_get_eid_response), request.payload_length);
 	CuAssertIntEquals (test, 2, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID, response->eid);
@@ -865,14 +952,13 @@ static void mctp_control_protocol_commands_test_process_get_eid_null (CuTest *te
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_get_eid);
+	request.payload_length = sizeof (struct mctp_control_get_eid);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -906,14 +992,13 @@ static void mctp_control_protocol_commands_test_process_get_eid_invalid_len (CuT
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_EID;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_get_eid) + 1;
+	request.payload_length = sizeof (struct mctp_control_get_eid) + 1;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -927,16 +1012,16 @@ static void mctp_control_protocol_commands_test_process_get_eid_invalid_len (CuT
 
 	status = mctp_control_protocol_get_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 2, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 
-	request.length = sizeof (struct mctp_control_get_eid) - 1;
+	request.payload_length = sizeof (struct mctp_control_get_eid) - 1;
 	response->header.completion_code = 0;
 
 	status = mctp_control_protocol_get_eid (&device_manager, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 2, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 
@@ -960,22 +1045,22 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->message_type_num = 0xFF;
 
-	request.length = sizeof (struct mctp_control_get_mctp_version);
+	request.payload_length = sizeof (struct mctp_control_get_mctp_version);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_mctp_version_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1), request.length);
+	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1),
+		request.payload_length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, 1, response->version_num_entry_count);
@@ -1008,22 +1093,22 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->message_type_num = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 
-	request.length = sizeof (struct mctp_control_get_mctp_version);
+	request.payload_length = sizeof (struct mctp_control_get_mctp_version);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_mctp_version_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1), request.length);
+	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1),
+		request.payload_length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, 1, response->version_num_entry_count);
@@ -1055,22 +1140,22 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->message_type_num = MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF;
 
-	request.length = sizeof (struct mctp_control_get_mctp_version);
+	request.payload_length = sizeof (struct mctp_control_get_mctp_version);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_mctp_version_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1), request.length);
+	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1),
+		request.payload_length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, 1, response->version_num_entry_count);
@@ -1098,22 +1183,22 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->message_type_num = MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM;
 
-	request.length = sizeof (struct mctp_control_get_mctp_version);
+	request.payload_length = sizeof (struct mctp_control_get_mctp_version);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_mctp_version_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1), request.length);
+	CuAssertIntEquals (test, mctp_control_get_mctp_version_response_length (1),
+		request.payload_length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, 1, response->version_num_entry_count);
@@ -1149,31 +1234,30 @@ static void mctp_control_protocol_commands_test_process_get_mctp_version_support
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->message_type_num = 0xFF;
 
-	request.length = sizeof (struct mctp_control_get_mctp_version) + 1;
+	request.payload_length = sizeof (struct mctp_control_get_mctp_version) + 1;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_mctp_version_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 
-	request.length = sizeof (struct mctp_control_get_mctp_version) - 1;
+	request.payload_length = sizeof (struct mctp_control_get_mctp_version) - 1;
 	response->header.completion_code = 0;
 
 	status = mctp_control_protocol_get_mctp_version_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 }
@@ -1193,14 +1277,13 @@ mctp_control_protocol_commands_test_process_get_mctp_version_support_unsupported
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MCTP_VERSION;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_get_mctp_version);
+	request.payload_length = sizeof (struct mctp_control_get_mctp_version);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
@@ -1208,7 +1291,7 @@ mctp_control_protocol_commands_test_process_get_mctp_version_support_unsupported
 
 	status = mctp_control_protocol_get_mctp_version_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 4, response->header.header.command_code);
 	CuAssertIntEquals (test, 0x80, response->header.completion_code);
 }
@@ -1227,20 +1310,21 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_get_message_type);
+	request.payload_length = sizeof (struct mctp_control_get_message_type);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	response->header.completion_code = 0x80;
 
 	status = mctp_control_protocol_get_message_type_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, mctp_control_get_message_type_response_length (3), request.length);
+	CuAssertIntEquals (test, mctp_control_get_message_type_response_length (3),
+		request.payload_length);
 	CuAssertIntEquals (test, 5, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, 3, response->message_type_count);
@@ -1263,29 +1347,28 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_get_message_type) + 1;
+	request.payload_length = sizeof (struct mctp_control_get_message_type) - 1;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_message_type_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 5, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 
-	request.length = sizeof (struct mctp_control_get_message_type) - 1;
+	request.payload_length = sizeof (struct mctp_control_get_message_type) - 1;
 	response->header.completion_code = 0;
 
 	status = mctp_control_protocol_get_message_type_support (&request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_MIN_MSG_RSP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 5, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 }
@@ -1303,8 +1386,6 @@ static void mctp_control_protocol_commands_test_generate_get_message_type_suppor
 
 	status = mctp_control_protocol_generate_get_message_type_support_request (data, sizeof (data));
 	CuAssertIntEquals (test, sizeof (struct mctp_control_get_message_type), status);
-	CuAssertIntEquals (test, 0, rq->header.msg_type);
-	CuAssertIntEquals (test, 0, rq->header.integrity_check);
 	CuAssertIntEquals (test, 0, rq->header.instance_id);
 	CuAssertIntEquals (test, 0, rq->header.rsvd);
 	CuAssertIntEquals (test, 0, rq->header.d_bit);
@@ -1355,12 +1436,11 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = mctp_control_get_message_type_response_length (3);
+	response.payload = data;
+	response.payload_length = mctp_control_get_message_type_response_length (3);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1396,12 +1476,11 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_get_message_type_response);
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_get_message_type_response);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1412,7 +1491,7 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 	status = mctp_control_protocol_process_get_message_type_support_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
 
-	response.length = mctp_control_get_message_type_response_length (3) + 1;
+	response.payload_length = mctp_control_get_message_type_response_length (3) + 1;
 
 	status = mctp_control_protocol_process_get_message_type_support_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
@@ -1431,12 +1510,11 @@ static void mctp_control_protocol_commands_test_process_get_message_type_support
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = mctp_control_get_message_type_response_length (3);
+	response.payload = data;
+	response.payload_length = mctp_control_get_message_type_response_length (3);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1462,22 +1540,21 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->vid_set_selector = CERBERUS_VID_SET;
-	request.length = sizeof (struct mctp_control_get_vendor_def_msg_support);
+	request.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_vendor_def_msg_support (0x1414, 4, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response),
-		request.length);
+		request.payload_length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, CERBERUS_VID_SET_RESPONSE, response->vid_set_selector);
@@ -1501,22 +1578,21 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->vid_set_selector = CERBERUS_VID_SET;
-	request.length = sizeof (struct mctp_control_get_vendor_def_msg_support);
+	request.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_vendor_def_msg_support (0xFF, 4, &request);
 	CuAssertIntEquals (test, 0, status);
 	CuAssertIntEquals (test, sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response),
-		request.length);
+		request.payload_length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
 	CuAssertIntEquals (test, 0, response->header.completion_code);
 	CuAssertIntEquals (test, CERBERUS_VID_SET_RESPONSE, response->vid_set_selector);
@@ -1551,30 +1627,29 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
-	request.length = sizeof (struct mctp_control_get_vendor_def_msg_support) + 1;
+	request.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support) + 1;
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_vendor_def_msg_support (0xFF00, 4, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 
-	request.length = sizeof (struct mctp_control_get_vendor_def_msg_support) - 1;
+	request.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support) - 1;
 	rq->header.rq = 1;
 	response->header.completion_code = 0;
 
 	status = mctp_control_protocol_get_vendor_def_msg_support (0xFF00, 4, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
 	CuAssertIntEquals (test, 3, response->header.completion_code);
 }
@@ -1594,21 +1669,20 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&request, 0, sizeof (request));
 	memset (data, 0, sizeof (data));
-	request.data = data;
+	request.payload = data;
 
-	rq->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rq->header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rq->header.rq = 1;
 	rq->header.instance_id = 2;
 
 	rq->vid_set_selector = 0xFF;
-	request.length = sizeof (struct mctp_control_get_vendor_def_msg_support);
+	request.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support);
 	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 
 	status = mctp_control_protocol_get_vendor_def_msg_support (0xFF00, 4, &request);
 	CuAssertIntEquals (test, 0, status);
-	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.length);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
 	CuAssertIntEquals (test, 6, response->header.header.command_code);
 	CuAssertIntEquals (test, 2, response->header.completion_code);
 }
@@ -1628,8 +1702,6 @@ static void mctp_control_protocol_commands_test_generate_get_vendor_def_msg_supp
 	status = mctp_control_protocol_generate_get_vendor_def_msg_support_request (1, data,
 		sizeof (data));
 	CuAssertIntEquals (test, sizeof (struct mctp_control_get_vendor_def_msg_support), status);
-	CuAssertIntEquals (test, 0, rq->header.msg_type);
-	CuAssertIntEquals (test, 0, rq->header.integrity_check);
 	CuAssertIntEquals (test, 0, rq->header.instance_id);
 	CuAssertIntEquals (test, 0, rq->header.rsvd);
 	CuAssertIntEquals (test, 0, rq->header.d_bit);
@@ -1682,12 +1754,11 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response);
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1713,12 +1784,11 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_get_vendor_def_msg_support_iana_response);
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support_iana_response);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1756,12 +1826,12 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response) - 1;
+	response.payload = data;
+	response.payload_length =
+		sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1773,14 +1843,16 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 	status = mctp_control_protocol_process_get_vendor_def_msg_support_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
 
-	response.length = sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response) + 1;
+	response.payload_length =
+		sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response) + 1;
 
 	status = mctp_control_protocol_process_get_vendor_def_msg_support_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
 
 	rsp->vid_format = 1;
 
-	response.length = sizeof (struct mctp_control_get_vendor_def_msg_support_iana_response) + 1;
+	response.payload_length =
+		sizeof (struct mctp_control_get_vendor_def_msg_support_iana_response) + 1;
 
 	status = mctp_control_protocol_process_get_vendor_def_msg_support_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
@@ -1800,12 +1872,11 @@ static void mctp_control_protocol_commands_test_process_get_vendor_def_msg_suppo
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response);
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_get_vendor_def_msg_support_pci_response);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_VEN_DEF_MSG_SUPPORT;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1833,8 +1904,6 @@ static void mctp_control_protocol_commands_test_generate_get_routing_table_entri
 	status = mctp_control_protocol_generate_get_routing_table_entries_request (1, data,
 		sizeof (data));
 	CuAssertIntEquals (test, sizeof (struct mctp_control_get_routing_table_entries), status);
-	CuAssertIntEquals (test, 0, rq->header.msg_type);
-	CuAssertIntEquals (test, 0, rq->header.integrity_check);
 	CuAssertIntEquals (test, 0, rq->header.instance_id);
 	CuAssertIntEquals (test, 0, rq->header.rsvd);
 	CuAssertIntEquals (test, 0, rq->header.d_bit);
@@ -1887,12 +1956,11 @@ static void mctp_control_protocol_commands_test_process_get_routing_table_entrie
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = mctp_control_get_routing_table_entries_response_length (2);
+	response.payload = data;
+	response.payload_length = mctp_control_get_routing_table_entries_response_length (2);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1929,12 +1997,11 @@ static void mctp_control_protocol_commands_test_process_get_routing_table_entrie
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_get_routing_table_entries_response) - 1;
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_get_routing_table_entries_response) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1946,7 +2013,7 @@ static void mctp_control_protocol_commands_test_process_get_routing_table_entrie
 	status = mctp_control_protocol_process_get_routing_table_entries_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
 
-	response.length = mctp_control_get_routing_table_entries_response_length (2) + 1;
+	response.payload_length = mctp_control_get_routing_table_entries_response_length (2) + 1;
 
 	status = mctp_control_protocol_process_get_routing_table_entries_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
@@ -1965,12 +2032,11 @@ static void mctp_control_protocol_commands_test_process_get_routing_table_entrie
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = mctp_control_get_routing_table_entries_response_length (2);
+	response.payload = data;
+	response.payload_length = mctp_control_get_routing_table_entries_response_length (2);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.header.command_code = MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES;
 	rsp->header.header.rq = 0;
 	rsp->header.header.instance_id = 2;
@@ -1996,8 +2062,6 @@ static void mctp_control_protocol_commands_test_generate_discovery_notify_reques
 
 	status = mctp_control_protocol_generate_discovery_notify_request (data, sizeof (data));
 	CuAssertIntEquals (test, sizeof (struct mctp_control_discovery_notify), status);
-	CuAssertIntEquals (test, 0, rq->header.msg_type);
-	CuAssertIntEquals (test, 0, rq->header.integrity_check);
 	CuAssertIntEquals (test, 0, rq->header.instance_id);
 	CuAssertIntEquals (test, 0, rq->header.rsvd);
 	CuAssertIntEquals (test, 0, rq->header.d_bit);
@@ -2047,12 +2111,11 @@ static void mctp_control_protocol_commands_test_process_discovery_notify_respons
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_discovery_notify_response);
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_discovery_notify_response);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
 	rsp->header.rq = 0;
 	rsp->header.instance_id = 2;
@@ -2087,12 +2150,11 @@ static void mctp_control_protocol_commands_test_process_discovery_notify_respons
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_discovery_notify_response) - 1;
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_discovery_notify_response) - 1;
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
 	rsp->header.rq = 0;
 	rsp->header.instance_id = 2;
@@ -2102,7 +2164,7 @@ static void mctp_control_protocol_commands_test_process_discovery_notify_respons
 	status = mctp_control_protocol_process_discovery_notify_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
 
-	response.length = sizeof (struct mctp_control_discovery_notify_response) + 1;
+	response.payload_length = sizeof (struct mctp_control_discovery_notify_response) + 1;
 
 	status = mctp_control_protocol_process_discovery_notify_response (&response);
 	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_BAD_LENGTH, status);
@@ -2121,12 +2183,11 @@ static void mctp_control_protocol_commands_test_process_discovery_notify_respons
 
 	memset (&response, 0, sizeof (response));
 	memset (data, 0, sizeof (data));
-	response.data = data;
-	response.length = sizeof (struct mctp_control_discovery_notify_response);
+	response.payload = data;
+	response.payload_length = sizeof (struct mctp_control_discovery_notify_response);
 	response.source_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
 	response.target_eid = MCTP_BASE_PROTOCOL_BMC_EID;
 
-	rsp->header.msg_type = MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG;
 	rsp->header.command_code = MCTP_CONTROL_PROTOCOL_DISCOVERY_NOTIFY;
 	rsp->header.rq = 0;
 	rsp->header.instance_id = 2;
@@ -2135,6 +2196,217 @@ static void mctp_control_protocol_commands_test_process_discovery_notify_respons
 
 	status = mctp_control_protocol_process_discovery_notify_response (&response);
 	CuAssertIntEquals (test, 0, status);
+}
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_no_response (CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	mctp_control_protocol_commands_setup_send_discovery_notify (test, &mctp_control, &device_mgr,
+		true, false);
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_control_protocol_commands_release_send_discovery_notify (test, &mctp_control, &device_mgr);
+}
+
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_notify_null (CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct cmd_interface_msg response;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	status = mctp_control_protocol_send_discovery_notify (NULL, &device_mgr, true, 0, &response);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
+
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, NULL, true, 0,
+		&response);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
+}
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_no_mctp_bridge (CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	mctp_control_protocol_commands_setup_send_discovery_notify (test, &mctp_control, &device_mgr,
+		false, true);
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, DEVICE_MGR_UNKNOWN_DEVICE, status);
+
+	mctp_control_protocol_commands_release_send_discovery_notify (test, &mctp_control, &device_mgr);
+}
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_process_response (
+	CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct cmd_interface_msg response;
+	struct device_manager device_mgr;
+	uint8_t data[4] = {0};
+	int status = 0;
+
+	TEST_START;
+
+	mctp_control_protocol_commands_setup_send_discovery_notify (test, &mctp_control, &device_mgr,
+		false, false);
+	msg_transport_create_empty_response (data, sizeof (data), &response);
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 5,
+		&response);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_control_protocol_process_discovery_notify_response (&response);
+	CuAssertIntEquals (test, 0, status);
+
+	mctp_control_protocol_commands_release_send_discovery_notify (test, &mctp_control, &device_mgr);
+}
+
+static void mctp_control_protocol_commands_test_send_discovery_notify_create_request_fail (
+	CuTest *test)
+{
+	struct msg_transport_mock mctp_control;
+	struct device_manager device_mgr;
+	int status = 0;
+
+	TEST_START;
+
+	status = device_manager_init (&device_mgr, 2, 0, 0, 0, 0, 1000, 1000, 1000, 0, 0, 0, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = device_manager_update_not_attestable_device_entry (&device_mgr,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM, MCTP_BASE_PROTOCOL_BMC_EID, 0x10,
+		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
+	CuAssertIntEquals (test, 0, status);
+
+	status = msg_transport_mock_init (&mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mctp_control.mock, mctp_control.base.get_buffer_overhead, &mctp_control,
+		MSG_TRANSPORT_INVALID_ARGUMENT, MOCK_ARG (0x0A), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
+
+	status = mock_expect (&mctp_control.mock, mctp_control.base.get_buffer_overhead, &mctp_control,
+		0, MOCK_ARG (0x0A), MOCK_ARG_ANY);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&mctp_control.mock, mctp_control.base.get_max_message_payload_length,
+		&mctp_control, MSG_TRANSPORT_INVALID_ARGUMENT, MOCK_ARG (0x0A));
+	CuAssertIntEquals (test, 0, status);
+
+	status = mctp_control_protocol_send_discovery_notify (&mctp_control.base, &device_mgr, true, 0,
+		NULL);
+	CuAssertIntEquals (test, MSG_TRANSPORT_INVALID_ARGUMENT, status);
+
+	status = msg_transport_mock_validate_and_release (&mctp_control);
+	CuAssertIntEquals (test, 0, status);
+
+	device_manager_release (&device_mgr);
+}
+
+static void mctp_control_protocol_commands_test_process_unsupported_cmd (CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg request;
+	struct mctp_control_protocol_header *header = (struct mctp_control_protocol_header*) data;
+	struct mctp_control_protocol_resp_header *response;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0, sizeof (data));
+	response = (struct mctp_control_protocol_resp_header*) data;
+
+	request.payload = data;
+	request.payload_length = sizeof (struct mctp_control_protocol_header);
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+	request.channel_id = 4;
+
+	header->instance_id = 1;
+	header->rsvd = 0;
+	header->d_bit = 0;
+	header->rq = 1;
+	header->command_code = 0x03;
+
+	status = mctp_control_protocol_unsupported_cmd (&request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
+	CuAssertIntEquals (test, 0x03, response->header.command_code);
+	CuAssertIntEquals (test, 1, response->header.instance_id);
+	CuAssertIntEquals (test, 0, response->header.rsvd);
+	CuAssertIntEquals (test, 0, response->header.d_bit);
+	CuAssertIntEquals (test, 1, response->header.rq);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR_UNSUPPORTED_CMD,
+		response->completion_code);
+}
+
+static void mctp_control_protocol_commands_test_process_unsupported_cmd_overwrite_resp (
+	CuTest *test)
+{
+	uint8_t data[MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT];
+	struct cmd_interface_msg request;
+	struct mctp_control_protocol_resp_header *response =
+		(struct mctp_control_protocol_resp_header*) data;
+	struct mctp_control_protocol_header *header = &response->header;
+	int status;
+
+	TEST_START;
+
+	memset (&request, 0, sizeof (request));
+	memset (data, 0xAA, sizeof (data));
+
+	request.payload = data;
+	request.payload_length = sizeof (struct mctp_control_protocol_header);
+	request.channel_id = 7;
+	request.source_eid = MCTP_BASE_PROTOCOL_BMC_EID;
+	request.target_eid = MCTP_BASE_PROTOCOL_PA_ROT_CTRL_EID;
+
+	header->instance_id = 3;
+	header->rsvd = 0;
+	header->d_bit = 0;
+	header->rq = 1;
+	header->command_code = 0x0;
+
+	response->completion_code = MCTP_CONTROL_PROTOCOL_SUCCESS;
+
+	status = mctp_control_protocol_unsupported_cmd (&request);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_FAILURE_RESP_LEN, request.payload_length);
+	CuAssertIntEquals (test, 0x0, response->header.command_code);
+	CuAssertIntEquals (test, 3, response->header.instance_id);
+	CuAssertIntEquals (test, 0, response->header.rsvd);
+	CuAssertIntEquals (test, 0, response->header.d_bit);
+	CuAssertIntEquals (test, 1, response->header.rq);
+	CuAssertIntEquals (test, MCTP_CONTROL_PROTOCOL_ERROR_UNSUPPORTED_CMD,
+		response->completion_code);
+}
+
+static void mctp_control_protocol_commands_test_process_unsupported_cmd_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = mctp_control_protocol_unsupported_cmd (NULL);
+	CuAssertIntEquals (test, CMD_HANDLER_MCTP_CTRL_INVALID_ARGUMENT, status);
 }
 
 
@@ -2201,6 +2473,14 @@ TEST (mctp_control_protocol_commands_test_process_discovery_notify_response);
 TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_null);
 TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_bad_len);
 TEST (mctp_control_protocol_commands_test_process_discovery_notify_response_cc_fail);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_no_response);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_notify_null);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_no_mctp_bridge);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_process_response);
+TEST (mctp_control_protocol_commands_test_send_discovery_notify_create_request_fail);
+TEST (mctp_control_protocol_commands_test_process_unsupported_cmd);
+TEST (mctp_control_protocol_commands_test_process_unsupported_cmd_overwrite_resp);
+TEST (mctp_control_protocol_commands_test_process_unsupported_cmd_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

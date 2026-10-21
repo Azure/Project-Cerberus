@@ -21,7 +21,7 @@ struct pfm_observer {
 	 * @param observer The observer being notified.
 	 * @param pending The PFM that passed verification and is pending.
 	 */
-	void (*on_pfm_verified) (const struct pfm_observer *observer, struct pfm *pending);
+	void (*on_pfm_verified) (const struct pfm_observer *observer, const struct pfm *pending);
 
 	/**
 	 * Notification that a new PFM has been made the active PFM.
@@ -31,7 +31,7 @@ struct pfm_observer {
 	 * @param observer The observer being notified.
 	 * @param active The PFM that was activated.
 	 */
-	void (*on_pfm_activated) (const struct pfm_observer *observer, struct pfm *active);
+	void (*on_pfm_activated) (const struct pfm_observer *observer, const struct pfm *active);
 
 	/**
 	 * Notification that the active PFM has been erased.

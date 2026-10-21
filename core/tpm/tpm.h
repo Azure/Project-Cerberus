@@ -19,7 +19,8 @@
 struct tpm {
 	struct host_processor_observer observer;	/**< The base observer interface. */
 	const struct flash_store *flash;			/**< The flash used for TPM storage. */
-	uint8_t buffer[TPM_STORAGE_SEGMENT_SIZE];	/**< Buffer for TPM flash storage. */
+	uint16_t segment_storage_size;				/**< Size of TPM storage segment */
+	uint8_t *buffer;							/**< Buffer for TPM storage segment */
 };
 
 #define TPM_MAGIC									0xACFE
@@ -39,17 +40,22 @@ struct tpm_header {
 #pragma pack(pop)
 
 
-int tpm_init (struct tpm *tpm, const struct flash_store *flash);
-void tpm_release (struct tpm *tpm);
+int tpm_init (struct tpm *tpm, const struct flash_store *flash, uint8_t *segment_storage,
+	int segment_storage_size);
+int tpm_init_state (const struct tpm *tpm);
 
-int tpm_increment_counter (struct tpm *tpm);
-int tpm_get_counter (struct tpm *tpm, uint64_t *counter);
+void tpm_release (const struct tpm *tpm);
 
-int tpm_set_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len);
-int tpm_get_storage (struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len,
+int tpm_increment_counter (const struct tpm *tpm);
+int tpm_get_counter (const struct tpm *tpm, uint64_t *counter);
+
+int tpm_set_storage (const struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len);
+int tpm_get_storage (const struct tpm *tpm, uint8_t index, uint8_t *storage, size_t storage_len,
 	bool mask_data_error);
 
-int tpm_schedule_clear (struct tpm *tpm);
+int tpm_schedule_clear (const struct tpm *tpm);
+
+int tpm_get_segment_storage_size (const struct tpm *tpm, uint16_t *size);
 
 
 #define	TPM_ERROR(code)		ROT_ERROR (ROT_MODULE_TPM, code)

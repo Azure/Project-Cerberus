@@ -18,11 +18,47 @@
  */
 static void add_all_crypto_tests (CuSuite *suite)
 {
-#if (defined TESTING_RUN_AES_MBEDTLS_SUITE || \
+#if (defined TESTING_RUN_AES_CBC_MBEDTLS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_AES_MBEDTLS_SUITE
-	TESTING_RUN_SUITE (aes_mbedtls);
+	!defined TESTING_SKIP_AES_CBC_MBEDTLS_SUITE
+	TESTING_RUN_SUITE (aes_cbc_mbedtls);
+#endif
+#if (defined TESTING_RUN_AES_ECB_MBEDTLS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_ECB_MBEDTLS_SUITE
+	TESTING_RUN_SUITE (aes_ecb_mbedtls);
+#endif
+#if (defined TESTING_RUN_AES_GCM_MBEDTLS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_GCM_MBEDTLS_SUITE
+	TESTING_RUN_SUITE (aes_gcm_mbedtls);
+#endif
+#if (defined TESTING_RUN_AES_KEY_WRAP_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_KEY_WRAP_SUITE
+	TESTING_RUN_SUITE (aes_key_wrap);
+#endif
+#if (defined TESTING_RUN_AES_KEY_WRAP_WITH_PADDING_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_KEY_WRAP_WITH_PADDING_SUITE
+	TESTING_RUN_SUITE (aes_key_wrap_with_padding);
+#endif
+#if (defined TESTING_RUN_AES_XTS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_XTS_SUITE
+	TESTING_RUN_SUITE (aes_xts);
+#endif
+#if (defined TESTING_RUN_AES_XTS_MBEDTLS_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_XTS_MBEDTLS_SUITE
+	TESTING_RUN_SUITE (aes_xts_mbedtls);
 #endif
 #if (defined TESTING_RUN_CHECKSUM_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -47,6 +83,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_ECC_THREAD_SAFE_SUITE
 	TESTING_RUN_SUITE (ecc_thread_safe);
+#endif
+#if (defined TESTING_RUN_ECDH_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_ECDH_SUITE
+	TESTING_RUN_SUITE (ecdh);
 #endif
 #if (defined TESTING_RUN_ECDSA_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -77,6 +119,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_HASH_THREAD_SAFE_SUITE
 	TESTING_RUN_SUITE (hash_thread_safe);
+#endif
+#if (defined TESTING_RUN_HKDF_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_HKDF_SUITE
+	TESTING_RUN_SUITE (hkdf);
 #endif
 #if (defined TESTING_RUN_KDF_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -120,6 +168,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 	!defined TESTING_SKIP_RSA_THREAD_SAFE_SUITE
 	TESTING_RUN_SUITE (rsa_thread_safe);
 #endif
+#if (defined TESTING_RUN_SIGNATURE_VERIFICATION_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_SUITE
+	TESTING_RUN_SUITE (signature_verification);
+#endif
 #if (defined TESTING_RUN_SIGNATURE_VERIFICATION_ECC_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
@@ -131,6 +185,12 @@ static void add_all_crypto_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_RSA_SUITE
 	TESTING_RUN_SUITE (signature_verification_rsa);
+#endif
+#if (defined TESTING_RUN_SIGNATURE_VERIFICATION_NULL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_NULL_SUITE
+	TESTING_RUN_SUITE(signature_verification_null);
 #endif
 
 	add_all_crypto_kat_tests (suite);

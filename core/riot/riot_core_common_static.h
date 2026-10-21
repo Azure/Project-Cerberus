@@ -33,6 +33,44 @@ int riot_core_common_get_alias_key_cert (const struct riot_core *riot, uint8_t *
 		.get_alias_key_cert = riot_core_common_get_alias_key_cert \
 	}
 
+/**
+ * @brief Internal call to initialize static instance for DICE layer 0 handling.  This can be a
+ * constant instance.
+ *
+ * There is no validation done on the arguments.
+ *
+ * @param api The API functions to use for the instance.
+ * @param state_ptr Variable context for DICE handling.
+ * @param hash_ptr The hash engine to use with DICE.
+ * @param ecc_ptr The ECC engine to use with DICE.
+ * @param x509_ptr The X.509 certificate engine to use with DICE.
+ * @param base64_ptr The base64 encoding engine to use with DICE.
+ * @param key_len Length of the DICE keys that should be created.
+ * @param device_id_ext_ptr A list of additional, custom extensions that should be added to the
+ * Device ID certificate and CSR.  At minimum, this should include the DICE TcbInfo extension for
+ * layer 0.
+ * @param device_id_ext_cnt The number of custom extensions to add to the Device ID certificate
+ * and CSR.
+ * @param alias_ext_ptr A list of additional, custom extensions that should be added to the
+ * Alias certificate.  At minimum, this should include the DICE TcbInfo extension for layer 1.
+ * @param alias_ext_cnt The number of custom extensions to add to the Alias certificate.
+ */
+#define	riot_core_common_static_init_with_api(api, state_ptr, hash_ptr, ecc_ptr, \
+	x509_ptr, base64_ptr, key_len, device_id_ext_ptr, device_id_ext_cnt, alias_ext_ptr, \
+	alias_ext_cnt) \
+	{ \
+		.base = api, \
+		.state = state_ptr, \
+		.hash = hash_ptr, \
+		.ecc = ecc_ptr, \
+		.base64 = base64_ptr, \
+		.x509 = x509_ptr, \
+		.dev_id_ext = device_id_ext_ptr, \
+		.dev_id_ext_count = device_id_ext_cnt, \
+		.alias_ext = alias_ext_ptr, \
+		.alias_ext_count = alias_ext_cnt, \
+		.key_length = key_len, \
+	}
 
 /**
  * Initialize a static instance for DICE layer 0 handling.  This can be a constant instance.
@@ -56,19 +94,9 @@ int riot_core_common_get_alias_key_cert (const struct riot_core *riot, uint8_t *
  */
 #define	riot_core_common_static_init(state_ptr, hash_ptr, ecc_ptr, x509_ptr, base64_ptr, key_len, \
 	device_id_ext_ptr, device_id_ext_cnt, alias_ext_ptr, alias_ext_cnt) \
-	{ \
-		.base = RIOT_CORE_COMMON_API_INIT, \
-		.state = state_ptr, \
-		.hash = hash_ptr, \
-		.ecc = ecc_ptr, \
-		.base64 = base64_ptr, \
-		.x509 = x509_ptr, \
-		.dev_id_ext = device_id_ext_ptr, \
-		.dev_id_ext_count = device_id_ext_cnt, \
-		.alias_ext = alias_ext_ptr, \
-		.alias_ext_count = alias_ext_cnt, \
-		.key_length = key_len, \
-	}
+		riot_core_common_static_init_with_api (RIOT_CORE_COMMON_API_INIT, state_ptr, \
+			hash_ptr, ecc_ptr, x509_ptr, base64_ptr, key_len, device_id_ext_ptr, \
+			device_id_ext_cnt, alias_ext_ptr, alias_ext_cnt)
 
 
 #endif	/* RIOT_CORE_COMMON_STATIC_H_ */

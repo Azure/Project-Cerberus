@@ -33,11 +33,16 @@ struct pcd_testing_data {
 	uint32_t port_offset;						/**< Offset of a SPI flash port element. */
 	int port_entry;								/**< TOC entry for a SPI flash port element. */
 	int port_hash;								/**< TOC hash for a SPI flash port element. */
+	size_t tcg_component_len;					/**< TCG Log component element data length. */
+	uint32_t tcg_component_offset;				/**< Offset of a TCG Log component element. */
+	int tcg_component_entry;					/**< TOC entry for a TCG Log component element. */
+	int tcg_component_hash;						/**< TOC hash for a TCG Log component element. */
 	int num_optional_elements;					/**< Number of optional PCD elements. */
 };
 
 
 extern const struct pcd_testing_data PCD_TESTING;
+extern const struct pcd_testing_data PCD_TESTING_DER_SIG;
 extern const struct pcd_testing_data PCD_SKU_SPECIFIC_TESTING;
 extern const struct pcd_testing_data PCD_NO_COMPONENTS_TESTING;
 extern const struct pcd_testing_data PCD_NO_PORTS_TESTING;

@@ -6,6 +6,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <endian.h>
 #include <time.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -20,8 +21,12 @@
 
 
 /* Use the Linux APIs for byte swapping. */
+#define	platform_htonll		htobe64
+#define	platform_ntohll		be64toh
 #define	platform_htonl		htonl
+#define	platform_ntohl		ntohl
 #define	platform_htons		htons
+#define	platform_ntohs		ntohs
 
 
 /* Use timespec for timeouts. */

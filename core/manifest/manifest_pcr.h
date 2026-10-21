@@ -15,7 +15,7 @@
  * as part of a parent module.
  */
 struct manifest_pcr {
-	struct hash_engine *hash;					/**< The hash engine for generating measurements. */
+	const struct hash_engine *hash;				/**< The hash engine for generating measurements. */
 	struct pcr_store *store;					/**< Storage for PCR measurements. */
 	uint16_t manifest_measurement;				/**< The identifier for the manifest measurement. */
 	uint16_t manifest_id_measurement;			/**< The identifier for manifest ID measurement. */
@@ -23,13 +23,20 @@ struct manifest_pcr {
 };
 
 
-int manifest_pcr_init (struct manifest_pcr *pcr, struct hash_engine *hash, struct pcr_store *store,
-	uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+int manifest_pcr_init (struct manifest_pcr *pcr, const struct hash_engine *hash,
+	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
 	uint16_t manifest_platform_id_measurement, int error);
-void manifest_pcr_release (struct manifest_pcr *pcr);
+void manifest_pcr_release (const struct manifest_pcr *pcr);
 
-void manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
-	struct manifest *active);
+int manifest_pcr_check_measurements (const struct manifest_pcr *pcr, int invalid_arg,
+	int not_unique);
+
+int manifest_pcr_record_manifest_measurement (const struct manifest_pcr *pcr,
+	const struct manifest *active);
+
+int manifest_pcr_measure_manifest (const struct manifest *active, const struct hash_engine *hash,
+	struct pcr_store *store, uint16_t manifest_measurement, uint16_t manifest_id_measurement,
+	uint16_t manifest_platform_id_measurement);
 
 
 #endif	/* MANIFEST_PCR_H_ */

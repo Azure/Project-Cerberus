@@ -4,6 +4,7 @@
 #ifndef TDISP_PROTOCOL_H_
 #define TDISP_PROTOCOL_H_
 
+#include "platform_api.h"
 
 #define PCI_PROTOCOL_ID_TDISP	0x01
 
@@ -39,11 +40,43 @@ enum {
 };
 
 /**
+ * TDISP TDI states
+ */
+enum {
+	TDISP_TDI_STATE_CONFIG_UNLOCKED = 0,	/**< TDI state CONFIG_UNLOCKED */
+	TDISP_TDI_STATE_CONFIG_LOCKED = 1,		/**< TDI state CONFIG_LOCKED */
+	TDISP_TDI_STATE_RUN = 2,				/**< TDI state RUN state */
+	TDISP_TDI_STATE_ERROR = 3,				/**< TDI state ERROR state */
+};
+
+/**
+ * TDISP function ID format.
+ */
+union PLATFORM_LITTLE_ENDIAN_STORAGE tdisp_function_id {
+	uint32_t value;	/**< The raw register value. */
+
+	struct {
+		union {
+			uint16_t bdf;				/**< Bus/Device/Function number in BDF format. */
+			struct {
+				uint16_t function : 3;	/**< PCI function number. */
+				uint16_t device : 5;	/**< PCI device number. */
+				uint16_t bus : 8;		/**< PCI bus number. */
+			};
+		};
+
+		uint32_t reguester_segment : 8;			/**< Requester segment, reserved if not valid */
+		uint32_t requester_segment_valid : 1;	/**< Requester segment valid flag, 0 - not valid, 1 - valid */
+		uint32_t reserved : 7;					/**< Reserved. */
+	};
+};
+
+/**
  * TDISP interface Id format.
  */
 struct tdisp_interface_id {
-	uint32_t function_id;	/**< Identifies the function of the device hosting the TDI. */
-	uint64_t reserved;		/**< Reserved. */
+	union tdisp_function_id function_id;	/**< Identifies the function of the device hosting the TDI. */
+	uint64_t reserved;						/**< Reserved. */
 };
 
 /**
@@ -93,6 +126,18 @@ struct tdisp_get_capabilities_request {
 	struct tdisp_requester_capabilities req_caps;	/**< Requester capabilities. */
 };
 
+
+/**
+ * TDISP lock interface flags
+ */
+enum {
+	TDISP_LOCK_INTERFACE_FLAGS_NO_FW_UPDATE = 0x01,			/**< While intreface is locked no FW update is allowed */
+	TDISP_LOCK_INTERFACE_FLAGS_CACHE_LINE_SIZE = 0x02,		/**< System cache line size. 0 - 64 bytes, 1 - 128 bytes */
+	TDISP_LOCK_INTERFACE_FLAGS_LOCK_MSIX = 0x04,			/**< Lock MSIX table and PBA */
+	TDISP_LOCK_INTERFACE_FLAGS_BIND_P2P = 0x08,				/**< P2P support, 0 - is not allowed/enabled, 1 - can be enabled */
+	TDISP_LOCK_INTERFACE_FLAGS_ALL_REQUEST_REDIRECT = 0x10,	/**< TDI must redirect all ATS translated requests to Root complex */
+};
+
 /**
  * TDISP responder capabilities.
  */
@@ -117,7 +162,7 @@ struct tdisp_capabilities_response {
 /**
  * TDISP LOCK_INTERFACE_REQUEST request flags.
  */
-struct tdisp_lock_interface_flags {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE tdisp_lock_interface_flags {
 	union {
 		uint16_t value;	/**< The raw register value. */
 
@@ -274,7 +319,7 @@ struct tdisp_device_interface_report_response {
 /**
  * TDISP LOCK_INTERFACE_REQUEST request flags.
  */
-struct tdisp_mmio_range_attributes {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE tdisp_mmio_range_attributes {
 	union {
 		uint32_t value;	/**< The raw register value. */
 
@@ -328,7 +373,7 @@ struct tdisp_mmio_range {
 /**
  * TDISP interface info.
  */
-struct tdisp_interface_info {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE tdisp_interface_info {
 	union {
 		uint16_t value;	/**< The raw register value. */
 

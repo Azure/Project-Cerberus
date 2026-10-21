@@ -182,20 +182,30 @@ static size_t firmware_component_get_image_length (const struct firmware_compone
  * Allocate a buffer and read the image signature from flash.
  *
  * @param image The image to query.
+ * @param verification Context to use for signature verification.
  * @param signature Output for the signature buffer.
  * @param sig_length The size of the signature.
  *
  * @return 0 if the signature was read or an error code.
  */
 static int firmware_component_read_signature_data (const struct firmware_component *image,
-	uint8_t **signature, size_t *sig_length)
+	const struct signature_verification *verification, uint8_t **signature, size_t *sig_length)
 {
+	size_t max_sig_length;
 	int status;
 
+	status = verification->get_max_signature_length (verification, &max_sig_length);
+	if (status != 0) {
+		return status;
+	}
+
 	*sig_length = FW_COMPONENT_HDR (image, 0).sig_length;
+	if (*sig_length > max_sig_length) {
+		return FIRMWARE_COMPONENT_SIG_TOO_LARGE;
+	}
 
 	*signature = platform_malloc (*sig_length);
-	if (signature == NULL) {
+	if (*signature == NULL) {
 		return FIRMWARE_COMPONENT_NO_MEMORY;
 	}
 
@@ -215,11 +225,11 @@ static int firmware_component_read_signature_data (const struct firmware_compone
  * Check the component version and get the signature information necessary to verify the component.
  *
  * @param image The image being verified.
+ * @param verification Context to use for signature verification.
  * @param expected_version The version to use for component verification.  This can be null.
  * @param hash_out Optional buffer that will be used to store the hash of the component.
  * @param hash_length Size of the buffer that will be used to store the image hash.
  * @param digest_type Output for the type of digest that will be generated for verification.
- * @param digest_length Output for the lest of the verification digest.
  * @param signature Output for the signature of the component.  This will be dynamically allocated
  * and must be freed by the caller.
  * @param sig_length Output for the length of the component signature.
@@ -228,10 +238,13 @@ static int firmware_component_read_signature_data (const struct firmware_compone
  * @return 0 if validation can proceed on the component or an error code.
  */
 static int firmware_component_prepare_for_verification (const struct firmware_component *image,
+	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
-	size_t hash_length, enum hash_type *digest_type, size_t *digest_length, uint8_t **signature,
-	size_t *sig_length, size_t *img_length)
+	size_t hash_length, enum hash_type *digest_type, uint8_t **signature, size_t *sig_length,
+	size_t *img_length)
 {
+	size_t digest_length;
+
 	if ((expected_version != NULL) &&
 		(buffer_compare (expected_version, firmware_component_get_build_version (image),
 			FW_COMPONENT_BUILD_VERSION_LENGTH) != 0)) {
@@ -239,12 +252,12 @@ static int firmware_component_prepare_for_verification (const struct firmware_co
 	}
 
 	*digest_type = firmware_component_get_hash_type (image);
-	*digest_length = hash_get_hash_length (*digest_type);
-	if (*digest_length == HASH_ENGINE_UNKNOWN_HASH) {
+	digest_length = hash_get_hash_length (*digest_type);
+	if (digest_length == HASH_ENGINE_UNKNOWN_HASH) {
 		return HASH_ENGINE_UNKNOWN_HASH;
 	}
 
-	if (hash_out && (hash_length < *digest_length)) {
+	if (hash_out && (hash_length < digest_length)) {
 		return FIRMWARE_COMPONENT_HASH_BUFFER_TOO_SMALL;
 	}
 
@@ -252,7 +265,7 @@ static int firmware_component_prepare_for_verification (const struct firmware_co
 		*img_length = firmware_component_get_image_length (image);
 	}
 
-	return firmware_component_read_signature_data (image, signature, sig_length);
+	return firmware_component_read_signature_data (image, verification, signature, sig_length);
 }
 
 /**
@@ -271,7 +284,7 @@ static int firmware_component_prepare_for_verification (const struct firmware_co
  * @return 0 if the component hash was successfully started or an error code.
  */
 static int firmware_component_start_component_hash (const struct firmware_component *image,
-	struct hash_engine *hash, enum hash_type digest_type, const struct image_header *header)
+	const struct hash_engine *hash, enum hash_type digest_type, const struct image_header *header)
 {
 	int status;
 
@@ -316,7 +329,6 @@ exit:
  * @param hash The hash engine used to generate the component digest.
  * @param verification Context to use for signature verification.
  * @param digest_type The type of digest generated for the component.
- * @param digest_length Length of the component digest.
  * @param signature The signature for the component.
  * @param sig_length Length of the component signature.
  * @param hash_out Buffer to hold the component digest.
@@ -328,24 +340,18 @@ exit:
  * @return 0 if the component verification completed successfully or an error code.
  */
 static int firmware_component_finish_verification (const struct firmware_component *image,
-	struct hash_engine *hash, const struct signature_verification *verification,
-	enum hash_type digest_type, size_t digest_length, uint8_t *signature, size_t sig_length,
-	uint8_t *hash_out, size_t hash_length, enum hash_type *hash_type, size_t *load_length)
+	const struct hash_engine *hash, const struct signature_verification *verification,
+	enum hash_type digest_type, uint8_t *signature, size_t sig_length, uint8_t *hash_out,
+	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
 	int status;
-
-	status = hash->finish (hash, hash_out, hash_length);
-	if (status != 0) {
-		hash->cancel (hash);
-		goto exit;
-	}
 
 	if (hash_type) {
 		*hash_type = digest_type;
 	}
 
-	status = verification->verify_signature (verification, hash_out, digest_length, signature,
-		sig_length);
+	status = signature_verification_verify_hash_and_finish_save_digest (verification, hash, NULL, 0,
+		signature, sig_length, hash_out, hash_length, NULL);
 	if (status != 0) {
 		goto exit;
 	}
@@ -355,6 +361,7 @@ static int firmware_component_finish_verification (const struct firmware_compone
 	}
 
 exit:
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;
@@ -378,7 +385,7 @@ exit:
  * @return 0 if the component image is valid or an error code.
  */
 int firmware_component_verification (const struct firmware_component *image,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type)
 {
@@ -386,15 +393,14 @@ int firmware_component_verification (const struct firmware_component *image,
 	size_t sig_length;
 	size_t img_length;
 	enum hash_type digest_type;
-	size_t digest_length;
 	int status;
 
 	if ((image == NULL) || (hash == NULL) || (verification == NULL)) {
 		return FIRMWARE_COMPONENT_INVALID_ARGUMENT;
 	}
 
-	status = firmware_component_prepare_for_verification (image, expected_version, hash_out,
-		hash_length, &digest_type, &digest_length, &signature, &sig_length, &img_length);
+	status = firmware_component_prepare_for_verification (image, verification, expected_version,
+		hash_out, hash_length, &digest_type, &signature, &sig_length, &img_length);
 	if (status != 0) {
 		return status;
 	}
@@ -406,6 +412,7 @@ int firmware_component_verification (const struct firmware_component *image,
 		*hash_type = digest_type;
 	}
 
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;
@@ -479,7 +486,8 @@ int firmware_component_load (const struct firmware_component *image, uint8_t *lo
  * @return 0 if the component was loaded to memory and verified as good or an error code.
  */
 int firmware_component_load_and_verify (const struct firmware_component *image, uint8_t *load_addr,
-	size_t max_length, struct hash_engine *hash, const struct signature_verification *verification,
+	size_t max_length, const struct hash_engine *hash,
+	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -519,15 +527,14 @@ int firmware_component_load_and_verify (const struct firmware_component *image, 
  */
 int firmware_component_load_and_verify_with_header (const struct firmware_component *image,
 	uint8_t *load_addr, size_t max_length, const struct image_header *header,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
-	uint8_t img_hash[SHA512_HASH_LENGTH];
+	uint8_t img_hash[HASH_MAX_HASH_LEN] = {0};
 	uint8_t *signature;
 	size_t sig_length;
 	enum hash_type digest_type;
-	size_t digest_length;
 	int status;
 
 	if ((image == NULL) || (load_addr == NULL) || (hash == NULL) || (verification == NULL)) {
@@ -539,8 +546,8 @@ int firmware_component_load_and_verify_with_header (const struct firmware_compon
 		hash_length = sizeof (img_hash);
 	}
 
-	status = firmware_component_prepare_for_verification (image, expected_version, hash_out,
-		hash_length, &digest_type, &digest_length, &signature, &sig_length, NULL);
+	status = firmware_component_prepare_for_verification (image, verification, expected_version,
+		hash_out, hash_length, &digest_type, &signature, &sig_length, NULL);
 	if (status != 0) {
 		return status;
 	}
@@ -560,12 +567,17 @@ int firmware_component_load_and_verify_with_header (const struct firmware_compon
 		goto hash_fail;
 	}
 
-	return firmware_component_finish_verification (image, hash, verification, digest_type,
-		digest_length, signature, sig_length, hash_out, hash_length, hash_type, load_length);
+	status = firmware_component_finish_verification (image, hash, verification, digest_type,
+		signature, sig_length, hash_out, hash_length, hash_type, load_length);
+
+	buffer_zeroize (img_hash, sizeof (img_hash));
+
+	return status;
 
 hash_fail:
 	hash->cancel (hash);
 error_exit:
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;
@@ -661,7 +673,7 @@ int firmware_component_load_to_memory (const struct firmware_component *image,
  */
 int firmware_component_load_to_memory_and_verify (const struct firmware_component *image,
 	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
@@ -706,18 +718,17 @@ int firmware_component_load_to_memory_and_verify (const struct firmware_componen
  */
 int firmware_component_load_to_memory_and_verify_with_header (
 	const struct firmware_component *image, const struct firmware_loader *loader, const uint8_t *iv,
-	size_t iv_length, const struct image_header *header, struct hash_engine *hash,
+	size_t iv_length, const struct image_header *header, const struct hash_engine *hash,
 	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length)
 {
 	uint64_t phy_addr;
 	uint8_t *load_addr;
-	uint8_t img_hash[SHA512_HASH_LENGTH];
+	uint8_t img_hash[HASH_MAX_HASH_LEN];
 	uint8_t *signature;
 	size_t sig_length;
 	enum hash_type digest_type;
-	size_t digest_length;
 	int status;
 
 	if ((image == NULL) || (loader == NULL) || (hash == NULL) || (verification == NULL)) {
@@ -734,8 +745,8 @@ int firmware_component_load_to_memory_and_verify_with_header (
 		hash_length = sizeof (img_hash);
 	}
 
-	status = firmware_component_prepare_for_verification (image, expected_version, hash_out,
-		hash_length, &digest_type, &digest_length, &signature, &sig_length, NULL);
+	status = firmware_component_prepare_for_verification (image, verification, expected_version,
+		hash_out, hash_length, &digest_type, &signature, &sig_length, NULL);
 	if (status != 0) {
 		return status;
 	}
@@ -759,12 +770,17 @@ int firmware_component_load_to_memory_and_verify_with_header (
 		goto hash_fail;
 	}
 
-	return firmware_component_finish_verification (image, hash, verification, digest_type,
-		digest_length, signature, sig_length, hash_out, hash_length, hash_type, load_length);
+	status = firmware_component_finish_verification (image, hash, verification, digest_type,
+		signature, sig_length, hash_out, hash_length, hash_type, load_length);
+
+	buffer_zeroize (img_hash, sizeof (img_hash));
+
+	return status;
 
 hash_fail:
 	hash->cancel (hash);
 error_exit:
+	buffer_zeroize (signature, sig_length);
 	platform_free (signature);
 
 	return status;
@@ -961,8 +977,9 @@ enum hash_type firmware_component_get_hash_type (const struct firmware_component
  * @return Length of the calculated hash or an error code.  Use ROT_IS_ERROR to check the return for
  * an error.
  */
-int firmware_component_get_hash (const struct firmware_component *image, struct hash_engine *hash,
-	uint8_t *hash_out, size_t hash_length, enum hash_type *hash_type)
+int firmware_component_get_hash (const struct firmware_component *image,
+	const struct hash_engine *hash, uint8_t *hash_out, size_t hash_length,
+	enum hash_type *hash_type)
 {
 	size_t length;
 	enum hash_type digest_type;

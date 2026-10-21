@@ -115,7 +115,7 @@ struct pfm {
 	 *
 	 * @return 0 if the firmware list was updated successfully or an error code.
 	 */
-	int (*get_firmware) (struct pfm *pfm, struct pfm_firmware *fw);
+	int (*get_firmware) (const struct pfm *pfm, struct pfm_firmware *fw);
 
 	/**
 	 * Free a list of firmware components.
@@ -123,7 +123,7 @@ struct pfm {
 	 * @param pfm The PFM instance that provided the list.
 	 * @param fw The supported firmware list to free.
 	 */
-	void (*free_firmware) (struct pfm *pfm, struct pfm_firmware *fw);
+	void (*free_firmware) (const struct pfm *pfm, struct pfm_firmware *fw);
 
 	/**
 	 * Get the list of supported firmware versions advertised in the PFM.
@@ -135,7 +135,7 @@ struct pfm {
 	 *
 	 * @return 0 if the version list was updated successfully or an error code.
 	 */
-	int (*get_supported_versions) (struct pfm *pfm, const char *fw,
+	int (*get_supported_versions) (const struct pfm *pfm, const char *fw,
 		struct pfm_firmware_versions *ver_list);
 
 	/**
@@ -144,7 +144,7 @@ struct pfm {
 	 * @param pfm The PFM instance that provided the list.
 	 * @param ver_list The supported version list to free.
 	 */
-	void (*free_fw_versions) (struct pfm *pfm, struct pfm_firmware_versions *ver_list);
+	void (*free_fw_versions) (const struct pfm *pfm, struct pfm_firmware_versions *ver_list);
 
 	/**
 	 * Get the list of supported firmware versions advertised in the PFM, but the list of version
@@ -163,8 +163,8 @@ struct pfm {
 	 * @return The number of bytes written to the output buffer or an error code.  Use ROT_IS_ERROR
 	 * to check the return value.
 	 */
-	int (*buffer_supported_versions) (struct pfm *pfm, const char *fw, size_t offset, size_t length,
-		uint8_t *ver_list);
+	int (*buffer_supported_versions) (const struct pfm *pfm, const char *fw, size_t offset,
+		size_t length, uint8_t *ver_list);
 
 	/**
 	 * Get the list of all read/write regions defined for a specific version of firmware.
@@ -177,7 +177,7 @@ struct pfm {
 	 *
 	 * @return 0 if the region list was updated successfully or an error code.
 	 */
-	int (*get_read_write_regions) (struct pfm *pfm, const char *fw, const char *version,
+	int (*get_read_write_regions) (const struct pfm *pfm, const char *fw, const char *version,
 		struct pfm_read_write_regions *writable);
 
 	/**
@@ -186,7 +186,8 @@ struct pfm {
 	 * @param pfm THe PFM instance that provided the list.
 	 * @param writable The read/write regions list to free.
 	 */
-	void (*free_read_write_regions) (struct pfm *pfm, struct pfm_read_write_regions *writable);
+	void (*free_read_write_regions) (const struct pfm *pfm,
+		struct pfm_read_write_regions *writable);
 
 	/**
 	 * Get the list of all signed firmware components for a specific version of firmware.
@@ -199,7 +200,7 @@ struct pfm {
 	 *
 	 * @return 0 if the image list was updated successfully or an error code.
 	 */
-	int (*get_firmware_images) (struct pfm *pfm, const char *fw, const char *version,
+	int (*get_firmware_images) (const struct pfm *pfm, const char *fw, const char *version,
 		struct pfm_image_list *img_list);
 
 	/**
@@ -208,7 +209,7 @@ struct pfm {
 	 * @param pfm The PFM instance that provided the list.
 	 * @param img_list The list of images to free.
 	 */
-	void (*free_firmware_images) (struct pfm *pfm, struct pfm_image_list *img_list);
+	void (*free_firmware_images) (const struct pfm *pfm, struct pfm_image_list *img_list);
 };
 
 

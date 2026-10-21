@@ -15,19 +15,22 @@
 #include "cmd_interface.h"
 #include "cmd_interface_system.h"
 #include "cmd_logging.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
+
 
 
 int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	const struct cmd_interface_system *interface = (const struct cmd_interface_system*) intf;
+	const struct cmd_interface_system *interface =
+		TO_DERIVED_TYPE (intf, struct cmd_interface_system, base);
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&interface->base, request,
-		&command_id, &command_set, true, true);
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id,
+		&command_set, true, true);
 	if (status != 0) {
 		return status;
 	}
@@ -64,7 +67,7 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_PFM_ID: {
-			const struct pfm_manager *pfm_mgr[2] = {
+			const struct pfm_manager *const pfm_mgr[2] = {
 				interface->pfm_manager_0, interface->pfm_manager_1
 			};
 
@@ -73,7 +76,7 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 		}
 
 		case CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW: {
-			const struct pfm_manager *pfm_mgr[2] = {
+			const struct pfm_manager *const pfm_mgr[2] = {
 				interface->pfm_manager_0, interface->pfm_manager_1
 			};
 
@@ -82,23 +85,29 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 		}
 
 		case CERBERUS_PROTOCOL_INIT_PFM_UPDATE: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
 
 			status = cerberus_protocol_pfm_update_init (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_PFM_UPDATE: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
 
 			status = cerberus_protocol_pfm_update (pfm_cmd, 2, request);
 			break;
 		}
 
 		case CERBERUS_PROTOCOL_COMPLETE_PFM_UPDATE: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
 
-			status = cerberus_protocol_pfm_update_complete (pfm_cmd, 2,	request);
+			status = cerberus_protocol_pfm_update_complete (pfm_cmd, 2, request);
 			break;
 		}
 
@@ -138,9 +147,34 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_pcd_component_ids (interface->pcd_manager, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO:
+			status = cerberus_protocol_get_pcd_component_instance_info (interface->device_manager,
+				request);
+			break;
+
 		case CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS:
 			status = cerberus_protocol_get_cfm_component_ids (interface->cfm_manager, request);
 			break;
+
+		case CERBERUS_PROTOCOL_GET_MANIFEST_SIZE: {
+			const struct pfm_manager *const pfm_mgr[2] = {
+				interface->pfm_manager_0, interface->pfm_manager_1
+			};
+
+			status = cerberus_protocol_get_manifest_size (interface->cfm_manager,
+				interface->pcd_manager, pfm_mgr, 2, request);
+			break;
+		}
+
+		case CERBERUS_PROTOCOL_EXPORT_MANIFEST: {
+			const struct pfm_manager *const pfm_mgr[2] = {
+				interface->pfm_manager_0, interface->pfm_manager_1
+			};
+
+			status = cerberus_protocol_export_manifest (interface->cfm_manager,
+				interface->pcd_manager, pfm_mgr, 2, request);
+			break;
+		}
 
 		case CERBERUS_PROTOCOL_INIT_FW_UPDATE:
 			status = cerberus_protocol_fw_update_init (interface->control, request);
@@ -155,8 +189,12 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 
 		case CERBERUS_PROTOCOL_GET_UPDATE_STATUS: {
-			const struct manifest_cmd_interface *pfm_cmd[2] = {interface->pfm_0, interface->pfm_1};
-			struct host_processor *host[2] = {interface->host_0, interface->host_1};
+			const struct manifest_cmd_interface *const pfm_cmd[2] = {
+				interface->pfm_0, interface->pfm_1
+			};
+			const struct host_cmd_interface *const host[2] = {
+				interface->host_0, interface->host_1
+			};
 
 			status = cerberus_protocol_get_update_status (interface->control, 2, pfm_cmd,
 				interface->cfm, interface->pcd, host, interface->recovery_cmd_0,
@@ -229,6 +267,24 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 				interface->host_1_ctrl, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_HOST_FLASH_CONFIGURATION: {
+			const struct host_cmd_interface *const host[2] = {
+				interface->host_0, interface->host_1
+			};
+
+			status = cerberus_protocol_get_host_flash_configuration (host, 2, request);
+			break;
+		}
+
+		case CERBERUS_PROTOCOL_SET_HOST_FLASH_CONFIGURATION: {
+			const struct host_cmd_interface *const host[2] = {
+				interface->host_0, interface->host_1
+			};
+
+			status = cerberus_protocol_set_host_flash_configuration (host, 2, request);
+			break;
+		}
+
 		case CERBERUS_PROTOCOL_GET_DEVICE_INFO:
 			status = cerberus_protocol_get_device_info (interface->cmd_device, request);
 			break;
@@ -241,9 +297,18 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			status = cerberus_protocol_get_attestation_data (interface->pcr_store, request);
 			break;
 
+		case CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY:
+			status = cerberus_protocol_get_attestation_summary (interface->device_manager, request);
+			break;
+
 #ifdef CMD_ENABLE_HEAP_STATS
 		case CERBERUS_PROTOCOL_DIAG_HEAP_USAGE:
 			return cerberus_protocol_heap_stats (interface->cmd_device, request);
+#endif
+
+#ifdef CMD_ENABLE_STACK_STATS
+		case CERBERUS_PROTOCOL_DIAG_STACK_USAGE:
+			return cerberus_protocol_stack_stats (interface->cmd_device, request);
 #endif
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
@@ -268,6 +333,14 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 			break;
 #endif
 
+		case CERBERUS_PROTOCOL_FORCE_ATTESTATION:
+			status = cerberus_protocol_force_attestation (interface->attestation_req, request);
+			break;
+
+		case CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO:
+			status = cerberus_protocol_force_attestation_info (interface->attestation_req, request);
+			break;
+
 		default:
 			return CMD_HANDLER_UNKNOWN_REQUEST;
 	}
@@ -277,74 +350,6 @@ int cmd_interface_system_process_request (const struct cmd_interface *intf,
 	}
 
 	return status;
-}
-
-int cmd_interface_system_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	struct cmd_interface_system *interface = (struct cmd_interface_system*) intf;
-	uint8_t command_id;
-	uint8_t command_set;
-	int status;
-
-	status = cmd_interface_process_cerberus_protocol_message (&interface->base, response,
-		&command_id, &command_set, true, true);
-	if (status != 0) {
-		return status;
-	}
-
-	switch (command_id) {
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-		case CERBERUS_PROTOCOL_GET_DIGEST:
-			status = cerberus_protocol_process_certificate_digest_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_get_digest_response), response);
-			}
-
-		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
-			status = cerberus_protocol_process_certificate_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_get_certificate_response),
-					response);
-			}
-
-		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
-			status = cerberus_protocol_process_challenge_response (response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_challenge_response), response);
-			}
-
-		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
-			status =
-				cerberus_protocol_process_device_capabilities_response (interface->device_manager,
-				response);
-			if (status != 0) {
-				return status;
-			}
-			else {
-				return observable_notify_observers_with_ptr (&interface->observable,
-					offsetof (struct cerberus_protocol_observer, on_device_capabilities), response);
-			}
-#endif
-
-		case CERBERUS_PROTOCOL_ERROR:
-			return cerberus_protocol_process_error_response (response);
-
-		default:
-			return CMD_HANDLER_UNKNOWN_RESPONSE;
-	}
 }
 
 /**
@@ -362,6 +367,7 @@ int cmd_interface_system_process_response (const struct cmd_interface *intf,
  * @param pcd_manager PCD manager
  * @param attestation Attestation responder instance to utilize
  * @param device_manager Device manager
+ * @param attestation_req Attestation requester instance
  * @param store PCR storage
  * @param hash Hash engine to to use for PCR operations
  * @param background Context for executing long-running operations in the background.
@@ -391,10 +397,11 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	const struct manifest_cmd_interface *pcd, const struct pfm_manager *pfm_manager_0,
 	const struct pfm_manager *pfm_manager_1, const struct cfm_manager *cfm_manager,
 	const struct pcd_manager *pcd_manager, struct attestation_responder *attestation,
-	struct device_manager *device_manager, struct pcr_store *store, struct hash_engine *hash,
-	const struct cmd_background *background, struct host_processor *host_0,
-	struct host_processor *host_1, const struct cmd_interface_fw_version *fw_version,
-	struct riot_key_manager *riot, const struct cmd_authorization *auth,
+	struct attestation_requester *attestation_req, struct device_manager *device_manager,
+	struct pcr_store *store, const struct hash_engine *hash,
+	const struct cmd_background *background, const struct host_cmd_interface *host_0,
+	const struct host_cmd_interface *host_1, const struct cmd_interface_fw_version *fw_version,
+	const struct riot_key_manager *riot, const struct cmd_authorization *auth,
 	const struct host_control *host_ctrl_0, const struct host_control *host_ctrl_1,
 	const struct recovery_image_cmd_interface *recovery_cmd_0,
 	const struct recovery_image_cmd_interface *recovery_cmd_1,
@@ -434,6 +441,7 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->background = background;
 	intf->auth = auth;
 	intf->attestation = attestation;
+	intf->attestation_req = attestation_req;
 	intf->hash = hash;
 	intf->host_0_ctrl = host_ctrl_0;
 	intf->host_1_ctrl = host_ctrl_1;
@@ -451,9 +459,6 @@ int cmd_interface_system_init (struct cmd_interface_system *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_system_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_system_process_response;
-#endif
 
 #if CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;
@@ -474,40 +479,4 @@ void cmd_interface_system_deinit (struct cmd_interface_system *intf)
 	if (intf != NULL) {
 		observable_release (&intf->observable);
 	}
-}
-
-/**
- * Add an observer for system notifications.
- *
- * @param system The system instance to register with.
- * @param observer The observer to add.
- *
- * @return 0 if the observer was successfully added or an error code.
- */
-int cmd_interface_system_add_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	const struct cerberus_protocol_observer *observer)
-{
-	if (intf == NULL) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	return observable_add_observer (&intf->observable, (void*) observer);
-}
-
-/**
- * Remove an observer from system notifications.
- *
- * @param system The system instance to deregister from.
- * @param observer The observer to remove.
- *
- * @return 0 if the observer was successfully removed or an error code.
- */
-int cmd_interface_system_remove_cerberus_protocol_observer (struct cmd_interface_system *intf,
-	const struct cerberus_protocol_observer *observer)
-{
-	if (intf == NULL) {
-		return CMD_HANDLER_INVALID_ARGUMENT;
-	}
-
-	return observable_remove_observer (&intf->observable, (void*) observer);
 }

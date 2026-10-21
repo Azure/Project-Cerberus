@@ -26,13 +26,16 @@
 #define DEVICE_MANAGER_MAX_KEY_LEN								RSA_MAX_KEY_LENGTH
 
 // Default minimum activity check
-#define DEVICE_MANAGER_MIN_ACTIVITY_CHECK						300000
+#define DEVICE_MANAGER_MIN_ACTIVITY_CHECK						60000
 
 // MCTP control protocol default timeout
 #define DEVICE_MANAGER_MCTP_CTRL_PROTOCOL_TIMEOUT_MS			1000
 
 // Attestation status measurement version
 #define DEVICE_MANAGER_ATTESTATION_STATUS_VERSION				2
+
+// NULL EID value
+#define DEVICE_MANAGER_NULL_EID									0
 
 /**
  * Convert response timeout in milliseconds to timeout in 10ms multiples
@@ -48,6 +51,84 @@
  */
 #define device_manager_set_crypto_timeout_ms(timeout)			((timeout) / 100)
 
+/**
+ * Device manager action states
+ */
+enum device_manager_force_action_state {
+	DEVICE_MANAGER_FORCE_ACTION_IDLE = 0,		/**< No force action pending*/
+	DEVICE_MANAGER_FORCE_ACTION_PENDING,		/**< Action is pending */
+	DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS,	/**< Action is in progress */
+};
+
+/**
+ * Device manager action types
+ */
+enum device_manager_force_action_type {
+	DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION = 0,	/**< Force attestation action */
+	DEVICE_MANAGER_FORCE_ACTION_FORCE_DISCOVERY,		/**< Device discovery action */
+};
+
+
+/**
+ * Force attestation request codes
+ */
+enum {
+	DEVICE_MANAGER_FORCE_ATTESTATION_FAILED = 0,	/**< Only previously failed devices */
+	DEVICE_MANAGER_FORCE_ATTESTATION_PASSED,		/**< Only previously passed devices */
+	DEVICE_MANAGER_FORCE_ATTESTATION_ALL,			/**< All devices */
+	DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID,	/**< Target by component and instance ID */
+	DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS,	/**< Target by device and instance ID */
+};
+
+#pragma pack(push, 1)
+
+/**
+ * Container for component ID targeting data
+ */
+struct device_manager_component_target {
+	uint32_t component_id;	/**< Component ID to target */
+	uint8_t instance_id;	/**< Instance ID to target */
+};
+
+/**
+ * Container for device IDs targeting data
+ */
+struct device_manager_device_ids_target {
+	uint16_t pci_vid;			/**< PCI vendor ID */
+	uint16_t pci_device_id;		/**< PCI device ID */
+	uint16_t pci_subsystem_vid;	/**< PCI subsystem vendor ID */
+	uint16_t pci_subsystem_id;	/**< PCI subsystem ID */
+	uint8_t instance_id;		/**< Instance ID to target */
+};
+
+/**
+ * Union for targeting data
+ */
+union device_manager_target_data {
+	struct device_manager_component_target component;	/**< Component ID targeting */
+	struct device_manager_device_ids_target device_ids;	/**< Device IDs targeting */
+};
+
+/**
+ * Container for force attestation action data
+ */
+struct device_manager_force_action_data {
+	uint8_t mode;								/**< Force attestation mode */
+	union device_manager_target_data target;	/**< Optional targeting data */
+};
+
+/**
+ * Container for force action device manager actions
+ */
+struct device_manager_force_action {
+	enum device_manager_force_action_state state;			/**< State of the action */
+	enum device_manager_force_action_type type;				/**< Type of force action */
+	struct device_manager_force_action_data action_data;	/**< Force action data */
+	size_t data_size;										/**< Size of valid data in action_data */
+	uint32_t action_id;										/**< ID of the force action */
+};
+
+#pragma pack(pop)
 
 /**
  * Device states
@@ -60,9 +141,12 @@ enum device_manager_device_state {
 	DEVICE_MANAGER_ATTESTATION_FAILED,							/**< Previous attestation attempt failed due to other error */
 	DEVICE_MANAGER_NOT_ATTESTABLE,								/**< Not an attestable device */
 	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS,					/**< Authenticated without certs */
-	DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT,					/**< Autenticated with timeout */
-	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT,	/**< Autenticated without certs with timeout */
+	DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT,					/**< Authenticated with timeout */
+	DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT,	/**< Authenticated without certs with timeout */
 	DEVICE_MANAGER_ATTESTATION_INTERRUPTED,						/**< Communication with device is interrupted */
+	DEVICE_MANAGER_NOT_PRESENT,									/**< Device is not present in the system */
+	DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT,			/**< Authenticated with SPDM transient */
+	DEVICE_MANAGER_FORCE_ATTESTATION,							/**< Device force attestation requested */
 
 	DEVICE_MANAGER_ATTESTATION_INVALID_VERSION = 0x10,			/**< Previous attestation attempt failed due to invalid version */
 	DEVICE_MANAGER_ATTESTATION_INVALID_CAPS,					/**< Previous attestation attempt failed due to invalid capabilities */
@@ -75,10 +159,23 @@ enum device_manager_device_state {
 
 	DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH = 0x20,		/**< Previous attestation attempt failed due to measurement mismatch */
 	DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS,					/**< Previous attestation attempt failed due to untrusted certificates */
+	DEVICE_MANAGER_ATTESTATION_INVALID_CFM,						/**< Previous attestation attempt failed due to invalid CFM */
 
 	MAX_DEVICE_MANAGER_STATES,									/**< Max number of device states */
 };
 
+
+/**
+ * Check if a device state indicates the device is authenticated.
+ *
+ * @param state The device state to check
+ */
+#define DEVICE_MANAGER_IS_AUTHENTICATED(state) \
+	(((state) == DEVICE_MANAGER_AUTHENTICATED) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT) || \
+	 ((state) == DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT))
 
 /**
  * Device hierarchy roles as defined in the Cerberus protocol.
@@ -185,22 +282,51 @@ struct device_manager_key {
 	int key_type;								/**< Key type */
 };
 
+#pragma pack(push, 1)
+
+/**
+ * Container for device manager attestation event counters
+ */
+struct device_manager_attestation_summary_event_counters {
+	uint16_t status_success_count;					/* Number of successful attestations */
+	uint16_t status_success_timeout_count;			/* Number of successful attestations with timeout */
+	uint16_t status_fail_internal_count;			/* Number of failed attestations due to internal error */
+	uint16_t status_fail_timeout_count;				/* Number of failed attestations due to timeout */
+	uint16_t status_fail_invalid_response_count;	/* Number of failed attestations due to invalid response */
+	uint16_t status_fail_invalid_config_count;		/* Number of failed attestations due to invalid configuration */
+};
+
+/**
+ * Container for device manager attestation summary
+ */
+struct device_manager_attestation_summary {
+	uint8_t prev_state;															/* Previous attestation state */
+	struct device_manager_attestation_summary_event_counters event_counters;	/* Attestation event counters */
+};
+
+#pragma pack(pop)
+
 /**
  * Entry type in a device manager table
  */
 struct device_manager_entry {
-	struct device_manager_full_capabilities capabilities;	/**< Device capabilities */
-	platform_clock attestation_timeout;						/**< Clock tracking when device should be attested */
-	uint32_t component_id;									/**< Component ID in PCD and CFM */
-	enum device_manager_device_state state;					/**< Device state */
-	uint16_t pci_vid;										/**< PCI Vendor ID */
-	uint16_t pci_device_id;									/**< PCI Device ID */
-	uint16_t pci_subsystem_vid;								/**< PCI Subsystem Vendor ID */
-	uint16_t pci_subsystem_id;								/**< PCI Subsystem ID */
-	uint8_t slot_num;										/**< Device certificate chain slot number */
-	uint8_t smbus_addr;										/**< SMBUS address */
-	uint8_t eid;											/**< Endpoint ID */
-	uint8_t pcd_component_index;							/**< Index of component in PCD */
+	struct device_manager_full_capabilities capabilities;			/**< Device capabilities */
+	platform_clock attestation_timeout;								/**< Clock tracking when device should be attested */
+	uint32_t component_id;											/**< Component ID in PCD and CFM */
+	enum device_manager_device_state state;							/**< Device state */
+	struct device_manager_attestation_summary summary;				/**< Attestation summary data */
+	uint16_t pci_vid;												/**< PCI Vendor ID */
+	uint16_t pci_device_id;											/**< PCI Device ID */
+	uint16_t pci_subsystem_vid;										/**< PCI Subsystem Vendor ID */
+	uint16_t pci_subsystem_id;										/**< PCI Subsystem ID */
+	uint8_t slot_num;												/**< Device certificate chain slot number */
+	uint8_t smbus_addr;												/**< SMBUS address */
+	uint8_t eid;													/**< Endpoint ID */
+	uint8_t pcd_component_index;									/**< Index of component in PCD */
+	uint8_t instance_id;											/**< Instance ID of specific device */
+	const struct attestation_discover *discover;					/**< Discovery instance used by the device */
+	uint16_t component_type_count;									/**< Number of component types from PCD */
+	struct pcd_allowed_component_type_info *component_type_list;	/**< List of component types from PCD */
 };
 
 /**
@@ -242,6 +368,16 @@ struct device_manager {
 	struct device_manager_key alias_key;					/**< Container with device alias key */
 	uint8_t alias_key_eid;									/**< EID of component alias key belongs */
 	struct observable observable;							/**< Observer manager for the interface. */
+	struct device_manager_force_action force_action;		/**< Force action to be processed by device manager. */
+	platform_mutex action_mutex;							/**< Mutex for protecting force action operations */
+};
+
+/**
+ * Device instance information
+ */
+struct device_manager_instance_info {
+	uint8_t instance_id;	/**< Instance ID */
+	uint8_t eid;			/**< Endpoint ID */
 };
 
 
@@ -261,15 +397,30 @@ int device_manager_remove_observer (struct device_manager *mgr,
 	struct device_manager_observer *observer);
 
 int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid);
+int device_manager_get_device_num_by_component (struct device_manager *mgr, uint32_t component_id,
+	uint8_t component_instance);
 int device_manager_get_device_addr (struct device_manager *mgr, int device_num);
 int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_device_eid (struct device_manager *mgr, int device_num);
 int device_manager_update_device_eid (struct device_manager *mgr, int device_num, uint8_t eid);
+int device_manager_update_device_instance_id (struct device_manager *mgr, int device_num,
+	uint8_t instance_id);
+int device_manager_update_device_instance_id_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint8_t instance_id);
+int device_manager_get_instance_id_by_eid (struct device_manager *device_mgr, uint8_t eid,
+	uint8_t *instance_id);
+int device_manager_get_instance_id (struct device_manager *device_mgr, int device_num,
+	uint8_t *instance_id);
 int device_manager_update_not_attestable_device_entry (struct device_manager *mgr, int device_num,
 	uint8_t eid, uint8_t smbus_addr, uint8_t pcd_component_index);
 int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, int device_num,
 	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
 	uint8_t components_count, uint32_t component_id, uint8_t pcd_component_index);
+int device_manager_update_component_device_entry (struct device_manager *mgr, int device_num,
+	uint8_t components_count, const struct device_manager_entry *entry);
+
+int device_manager_update_component_device_entry (struct device_manager *mgr, int device_num,
+	uint8_t components_count, const struct device_manager_entry *entry);
 
 int device_manager_get_device_capabilities (struct device_manager *mgr, int device_num,
 	struct device_manager_full_capabilities *capabilities);
@@ -312,7 +463,6 @@ const struct device_manager_key* device_manager_get_alias_key (struct device_man
 
 int device_manager_clear_alias_key (struct device_manager *mgr, uint8_t eid);
 
-
 int device_manager_get_device_state (struct device_manager *mgr, int device_num);
 int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t eid);
 
@@ -321,15 +471,49 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
 int device_manager_update_device_state_by_eid (struct device_manager *mgr, uint8_t eid,
 	enum device_manager_device_state state);
 
+int device_manager_get_attestation_summary_prev_state (struct device_manager *mgr, int device_num);
+int device_manager_get_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
+	uint8_t eid);
+
+int device_manager_update_attestation_summary_prev_state (struct device_manager *mgr,
+	int device_num, enum device_manager_device_state previous_state);
+int device_manager_update_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
+	uint8_t eid, enum device_manager_device_state previous_state);
+
+int device_manager_get_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num, struct device_manager_attestation_summary_event_counters *event_counters);
+int device_manager_get_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid, struct device_manager_attestation_summary_event_counters *event_counters);
+
+int device_manager_update_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num);
+int device_manager_update_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid);
+
 int device_manager_get_eid_of_next_device_to_attest (struct device_manager *mgr);
+int device_manager_get_device_num_of_next_device_to_attest (struct device_manager *mgr);
 int device_manager_reset_authenticated_devices (struct device_manager *mgr);
 int device_manager_reset_discovered_devices (struct device_manager *mgr);
 
-int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
+int device_manager_get_component_id_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint32_t *component_id);
+int device_manager_get_component_id (struct device_manager *mgr, int device_num,
 	uint32_t *component_id);
 
-int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uint16_t pci_vid,
-	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);
+int device_manager_get_unidentified_device_num_by_device_ids (struct device_manager *mgr,
+	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid,
+	uint16_t pci_subsystem_id);
+int device_manager_get_device_num_by_device_and_instance_ids (struct device_manager *mgr,
+	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
+	uint8_t instance_id);
+int device_manager_get_device_and_instance_ids_by_device_num (struct device_manager *mgr,
+	int device_num, uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
+	uint16_t *pci_subsystem_id, uint8_t *instance_id);
+int device_manager_get_device_and_instance_ids_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
+	uint16_t *pci_subsystem_id, uint8_t *instance_id);
+int device_manager_get_instance_info_by_component_id (struct device_manager *mgr,
+	uint32_t component_id, struct device_manager_instance_info *instance_info, size_t buf_size);
 int device_manager_update_device_ids (struct device_manager *mgr, int device_num, uint16_t pci_vid,
 	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id);
 
@@ -339,6 +523,13 @@ int device_manager_add_unidentified_device (struct device_manager *mgr, uint8_t 
 int device_manager_remove_unidentified_device (struct device_manager *mgr, uint8_t eid);
 int device_manager_unidentified_device_timed_out (struct device_manager *mgr, uint8_t eid);
 int device_manager_get_eid_of_next_device_to_discover (struct device_manager *mgr);
+int device_manager_restart_device_discovery (struct device_manager *mgr);
+int device_manager_restart_device_discovery_by_handler (struct device_manager *mgr,
+	const struct attestation_discover *discover);
+int device_manager_restart_device_discovery_and_instances_by_handler (struct device_manager *mgr,
+	const struct attestation_discover *discover);
+const struct attestation_discover* device_manager_get_discovery_object (struct device_manager *mgr,
+	int device_num);
 #endif
 
 uint32_t device_manager_get_time_till_next_action (struct device_manager *mgr);
@@ -349,6 +540,25 @@ int device_manager_mark_component_attestation_invalid (struct device_manager *mg
 
 bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t eid);
 
+int device_manager_get_force_action_state (
+	struct device_manager *mgr, uint32_t *action_id);
+
+
+int device_manager_set_force_action (struct device_manager *mgr,
+	const struct device_manager_force_action_data *action_data, size_t data_size,
+	enum device_manager_force_action_type action_type);
+int device_manager_process_force_action (struct device_manager *mgr, int *num_actions);
+int device_manager_update_force_action_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state);
+int device_manager_clear_force_action_set_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state);
+
+int device_manager_get_num_component_types (struct device_manager *mgr, int device_num);
+int device_manager_get_component_type (struct device_manager *mgr, int device_num, int index,
+	uint32_t *component_id);
+int device_manager_promote_matched_component_type (struct device_manager *mgr, int device_num,
+	int index);
+
 
 #define	DEVICE_MGR_ERROR(code)		ROT_ERROR (ROT_MODULE_DEVICE_MANAGER, code)
 
@@ -356,17 +566,24 @@ bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t 
  * Error codes that can be generated by the device manager.
  */
 enum {
-	DEVICE_MGR_INVALID_ARGUMENT = DEVICE_MGR_ERROR (0x00),			/**< Input parameter is null or not valid. */
-	DEVICE_MGR_NO_MEMORY = DEVICE_MGR_ERROR (0x01),					/**< Memory allocation failed. */
-	DEVICE_MGR_UNKNOWN_DEVICE = DEVICE_MGR_ERROR (0x02),			/**< Invalid device number. */
-	DEVICE_MGR_INVALID_CERT_NUM = DEVICE_MGR_ERROR (0x03),			/**< Invalid certificate number. */
-	DEVICE_MGR_BUF_TOO_SMALL = DEVICE_MGR_ERROR (0x04),				/**< Provided buffer too small for output. */
-	DEVICE_MGR_INPUT_TOO_LARGE = DEVICE_MGR_ERROR (0x05),			/**< Provided data larger than storage buffer. */
-	DEVICE_MGR_DIGEST_LEN_MISMATCH = DEVICE_MGR_ERROR (0x06),		/**< Provided digest not same length as cached digest. */
-	DEVICE_MGR_DIGEST_MISMATCH = DEVICE_MGR_ERROR (0x07),			/**< Provided digest not same as cached digest. */
-	DEVICE_MGR_NO_DEVICES_AVAILABLE = DEVICE_MGR_ERROR (0x08),		/**< No devices ready for attestation. */
-	DEVICE_MGR_DIGEST_NOT_UNIQUE = DEVICE_MGR_ERROR (0x09),			/**< Certificate chain digest not unique. */
-	DEVICE_MGR_INVALID_RESPONDER_COUNT = DEVICE_MGR_ERROR (0x0A),	/**< Invalid responder count. */
+	DEVICE_MGR_INVALID_ARGUMENT = DEVICE_MGR_ERROR (0x00),					/**< Input parameter is null or not valid. */
+	DEVICE_MGR_NO_MEMORY = DEVICE_MGR_ERROR (0x01),							/**< Memory allocation failed. */
+	DEVICE_MGR_UNKNOWN_DEVICE = DEVICE_MGR_ERROR (0x02),					/**< Invalid device number. */
+	DEVICE_MGR_INVALID_CERT_NUM = DEVICE_MGR_ERROR (0x03),					/**< Invalid certificate number. */
+	DEVICE_MGR_BUF_TOO_SMALL = DEVICE_MGR_ERROR (0x04),						/**< Provided buffer too small for output. */
+	DEVICE_MGR_INPUT_TOO_LARGE = DEVICE_MGR_ERROR (0x05),					/**< Provided data larger than storage buffer. */
+	DEVICE_MGR_DIGEST_LEN_MISMATCH = DEVICE_MGR_ERROR (0x06),				/**< Provided digest not same length as cached digest. */
+	DEVICE_MGR_DIGEST_MISMATCH = DEVICE_MGR_ERROR (0x07),					/**< Provided digest not same as cached digest. */
+	DEVICE_MGR_NO_DEVICES_AVAILABLE = DEVICE_MGR_ERROR (0x08),				/**< No devices ready for attestation. */
+	DEVICE_MGR_DIGEST_NOT_UNIQUE = DEVICE_MGR_ERROR (0x09),					/**< Certificate chain digest not unique. */
+	DEVICE_MGR_INVALID_RESPONDER_COUNT = DEVICE_MGR_ERROR (0x0A),			/**< Invalid responder count. */
+	DEVICE_MGR_STATE_UPDATE_UNSUPPORTED = DEVICE_MGR_ERROR (0x0B),			/**< State update not supported. */
+	DEVICE_MGR_FORCE_ACTION_PENDING = DEVICE_MGR_ERROR (0x0C),				/**< Previous force action still pending. */
+	DEVICE_MGR_FORCE_ACTION_IN_PROGRESS = DEVICE_MGR_ERROR (0x0D),			/**< Force action already in progress. */
+	DEVICE_MGR_FORCE_ACTION_UNSUPPORTED = DEVICE_MGR_ERROR (0x0E),			/**< Unsupported action type or mode. */
+	DEVICE_MGR_FORCE_ACTION_INVALID_DATA = DEVICE_MGR_ERROR (0x0F),			/**< Invalid action data size or content. */
+	DEVICE_MGR_FORCE_ACTION_INVALID_STATE = DEVICE_MGR_ERROR (0x10),		/**< Invalid action state. */
+	DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE = DEVICE_MGR_ERROR (0x11),	/**< State transition not allowed. */
 };
 
 

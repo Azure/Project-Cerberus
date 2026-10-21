@@ -16,7 +16,7 @@ struct base64_engine_openssl {
 
 
 int base64_openssl_init (struct base64_engine_openssl *engine);
-void base64_openssl_release (struct base64_engine_openssl *engine);
+void base64_openssl_release (const struct base64_engine_openssl *engine);
 
 
 #endif /* BASE64_OPENSSL_H_ */

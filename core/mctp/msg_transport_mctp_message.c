@@ -90,5 +90,7 @@ int msg_transport_mctp_message_init (struct msg_transport_mctp_message *mctp_mes
  */
 void msg_transport_mctp_message_release (const struct msg_transport_mctp_message *mctp_message)
 {
-	msg_transport_intermediate_release (&mctp_message->base);
+	if (mctp_message != NULL) {
+		msg_transport_intermediate_release (&mctp_message->base);
+	}
 }

@@ -38,19 +38,20 @@ int firmware_component_init_with_header (struct firmware_component *image,
 void firmware_component_release (struct firmware_component *image);
 
 int firmware_component_verification (const struct firmware_component *image,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type);
 
 int firmware_component_load (const struct firmware_component *image, uint8_t *load_addr,
 	size_t max_length, size_t *load_length);
 int firmware_component_load_and_verify (const struct firmware_component *image, uint8_t *load_addr,
-	size_t max_length, struct hash_engine *hash, const struct signature_verification *verification,
+	size_t max_length, const struct hash_engine *hash,
+	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
 int firmware_component_load_and_verify_with_header (const struct firmware_component *image,
 	uint8_t *load_addr, size_t max_length, const struct image_header *header,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
 
@@ -58,12 +59,12 @@ int firmware_component_load_to_memory (const struct firmware_component *image,
 	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length, size_t *load_length);
 int firmware_component_load_to_memory_and_verify (const struct firmware_component *image,
 	const struct firmware_loader *loader, const uint8_t *iv, size_t iv_length,
-	struct hash_engine *hash, const struct signature_verification *verification,
+	const struct hash_engine *hash, const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
 int firmware_component_load_to_memory_and_verify_with_header (
 	const struct firmware_component *image, const struct firmware_loader *loader, const uint8_t *iv,
-	size_t iv_length, const struct image_header *header, struct hash_engine *hash,
+	size_t iv_length, const struct image_header *header, const struct hash_engine *hash,
 	const struct signature_verification *verification,
 	const uint8_t expected_version[FW_COMPONENT_BUILD_VERSION_LENGTH], uint8_t *hash_out,
 	size_t hash_length, enum hash_type *hash_type, size_t *load_length);
@@ -80,8 +81,9 @@ int firmware_component_get_signature (const struct firmware_component *image, ui
 enum hash_type firmware_component_get_hash_type (const struct firmware_component *image);
 
 
-int firmware_component_get_hash (const struct firmware_component *image, struct hash_engine *hash,
-	uint8_t *hash_out, size_t hash_length, enum hash_type *hash_type);
+int firmware_component_get_hash (const struct firmware_component *image,
+	const struct hash_engine *hash, uint8_t *hash_out, size_t hash_length,
+	enum hash_type *hash_type);
 
 uint64_t firmware_component_get_load_address (const struct firmware_component *image);
 const uint8_t* firmware_component_get_build_version (const struct firmware_component *image);
@@ -106,6 +108,10 @@ enum {
 	FIRMWARE_COMPONENT_TOO_LARGE = FIRMWARE_COMPONENT_ERROR (0x05),				/**< There is not enough space available to load the image. */
 	FIRMWARE_COMPONENT_WRONG_VERSION = FIRMWARE_COMPONENT_ERROR (0x06),			/**< The component does not report the expected build version. */
 	FIRMWARE_COMPONENT_NO_LOAD_ADDRESS = FIRMWARE_COMPONENT_ERROR (0x07),		/**< The component does not specify a destination load address. */
+	FIRMWARE_COMPONENT_VERIFY_FAILED = FIRMWARE_COMPONENT_ERROR (0x10),			/**< The component failed verification. */
+	FIRMWARE_COMPONENT_BAD_SIGNATURE = FIRMWARE_COMPONENT_ERROR (0x11),			/**< The component signature failed verification.*/
+	FIRMWARE_COMPONENT_INVALID_SIGNATURE = FIRMWARE_COMPONENT_ERROR (0x12),		/**< The component signature is either corrupted or missing. */
+	FIRMWARE_COMPONENT_SIG_TOO_LARGE = FIRMWARE_COMPONENT_ERROR (0x13),			/**< The component signature is larger than the maximum allowed size. */
 };
 
 

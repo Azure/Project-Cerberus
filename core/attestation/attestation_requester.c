@@ -18,9 +18,12 @@
 #include "common/unused.h"
 #include "logging/debug_log.h"
 #include "manifest/cfm/cfm_manager.h"
+#include "manifest/manifest_logging.h"
+#include "mctp/cmd_interface_protocol_mctp.h"
 #include "mctp/mctp_control_protocol.h"
 #include "mctp/mctp_control_protocol_commands.h"
 #include "mctp/mctp_interface.h"
+#include "spdm/spdm_certificate_chain.h"
 #include "spdm/spdm_commands.h"
 #include "spdm/spdm_discovery.h"
 #include "spdm/spdm_measurements.h"
@@ -65,136 +68,258 @@
 #define attestation_requester_is_version_set_selected(attestation) \
 	(attestation->state->txn.device_version_set != 0)
 
-#if defined (ATTESTATION_SUPPORT_SPDM) || defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
 /**
- * Function to send Cerberus protocol or SPDM request and wait for a response. This function
- * assumes a pregenerated request is in attestation_requester's msg_buffer.
+ * Unified message transport request and response handler for all protocols.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param request_len Length of request to send.
- * @param dest_addr SMBus address of destination device.
- * @param dest_eid MCTP EID of destination device.
- * @param crypto_timeout Flag indicating whether to use the crypto timeout with device.
- * @param mctp_ctrl_cmd Flag indicating whether request is from MCTP control protocol.
+ * @param transport The Message transport instance used to send the messages.
+ * @param request Request to process.
+ * @param response The response container received.
  * @param command Requested command to send out.
+ * @param timeout_ms Timeout in milliseconds for the request.
  *
- * @return 0 if successful or error code otherwise
+ * @return 0 if success or an error code.
  */
-static int attestation_requester_send_request_and_get_response (
-	const struct attestation_requester *attestation, size_t request_len, uint8_t dest_addr,
-	uint8_t dest_eid, bool crypto_timeout, bool mctp_ctrl_cmd, uint8_t command)
+static int attestation_requester_send_msg_transport_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command,
+	uint32_t timeout_ms)
 {
-	uint32_t timeout_ms;
-	uint32_t max_rsp_not_ready_timeout_ms;
-	uint8_t max_rsp_not_ready_retries;
-	bool rsp_ready = false;
 	int device_state;
 	int status;
 
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_IDLE;
 	attestation->state->txn.requested_command = command;
 
-	if (mctp_ctrl_cmd) {
-		timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
-	}
-	else {
-		if (crypto_timeout) {
-			timeout_ms = device_manager_get_crypto_timeout_by_eid (attestation->device_mgr,
-				dest_eid);
-		}
-		else {
-			timeout_ms = device_manager_get_reponse_timeout_by_eid (attestation->device_mgr,
-				dest_eid);
-		}
-	}
-
-	status = device_manager_get_rsp_not_ready_limits (attestation->device_mgr,
-		&max_rsp_not_ready_timeout_ms, &max_rsp_not_ready_retries);
+	status = transport->send_request_message (transport, request, timeout_ms, response);
 	if (status != 0) {
-		return status;
-	}
+		if (status == MSG_TRANSPORT_REQUEST_TIMEOUT) {
+			device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
+				request->target_eid);
 
-	while (!rsp_ready) {
-		/* Send request and await response. mctp_interface_issue_request will block till a response
-		 * is received or timeout period elapses. If response is received, the notification
-		 * callbacks will process response and update the request_status. */
-		status = mctp_interface_issue_request (attestation->mctp, attestation->channel, dest_addr,
-			dest_eid, attestation->state->txn.msg_buffer, request_len,
-			attestation->state->txn.msg_buffer,	sizeof (attestation->state->txn.msg_buffer),
-			timeout_ms);
-		if (status != 0) {
-			if (status == MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT) {
-				device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
-					dest_eid);
-
-				if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
-					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-						DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
-				}
-				else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
-					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-						DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
-				}
-				else {
-					device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-						DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
-				}
+			if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT);
 			}
-			else if ((status == MCTP_BASE_PROTOCOL_ERROR_RESPONSE) ||
-				(status == MCTP_BASE_PROTOCOL_FAIL_RESPONSE)) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+			else if (device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT);
 			}
-
-			return status;
+			else {
+				device_manager_update_device_state_by_eid (attestation->device_mgr,
+					request->target_eid, DEVICE_MANAGER_ATTESTATION_INTERRUPTED);
+			}
 		}
-
-		if (attestation->state->txn.request_status != ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+		else if ((status == MSG_TRANSPORT_UNEXPECTED_RESPONSE) ||
+			(status == MSG_TRANSPORT_RESPONSE_TOO_LARGE) ||
+			(status == MSG_TRANSPORT_RESPONSE_TOO_SHORT)) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
 				DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-
-			return ATTESTATION_REQUEST_FAILED;
-		}
-
-		/* If SPDM, responder might send a ResponseNotReady error. The ResponseNotReady notification
-		 * will set sleep_duration_ms to a non-zero value based on the error response as per the
-		 * SPDM DSP0274 spec. First, sleep for the duration requested until response is ready, then
-		 * send a RESPOND_IF_READY request to retrieve response to original request. */
-		if (attestation->state->txn.sleep_duration_ms != 0) {
-			if (max_rsp_not_ready_retries == 0) {
-				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
-					DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
-
-				return ATTESTATION_TOO_MANY_RETRIES_REQUESTED;
-			}
-
-			--max_rsp_not_ready_retries;
-
-			attestation->state->txn.sleep_duration_ms =
-				min (max_rsp_not_ready_timeout_ms, attestation->state->txn.sleep_duration_ms);
-			platform_msleep (attestation->state->txn.sleep_duration_ms);
-			attestation->state->txn.sleep_duration_ms = 0;
-
-			request_len =
-				spdm_generate_respond_if_ready_request (attestation->state->spdm_msg_buffer,
-				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST,	attestation->state->txn.requested_command,
-				attestation->state->txn.respond_if_ready_token,
-				attestation->state->txn.spdm_minor_version);
-			if (ROT_IS_ERROR ((int) request_len)) {
-				return request_len;
-			}
-
-			spdm_populate_mctp_header (attestation->state->spdm_mctp);
-			request_len += sizeof (struct spdm_protocol_mctp_header);
 		}
 		else {
-			rsp_ready = true;
+			device_manager_update_device_state_by_eid (attestation->device_mgr, request->target_eid,
+				DEVICE_MANAGER_ATTESTATION_FAILED);
 		}
 	}
+
+	return status;
+}
+
+#if defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
+/**
+ * Cerberus get digest response post processing function.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_get_digest_cerberus_rsp_post_processing (
+	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_get_certificate_digest_response *digest_rsp =
+		(struct cerberus_protocol_get_certificate_digest_response*) response->payload;
+
+	attestation->state->txn.msg_buffer_len = SHA256_HASH_LENGTH * digest_rsp->num_digests;
+	memmove (attestation->state->txn.msg_buffer, cerberus_protocol_certificate_digests (digest_rsp),
+		SHA256_HASH_LENGTH * digest_rsp->num_digests);
 
 	return 0;
 }
 
+/**
+ * Cerberus challenge response post processing function.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_challenge_cerberus_rsp_post_processing (
+	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_challenge_response *challenge_rsp =
+		(struct cerberus_protocol_challenge_response*) response->payload;
+
+	if (challenge_rsp->challenge.slot_num != attestation->state->txn.slot_num) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
+			(attestation->state->txn.slot_num << 8) | challenge_rsp->challenge.slot_num);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	if (challenge_rsp->challenge.digests_size != SHA256_HASH_LENGTH) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_HASH_LEN_IN_RSP, response->source_eid,
+			(challenge_rsp->challenge.digests_size << 8) | SHA256_HASH_LENGTH);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	if ((challenge_rsp->challenge.min_protocol_version > CERBERUS_PROTOCOL_PROTOCOL_VERSION) ||
+		(challenge_rsp->challenge.max_protocol_version < CERBERUS_PROTOCOL_PROTOCOL_VERSION)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_CERBERUS_PROTOCOL_VER_UNSUPPORTED, response->source_eid,
+			(challenge_rsp->challenge.max_protocol_version << 16) |
+					(challenge_rsp->challenge.min_protocol_version << 8) |
+				CERBERUS_PROTOCOL_PROTOCOL_VERSION);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	memmove (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
+	attestation->state->txn.msg_buffer_len = response->payload_length;
+
+	return 0;
+}
+
+/**
+ * Cerberus get certificate response post processing function.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_get_certificate_cerberus_rsp_post_processing (
+	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_get_certificate_response *rsp =
+		(struct cerberus_protocol_get_certificate_response*) response->payload;
+	size_t cert_portion_len;
+
+	if (rsp->slot_num != attestation->state->txn.slot_num) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
+			(attestation->state->txn.slot_num << 8) | rsp->slot_num);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	cert_portion_len =
+		cerberus_protocol_get_certificate_response_cert_length (response->payload_length);
+
+	/* TODO:  Is there a better error that could be reported here? */
+	if (cert_portion_len > sizeof (attestation->state->txn.msg_buffer)) {
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
+	memmove (attestation->state->txn.msg_buffer, cerberus_protocol_certificate (rsp),
+		cert_portion_len);
+	attestation->state->txn.msg_buffer_len = cert_portion_len;
+
+	return 0;
+}
+
+/**
+ * Validate Cerberus protocol response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int attestation_requester_process_cerberus_protocol_response (
+	const struct attestation_requester *attestation, struct cmd_interface_msg *response)
+{
+	struct cerberus_protocol_header *resp_header =
+		(struct cerberus_protocol_header*) response->payload;
+	int status;
+
+	if (attestation_requester_check_cerberus_unexpected_rsp (attestation, resp_header->command)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_CERBERUS << 8) | resp_header->command));
+
+		return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+	}
+
+	switch (attestation->state->txn.requested_command) {
+		case CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES:
+			/* No post-processing needed for capabilities. */
+			status = 0;
+			break;
+
+		case CERBERUS_PROTOCOL_GET_DIGEST:
+			status = attestation_requester_get_digest_cerberus_rsp_post_processing (attestation,
+				response);
+			break;
+
+		case CERBERUS_PROTOCOL_GET_CERTIFICATE:
+			status =
+				attestation_requester_get_certificate_cerberus_rsp_post_processing (attestation,
+				response);
+			break;
+
+		case CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE:
+			status = attestation_requester_challenge_cerberus_rsp_post_processing (attestation,
+				response);
+			break;
+
+		default:
+			return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+	}
+
+	return status;
+}
+
+/**
+ * Send Cerberus message transport request command and get response for Cerberus control.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param transport The Message transport instance used to send the messages.
+ * @param request Request to process.
+ * @param response The response container received.
+ * @param command Requested command to send out.
+ *
+ * @return Initialization status, 0 if success or an error code.
+ */
+static int attestation_requester_send_cerberus_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command)
+{
+	uint32_t timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
+	int status;
+
+	status = attestation_requester_send_msg_transport_request_and_get_response (attestation,
+		transport, request, response, command, timeout_ms);
+	if (status != 0) {
+		return status;
+	}
+
+	status = attestation_requester_process_cerberus_protocol_response (attestation, response);
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+	}
+
+	return status;
+}
+#endif
+
+#if defined (ATTESTATION_SUPPORT_SPDM) || defined (ATTESTATION_SUPPORT_CERBERUS_CHALLENGE)
 /**
  * Check if digest matches an allowable digest for the device.
  *
@@ -254,7 +379,7 @@ static int attestation_requester_verify_digest_in_allowable_list (
  * 	an error code otherwise
  */
 static int attestation_requester_verify_pmr (const struct attestation_requester *attestation,
-	struct cfm *active_cfm, uint32_t component_id, uint8_t eid, uint8_t pmr_id)
+	const struct cfm *active_cfm, uint32_t component_id, uint8_t eid, uint8_t pmr_id)
 {
 	struct cfm_pmr_digest pmr_digest;
 	int status;
@@ -335,7 +460,7 @@ static int attestation_requester_update_cert_chain_digest (
  * @return 0 if the root cert is trusted or an error code.
  */
 static int attestation_requester_verify_and_load_root_cert (
-	const struct attestation_requester *attestation, uint8_t eid, struct cfm *active_cfm,
+	const struct attestation_requester *attestation, uint8_t eid, const struct cfm *active_cfm,
 	uint32_t component_id, const uint8_t *root_ca, size_t root_ca_length,
 	const uint8_t *header_data, size_t header_length, struct x509_ca_certs *certs_chain)
 {
@@ -650,7 +775,7 @@ static int attestation_requester_verify_ecdsa_signature (
  * @return 0 if completed successfully, or an error code
  */
 static int attestation_requester_verify_signature (const struct attestation_requester *attestation,
-	struct hash_engine *hash, uint8_t eid, uint8_t *signature, size_t signature_len,
+	const struct hash_engine *hash, uint8_t eid, uint8_t *signature, size_t signature_len,
 	char *spdm_context)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
@@ -658,6 +783,12 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	int status;
+
+	/* TODO:  This signature verification flow does not use the ECDSA APIs so is not compatible with
+	 * FIPS.  Updating this flow to use the ECDSA implementation is more complicated, so this is
+	 * deferred until necessary or this piece gets refactored to make the migration easier.
+	 *
+	 * The same is true for RSASSA, if that's supported. */
 
 	status = hash->finish (hash, digest, sizeof (digest));
 	if (status != 0) {
@@ -689,7 +820,7 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 	}
 
 	if (alias_key->key_type == X509_PUBLIC_KEY_ECC) {
-		status = attestation_requester_verify_ecdsa_signature (attestation,	signature,
+		status = attestation_requester_verify_ecdsa_signature (attestation, signature,
 			signature_len, digest, transcript_hash_len, alias_key);
 
 		/* The endianess of the signature is not clearly declared in the SPDM 1.0 and 1.1
@@ -702,7 +833,7 @@ static int attestation_requester_verify_signature (const struct attestation_requ
 			buffer_reverse (signature, signature_len / 2);
 			buffer_reverse (signature + (signature_len / 2), signature_len / 2);
 
-			status = attestation_requester_verify_ecdsa_signature (attestation,	signature,
+			status = attestation_requester_verify_ecdsa_signature (attestation, signature,
 				signature_len, digest, transcript_hash_len, alias_key);
 		}
 	}
@@ -870,6 +1001,9 @@ static int attestation_requester_get_capabilities_rsp_post_processing (
 	if (rsp->base_capabilities.header.spdm_minor_version > 1) {
 		capabilities.request.max_message_size = rsp->data_transfer_size;
 	}
+	else {
+		capabilities.request.max_message_size = SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN;
+	}
 
 	return device_manager_update_device_capabilities (attestation->device_mgr, device_num,
 		&capabilities);
@@ -955,7 +1089,10 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 
 	if ((rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_256) &&
 		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_384) &&
-		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_512)) {
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA_512) &&
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA3_256) &&
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA3_384) &&
+		(rsp->measurement_hash_algo != SPDM_MEAS_RSP_TPM_ALG_SHA3_512)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
 			ATTESTATION_LOGGING_HASHING_MEAS_ALGORITHM_UNSUPPORTED, device_eid,
 			rsp->measurement_hash_algo);
@@ -979,17 +1116,37 @@ static int attestation_requester_negotiate_algorithms_rsp_post_processing (
 			}
 		}
 
-		if (((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_256) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA256)) ||
-			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_384) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA384)) ||
-			((rsp->measurement_hash_algo == SPDM_MEAS_RSP_TPM_ALG_SHA_512) &&
-			(attestation->state->txn.measurement_hash_type != HASH_TYPE_SHA512))) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP, device_eid,
-				rsp->measurement_hash_algo);
+		/* The CFM component-level measurement_hash_type is only a default.  With multi-hash CFMs,
+		 * individual allowable digest entries can override the hash type via hash_type_override.
+		 * Adopt the responder's negotiated measurement hash as authoritative for this transaction;
+		 * per-measurement verification will reject it later if no allowable digest in the CFM
+		 * matches this hash type.
+		 *
+		 * Note: Measurement digests are byte-compared against the CFM, never recomputed, so
+		 * mapping the SHA3 SPDM enums onto the matching-length SHA-2 hash_type tag is sufficient
+		 * for the normal Get Measurements verification flow. */
+		switch (rsp->measurement_hash_algo) {
+			case SPDM_MEAS_RSP_TPM_ALG_SHA_256:
+			case SPDM_MEAS_RSP_TPM_ALG_SHA3_256:
+				attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA256;
+				break;
 
-			return ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE;
+			case SPDM_MEAS_RSP_TPM_ALG_SHA_384:
+			case SPDM_MEAS_RSP_TPM_ALG_SHA3_384:
+				attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA384;
+				break;
+
+			case SPDM_MEAS_RSP_TPM_ALG_SHA_512:
+			case SPDM_MEAS_RSP_TPM_ALG_SHA3_512:
+				attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA512;
+				break;
+
+			default:
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_UNEXPECTED_MEAS_HASH_ALGO_IN_RSP, device_eid,
+					rsp->measurement_hash_algo);
+
+				return ATTESTATION_UNEXPECTED_ALG_IN_RESPONSE;
 		}
 	}
 
@@ -1020,7 +1177,7 @@ static int attestation_requester_get_digests_rsp_post_processing (
 
 	if (attestation->state->txn.msg_buffer_len != rsp_len) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN,	(device_eid << 8) | SPDM_RESPONSE_GET_DIGESTS,
+			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN, (device_eid << 8) | SPDM_RESPONSE_GET_DIGESTS,
 			((uint16_t) rsp_len) << 16 | ((uint16_t) device_eid));
 
 		return ATTESTATION_BAD_LENGTH;
@@ -1112,7 +1269,7 @@ static int attestation_requester_spdm_challenge_rsp_post_processing (
 	if (attestation->state->txn.msg_buffer_len <=
 		spdm_get_challenge_resp_length (rsp, transcript_hash_len, transcript_hash_len)) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN,	(device_eid << 8) | SPDM_RESPONSE_CHALLENGE,
+			ATTESTATION_LOGGING_UNEXPECTED_RSP_LEN, (device_eid << 8) | SPDM_RESPONSE_CHALLENGE,
 			(((uint16_t) (spdm_get_challenge_resp_length (rsp, transcript_hash_len,
 				transcript_hash_len))) << 16) |
 					((uint16_t) attestation->state->txn.msg_buffer_len));
@@ -1173,6 +1330,288 @@ static int attestation_requester_spdm_get_measurements_rsp_post_processing (
 }
 
 /**
+ * Process SPDM response not ready error from a responder device.
+ * Extracts delay token and calculates sleep duration for retry handling.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response container received containing the ResponseNotReady error.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int attestation_requester_spdm_response_not_ready (
+	const struct attestation_requester *attestation, const struct cmd_interface_msg *response)
+{
+	struct spdm_error_response *rsp = (struct spdm_error_response*) response->payload;
+	struct spdm_error_response_not_ready *rsp_not_ready =
+		(struct spdm_error_response_not_ready*) spdm_get_spdm_error_rsp_optional_data (rsp);
+	uint8_t rdt_exponent;
+
+	if (attestation->state->txn.protocol != ATTESTATION_PROTOCOL_DMTF_SPDM) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	SPDM_RESPONSE_ERROR));
+		goto fail;
+	}
+
+	// DSP0274 SPDM spec indicates these commands cannot respond with ResponseNotReady
+	if ((attestation->state->txn.requested_command == SPDM_REQUEST_GET_VERSION) ||
+		(attestation->state->txn.requested_command == SPDM_REQUEST_GET_CAPABILITIES) ||
+		(attestation->state->txn.requested_command == SPDM_REQUEST_NEGOTIATE_ALGORITHMS)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_ILLEGAL_RSP_NOT_READY, response->source_eid,
+			attestation->state->txn.requested_command);
+		goto fail;
+	}
+
+	if (rsp_not_ready->request_code != attestation->state->txn.requested_command) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RQ_CODE_IN_RSP, response->source_eid,
+			(attestation->state->txn.requested_command << 8) | rsp_not_ready->request_code);
+		goto fail;
+	}
+
+	// TODO: Get maximum permitted sleep duration from PCD
+
+	/* If the requested sleep duration is too large to store, then cap it at the maximum sleep
+	 * duration that can fit in sleep_duration_ms, which is roughly 25 days. If for some reason
+	 * responder requests a duration larger than that, then responder can respond to the
+	 * RESPOND_IF_READY request with another ResponseNotReady. */
+	if (rsp_not_ready->rdt_exponent > 41) {
+		rdt_exponent = 41;
+	}
+	else {
+		rdt_exponent = rsp_not_ready->rdt_exponent;
+	}
+
+	attestation->state->txn.sleep_duration_ms = 1 + ((1 << rdt_exponent) / 1000);
+	attestation->state->txn.respond_if_ready_token = rsp_not_ready->token;
+
+	return 0;
+
+fail:
+
+	return ATTESTATION_REQUEST_FAILED;
+}
+
+/**
+ * Validate and process SPDM protocol response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param response The response message to process.
+ * @param command The expected command code for the response.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int attestation_requester_process_spdm_protocol_response (
+	const struct attestation_requester *attestation, struct cmd_interface_msg *response,
+	uint8_t command)
+{
+	uint8_t rsp_code;
+	int status = 0;
+	int device_state;
+
+	if ((attestation == NULL) || (response == NULL)) {
+		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	if (attestation_requester_check_spdm_unexpected_rsp (attestation, command)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16) |
+						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) | command));
+		status = ATTESTATION_REQUEST_FAILED;
+		goto exit;
+	}
+
+	status = spdm_get_command_id (response, &rsp_code);
+	if (status != 0) {
+		goto exit;
+	}
+
+	switch (rsp_code) {
+		case SPDM_RESPONSE_GET_VERSION:
+			status = spdm_process_get_version_response (response);
+			break;
+
+		case SPDM_RESPONSE_GET_CAPABILITIES:
+			status = spdm_process_get_capabilities_response (response);
+			break;
+
+		case SPDM_RESPONSE_NEGOTIATE_ALGORITHMS:
+			status = spdm_process_negotiate_algorithms_response (response);
+			break;
+
+		case SPDM_RESPONSE_GET_DIGESTS:
+			status = spdm_process_get_digests_response (response);
+			break;
+
+		case SPDM_RESPONSE_GET_CERTIFICATE:
+			status = spdm_process_get_certificate_response (response);
+			break;
+
+		case SPDM_RESPONSE_CHALLENGE:
+			status = spdm_process_challenge_response (response);
+			break;
+
+		case SPDM_RESPONSE_GET_MEASUREMENTS:
+			status = spdm_process_get_measurements_response (response);
+			break;
+
+		case SPDM_RESPONSE_ERROR:
+			if (response->payload_length >= sizeof (struct spdm_error_response)) {
+				struct spdm_error_response *error_msg =
+					(struct spdm_error_response*) response->payload;
+
+				if (error_msg->error_code == SPDM_ERROR_RESPONSE_NOT_READY) {
+					status = attestation_requester_spdm_response_not_ready (attestation, response);
+					break;
+				}
+				else if (error_msg->error_code == SPDM_ERROR_BUSY) {
+					device_state = device_manager_get_device_state_by_eid (attestation->device_mgr,
+						response->source_eid);
+					if (ROT_IS_ERROR (device_state)) {
+						status = device_state;
+						goto exit;
+					}
+
+					if (device_state == DEVICE_MANAGER_AUTHENTICATED) {
+						device_manager_update_device_state_by_eid (attestation->device_mgr,
+							response->source_eid, DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT);
+
+						return MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+					}
+				}
+
+				status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,
+					(((uint32_t) error_msg->error_code << 24) | (response->source_eid << 16) |
+								(response->target_eid << 8)), error_msg->error_data);
+			}
+			break;
+
+		default:
+			status = MSG_TRANSPORT_UNEXPECTED_RESPONSE;
+			break;
+	}
+
+exit:
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+	}
+
+	return status;
+}
+
+/**
+ * Send SPDM message transport request command and get response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
+ * @param request Request to process.
+ * @param dest_eid MCTP EID of destination device.
+ * @param crypto_timeout Flag indicating whether to use the crypto timeout with device.
+ * @param command Requested command to send out.
+ *
+ * @return Initialization status, 0 if success or an error code.
+ */
+static int attestation_requester_send_spdm_protocol_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, uint8_t dest_eid, bool crypto_timeout, uint8_t command)
+{
+	struct cmd_interface_msg response;
+	uint32_t timeout_ms;
+	uint32_t max_rsp_not_ready_timeout_ms;
+	uint8_t max_rsp_not_ready_retries;
+	size_t request_len;
+	bool rsp_ready = false;
+	int status;
+
+	if (crypto_timeout) {
+		timeout_ms = device_manager_get_crypto_timeout_by_eid (attestation->device_mgr,	dest_eid);
+	}
+	else {
+		timeout_ms = device_manager_get_reponse_timeout_by_eid (attestation->device_mgr, dest_eid);
+	}
+
+	status = device_manager_get_rsp_not_ready_limits (attestation->device_mgr,
+		&max_rsp_not_ready_timeout_ms, &max_rsp_not_ready_retries);
+	if (status != 0) {
+		return status;
+	}
+
+	while (!rsp_ready) {
+		status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), &response);
+		if (status != 0) {
+			return status;
+		}
+
+		// Use unified handler for the core send/receive logic
+		status = attestation_requester_send_msg_transport_request_and_get_response (attestation,
+			transport, request, &response, command, timeout_ms);
+		if (status != 0) {
+			return status;
+		}
+
+		status = attestation_requester_process_spdm_protocol_response (attestation, &response,
+			command);
+		if (ROT_IS_ERROR (status)) {
+			return status;
+		}
+
+		/* If SPDM, responder might send a ResponseNotReady error. The ResponseNotReady notification
+		 * will set sleep_duration_ms to a non-zero value based on the error response as per the
+		 * SPDM DSP0274 spec. First, sleep for the duration requested until response is ready, then
+		 * send a RESPOND_IF_READY request to retrieve response to original request. */
+		if (attestation->state->txn.sleep_duration_ms != 0) {
+			if (max_rsp_not_ready_retries == 0) {
+				device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+					DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
+
+				return ATTESTATION_TOO_MANY_RETRIES_REQUESTED;
+			}
+
+			--max_rsp_not_ready_retries;
+
+			attestation->state->txn.sleep_duration_ms =
+				min (max_rsp_not_ready_timeout_ms, attestation->state->txn.sleep_duration_ms);
+			platform_msleep (attestation->state->txn.sleep_duration_ms);
+			attestation->state->txn.sleep_duration_ms = 0;
+
+			status = msg_transport_create_empty_request (transport,
+				attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer),
+				dest_eid, request);
+			if (status != 0) {
+				return status;
+			}
+
+			request_len = spdm_generate_respond_if_ready_request (request->payload,
+				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.requested_command,
+				attestation->state->txn.respond_if_ready_token,
+				attestation->state->txn.spdm_minor_version);
+			if (ROT_IS_ERROR ((int) request_len)) {
+				return request_len;
+			}
+
+			cmd_interface_msg_set_message_payload_length (request, request_len);
+		}
+		else {
+			rsp_ready = true;
+		}
+	}
+
+	memmove (attestation->state->txn.msg_buffer, response.payload, response.payload_length);
+	attestation->state->txn.msg_buffer_len = response.payload_length;
+
+	return 0;
+}
+
+/**
  * Function to send SPDM request and wait for a response.  This function assumes a pregenerated
  * request is in attestation_requester's spdm_msg_buffer.  If request is not part of device
  * discovery, the request is added to the transcript hash.
@@ -1180,17 +1619,19 @@ static int attestation_requester_spdm_get_measurements_rsp_post_processing (
  * The MCTP header will be added to the message before sending the request.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
+ * @param request Request to process.
  * @param request_len Length of request to send.
- * @param dest_addr SMBus address of destination device.
  * @param dest_eid MCTP EID of destination device.
  * @param crypto_timeout Flag indicating whether to use the crypto timeout with device.
  * @param command Requested command to send out.
  *
  * @return 0 if successful or error code otherwise
  */
-static int attestation_requester_send_spdm_request_and_get_response (
-	const struct attestation_requester *attestation, size_t request_len, uint8_t dest_addr,
-	uint8_t dest_eid, bool crypto_timeout, uint8_t command)
+static int attestation_requester_send_spdm_command_request (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, size_t request_len, uint8_t dest_eid, bool crypto_timeout,
+	uint8_t command)
 {
 	struct spdm_challenge_response *challenge_rsp =
 		(struct spdm_challenge_response*) attestation->state->txn.msg_buffer;
@@ -1205,19 +1646,18 @@ static int attestation_requester_send_spdm_request_and_get_response (
 	 * thus transcript hashing is not necessary. */
 	if (!attestation->state->txn.device_discovery) {
 		// Transcript hashing should not include the MCTP message header.
-		status = attestation->secondary_hash->update (attestation->secondary_hash,
-			attestation->state->spdm_msg_buffer, request_len);
+		status = attestation->secondary_hash->update (attestation->secondary_hash, request->payload,
+			request_len);
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
 	}
 
-	spdm_populate_mctp_header (attestation->state->spdm_mctp);
-	request_len += 1;
+	cmd_interface_msg_set_message_payload_length (request, request_len);
 
-	status = attestation_requester_send_request_and_get_response (attestation, request_len,
-		dest_addr, dest_eid, crypto_timeout, false, command);
-	if (status != 0) {
+	status = attestation_requester_send_spdm_protocol_request_and_get_response (attestation,
+		transport, request, dest_eid, crypto_timeout, command);
+	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
 
@@ -1313,421 +1753,7 @@ static int attestation_requester_send_spdm_request_and_get_response (
 }
 #endif
 
-#ifdef ATTESTATION_SUPPORT_SPDM
-/**
- * Copy received response to internal buffer.
- *
- * @param observer The observer instance being notified.
- * @param response The response container received.
- * @param command Incoming command.
- */
-static void attestation_requester_copy_spdm_response (const struct spdm_protocol_observer *observer,
-	const struct cmd_interface_msg *response, uint8_t command)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, spdm_rsp_observer);
-
-	if (attestation_requester_check_spdm_unexpected_rsp (attestation, command)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	command));
-
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-
-		return;
-	}
-
-	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
-	attestation->state->txn.msg_buffer_len = response->payload_length;
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-}
-
-/**
- * SPDM get version response observer function. The Get Version request/response interaction
- * determines the highest SPDM version both devices support, and then subsequent transactions with
- * the device uses the determined version.
- */
-void attestation_requester_on_spdm_get_version_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_VERSION);
-}
-
-/**
- * SPDM get capabilities response observer function. The Get Capabilities request/response
- * interaction allows both devices to know the level of support for non-required SPDM commands in
- * the other device, as well as timeout and message size capabilities.
- */
-void attestation_requester_on_spdm_get_capabilities_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_CAPABILITIES);
-}
-
-/**
- * SPDM negotiate algorithms response observer function. The Negotiate Algorithms request/response
- * interaction allows both devices to select common hashing and asymmetric cryptographic algorithms
- * to utilize in subsequent SPDM interactions.
- */
-void attestation_requester_on_spdm_negotiate_algorithms_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	attestation_requester_copy_spdm_response (observer, response,
-		SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
-}
-
-/**
- * SPDM get digests response observer function. The Get Digests request/response interaction allows
- * the requester to retrieve certificate chain digests from the responder. The digests will then be
- * compared to the requesters certificate chain cache for the device being attested, and in case of
- * a mismatch, the requester will fetch new certificate chain from device.
- */
-void attestation_requester_on_spdm_get_digests_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_DIGESTS);
-}
-
-/**
- * SPDM get certificate response observer function. The Get Certificate request/response interaction
- * is used for the requester to retrieve certificate chain to be used for attestation from
- * responder.
- */
-void attestation_requester_on_spdm_get_certificate_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_CERTIFICATE);
-}
-
-/**
- * SPDM challenge response observer function. The Challenge request/response interaction allows the
- * requester to authenticate the responder through the challenge-response protocol by validating the
- * transcript signature and comparing the measurement summary hash to CFM contents.
- */
-void attestation_requester_on_spdm_challenge_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_CHALLENGE);
-}
-
-/**
- * SPDM get measurements response observer function. The Get Measurements request/response
- * interaction allows the requester to retrieve measurement blocks from the responder, then
- * authenticate the responder through validating the transcript signature and comparing the
- * measurement blocks to CFM contents.
- */
-void attestation_requester_on_spdm_get_measurements_response (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	attestation_requester_copy_spdm_response (observer, response, SPDM_REQUEST_GET_MEASUREMENTS);
-}
-
-/**
- * SPDM ResponseNotReady error observer function. If original request command code allows
- * ResponseNotReady, wait for RDT duration then issue RESPOND_IF_READY request.
- */
-void attestation_requester_on_spdm_response_not_ready (
-	const struct spdm_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, spdm_rsp_observer);
-	struct spdm_error_response *rsp = (struct spdm_error_response*) response->payload;
-	struct spdm_error_response_not_ready *rsp_not_ready =
-		(struct spdm_error_response_not_ready*) spdm_get_spdm_error_rsp_optional_data (rsp);
-	uint8_t rdt_exponent;
-
-	if (attestation->state->txn.protocol != ATTESTATION_PROTOCOL_DMTF_SPDM) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_DMTF_SPDM << 8) |	SPDM_RESPONSE_ERROR));
-		goto fail;
-	}
-
-	// DSP0274 SPDM spec indicates these commands cannot respond with ResponseNotReady
-	if ((attestation->state->txn.requested_command == SPDM_REQUEST_GET_VERSION) ||
-		(attestation->state->txn.requested_command == SPDM_REQUEST_GET_CAPABILITIES) ||
-		(attestation->state->txn.requested_command == SPDM_REQUEST_NEGOTIATE_ALGORITHMS)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_ILLEGAL_RSP_NOT_READY, response->source_eid,
-			attestation->state->txn.requested_command);
-		goto fail;
-	}
-
-	if (rsp_not_ready->request_code != attestation->state->txn.requested_command) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RQ_CODE_IN_RSP, response->source_eid,
-			(attestation->state->txn.requested_command << 8) | rsp_not_ready->request_code);
-		goto fail;
-	}
-
-	// TODO: Get maximum permitted sleep duration from PCD
-
-	/* If the requested sleep duration is too large to store, then cap it at the maximum sleep
-	 * duration that can fit in sleep_duration_ms, which is roughly 25 days. If for some reason
-	 * responder requests a duration larger than that, then responder can respond to the
-	 * RESPOND_IF_READY request with another ResponseNotReady. */
-	if (rsp_not_ready->rdt_exponent > 41) {
-		rdt_exponent = 41;
-	}
-	else {
-		rdt_exponent = rsp_not_ready->rdt_exponent;
-	}
-
-	attestation->state->txn.sleep_duration_ms = 1 + ((1 << rdt_exponent) / 1000);
-	attestation->state->txn.respond_if_ready_token = rsp_not_ready->token;
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-	return;
-
-fail:
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-}
-#endif
-
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-/**
- * Cerberus Challenge get digest response observer function. The Get Digests request/response
- * interaction allows the requester to retrieve certificate chain digests from the responder. The
- * digests will then be compared to the requesters certificate chain cache for the device being
- * attested, and in case of a mismatch, the requester will fetch new certificate chain from device.
- */
-void attestation_requester_on_cerberus_get_digest_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-	struct cerberus_protocol_get_certificate_digest_response *rsp =
-		(struct cerberus_protocol_get_certificate_digest_response*) response->payload;
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_GET_DIGEST)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_DIGEST));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-
-		return;
-	}
-
-	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate_digests (rsp),
-		SHA256_HASH_LENGTH * rsp->num_digests);
-	attestation->state->txn.msg_buffer_len = SHA256_HASH_LENGTH * rsp->num_digests;
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-	return;
-}
-
-/**
- * Cerberus Challenge get certificate response observer function. The Get Certificate
- * request/response interaction is used for the requester to retrieve certificate chain to be used
- * for attestation from responder.
- */
-void attestation_requester_on_cerberus_get_certificate_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-	struct cerberus_protocol_get_certificate_response *rsp =
-		(struct cerberus_protocol_get_certificate_response*) response->payload;
-	size_t cert_portion_len;
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_GET_CERTIFICATE)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS << 8) | CERBERUS_PROTOCOL_GET_CERTIFICATE));
-		goto fail;
-	}
-
-	if (rsp->slot_num != attestation->state->txn.slot_num) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
-			(attestation->state->txn.slot_num << 8) | rsp->slot_num);
-		goto fail;
-	}
-
-	cert_portion_len =
-		cerberus_protocol_get_certificate_response_cert_length (response->payload_length);
-
-	/* TODO:  Is there a better error that could be reported here? */
-	if (cert_portion_len > sizeof (attestation->state->txn.msg_buffer)) {
-		goto fail;
-	}
-
-	memcpy (attestation->state->txn.msg_buffer, cerberus_protocol_certificate (rsp),
-		cert_portion_len);
-	attestation->state->txn.msg_buffer_len = cert_portion_len;
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-	return;
-
-fail:
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-}
-
-/**
- * Cerberus Challenge challenge response observer function. The Challenge request/response
- * interaction allows the requester to authenticate the responder by validating the response
- * signature and comparing the device PMR0 to CFM contents.
- */
-void attestation_requester_on_cerberus_challenge_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-	struct cerberus_protocol_challenge_response *rsp =
-		(struct cerberus_protocol_challenge_response*) response->payload;
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS <<
-						8) | CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE));
-		goto fail;
-	}
-
-	if (rsp->challenge.slot_num != attestation->state->txn.slot_num) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_SLOT_NUM_IN_RSP, response->source_eid,
-			(attestation->state->txn.slot_num << 8) | rsp->challenge.slot_num);
-	}
-	else if (rsp->challenge.digests_size != SHA256_HASH_LENGTH) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_HASH_LEN_IN_RSP, response->source_eid,
-			(rsp->challenge.digests_size << 8) | SHA256_HASH_LENGTH);
-	}
-	else if ((rsp->challenge.min_protocol_version > CERBERUS_PROTOCOL_PROTOCOL_VERSION) ||
-		(rsp->challenge.max_protocol_version < CERBERUS_PROTOCOL_PROTOCOL_VERSION)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_CERBERUS_PROTOCOL_VER_UNSUPPORTED, response->source_eid,
-			(rsp->challenge.max_protocol_version << 16) |
-					(rsp->challenge.min_protocol_version <<
-					8) | CERBERUS_PROTOCOL_PROTOCOL_VERSION);
-	}
-	else {
-		memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
-		attestation->state->txn.msg_buffer_len = response->payload_length;
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-
-		return;
-	}
-
-fail:
-	attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-}
-
-/**
- * Cerberus Challenge get capabilities response observer function. The Get Capabilities
- * request/response interaction allows both devices to determine device functionalities, including
- * timeout and message size capabilities.
- */
-void attestation_requester_on_cerberus_device_capabilities_response (
-	const struct cerberus_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, cerberus_rsp_observer);
-
-	if (attestation_requester_check_cerberus_unexpected_rsp (attestation,
-		CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(ATTESTATION_PROTOCOL_CERBERUS <<
-						8) | CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-	}
-	else {
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-	}
-}
-#endif
-
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-/**
- * MCTP control protocol get message type response observer function. The Get Message Type
- * request/response interaction allows requester to determine MCTP message types supported by
- * responder. This function is used during device discovery to determine SPDM and Cerberus Challenge
- * support.
- */
-void attestation_requester_on_mctp_get_message_type_response (
-	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
-
-	if ((attestation->state->txn.requested_command != MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(255 << 8) | MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-	}
-	else {
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-	}
-
-	// msg_buffer is sized to hold maximum response lengths
-	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
-	attestation->state->txn.msg_buffer_len = response->payload_length;
-}
-
-/**
- * MCTP control protocol set EID request observer function. Incoming set EID requests are monitored
- * since they are used by the MCTP bridge to alert device of routing table updates.
- */
-void attestation_requester_on_mctp_set_eid_request (
-	const struct mctp_control_protocol_observer *observer)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
-
-	attestation->state->get_routing_table = true;
-	attestation->state->mctp_bridge_wait = false;
-
-	platform_semaphore_post (&attestation->state->next_action);
-}
-
-/**
- * MCTP control protocol get routing table entries response observer function. The Get Routing Table
- * Entries request/response interaction is used by the requester to fetch routing table from MCTP
- * bridge.
- */
-void attestation_requester_on_mctp_get_routing_table_entries_response (
-	const struct mctp_control_protocol_observer *observer, const struct cmd_interface_msg *response)
-{
-	const struct attestation_requester *attestation =
-		TO_DERIVED_TYPE (observer, const struct attestation_requester, mctp_rsp_observer);
-
-	if ((attestation->state->txn.requested_command !=
-		MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES)) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
-			((attestation->state->txn.protocol << 24) |
-						(attestation->state->txn.requested_command << 16) |
-						(255 << 8) | MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE));
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_RSP_FAIL;
-	}
-	else {
-		attestation->state->txn.request_status = ATTESTATION_REQUESTER_REQUEST_SUCCESSFUL;
-	}
-
-	// msg_buffer is sized to hold maximum response lengths
-	memcpy (attestation->state->txn.msg_buffer, response->payload, response->payload_length);
-	attestation->state->txn.msg_buffer_len = response->payload_length;
-}
 
 /**
  * CFM activation request observer function. CFM activation requests are used to communicate to
@@ -1737,8 +1763,12 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
 {
 	const struct attestation_requester *attestation =
 		TO_DERIVED_TYPE (observer, const struct attestation_requester, cfm_observer);
+	struct device_manager_force_action_data action_data;
 
-	device_manager_reset_authenticated_devices (attestation->device_mgr);
+	action_data.mode = DEVICE_MANAGER_FORCE_ATTESTATION_PASSED;
+
+	device_manager_set_force_action (attestation->device_mgr, &action_data, sizeof (uint8_t),
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
 
 	platform_semaphore_post (&attestation->state->next_action);
 }
@@ -1751,8 +1781,10 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
  * @param state Variable context for the attestation requester to utilize.
  * @param mctp MCTP interface instance to utilize.
  * @param channel Command channel instance to utilize.
- * @param primary_hash The primary hash engine to utilize.
- * @param secondary_hash The secondary hash engine to utilize for SPDM operations.
+ * @param primary_hash The hash engine to utilize for most attestation hashing operations.  This
+ * must be a dedicated hash engine that is not shared with any other component.
+ * @param secondary_hash The hash engine to utilize for SPDM transcript hashes.  This must be a
+ * dedicated hash engine that is not not shared with any other component.
  * @param ecc The ECC engine to utilize.
  * @param rsa The RSA engine to utilize. Optional, can be set to NULL if not utilized.
  * @param x509 The x509 engine to utilize.
@@ -1760,21 +1792,46 @@ void attestation_requester_on_cfm_activation_request (const struct cfm_observer 
  * @param riot RIoT key manager.
  * @param device_mgr Device manager instance to utilize.
  * @param cfm_manager CFM manager to utilize.
+ * @param discover_interfaces Array of attestation discover interfaces.
+ * @param interfaces_count Number of entries in the discover interfaces array.
+ * @param mctp_control MCTP Control msg transport instance to utilize.
+ * @param spdm_transport SPDM msg transport instance to utilize.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int attestation_requester_init (struct attestation_requester *attestation,
 	struct attestation_requester_state *state, const struct mctp_interface *mctp,
-	const struct cmd_channel *channel, struct hash_engine *primary_hash,
-	struct hash_engine *secondary_hash, struct ecc_engine *ecc, struct rsa_engine *rsa,
-	struct x509_engine *x509, struct rng_engine *rng, struct riot_key_manager *riot,
-	struct device_manager *device_mgr, struct cfm_manager *cfm_manager)
+	const struct cmd_channel *channel, const struct hash_engine *primary_hash,
+	const struct hash_engine *secondary_hash, const struct ecc_engine *ecc,
+	const struct rsa_engine *rsa, const struct x509_engine *x509, const struct rng_engine *rng,
+	const struct riot_key_manager *riot, struct device_manager *device_mgr,
+	const struct cfm_manager *cfm_manager,
+	const struct attestation_discover **discover_interfaces, size_t interfaces_count,
+	const struct msg_transport *mctp_control, const struct msg_transport *spdm_transport)
 {
 	if ((attestation == NULL) || (state == NULL) || (mctp == NULL) || (channel == NULL) ||
 		(primary_hash == NULL) || (ecc == NULL) || (x509 == NULL) || (rng == NULL) ||
 		(riot == NULL) || (device_mgr == NULL) || (cfm_manager == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
+
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+	if (discover_interfaces == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+#endif
+
+#if defined (CMD_ENABLE_ISSUE_REQUEST)
+	if (mctp_control == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+#endif
+
+#if defined (CMD_ENABLE_ISSUE_REQUEST) && defined (ATTESTATION_SUPPORT_SPDM)
+	if (spdm_transport == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+#endif
 
 	memset (attestation, 0, sizeof (struct attestation_requester));
 
@@ -1791,44 +1848,12 @@ int attestation_requester_init (struct attestation_requester *attestation,
 	attestation->riot = riot;
 	attestation->device_mgr = device_mgr;
 	attestation->cfm_manager = cfm_manager;
-
-#ifdef ATTESTATION_SUPPORT_SPDM
-	attestation->spdm_rsp_observer.on_spdm_get_version_response =
-		attestation_requester_on_spdm_get_version_response;
-	attestation->spdm_rsp_observer.on_spdm_get_capabilities_response =
-		attestation_requester_on_spdm_get_capabilities_response;
-	attestation->spdm_rsp_observer.on_spdm_negotiate_algorithms_response =
-		attestation_requester_on_spdm_negotiate_algorithms_response;
-	attestation->spdm_rsp_observer.on_spdm_get_digests_response =
-		attestation_requester_on_spdm_get_digests_response;
-	attestation->spdm_rsp_observer.on_spdm_get_certificate_response =
-		attestation_requester_on_spdm_get_certificate_response;
-	attestation->spdm_rsp_observer.on_spdm_challenge_response =
-		attestation_requester_on_spdm_challenge_response;
-	attestation->spdm_rsp_observer.on_spdm_get_measurements_response =
-		attestation_requester_on_spdm_get_measurements_response;
-	attestation->spdm_rsp_observer.on_spdm_response_not_ready =
-		attestation_requester_on_spdm_response_not_ready;
-#endif
-
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-	attestation->cerberus_rsp_observer.on_get_digest_response =
-		attestation_requester_on_cerberus_get_digest_response;
-	attestation->cerberus_rsp_observer.on_get_certificate_response =
-		attestation_requester_on_cerberus_get_certificate_response;
-	attestation->cerberus_rsp_observer.on_challenge_response =
-		attestation_requester_on_cerberus_challenge_response;
-	attestation->cerberus_rsp_observer.on_device_capabilities =
-		attestation_requester_on_cerberus_device_capabilities_response;
-#endif
+	attestation->mctp_control = mctp_control;
+	attestation->spdm_transport = spdm_transport;
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-	attestation->mctp_rsp_observer.on_get_message_type_response =
-		attestation_requester_on_mctp_get_message_type_response;
-	attestation->mctp_rsp_observer.on_set_eid_request =
-		attestation_requester_on_mctp_set_eid_request;
-	attestation->mctp_rsp_observer.on_get_routing_table_entries_response =
-		attestation_requester_on_mctp_get_routing_table_entries_response;
+	attestation->discover_interfaces = discover_interfaces;
+	attestation->interfaces_count = interfaces_count;
 
 	attestation->cfm_observer.on_cfm_activation_request =
 		attestation_requester_on_cfm_activation_request;
@@ -1861,8 +1886,6 @@ int attestation_requester_init_state (const struct attestation_requester *attest
 	attestation->state->spdm_msg_buffer =
 		&attestation->state->txn.msg_buffer[sizeof (struct spdm_protocol_mctp_header)];
 
-	attestation->state->mctp_bridge_wait = true;
-
 	return platform_semaphore_init (&attestation->state->next_action);
 }
 
@@ -1878,7 +1901,195 @@ void attestation_requester_deinit (const struct attestation_requester *attestati
 	}
 }
 
+/**
+ * Resolve device EID through the configured discovery handler for a device entry.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_num Device number in device manager table.
+ *
+ * @return Device EID if successful, or an error code.
+ */
+static int attestation_requester_get_device_eid_from_discovery (
+	const struct attestation_requester *attestation, int device_num)
+{
+	const struct attestation_discover *discover = NULL;
+
+	if (attestation == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	discover = device_manager_get_discovery_object (attestation->device_mgr, device_num);
+	if (discover == NULL) {
+		return ATTESTATION_INVALID_STATE;
+	}
+	if (discover->get_device_eid_by_device_num == NULL) {
+		return ATTESTATION_UNSUPPORTED_OPERATION;
+	}
+
+	return discover->get_device_eid_by_device_num (discover, attestation, device_num);
+}
+
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
+/**
+ * Send Cerberus get device capabilities request and receive response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to attest.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_send_cerberus_get_device_capabilities (
+	const struct attestation_requester *attestation, uint8_t eid)
+{
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int request_len;
+	int status;
+
+	status = msg_transport_create_empty_request (&attestation->mctp->base,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		&request);
+	if (status != 0) {
+		return status;
+	}
+
+	request_len =
+		cerberus_protocol_generate_get_device_capabilities_request (attestation->device_mgr,
+		request.payload, request.payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+	cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), &response);
+	if (status != 0) {
+		return status;
+	}
+
+	status =
+		attestation_requester_send_cerberus_request_and_get_response (attestation,
+		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES);
+	if (status != 0) {
+		return status;
+	}
+
+	return 0;
+}
+
+/**
+ * Send Cerberus get certificate digest request and process response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to attest.
+ * @param digest Output buffer to receive the computed digest.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_send_cerberus_get_digest (
+	const struct attestation_requester *attestation, uint8_t eid, uint8_t *digest)
+{
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	int request_len;
+	int status;
+
+	status = msg_transport_create_empty_request (&attestation->mctp->base,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		&request);
+	if (status != 0) {
+		return status;
+	}
+
+	request_len =
+		cerberus_protocol_generate_get_certificate_digest_request (attestation->state->txn.slot_num,
+		ATTESTATION_ECDHE_KEY_EXCHANGE, request.payload, request.payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+
+	cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), &response);
+	if (status != 0) {
+		return status;
+	}
+
+	status =
+		attestation_requester_send_cerberus_request_and_get_response (attestation,
+		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_DIGEST);
+	if (status != 0) {
+		return status;
+	}
+
+	status = attestation->primary_hash->calculate_sha256 (attestation->primary_hash,
+		attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len, digest,
+		SHA256_HASH_LENGTH);
+	if (status != 0) {
+		return status;
+	}
+
+	attestation->state->txn.num_certs = attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
+
+	return 0;
+}
+
+/**
+ * Send Cerberus challenge request and verify the challenge response.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param eid EID of device to attest.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_send_and_verify_cerberus_challenge (
+	const struct attestation_requester *attestation, uint8_t eid)
+{
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	struct cerberus_protocol_challenge *challenge_rq;
+	int request_len;
+	int status;
+
+	status = msg_transport_create_empty_request (&attestation->mctp->base,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		&request);
+	if (status != 0) {
+		return status;
+	}
+
+	challenge_rq = (struct cerberus_protocol_challenge*) request.payload;
+	request_len = cerberus_protocol_generate_challenge_request (attestation->rng, eid,
+		attestation->state->txn.slot_num, request.payload, request.payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
+	}
+
+	cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+	status = attestation->primary_hash->update (attestation->primary_hash,
+		(uint8_t*) &challenge_rq->challenge, sizeof (struct attestation_challenge));
+	if (ROT_IS_ERROR (status)) {
+		return status;
+	}
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), &response);
+	if (status != 0) {
+		return status;
+	}
+
+	status =
+		attestation_requester_send_cerberus_request_and_get_response (attestation,
+		&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE);
+	if (status != 0) {
+		return status;
+	}
+
+	return 0;
+}
+
 /**
  * Retrieve and verify the certificate chain from the device using Cerberus challenge protocol.  If
  * the certs are valid, store the alias key of the device.
@@ -1893,27 +2104,51 @@ void attestation_requester_deinit (const struct attestation_requester *attestati
  */
 static int attestation_requester_verify_and_load_leaf_key_cerberus (
 	const struct attestation_requester *attestation, uint8_t device_addr, uint8_t eid,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct cfm *active_cfm, uint32_t component_id)
 {
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
 	struct x509_ca_certs certs_chain;
 	struct x509_certificate cert;
+	int request_len;
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	size_t cert_idx;
 	int status;
 
+	/* TODO:  Cert chain digest calculation seems like it might be wrong for Cerberus now relative
+	 * to how GET_DIGESTS is handled. */
 	for (cert_idx = 0; cert_idx < attestation->state->txn.num_certs; ++cert_idx) {
-		status =
-			cerberus_protocol_generate_get_certificate_request (attestation->state->txn.slot_num,
-			cert_idx, attestation->state->txn.msg_buffer,
-			sizeof (attestation->state->txn.msg_buffer), 0, 0);
-		if (ROT_IS_ERROR (status)) {
+		status = msg_transport_create_empty_request (&attestation->mctp->base,
+			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+			&request);
+		if (status != 0) {
 			return status;
 		}
 
-		status = attestation_requester_send_request_and_get_response (attestation, status,
-			device_addr, eid, false, false, CERBERUS_PROTOCOL_GET_CERTIFICATE);
+		request_len =
+			cerberus_protocol_generate_get_certificate_request (attestation->state->txn.slot_num,
+			cert_idx, request.payload, request.payload_length, 0, 0);
+		if (ROT_IS_ERROR (request_len)) {
+			attestation->primary_hash->cancel (attestation->primary_hash);
+
+			return request_len;
+		}
+
+		cmd_interface_msg_set_message_payload_length (&request, request_len);
+
+		status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), &response);
 		if (status != 0) {
+			return status;
+		}
+
+		status =
+			attestation_requester_send_cerberus_request_and_get_response (attestation,
+			&attestation->mctp->base, &request, &response, CERBERUS_PROTOCOL_GET_CERTIFICATE);
+		if (status != 0) {
+			attestation->primary_hash->cancel (attestation->primary_hash);
+
 			return status;
 		}
 
@@ -1942,7 +2177,7 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
  * Perform an attestation cycle on a provided device using Cerberus Protocol.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param eid EID of device to attest.
+ * @param device_num Device number of the device to attest.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
  * @param component_id The component ID of the device.
@@ -1950,51 +2185,33 @@ static int attestation_requester_verify_and_load_leaf_key_cerberus (
  * @return Completion status, 0 if success or an error code otherwise.
  */
 static int attestation_requester_attest_device_cerberus_protocol (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct attestation_requester *attestation, int device_num, int device_addr,
+	const struct cfm *active_cfm, uint32_t component_id)
 {
-	struct cerberus_protocol_challenge *challenge_rq =
-		(struct cerberus_protocol_challenge*) attestation->state->txn.msg_buffer;
-	struct cerberus_protocol_challenge_response *challenge_rsp =
-		(struct cerberus_protocol_challenge_response*) attestation->state->txn.msg_buffer;
+	struct cerberus_protocol_challenge_response *challenge_rsp;
+
 	const struct device_manager_key *alias_key;
 	uint8_t digest[SHA256_HASH_LENGTH];
-	int challenge_rq_len;
+	int eid = 0;
 	int status;
 
 	attestation->state->txn.protocol = ATTESTATION_PROTOCOL_CERBERUS;
 
+	eid = attestation_requester_get_device_eid_from_discovery (attestation, device_num);
+	if (ROT_IS_ERROR (eid)) {
+		return eid;
+	}
+
 	// TODO Get Cerberus Protocol version using the MCTP control Get VDM Support command
 
-	status = cerberus_protocol_generate_get_device_capabilities_request (attestation->device_mgr,
-		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	status = attestation_requester_send_request_and_get_response (attestation, status, device_addr,
-		eid, false, false, CERBERUS_PROTOCOL_GET_DEVICE_CAPABILITIES);
+	/* Get Device Capabilities */
+	status = attestation_requester_send_cerberus_get_device_capabilities (attestation, eid);
 	if (status != 0) {
 		return status;
 	}
 
-	status =
-		cerberus_protocol_generate_get_certificate_digest_request (attestation->state->txn.slot_num,
-		ATTESTATION_ECDHE_KEY_EXCHANGE,	attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	status = attestation_requester_send_request_and_get_response (attestation, status, device_addr,
-		eid, true, false, CERBERUS_PROTOCOL_GET_DIGEST);
-	if (status != 0) {
-		return status;
-	}
-
-	status = attestation->primary_hash->calculate_sha256 (attestation->primary_hash,
-		attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len,	digest,
-		sizeof (digest));
+	/* Get Certificate Digest */
+	status = attestation_requester_send_cerberus_get_digest (attestation, eid, digest);
 	if (status != 0) {
 		return status;
 	}
@@ -2004,8 +2221,6 @@ static int attestation_requester_attest_device_cerberus_protocol (
 	if (status != 0) {
 		return status;
 	}
-
-	attestation->state->txn.num_certs = attestation->state->txn.msg_buffer_len / SHA256_HASH_LENGTH;
 	alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
 
 	// If certificate chain digest retrieved does not match cached certificate, refresh chain
@@ -2022,25 +2237,13 @@ static int attestation_requester_attest_device_cerberus_protocol (
 		return status;
 	}
 
-	challenge_rq_len = cerberus_protocol_generate_challenge_request (attestation->rng, eid,
-		attestation->state->txn.slot_num, attestation->state->txn.msg_buffer,
-		sizeof (attestation->state->txn.msg_buffer));
-	if (ROT_IS_ERROR (challenge_rq_len)) {
-		status = challenge_rq_len;
-		goto hash_cancel;
-	}
-
-	status = attestation->primary_hash->update (attestation->primary_hash,
-		(uint8_t*) &challenge_rq->challenge, sizeof (struct attestation_challenge));
-	if (ROT_IS_ERROR (status)) {
-		goto hash_cancel;
-	}
-
-	status = attestation_requester_send_request_and_get_response (attestation, challenge_rq_len,
-		device_addr, eid, true, false, CERBERUS_PROTOCOL_ATTESTATION_CHALLENGE);
+	status = attestation_requester_send_and_verify_cerberus_challenge (attestation, eid);
 	if (status != 0) {
 		goto hash_cancel;
 	}
+
+	challenge_rsp = (struct cerberus_protocol_challenge_response*)
+		attestation->state->txn.msg_buffer;
 
 	status = attestation->primary_hash->update (attestation->primary_hash,
 		(uint8_t*) &challenge_rsp->challenge,
@@ -2093,39 +2296,53 @@ clear_cert_chain:
  * are requested in response.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param eid EID of device to utilize.
  * @param device_addr Slave address of device
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
 static int attestation_requester_setup_spdm_device (const struct attestation_requester *attestation,
-	uint8_t eid, int device_addr)
+	const struct msg_transport *transport, uint8_t eid, int device_addr)
 {
+	struct cmd_interface_msg request;
 	uint32_t base_asym_algo = SPDM_TPM_ALG_ECDSA_ECC_NIST_P256;
 	uint32_t base_hash_algo;
 	int rq_len;
 	int status;
 
-	rq_len = spdm_generate_get_version_request (attestation->state->spdm_msg_buffer,
+	status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), eid, &request);
+	if (status != 0) {
+		return status;
+	}
+
+	rq_len = spdm_generate_get_version_request (request.payload,
 		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST);
 	if (ROT_IS_ERROR (rq_len)) {
 		return rq_len;
 	}
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-		device_addr, eid, false, SPDM_REQUEST_GET_VERSION);
+	status = attestation_requester_send_spdm_command_request (attestation, transport, &request,
+		rq_len, eid, false, SPDM_REQUEST_GET_VERSION);
 	if (status != 0) {
 		return status;
 	}
 
-	rq_len = spdm_generate_get_capabilities_request (attestation->state->spdm_msg_buffer,
+	status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), eid, &request);
+	if (status != 0) {
+		return status;
+	}
+
+	rq_len = spdm_generate_get_capabilities_request (request.payload,
 		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.spdm_minor_version);
 	if (ROT_IS_ERROR (rq_len)) {
 		return rq_len;
 	}
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-		device_addr, eid, false, SPDM_REQUEST_GET_CAPABILITIES);
+	status = attestation_requester_send_spdm_command_request (attestation, transport, &request,
+		rq_len, eid, false, SPDM_REQUEST_GET_CAPABILITIES);
 	if (status != 0) {
 		return status;
 	}
@@ -2162,30 +2379,6 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 			default:
 				return ATTESTATION_UNSUPPORTED_ALGORITHM;
 		}
-
-		if (attestation->state->txn.transcript_hash_type !=
-			attestation->state->txn.measurement_hash_type) {
-			switch (attestation->state->txn.measurement_hash_type) {
-				case HASH_TYPE_SHA256:
-					base_hash_algo |= SPDM_TPM_ALG_SHA_256;
-					break;
-
-#ifdef HASH_ENABLE_SHA384
-				case HASH_TYPE_SHA384:
-					base_hash_algo |= SPDM_TPM_ALG_SHA_384;
-					break;
-#endif
-
-#ifdef HASH_ENABLE_SHA512
-				case HASH_TYPE_SHA512:
-					base_hash_algo |= SPDM_TPM_ALG_SHA_512;
-					break;
-#endif
-
-				default:
-					return ATTESTATION_UNSUPPORTED_ALGORITHM;
-			}
-		}
 	}
 
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -2195,15 +2388,21 @@ static int attestation_requester_setup_spdm_device (const struct attestation_req
 	base_asym_algo |= SPDM_TPM_ALG_ECDSA_ECC_NIST_P521;
 #endif
 
-	rq_len = spdm_generate_negotiate_algorithms_request (attestation->state->spdm_msg_buffer,
+	status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), eid, &request);
+	if (status != 0) {
+		return status;
+	}
+
+	rq_len = spdm_generate_negotiate_algorithms_request (request.payload,
 		ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, base_asym_algo, base_hash_algo,
 		attestation->state->txn.spdm_minor_version);
 	if (ROT_IS_ERROR (rq_len)) {
 		return rq_len;
 	}
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-		device_addr, eid, false, SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
+	status = attestation_requester_send_spdm_command_request (attestation, transport, &request,
+		rq_len, eid, false, SPDM_REQUEST_NEGOTIATE_ALGORITHMS);
 	if (status != 0) {
 		return status;
 	}
@@ -2308,6 +2507,7 @@ static int attestation_requester_spdm_process_get_measurements_response (
  * Generate and send SPDM get measurements request, then wait for response.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
  * @param measurement_operation Measurement operation requested.
@@ -2315,10 +2515,11 @@ static int attestation_requester_spdm_process_get_measurements_response (
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
-static int attestation_requester_send_and_receive_spdm_get_measurements (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	uint8_t measurement_operation, bool raw_bitstream_requested)
+int attestation_requester_send_and_receive_spdm_get_measurements (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	uint8_t eid, int device_addr, uint8_t measurement_operation, bool raw_bitstream_requested)
 {
+	struct cmd_interface_msg request;
 	uint8_t nonce[SPDM_NONCE_LEN];
 	int rq_len;
 	int status;
@@ -2344,7 +2545,7 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 	if (((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) &&
 		(attestation->state->txn.spdm_minor_version > ATTESTATION_PROTOCOL_DMTF_SPDM_1_1)) ||
 		attestation->state->txn.device_discovery) {
-		status = attestation_requester_setup_spdm_device (attestation, eid, device_addr);
+		status = attestation_requester_setup_spdm_device (attestation, transport, eid, device_addr);
 		if (status != 0) {
 			return status;
 		}
@@ -2360,7 +2561,13 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 			}
 		}
 
-		rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
+		status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), eid, &request);
+		if (status != 0) {
+			return status;
+		}
+
+		rq_len = spdm_generate_get_measurements_request (request.payload,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 			measurement_operation, attestation->state->txn.cert_supported ? true : false,
 			raw_bitstream_requested, attestation->state->txn.cert_supported ? nonce : NULL,
@@ -2379,7 +2586,14 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 		 * device IDs. */
 		if ((attestation->state->txn.protocol != ATTESTATION_PROTOCOL_CERBERUS) &&
 			(attestation->state->txn.spdm_minor_version <= ATTESTATION_PROTOCOL_DMTF_SPDM_1_1)) {
-			rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
+			status = msg_transport_create_empty_request (transport,
+				attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer),
+				eid, &request);
+			if (status != 0) {
+				return status;
+			}
+
+			rq_len = spdm_generate_get_measurements_request (request.payload,
 				ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 				SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS, false, raw_bitstream_requested, NULL,
 				attestation->state->txn.spdm_minor_version);
@@ -2391,8 +2605,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 			attestation->state->txn.measurement_operation_requested =
 				SPDM_MEASUREMENT_OPERATION_GET_NUM_BLOCKS;
 
-			status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-				device_addr, eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
+			status = attestation_requester_send_spdm_command_request (attestation, transport,
+				&request, rq_len, eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
 			if (status != 0) {
 				return status;
 			}
@@ -2409,7 +2623,13 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 			measurement_operation = attestation->state->txn.msg_buffer[0];
 		}
 
-		rq_len = spdm_generate_get_measurements_request (attestation->state->spdm_msg_buffer,
+		status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), eid, &request);
+		if (status != 0) {
+			return status;
+		}
+
+		rq_len = spdm_generate_get_measurements_request (request.payload,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 			measurement_operation, false, raw_bitstream_requested, NULL,
 			attestation->state->txn.spdm_minor_version);
@@ -2421,8 +2641,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
 	attestation->state->txn.raw_bitstream_requested = raw_bitstream_requested;
 	attestation->state->txn.measurement_operation_requested = measurement_operation;
 
-	status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-		device_addr, eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
+	status = attestation_requester_send_spdm_command_request (attestation, transport, &request,
+		rq_len, eid, true, SPDM_REQUEST_GET_MEASUREMENTS);
 	if (status != 0) {
 		return status;
 	}
@@ -2441,6 +2661,7 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
  * blocks from device then combine into single digest and compare with allowable PMR0 digests.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
@@ -2450,8 +2671,8 @@ static int attestation_requester_send_and_receive_spdm_get_measurements (
  * 	defined in CFM for this device, or an error code otherwise
  */
 static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	uint8_t eid, int device_addr, const struct cfm *active_cfm, uint32_t component_id)
 {
 	uint8_t digest[HASH_MAX_HASH_LEN];
 	struct cfm_pmr_digest pmr_digest;
@@ -2462,17 +2683,25 @@ static int attestation_requester_get_and_verify_all_spdm_measurement_blocks (
 		return status;
 	}
 
-	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-		device_addr, SPDM_MEASUREMENT_OPERATION_GET_ALL_BLOCKS, false);
+	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation,	transport,
+		eid, device_addr, SPDM_MEASUREMENT_OPERATION_GET_ALL_BLOCKS, false);
 	if (status != 0) {
 		goto free_pmr_digest;
 	}
 
 	// TODO: If device responds with raw blocks, hash them here instead of reporting error
 
+	/* This path recomputes a digest over the device's measurements, so the negotiated
+	 * algorithm must actually be implemented by the hash engine. SHA3 may not be supported by the
+	 * engine even though it is legal in SPDM, so fail explicitly here. */
+	if (!hash_is_alg_supported (attestation->state->txn.measurement_hash_type)) {
+		status = ATTESTATION_UNSUPPORTED_ALGORITHM;
+		goto free_pmr_digest;
+	}
+
 	status = hash_calculate (attestation->primary_hash,
 		attestation->state->txn.measurement_hash_type, attestation->state->txn.msg_buffer,
-		attestation->state->txn.msg_buffer_len,	digest, sizeof (digest));
+		attestation->state->txn.msg_buffer_len, digest, sizeof (digest));
 	if (ROT_IS_ERROR (status)) {
 		goto free_pmr_digest;
 	}
@@ -2496,6 +2725,7 @@ free_pmr_digest:
  * to allowable values.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param measurement CFM measurement entry.
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
@@ -2503,14 +2733,36 @@ free_pmr_digest:
  * @return Completion status, 0 if success or an error code	otherwise
  */
 static int attestation_requester_get_and_verify_spdm_measurement_block (
-	const struct attestation_requester *attestation, struct cfm_measurement_digest *measurement,
-	uint8_t eid, int device_addr)
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cfm_measurement_digest *measurement, uint8_t eid, int device_addr)
 {
 	size_t i_allowable_digests;
+	uint32_t log_event;
 	int status = 0;
 
-	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-		device_addr, measurement->measurement_id, false);
+	/* If device version set is not selected, this might be the first measurement, do not perform the check in this case.
+	If version set is already selected, then check the version set of the given measurement and if it matches the existing version
+	set, then only make the get measurement call, otherwise return with 0 */
+	if (attestation_requester_is_version_set_selected (attestation)) {
+		// Check if at least one allowable digest's version set matches device version set
+		bool version_set_match_found = false;
+
+		for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+			++i_allowable_digests) {
+			if ((measurement->allowable_digests[i_allowable_digests].version_set == 0) ||
+				(measurement->allowable_digests[i_allowable_digests].version_set ==
+				attestation->state->txn.device_version_set)) {
+				version_set_match_found = true;
+				break;
+			}
+		}
+		if (!version_set_match_found) {
+			return 0;
+		}
+	}
+
+	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation,	transport,
+		eid, device_addr, measurement->measurement_id, false);
 	if (status != 0) {
 		return status;
 	}
@@ -2565,6 +2817,200 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
 			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
 		}
 	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_INVALID_ATTESTATION:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED;
+					break;
+
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				log_event,
+				((eid << 16) | (measurement->pmr_id << 8) | (measurement->measurement_id)),
+				((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
+		}
+	}
+
+	return status;
+}
+
+/**
+ * Get the SPDM measurement blocks for an aggregated measurement entry from the CFM,
+ * then calculate the hash and compare it to the allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
+ * @param measurement Aggregated measurement entry from the CFM.
+ * @param eid EID of device being attested.
+ * @param device_addr Slave address of device.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_get_and_verify_spdm_aggregated_measurement (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cfm_aggregated_measurement *measurement, uint8_t eid, int device_addr)
+{
+	bool version_set_match_found = false;
+	bool any_measurement_hashed = false;
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	size_t i_allowable_digests;
+	enum hash_type hash_type;
+	uint8_t measurement_id;
+	uint32_t log_event;
+	size_t index;
+	int hash_len;
+	int status;
+
+	if ((measurement->allowable_digests == NULL) || (measurement->allowable_digests_count == 0)) {
+		return ATTESTATION_CFM_INVALID_ATTESTATION;
+	}
+
+	/* Aggregated Measurement defines a single hash_type shared by all allowable digests */
+	hash_type = measurement->hash_type;
+	hash_len = hash_get_hash_length (hash_type);
+	if (ROT_IS_ERROR (hash_len)) {
+		return hash_len;
+	}
+
+	/* If device version set is not selected, this might be the first measurement, do not perform the check in this case.
+	If version set is already selected, then check the version set of the given measurement and if it matches the existing version
+	set, then only make the get measurement call, otherwise return with 0 */
+	if (attestation_requester_is_version_set_selected (attestation)) {
+		// Check if at least one allowable digest's version set matches device version set
+		for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+			++i_allowable_digests) {
+			if ((measurement->allowable_digests[i_allowable_digests].version_set == 0) ||
+				(measurement->allowable_digests[i_allowable_digests].version_set ==
+				attestation->state->txn.device_version_set)) {
+				version_set_match_found = true;
+				break;
+			}
+		}
+		if (!version_set_match_found) {
+			return 0;
+		}
+	}
+
+	status = hash_start_new_hash (attestation->primary_hash, hash_type);
+	if (status != 0) {
+		return status;
+	}
+
+	for (index = 0; index < sizeof (measurement->measurements_mask) * 8; ++index) {
+		if (common_math_is_bit_set_in_array (measurement->measurements_mask,
+			sizeof (measurement->measurements_mask), index)) {
+			measurement_id = index;
+
+			status = attestation_requester_send_and_receive_spdm_get_measurements (attestation,
+				transport, eid,	device_addr, measurement_id, false);
+			if (status != 0) {
+				attestation->primary_hash->cancel (attestation->primary_hash);
+
+				return status;
+			}
+
+			status = attestation->primary_hash->update (attestation->primary_hash,
+				attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len);
+			if (status != 0) {
+				attestation->primary_hash->cancel (attestation->primary_hash);
+
+				return status;
+			}
+
+			any_measurement_hashed = true;
+		}
+	}
+
+	if (!any_measurement_hashed) {
+		attestation->primary_hash->cancel (attestation->primary_hash);
+
+		return ATTESTATION_CFM_INVALID_ATTESTATION;
+	}
+
+	status = attestation->primary_hash->finish (attestation->primary_hash, digest, sizeof (digest));
+	if (status != 0) {
+		attestation->primary_hash->cancel (attestation->primary_hash);
+
+		return status;
+	}
+
+	for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+		++i_allowable_digests) {
+		/* If device version set selected, and allowable digest has a non-zero version set which
+		 * does not match that of device, then digest not permitted for this device in its current
+		 * state.  If there are no allowable digests with matching version sets to device, then
+		 * measurement comparison is not applicable to device in its current state and will be
+		 * skipped without failing attestation. */
+		if (attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set != 0) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set !=
+			attestation->state->txn.device_version_set)) {
+			continue;
+		}
+
+		/* If device version set not selected, then this should be a measurement used for version
+		 * set selection with only allowable digests unique to a single version set. */
+		if (!attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set == 0)) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID,
+				((eid << 16) | (measurement->pmr_id << 8)), i_allowable_digests);
+
+			return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
+		}
+
+		status = attestation_requester_verify_digest_in_allowable_list (attestation,
+			&measurement->allowable_digests[i_allowable_digests].digests, digest, hash_type);
+		if (status == 0) {
+			// If device version set still not selected, then set it
+			if (!attestation_requester_is_version_set_selected (attestation)) {
+				attestation->state->txn.device_version_set =
+					measurement->allowable_digests[i_allowable_digests].version_set;
+			}
+
+			break;
+		}
+	}
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,
+			((eid << 16) | (measurement->pmr_id << 8)), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_INVALID_ATTESTATION:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED;
+					break;
+
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				log_event, ((eid << 16) | (measurement->pmr_id << 8)), status);
+		}
+	}
 
 	return status;
 }
@@ -2574,15 +3020,17 @@ static int attestation_requester_get_and_verify_spdm_measurement_block (
  *
  * @param check Checking method requested.
  * @param actual Actual data to utilize.
+ * @param actual_length Length of actual data.
  * @param expected Expected data to utilize.
- * @param length Length of both actual and expected data.
+ * @param expected_length Length of expected data.
  * @param bitmask Buffer with bitmask to use during comparison. Can be set to NULL if not needed.
  * @param big_endian Bool flag indicating if multi-byte data values are in big endian.
  *
  * @return 0 if data matches or 1 otherwise
  */
 static int attestation_requester_compare_data (enum cfm_check check, const uint8_t *actual,
-	const uint8_t *expected, size_t length, const uint8_t *bitmask, bool big_endian)
+	size_t actual_length, const uint8_t *expected, size_t expected_length, const uint8_t *bitmask,
+	bool big_endian)
 {
 	uint8_t actual_value;
 	uint8_t expected_value;
@@ -2591,17 +3039,21 @@ static int attestation_requester_compare_data (enum cfm_check check, const uint8
 	int direction;
 	int result;
 
+	if (expected_length != actual_length) {
+		return 1;
+	}
+
 	if (big_endian) {
 		i_data = 0;
 		direction = 1;
 	}
 	else {
 		// If data is in little endian, reverse loop traversal.
-		i_data = length - 1;
+		i_data = actual_length - 1;
 		direction = -1;
 	}
 
-	for (i_comp = 0; i_comp < length; ++i_comp, i_data += direction) {
+	for (i_comp = 0; i_comp < actual_length; ++i_comp, i_data += direction) {
 		actual_value = actual[i_data];
 		expected_value = expected[i_data];
 
@@ -2684,23 +3136,24 @@ static int attestation_requester_verify_data_in_allowable_list (
 				return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
 			}
 
-			if ((check->allowable_data[i_data].data_len !=
-				attestation->state->txn.msg_buffer_len)) {
-				return ATTESTATION_CFM_INVALID_ATTESTATION;
-			}
-
 			/* For a single version set, only a single allowable data entry is permitted unless a
 			 * "equal" or "not equal" check. */
 			if ((i_checks_in_version_set != 0) && (check->check != CFM_CHECK_EQUAL) &&
 				(check->check != CFM_CHECK_NOT_EQUAL)) {
-				return ATTESTATION_CFM_INVALID_ATTESTATION;
+				return ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET;
 			}
 
 			++i_checks_in_version_set;
 
+			if ((check->bitmask != NULL) &&
+				(check->bitmask_length < attestation->state->txn.msg_buffer_len)) {
+				return ATTESTATION_BITMASK_TOO_SMALL;
+			}
+
 			status = attestation_requester_compare_data (check->check,
-				attestation->state->txn.msg_buffer, check->allowable_data[i_data].data,
-				check->allowable_data[i_data].data_len, check->bitmask, check->big_endian);
+				attestation->state->txn.msg_buffer, attestation->state->txn.msg_buffer_len,
+				check->allowable_data[i_data].data, check->allowable_data[i_data].data_len,
+				check->bitmask, check->big_endian);
 			if (status == 0) {
 				// If device version set still not selected, then set it
 				if (!attestation_requester_is_version_set_selected (attestation)) {
@@ -2735,10 +3188,39 @@ static int attestation_requester_verify_data_in_allowable_list (
 }
 
 /**
+ * Check if measurement data belongs to current version set
+ * @param attestation Attestation requester instance to utilize.
+ * @param measurement CFM measurement data entry.
+ */
+static bool check_if_measurement_data_belongs_to_current_version_set (
+	const struct attestation_requester *attestation, const struct cfm_measurement_data *data)
+{
+	size_t num_data_checks = data->data_checks_count;
+	size_t i_check;
+	size_t i_data;
+
+	// Check if at least one allowable data's version set matches device version set
+	for (i_check = 0; i_check < num_data_checks; ++i_check) {
+		struct cfm_allowable_data *check = &data->data_checks[i_check];
+
+		for (i_data = 0; i_data < check->data_count; ++i_data) {
+			if ((check->allowable_data[i_data].version_set == 0) ||
+				(check->allowable_data[i_data].version_set ==
+				attestation->state->txn.device_version_set)) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+/**
  * Get corresponding the SPDM measurement block for a measurement data entry from the CFM, then
  * compare to allowable values.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param measurement CFM measurement data entry.
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
@@ -2746,13 +3228,24 @@ static int attestation_requester_verify_data_in_allowable_list (
  * @return Completion status, 0 if success or an error code	otherwise
  */
 static int attestation_requester_get_and_verify_spdm_measurement_data_block (
-	const struct attestation_requester *attestation, struct cfm_measurement_data *data,	uint8_t eid,
-	int device_addr)
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cfm_measurement_data *data, uint8_t eid, int device_addr)
 {
+	uint32_t log_event;
 	int status;
 
-	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-		device_addr, data->measurement_id, true);
+	/* If device version set is not selected, this might be the first measurement data, do not
+	 * perform the check in this case. If version set is already selected, then check the version
+	 * set of the given measurement data and if it matches the existing version set, then only
+	 * make the get measurement call, otherwise return with 0 */
+	if (attestation_requester_is_version_set_selected (attestation)) {
+		if (!check_if_measurement_data_belongs_to_current_version_set (attestation, data)) {
+			return 0;
+		}
+	}
+
+	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation,	transport,
+		eid, device_addr, data->measurement_id, true);
 	if (status != 0) {
 		return status;
 	}
@@ -2770,6 +3263,38 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
 			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
 		}
 	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				case ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET:
+					log_event = ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET;
+					break;
+
+				case ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID:
+					/* no action required since this is handled elsewhere */
+					log_event = 0;
+					break;
+
+				case ATTESTATION_BITMASK_TOO_SMALL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_BITMASK_TOO_SMALL;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			if (log_event > 0) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					log_event, ((eid << 16) | (data->pmr_id << 8) | (data->measurement_id)),
+					((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
+			}
+		}
+	}
 
 	return status;
 }
@@ -2779,6 +3304,7 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
  * and compare to allowable values.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param eid EID of device being attested.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
@@ -2788,8 +3314,8 @@ static int attestation_requester_get_and_verify_spdm_measurement_data_block (
  * 	otherwise
  */
 static int attestation_requester_get_and_verify_cfm_contents (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	uint8_t eid, int device_addr, const struct cfm *active_cfm, uint32_t component_id)
 {
 	struct cfm_measurement_container container;
 	bool first = true;
@@ -2801,12 +3327,522 @@ static int attestation_requester_get_and_verify_cfm_contents (
 		if (status == 0) {
 			if (container.measurement_type == CFM_MEASUREMENT_TYPE_DIGEST) {
 				status = attestation_requester_get_and_verify_spdm_measurement_block (attestation,
-					&container.measurement.digest, eid, device_addr);
+					transport, &container.measurement.digest, eid, device_addr);
 			}
-			else {
+			else if (container.measurement_type == CFM_MEASUREMENT_TYPE_DATA) {
 				status =
 					attestation_requester_get_and_verify_spdm_measurement_data_block (attestation,
-					&container.measurement.data, eid, device_addr);
+					transport, &container.measurement.data, eid, device_addr);
+			}
+			else if (container.measurement_type == CFM_MEASUREMENT_TYPE_AGGREGATED) {
+				status =
+					attestation_requester_get_and_verify_spdm_aggregated_measurement (attestation,
+					transport, &container.measurement.aggregated, eid, device_addr);
+			}
+			else {
+				status = ATTESTATION_CFM_INVALID_ATTESTATION;
+			}
+
+			first = false;
+		}
+	}
+
+	active_cfm->free_measurement_container (active_cfm, &container);
+
+	if (status == CFM_ENTRY_NOT_FOUND) {
+		return 0;
+	}
+
+	// Timeouts and invalid responses already updated device state, do not overwrite.
+	if ((status != 0) && (status != MSG_TRANSPORT_REQUEST_TIMEOUT) &&
+		(status != MSG_TRANSPORT_UNEXPECTED_RESPONSE)) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+			DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
+	}
+
+	return status;
+}
+
+/*
+ * Resolve a CFM measurement ID to a PCR measurement and determine its hash type.
+ *
+ * This function maps a CFM measurement ID to the corresponding PCR index and
+ * per-PCR measurement index stored in the PCR store. It retrieves the associated PCR
+ * measurement digest and determines the hash algorithm used based on the digest length.
+ *
+ * @param pcr PCR store instance containing recorded measurements.
+ * @param measurement_id CFM measurement ID (1-based).
+ * @param pcr_measurement Output buffer for the retrieved PCR measurement.
+ * @param hash_type Optional output for the hash type (may be NULL).
+ * @param out_digest_length Optional output for the digest length in bytes (may be NULL).
+ *
+ * @return Completion status, 0 if success or an error code	otherwise
+ */
+static int attestation_requester_get_pcr_measurement_by_cfm_id (struct pcr_store *pcr,
+	uint8_t measurement_id,	struct pcr_measurement *pcr_measurement, int *hash_type,
+	int *out_digest_length)
+{
+	uint16_t measurement_type;
+	int measurement_count;
+	int digest_length;
+	int pcr_count;
+	int pcr_index;
+	int i_pcr;
+
+	if (measurement_id == 0) {
+		return PCR_INVALID_PCR;
+	}
+
+	/* CFM measurement id starts at offset 1; PCR index starts at 0. */
+	pcr_index = measurement_id - 1;
+	pcr_count = pcr_store_get_num_pcrs (pcr);
+
+	/* Convert measurement id into a PCR_MEASUREMENT field.
+	 * If measurement id / current index is larger than current PCR's total measurement entries,
+	 * then subtract those entries and continue search in next PCR.
+	 * Once index is determined, convert it into 8 bit PCR || 8 bit index value. */
+	for (i_pcr = 0; i_pcr < pcr_count; i_pcr++) {
+		measurement_count = pcr_store_get_num_pcr_measurements (pcr, i_pcr);
+		if (measurement_count <= pcr_index) {
+			pcr_index -= measurement_count;
+		}
+		else {
+			break;
+		}
+	}
+
+	measurement_type = PCR_MEASUREMENT (i_pcr, pcr_index);
+
+	digest_length = pcr_store_get_measurement (pcr, measurement_type, pcr_measurement);
+	if (ROT_IS_ERROR (digest_length)) {
+		return digest_length;
+	}
+
+	switch (digest_length) {
+		case SHA256_HASH_LENGTH:
+			if (hash_type != NULL) {
+				*hash_type = HASH_TYPE_SHA256;
+			}
+			break;
+
+		case SHA384_HASH_LENGTH:
+			if (hash_type != NULL) {
+				*hash_type = HASH_TYPE_SHA384;
+			}
+			break;
+
+		case SHA512_HASH_LENGTH:
+			if (hash_type != NULL) {
+				*hash_type = HASH_TYPE_SHA512;
+			}
+			break;
+
+		default:
+			return ATTESTATION_CFM_INVALID_ATTESTATION;
+	}
+
+	if (out_digest_length != NULL) {
+		*out_digest_length = digest_length;
+	}
+
+	return 0;
+}
+
+/*
+ * Get corresponding TCG log digest for a measurement entry from the CFM, then compare
+ * to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param measurement CFM measurement entry.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or an error code	otherwise
+ */
+static int attestation_requester_get_and_verify_tcg_measurement (
+	const struct attestation_requester *attestation, struct cfm_measurement_digest *measurement,
+	struct pcr_store *pcr)
+{
+	struct pcr_measurement pcr_measurement;
+	size_t i_allowable_digests;
+	uint32_t log_event;
+	int hash_type;
+	int status;
+
+	status = attestation_requester_get_pcr_measurement_by_cfm_id (pcr, measurement->measurement_id,
+		&pcr_measurement, &hash_type, NULL);
+	if (status != 0) {
+		return status;
+	}
+
+	for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+		++i_allowable_digests) {
+		/* If device version set selected, and allowable digest has a non-zero version set which
+		 * does not match that of device, then digest not permitted for this device in its current
+		 * state.  If there are no allowable digests with matching version sets to device, then
+		 * measurement comparison is not applicable to device in its current state and will be
+		 * skipped without failing attestation. */
+		if (attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set != 0) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set !=
+			attestation->state->txn.device_version_set)) {
+			continue;
+		}
+
+		/* If device version set not selected, then this should be a measurement used for version
+		 * set selection with only allowable digests unique to a single version set. */
+		if (!attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set == 0)) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID,
+				((measurement->pmr_id << 8) | (measurement->measurement_id)), i_allowable_digests);
+
+			return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
+		}
+
+		status = attestation_requester_verify_digest_in_allowable_list (attestation,
+			&measurement->allowable_digests[i_allowable_digests].digests,
+			&pcr_measurement.digest[0], hash_type);
+
+		if (status == 0) {
+			// If device version set still not selected, then set it
+			if (!attestation_requester_is_version_set_selected (attestation)) {
+				attestation->state->txn.device_version_set =
+					measurement->allowable_digests[i_allowable_digests].version_set;
+			}
+
+			break;
+		}
+	}
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,
+			((measurement->pmr_id << 8) | (measurement->measurement_id)), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_INVALID_ATTESTATION:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED;
+					break;
+
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				log_event, ((measurement->pmr_id << 8) | (measurement->measurement_id)),
+				((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
+		}
+	}
+
+	return status;
+}
+
+/*
+ * Get corresponding TCG log measured data for a measurement data entry from the CFM, then
+ * compare to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param data CFM measurement data entry.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or an error code	otherwise
+ */
+static int attestation_requester_get_and_verify_tcg_measurement_data (
+	const struct attestation_requester *attestation, struct cfm_measurement_data *data,
+	struct pcr_store *pcr)
+{
+	uint32_t log_event;
+	int status;
+	int pcr_count;
+	int measurement_count;
+	int measured_data_length = 0;
+	uint16_t measurement_type = 0;
+	int pcr_index;
+	int i_pcr;
+
+	if (data->measurement_id == 0) {
+		return PCR_INVALID_PCR;
+	}
+
+	/* CFM measurement id starts at offset 1; PCR index starts at 0. */
+	pcr_index = data->measurement_id - 1;
+	pcr_count = pcr_store_get_num_pcrs (pcr);
+
+	/* Convert measurement id into a PCR_MEASUREMENT field.
+	 * If measurement id / current index is larger than current PCR's total measurement entries,
+	 * then subtract those entries and continue search in next PCR.
+	 * Once index is determined, convert it into 8 bit PCR || 8 bit index value. */
+	for (i_pcr = 0; i_pcr < pcr_count; i_pcr++) {
+		measurement_count = pcr_store_get_num_pcr_measurements (pcr, i_pcr);
+		if (measurement_count <= pcr_index) {
+			pcr_index -= measurement_count;
+		}
+		else {
+			break;
+		}
+	}
+
+	measurement_type = PCR_MEASUREMENT (i_pcr, pcr_index);
+
+	measured_data_length = pcr_store_get_measurement_data (pcr, measurement_type, 0,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
+	if (ROT_IS_ERROR (measured_data_length)) {
+		return measured_data_length;
+	}
+
+	attestation->state->txn.msg_buffer_len = measured_data_length;
+
+	status = attestation_requester_verify_data_in_allowable_list (attestation, data->data_checks,
+		data->data_checks_count, data->pmr_id, data->measurement_id, 0);
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED,
+			((data->pmr_id << 8) | (data->measurement_id)), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				case ATTESTATION_CFM_MULTIPLE_DATA_PER_VERSION_SET:
+					log_event = ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET;
+					break;
+
+				case ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID:
+					/* no action required since this is handled elsewhere */
+					log_event = 0;
+					break;
+
+				case ATTESTATION_BITMASK_TOO_SMALL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_BITMASK_TOO_SMALL;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			if (log_event > 0) {
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+					log_event, ((data->pmr_id << 8) | (data->measurement_id)),
+					((attestation->state->txn.device_version_set << 16) | (status & 0xFFFF)));
+			}
+		}
+	}
+
+	return status;
+}
+
+/*
+ * Get corresponding TCG log digest for a measurement entry from the CFM, then compare
+ * to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param measurement Aggregated measurement entry from the CFM.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or an error code	otherwise
+ */
+static int attestation_requester_get_and_verify_tcg_aggregated_measurement (
+	const struct attestation_requester *attestation, struct cfm_aggregated_measurement *measurement,
+	struct pcr_store *pcr)
+{
+	bool any_measurement_hashed = false;
+	struct pcr_measurement pcr_measurement;
+	uint8_t digest[HASH_MAX_HASH_LEN];
+	size_t i_allowable_digests;
+	uint32_t log_event;
+	int digest_length;
+	int hash_type;
+	int hash_len;
+	size_t index;
+	int status;
+
+	if ((measurement->allowable_digests == NULL) || (measurement->allowable_digests_count == 0)) {
+		return ATTESTATION_CFM_INVALID_ATTESTATION;
+	}
+
+	/* Aggregated Measurement defines a single hash_type shared by all allowable digests */
+	hash_type = measurement->hash_type;
+	hash_len = hash_get_hash_length (hash_type);
+	if (ROT_IS_ERROR (hash_len)) {
+		return hash_len;
+	}
+
+	status = hash_start_new_hash (attestation->primary_hash, hash_type);
+	if (status != 0) {
+		return status;
+	}
+
+	for (index = 0; index < sizeof (measurement->measurements_mask) * 8; ++index) {
+		if (common_math_is_bit_set_in_array (measurement->measurements_mask,
+			sizeof (measurement->measurements_mask), index)) {
+			status = attestation_requester_get_pcr_measurement_by_cfm_id (pcr, index,
+				&pcr_measurement, NULL,	&digest_length);
+			if (status != 0) {
+				attestation->primary_hash->cancel (attestation->primary_hash);
+
+				return status;
+			}
+
+			status = attestation->primary_hash->update (attestation->primary_hash,
+				pcr_measurement.digest, digest_length);
+			if (status != 0) {
+				attestation->primary_hash->cancel (attestation->primary_hash);
+
+				return status;
+			}
+
+			any_measurement_hashed = true;
+		}
+	}
+
+	if (!any_measurement_hashed) {
+		attestation->primary_hash->cancel (attestation->primary_hash);
+
+		return ATTESTATION_CFM_INVALID_ATTESTATION;
+	}
+
+	status = attestation->primary_hash->finish (attestation->primary_hash, digest, sizeof (digest));
+	if (status != 0) {
+		attestation->primary_hash->cancel (attestation->primary_hash);
+
+		return status;
+	}
+
+	for (i_allowable_digests = 0; i_allowable_digests < measurement->allowable_digests_count;
+		++i_allowable_digests) {
+		/* If device version set selected, and allowable digest has a non-zero version set which
+		 * does not match that of device, then digest not permitted for this device in its current
+		 * state.  If there are no allowable digests with matching version sets to device, then
+		 * measurement comparison is not applicable to device in its current state and will be
+		 * skipped without failing attestation. */
+		if (attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set != 0) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set !=
+			attestation->state->txn.device_version_set)) {
+			continue;
+		}
+
+		/* If device version set not selected, then this should be a measurement used for version
+		 * set selection with only allowable digests unique to a single version set. */
+		if (!attestation_requester_is_version_set_selected (attestation) &&
+			(measurement->allowable_digests[i_allowable_digests].version_set == 0)) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_CFM_VERSION_SET_SELECTOR_INVALID, (measurement->pmr_id << 8),
+				i_allowable_digests);
+
+			return ATTESTATION_CFM_VERSION_SET_SELECTOR_INVALID;
+		}
+
+		status = attestation_requester_verify_digest_in_allowable_list (attestation,
+			&measurement->allowable_digests[i_allowable_digests].digests, digest, hash_type);
+
+		if (status == 0) {
+			// If device version set still not selected, then set it
+			if (!attestation_requester_is_version_set_selected (attestation)) {
+				attestation->state->txn.device_version_set =
+					measurement->allowable_digests[i_allowable_digests].version_set;
+			}
+
+			break;
+		}
+	}
+
+	// If device version set not selected, then report error
+	if (!attestation_requester_is_version_set_selected (attestation)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_VERSION_SET_SELECTION_FAILED, (measurement->pmr_id << 8), status);
+
+		if (status == 0) {
+			return ATTESTATION_FAILED_TO_SELECT_VERSION_SET;
+		}
+	}
+	else {
+		if (status != 0) {
+			switch (status) {
+				case ATTESTATION_CFM_INVALID_ATTESTATION:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED;
+					break;
+
+				case ATTESTATION_CFM_ATTESTATION_RULE_FAIL:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED;
+					break;
+
+				default:
+					log_event = ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED;
+					break;
+			}
+
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				log_event, (measurement->pmr_id << 8), status);
+		}
+	}
+
+	return status;
+}
+
+/**
+ * For each measurement or measurement data entry in CFM, get corresponding measurement from
+ * TCG log and compare to allowable values.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_num The device entry's number in device_manager.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component ID of the device.
+ * @param pcr PCR store instance to utilize.
+ *
+ * @return Completion status, 0 if success or no measurement entries in CFM, or an error code
+ * 	otherwise
+ */
+static int attestation_requester_get_and_verify_cfm_contents_tcg (
+	const struct attestation_requester *attestation, int device_num, const struct cfm *active_cfm,
+	uint32_t component_id, struct pcr_store *pcr)
+{
+	struct cfm_measurement_container container;
+	bool first = true;
+	int status = 0;
+
+	while (status == 0) {
+		status = active_cfm->get_next_measurement_or_measurement_data (active_cfm, component_id,
+			&container, first);
+		if (status == 0) {
+			if (container.measurement_type == CFM_MEASUREMENT_TYPE_DIGEST) {
+				status = attestation_requester_get_and_verify_tcg_measurement (attestation,
+					&container.measurement.digest, pcr);
+			}
+			else if (container.measurement_type == CFM_MEASUREMENT_TYPE_DATA) {
+				status =
+					attestation_requester_get_and_verify_tcg_measurement_data (attestation,
+					&container.measurement.data, pcr);
+			}
+			else if (container.measurement_type == CFM_MEASUREMENT_TYPE_AGGREGATED) {
+				status =
+					attestation_requester_get_and_verify_tcg_aggregated_measurement (attestation,
+					&container.measurement.aggregated, pcr);
+			}
+			else {
+				status = ATTESTATION_CFM_INVALID_ATTESTATION;
 			}
 
 			first = false;
@@ -2820,7 +3856,7 @@ static int attestation_requester_get_and_verify_cfm_contents (
 	}
 
 	if (status != 0) {
-		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+		device_manager_update_device_state (attestation->device_mgr, device_num,
 			DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH);
 	}
 
@@ -2867,6 +3903,7 @@ static int attestation_requester_spdm_process_challenge_response (
  * Retrieve a specified portion of the complete certificate chain data.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param eid EID of device that sent certificate chain.
  * @param device_addr Slave address of device.
  * @param offset Offset within the certificate chain of the requested data.
@@ -2876,13 +3913,16 @@ static int attestation_requester_spdm_process_challenge_response (
  * @return 0 if completed successfully, or an error code
  */
 static int attestation_requester_retrieve_spdm_certificate_chain_portion (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr, uint32_t offset,
-	size_t length, uint8_t **portion_data)
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	uint8_t eid, int device_addr, uint32_t offset, size_t length, uint8_t **portion_data)
 {
+	struct cmd_interface_msg request;
 	struct spdm_get_certificate_response *rsp =
 		(struct spdm_get_certificate_response*) attestation->state->txn.msg_buffer;
 	uint8_t *cert_buffer = NULL;
 	size_t rx_data = 0;
+	uint16_t read_len;
+	size_t max_len;
 	int rq_len;
 	int status;
 
@@ -2892,21 +3932,41 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 		device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
 			DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
 
-		return ATTESTATION_CERT_TOO_LARGE;
+		return ATTESTATION_BUFFER_OVERRUN;
 	}
 
+	max_len = device_manager_get_max_message_len_by_eid (attestation->device_mgr, eid) -
+		sizeof (struct spdm_get_certificate_response);
+
+	read_len = (length > max_len) ? max_len : length;
+
 	while (length > 0) {
-		rq_len = spdm_generate_get_certificate_request (attestation->state->spdm_msg_buffer,
+		status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), eid, &request);
+		if (status != 0) {
+			return status;
+		}
+
+		rq_len = spdm_generate_get_certificate_request (request.payload,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
-			offset + rx_data, length, attestation->state->txn.spdm_minor_version);
+			offset + rx_data, read_len, attestation->state->txn.spdm_minor_version);
 		if (ROT_IS_ERROR (rq_len)) {
 			status = rq_len;
 			goto exit;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation,	rq_len,
-			device_addr, eid, true, SPDM_REQUEST_GET_CERTIFICATE);
+		status = attestation_requester_send_spdm_command_request (attestation, transport, &request,
+			rq_len,	eid, true, SPDM_REQUEST_GET_CERTIFICATE);
 		if (status != 0) {
+			goto exit;
+		}
+
+		/* if portion_len is 0, or portion_len is greater than length, then the response is invalid */
+		if ((rsp->portion_len == 0) || (rsp->portion_len > length)) {
+			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
+				DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
+
+			status = ATTESTATION_INVALID_CERT_CHAIN;
 			goto exit;
 		}
 
@@ -2926,6 +3986,9 @@ static int attestation_requester_retrieve_spdm_certificate_chain_portion (
 		if (cert_buffer != NULL) {
 			rx_data += buffer_copy (spdm_get_certificate_resp_cert_chain (rsp), rsp->portion_len,
 				NULL, &length, &cert_buffer[rx_data]);
+			if (length < read_len) {
+				read_len = length;
+			}
 		}
 		else {
 			/* All the requested data is in the message buffer. */
@@ -2953,6 +4016,7 @@ exit:
  * Retrieve a single certificate from an SPDM certificate chain.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
  * @param dest_addr SMBus address of destination device.
  * @param dest_eid MCTP EID of destination device.
  * @param offset Offset within the certificate chain for the requested certificate.
@@ -2962,39 +4026,63 @@ exit:
  * @return 0 if completed successfully, or an error code
  */
 static int attestation_requester_retrieve_individual_spdm_certificate (
-	const struct attestation_requester *attestation, uint8_t dest_addr, uint8_t dest_eid,
-	uint32_t offset, uint8_t **cert_data, size_t *cert_len)
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	uint8_t dest_addr, uint8_t dest_eid, uint32_t offset, uint8_t **cert_data, size_t *cert_len)
 {
 	uint8_t *portion_data;
 	size_t portion_size;
+	uint8_t cert_header[ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN];
 	int status;
 
 	/* First determine the size of the next certificate at the specified offset by retrieving just
 	 * the ASN.1 header of the X.509 certificate. */
 	portion_size = ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
-	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, dest_eid,
-		dest_addr, offset, portion_size, &portion_data);
+	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, transport,
+		dest_eid, dest_addr, offset, portion_size, &portion_data);
 	if (status != 0) {
 		return status;
 	}
+
+	memcpy (cert_header, portion_data, portion_size);
 
 	status = asn1_get_der_item_len (portion_data, portion_size);
 	if (ROT_IS_ERROR (status)) {
 		return status;
 	}
 
-	/* Then issue a request to retrieve the entire certificate. */
-	portion_size = status;
+	/* Assume that no single certificate will be larger than the the total size of the message
+	 * buffer. */
+	if ((size_t) (status + sizeof (struct spdm_get_certificate_response)) >
+		sizeof (attestation->state->txn.msg_buffer)) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, dest_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CERTS);
 
-	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, dest_eid,
-		dest_addr, offset, portion_size, &portion_data);
-	if (status != 0) {
-		return status;
+		return ATTESTATION_CERT_TOO_LARGE;
+	}
+
+	/* Then issue a request to retrieve the rest of the certificate. As specified in SPDM spec,
+	 * offset must be monotonic after the first request for a particular certificate chain. */
+	if ((size_t) status < portion_size) {
+		portion_size = 0;
+	}
+	else {
+		offset += portion_size;
+		portion_size = status - portion_size;
+
+		status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation,
+			transport, dest_eid, dest_addr, offset, portion_size, &portion_data);
+		if (status != 0) {
+			return status;
+		}
+
+		memmove (portion_data + ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN, portion_data,
+			portion_size);
+		memcpy (portion_data, cert_header, ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN);
 	}
 
 	*cert_data = portion_data;
-	*cert_len = portion_size;
+	*cert_len = portion_size + ATTESTATION_REQUESTER_CERT_ASN1_HEADER_LEN;
 
 	return 0;
 }
@@ -3004,6 +4092,8 @@ static int attestation_requester_retrieve_individual_spdm_certificate (
  * valid, store the alias key of the device.
  *
  * @param attestation Attestation requester instance to utilize.
+ * @param transport The SPDM message transport instance used to send requests.
+ * @param dest_addr SMBus address of destination device.
  * @param eid EID of device that sent certificate chain.
  * @param active_cfm Active CFM to utilize.
  * @param component_id The component ID of the device.
@@ -3011,13 +4101,12 @@ static int attestation_requester_retrieve_individual_spdm_certificate (
  * @return 0 if completed successfully, or an error code
  */
 static int attestation_requester_verify_and_load_leaf_key_spdm (
-	const struct attestation_requester *attestation, uint8_t dest_addr, uint8_t eid,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	uint8_t dest_addr, uint8_t eid, const struct cfm *active_cfm, uint32_t component_id)
 {
 	struct x509_ca_certs certs_chain;
 	struct x509_certificate cert;
-	uint8_t cert_chain_header[sizeof (struct spdm_certificate_chain) + HASH_MAX_HASH_LEN];
-	struct spdm_certificate_chain *spdm_cert_chain;
+	struct spdm_certificate_chain_header cert_chain_header;
 	size_t transcript_hash_len =
 		hash_get_hash_length (attestation->state->txn.transcript_hash_type);
 	size_t cert_offset = 0;
@@ -3026,46 +4115,49 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 	int status;
 
 	/* Determine the length of the SPDM certificate header and request just the header data. */
-	cert_len = sizeof (struct spdm_certificate_chain) + transcript_hash_len;
+	cert_len = sizeof (struct spdm_certificate_chain_min_header) + transcript_hash_len;
 
-	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, eid,
-		dest_addr, cert_offset, cert_len, &cert_data);
+	status = attestation_requester_retrieve_spdm_certificate_chain_portion (attestation, transport,
+		eid, dest_addr, cert_offset, cert_len, &cert_data);
 	if (status != 0) {
 		return status;
 	}
 
-	memcpy (cert_chain_header, cert_data, cert_len);
-	spdm_cert_chain = (struct spdm_certificate_chain*) cert_chain_header;
+	memcpy (&cert_chain_header, cert_data, cert_len);
 
 	/* Get root CA certificate. */
 	cert_offset = cert_len;
 
-	status = attestation_requester_retrieve_individual_spdm_certificate (attestation, dest_addr,
-		eid, cert_offset, &cert_data, &cert_len);
+	status = attestation_requester_retrieve_individual_spdm_certificate (attestation, transport,
+		dest_addr, eid, cert_offset, &cert_data, &cert_len);
 	if (status != 0) {
 		return status;
 	}
 
 	status = attestation_requester_verify_and_load_root_cert (attestation, eid, active_cfm,
-		component_id, cert_data, cert_len, cert_chain_header, cert_offset, &certs_chain);
+		component_id, cert_data, cert_len, (uint8_t*) &cert_chain_header, cert_offset,
+		&certs_chain);
 	if (status != 0) {
 		return status;
 	}
 
 	cert_offset += cert_len;
 
-	while (cert_offset < spdm_cert_chain->length) {
+	while (cert_offset < cert_chain_header.min_hdr.length) {
 		/* Retrieve, hash, and validate each certificate in the chain. */
-		status = attestation_requester_retrieve_individual_spdm_certificate (attestation, dest_addr,
-			eid, cert_offset, &cert_data, &cert_len);
+		status = attestation_requester_retrieve_individual_spdm_certificate (attestation, transport,
+			dest_addr, eid, cert_offset, &cert_data, &cert_len);
 		if (status != 0) {
+			attestation->primary_hash->cancel (attestation->primary_hash);
+			attestation->x509->release_ca_cert_store (attestation->x509, &certs_chain);
+
 			return status;
 		}
 
 		cert_offset += cert_len;
 
 		status = attestation_requester_verify_and_load_certificate (attestation, eid, cert_data,
-			cert_len, (cert_offset >= spdm_cert_chain->length), &cert, &certs_chain);
+			cert_len, (cert_offset >= cert_chain_header.min_hdr.length), &cert, &certs_chain);
 		if (status != 0) {
 			return status;
 		}
@@ -3074,11 +4166,50 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
 	return attestation_requester_update_alias_key (attestation, eid, transcript_hash_len, &cert);
 }
 
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 /**
- * Perform an attestation cycle on a provided device using SPDM.
+ * Check if the device supports SPDM protocol. Only available when device discovery is enabled.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param eid EID of device to attest.
+ * @param eid The endpoint ID of the device to check. Resolved via discovery handler.
+ *
+ * @return 0 if device supports SPDM protocol, error code otherwise.
+ */
+static int attestation_requester_check_spdm_support (
+	const struct attestation_requester *attestation, uint8_t eid)
+{
+	struct cmd_interface_msg request;
+	struct cmd_interface_msg response;
+	struct mctp_control_get_message_type_response *msg_type_rsp = NULL;
+	uint8_t i_type;
+	uint8_t *msg_type;
+	int status;
+
+	status = attestation_requester_get_message_type (attestation, eid, &request, &response);
+	if (status != 0) {
+		return status;
+	}
+
+	msg_type_rsp = (struct mctp_control_get_message_type_response*) response.payload;
+
+	for (i_type = 0; i_type < msg_type_rsp->message_type_count; ++i_type) {
+		msg_type = mctp_control_get_message_type_response_get_entries (msg_type_rsp) + i_type;
+		if (*msg_type == MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM) {
+			return 0;
+		}
+	}
+
+	return ATTESTATION_UNSUPPORTED_PROTOCOL;
+}
+
+#endif	// ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+
+/**
+ * Perform an attestation cycle on a provided device using SPDM. When ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+ * is enabled, verifies the device supports SPDM via MCTP control Get Message Type before proceeding.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_num Device number in device manager table. Used to resolve EID via discovery handler.
  * @param device_addr Slave address of device.
  * @param active_cfm Active CFM to utilize.
  * @param component_id The component ID of the device.
@@ -3086,16 +4217,35 @@ static int attestation_requester_verify_and_load_leaf_key_spdm (
  * @return Completion status, 0 if success or an error code otherwise
  */
 static int attestation_requester_attest_device_spdm (
-	const struct attestation_requester *attestation, uint8_t eid, int device_addr,
-	struct cfm *active_cfm, uint32_t component_id)
+	const struct attestation_requester *attestation, int device_num, int device_addr,
+	const struct cfm *active_cfm, uint32_t component_id)
 {
+	struct cmd_interface_msg request;
 	const struct device_manager_key *alias_key;
+	const struct msg_transport *transport;
 	uint8_t nonce[SPDM_NONCE_LEN];
+	int eid = 0;
 	int rq_len;
 	int status;
 
-	if (!hash_is_alg_supported (attestation->state->txn.transcript_hash_type) ||
-		!hash_is_alg_supported (attestation->state->txn.measurement_hash_type)) {
+	eid = attestation_requester_get_device_eid_from_discovery (attestation, device_num);
+	if (ROT_IS_ERROR (eid)) {
+		return eid;
+	}
+
+	transport = attestation->spdm_transport;
+	if (transport == NULL) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+	status = attestation_requester_check_spdm_support (attestation, eid);
+	if (status != 0) {
+		return status;
+	}
+#endif
+
+	if (!hash_is_alg_supported (attestation->state->txn.transcript_hash_type)) {
 		return ATTESTATION_UNSUPPORTED_ALGORITHM;
 	}
 
@@ -3109,21 +4259,27 @@ static int attestation_requester_attest_device_spdm (
 	attestation->state->txn.protocol = ATTESTATION_PROTOCOL_DMTF_SPDM;
 	attestation->state->txn.spdm_minor_version = ATTESTATION_PROTOCOL_DMTF_SPDM_1_0;
 
-	status = attestation_requester_setup_spdm_device (attestation, eid, device_addr);
+	status = attestation_requester_setup_spdm_device (attestation, transport, eid, device_addr);
 	if (status != 0) {
 		goto hash_cancel;
 	}
 
 	if (attestation->state->txn.cert_supported) {
-		rq_len = spdm_generate_get_digests_request (attestation->state->spdm_msg_buffer,
+		status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), eid, &request);
+		if (status != 0) {
+			goto hash_cancel;
+		}
+
+		rq_len = spdm_generate_get_digests_request (request.payload,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.spdm_minor_version);
 		if (ROT_IS_ERROR (rq_len)) {
 			status = rq_len;
 			goto hash_cancel;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-			device_addr, eid, true, SPDM_REQUEST_GET_DIGESTS);
+		status = attestation_requester_send_spdm_command_request (attestation, transport, &request,
+			rq_len,	eid, true, SPDM_REQUEST_GET_DIGESTS);
 		if (status != 0) {
 			goto hash_cancel;
 		}
@@ -3131,8 +4287,8 @@ static int attestation_requester_attest_device_spdm (
 		// If certificate chain digest retrieved does not match cached certificate, refresh chain
 		alias_key = device_manager_get_alias_key (attestation->device_mgr, eid);
 		if (alias_key == NULL) {
-			status = attestation_requester_verify_and_load_leaf_key_spdm (attestation, device_addr,
-				eid, active_cfm, component_id);
+			status = attestation_requester_verify_and_load_leaf_key_spdm (attestation, transport,
+				device_addr, eid, active_cfm, component_id);
 			if (status != 0) {
 				goto clear_cert_chain;
 			}
@@ -3147,7 +4303,13 @@ static int attestation_requester_attest_device_spdm (
 			goto hash_cancel;
 		}
 
-		rq_len = spdm_generate_challenge_request (attestation->state->spdm_msg_buffer,
+		status = msg_transport_create_empty_request (transport,	attestation->state->txn.msg_buffer,
+			sizeof (attestation->state->txn.msg_buffer), eid, &request);
+		if (status != 0) {
+			goto hash_cancel;
+		}
+
+		rq_len = spdm_generate_challenge_request (request.payload,
 			ATTESTATION_REQUESTER_MAX_SPDM_REQUEST, attestation->state->txn.slot_num,
 			SPDM_MEASUREMENT_SUMMARY_HASH_ALL, nonce, attestation->state->txn.spdm_minor_version);
 		if (ROT_IS_ERROR (rq_len)) {
@@ -3155,8 +4317,8 @@ static int attestation_requester_attest_device_spdm (
 			goto hash_cancel;
 		}
 
-		status = attestation_requester_send_spdm_request_and_get_response (attestation, rq_len,
-			device_addr, eid, true, SPDM_REQUEST_CHALLENGE);
+		status = attestation_requester_send_spdm_command_request (attestation, transport, &request,
+			rq_len,	eid, true, SPDM_REQUEST_CHALLENGE);
 		if (status != 0) {
 			goto hash_cancel;
 		}
@@ -3172,8 +4334,8 @@ static int attestation_requester_attest_device_spdm (
 		}
 	}
 	else {
-		status = attestation_requester_get_and_verify_all_spdm_measurement_blocks (attestation, eid,
-			device_addr, active_cfm, component_id);
+		status = attestation_requester_get_and_verify_all_spdm_measurement_blocks (attestation,
+			transport, eid, device_addr, active_cfm, component_id);
 		if ((status != 0) && (status != CFM_PMR_DIGEST_NOT_FOUND)) {
 			goto hash_cancel;
 		}
@@ -3182,8 +4344,8 @@ static int attestation_requester_attest_device_spdm (
 	/* If PMR0 entry exists in CFM, then by getting here device has valid PMR0. Since PMR0 includes
 	 * all measurement blocks, we dont have to check rest of the attestation rules. */
 	if (status == CFM_PMR_DIGEST_NOT_FOUND) {
-		status = attestation_requester_get_and_verify_cfm_contents (attestation, eid, device_addr,
-			active_cfm, component_id);
+		status = attestation_requester_get_and_verify_cfm_contents (attestation, transport, eid,
+			device_addr, active_cfm, component_id);
 		if (status != 0) {
 			goto hash_cancel;
 		}
@@ -3209,77 +4371,84 @@ clear_cert_chain:
 #endif
 
 /**
- * Perform an attestation cycle on a provided device using requested protocol.
+ * Perform an attestation cycle on a local RoT component.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param eid EID of device to attest.
+ * @param device_num Number of the device to attest.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component ID of the device.
+ * @param pcr PCR store instance to utilize.
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
-int attestation_requester_attest_device (const struct attestation_requester *attestation,
-	uint8_t eid)
+int attestation_requester_attest_device_tcg (const struct attestation_requester *attestation,
+	int device_num, const struct cfm *active_cfm, uint32_t component_id, struct pcr_store *pcr)
 {
-	struct cfm_component_device component_device;
-	struct cfm *active_cfm;
-	uint32_t component_id;
-	enum cfm_attestation_type attestation_protocol;
-	int device_addr;
-	int device_state;
 	int status;
 
-	if (attestation == NULL) {
+	if ((attestation == NULL) || (pcr == NULL) || (active_cfm == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	if (attestation->state->get_routing_table) {
-		return ATTESTATION_REFRESH_ROUTING_TABLE;
+	status = attestation_requester_get_and_verify_cfm_contents_tcg (attestation, device_num,
+		active_cfm, component_id, pcr);
+
+	return status;
+}
+
+/**
+ * Attempt attestation of a device against a single component ID.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_num Device number of the device to attest.
+ * @param device_addr Slave address of device.
+ * @param device_state Current device attestation state.
+ * @param active_cfm Active CFM to utilize.
+ * @param component_id The component type ID to attest against.
+ * @param attestation_protocol Output for the attestation protocol used.
+ * @param pcr PCR store instance to utilize for TCG attestation.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+static int attestation_requester_attest_device_by_component_id (
+	const struct attestation_requester *attestation, int device_num, int device_addr,
+	int device_state, const struct cfm *active_cfm, uint32_t component_id,
+	enum cfm_attestation_type *attestation_protocol, struct pcr_store *pcr)
+{
+	struct cfm_component_device component_device;
+	int status;
+
+	if (!((device_state == DEVICE_MANAGER_AUTHENTICATED) ||
+		(device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS))) {
+		status = device_manager_update_device_state (attestation->device_mgr, device_num,
+			DEVICE_MANAGER_READY_FOR_ATTESTATION);
+		if (status != 0) {
+			return status;
+		}
 	}
 
 	memset (&attestation->state->txn, 0, sizeof (struct attestation_requester_transaction_state));
 
-	device_addr = device_manager_get_device_addr_by_eid (attestation->device_mgr, eid);
-	if (ROT_IS_ERROR (device_addr)) {
-		return device_addr;
-	}
-
-	status = device_manager_get_component_id (attestation->device_mgr, eid, &component_id);
-	if (status != 0) {
-		return status;
-	}
-
-	active_cfm = attestation->cfm_manager->get_active_cfm (attestation->cfm_manager);
-	if (active_cfm == NULL) {
-		return ATTESTATION_NO_CFM;
-	}
-
 	status = active_cfm->get_component_device (active_cfm, component_id, &component_device);
 	if (status != 0) {
-		goto free_cfm;
+		device_manager_update_device_state (attestation->device_mgr, device_num,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
+
+		return status;
 	}
 
 	attestation->state->txn.slot_num = component_device.cert_slot;
 	attestation->state->txn.transcript_hash_type = component_device.transcript_hash_type;
 	attestation->state->txn.measurement_hash_type = component_device.measurement_hash_type;
 
-	attestation_protocol = component_device.attestation_protocol;
+	*attestation_protocol = component_device.attestation_protocol;
 
 	active_cfm->free_component_device (active_cfm, &component_device);
 
-	device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
-
-	if (!(device_state == DEVICE_MANAGER_AUTHENTICATED) ||
-		(device_state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
-		status = device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-			DEVICE_MANAGER_READY_FOR_ATTESTATION);
-		if (status != 0) {
-			goto free_cfm;
-		}
-	}
-
-	switch (attestation_protocol) {
+	switch (*attestation_protocol) {
 #ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
 		case CFM_ATTESTATION_CERBERUS_PROTOCOL:
-			status = attestation_requester_attest_device_cerberus_protocol (attestation, eid,
+			status = attestation_requester_attest_device_cerberus_protocol (attestation, device_num,
 				device_addr, active_cfm, component_id);
 
 			break;
@@ -3291,342 +4460,368 @@ int attestation_requester_attest_device (const struct attestation_requester *att
 				status = ATTESTATION_UNSUPPORTED_OPERATION;
 			}
 			else {
-				status = attestation_requester_attest_device_spdm (attestation, eid, device_addr,
-					active_cfm, component_id);
+				status = attestation_requester_attest_device_spdm (attestation, device_num,
+					device_addr, active_cfm, component_id);
 			}
 
 			break;
 #endif
 
+		case CFM_ATTESTATION_TCG:
+			status = attestation_requester_attest_device_tcg (attestation, device_num, active_cfm,
+				component_id, pcr);
+			break;
+
 		default:
 			status = ATTESTATION_UNSUPPORTED_PROTOCOL;
+	}
+
+	return status;
+}
+
+/**
+ * Perform an attestation cycle on a provided device using requested protocol.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param device_num Device number of the device to attest.
+ * @param pcr PCR store instance to utilize for TCG attestation.
+ *
+ * @return Completion status, 0 if success or an error code otherwise.
+ */
+int attestation_requester_attest_device (const struct attestation_requester *attestation,
+	int device_num, struct pcr_store *pcr)
+{
+	const struct cfm *active_cfm;
+	uint8_t instance_id;
+	enum cfm_attestation_type attestation_protocol;
+	struct device_manager_attestation_summary_event_counters event_counters;
+	uint32_t component_id = 0;
+	uint32_t device_component_id = 0;
+	int device_eid = 0;
+	int component_type_count;
+	int device_addr;
+	int device_prev_state;
+	int device_state;
+	int id_index;
+	int status;
+
+	if ((attestation == NULL) || (pcr == NULL)) {
+		return ATTESTATION_INVALID_ARGUMENT;
+	}
+
+	memset (&attestation->state->txn, 0, sizeof (struct attestation_requester_transaction_state));
+
+	device_addr = device_manager_get_device_addr (attestation->device_mgr, device_num);
+	if (ROT_IS_ERROR (device_addr)) {
+		return device_addr;
+	}
+
+	status = device_manager_get_component_id (attestation->device_mgr, device_num,
+		&device_component_id);
+	if (status != 0) {
+		return status;
+	}
+
+	status = device_manager_get_instance_id (attestation->device_mgr, device_num, &instance_id);
+	if (status != 0) {
+		return status;
+	}
+
+	component_type_count = device_manager_get_num_component_types (attestation->device_mgr,
+		device_num);
+	if (ROT_IS_ERROR (component_type_count)) {
+		status = component_type_count;
+		goto log_error;
+	}
+
+	if (component_type_count == 0) {
+		/* This should never happen, but still lets handle it properly. */
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_NO_COMPONENT_TYPE, device_component_id, instance_id);
+
+		return ATTESTATION_NO_CFM;
+	}
+
+	device_state = device_manager_get_device_state (attestation->device_mgr, device_num);
+	if (ROT_IS_ERROR (device_state)) {
+		status = device_state;
+		goto log_error;
+	}
+
+	/* Store the previous device state before starting attestation */
+	device_prev_state = device_state;
+
+	active_cfm = attestation->cfm_manager->get_active_cfm (attestation->cfm_manager);
+	if (active_cfm == NULL) {
+		status = device_manager_update_device_state (attestation->device_mgr, device_num,
+			DEVICE_MANAGER_ATTESTATION_INVALID_CFM);
+		if (status == 0) {
+			status = ATTESTATION_NO_CFM;
+		}
+		goto log_error;
+	}
+
+	/* Multi-sourced component: try each component type until attestation succeeds */
+	for (id_index = 0; id_index < component_type_count; id_index++) {
+		status = device_manager_get_component_type (attestation->device_mgr, device_num, id_index,
+			&component_id);
+		if (status != 0) {
+			goto free_cfm;
+		}
+
+		status = attestation_requester_attest_device_by_component_id (attestation, device_num,
+			device_addr, device_state, active_cfm, component_id, &attestation_protocol, pcr);
+
+		if (status == 0) {
+			/* Promote matched type to front for faster match next cycle. */
+			device_manager_promote_matched_component_type (attestation->device_mgr, device_num,
+				id_index);
+			break;
+		}
+	}
+
+	/* update previous attestation state in device manager attestation event */
+	device_manager_update_attestation_summary_prev_state (attestation->device_mgr, device_num,
+		device_prev_state);
+
+	if (status == 0) {
+		if (attestation_protocol == CFM_ATTESTATION_DMTF_SPDM) {
+			device_manager_update_device_state (attestation->device_mgr, device_num,
+				attestation->state->txn.cert_supported ?
+					DEVICE_MANAGER_AUTHENTICATED : DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
+		}
+		else {
+			device_manager_update_device_state (attestation->device_mgr, device_num,
+				DEVICE_MANAGER_AUTHENTICATED);
+		}
+		device_manager_get_attestation_summary_event_counters (attestation->device_mgr, device_num,
+			&event_counters);
+		if (event_counters.status_success_count == 0) {
+			device_eid = device_manager_get_device_eid (attestation->device_mgr, device_num);
+			device_eid = ROT_IS_ERROR (device_eid) ? 0 : device_eid;
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION, device_component_id,
+				(instance_id | (device_eid << 8)));
+		}
+	}
+	else {
+		device_state = device_manager_get_device_state (attestation->device_mgr, device_num);
+
+		if ((device_state == DEVICE_MANAGER_NEVER_ATTESTED) ||
+			(device_state == DEVICE_MANAGER_READY_FOR_ATTESTATION)) {
+			device_manager_update_device_state (attestation->device_mgr, device_num,
+				DEVICE_MANAGER_ATTESTATION_FAILED);
+		}
 	}
 
 free_cfm:
 	attestation->cfm_manager->free_cfm (attestation->cfm_manager, active_cfm);
 
-	if (status == 0) {
-		if (attestation_protocol == CFM_ATTESTATION_DMTF_SPDM) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-				attestation->state->txn.cert_supported ?
-					DEVICE_MANAGER_AUTHENTICATED : DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS);
-		}
-		else {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-				DEVICE_MANAGER_AUTHENTICATED);
-		}
-	}
-	else {
-		device_state = device_manager_get_device_state_by_eid (attestation->device_mgr, eid);
+	device_manager_update_attestation_summary_event_counters (attestation->device_mgr, device_num);
 
-		if ((device_state == DEVICE_MANAGER_NEVER_ATTESTED) ||
-			(device_state == DEVICE_MANAGER_READY_FOR_ATTESTATION)) {
-			device_manager_update_device_state_by_eid (attestation->device_mgr, eid,
-				DEVICE_MANAGER_ATTESTATION_FAILED);
-		}
+log_error:
+	if ((status != 0) && (status != ATTESTATION_REFRESH_ROUTING_TABLE)) {
+		device_eid = device_manager_get_device_eid (attestation->device_mgr, device_num);
+		device_eid = ROT_IS_ERROR (device_eid) ? 0 : device_eid;
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_DEVICE_INFO, device_component_id,
+			(instance_id | (device_eid << 8)));
+
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
+			((device_eid << 16) | (attestation->state->txn.protocol << 8) |
+					attestation->state->txn.requested_command), status);
 	}
 
 	return status;
 }
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
+
 /**
- * Perform discovery on a provided device using the Cerberus protocol.
+ * Validate MCTP Control protocol response.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param eid EID of device to discover.
+ * @param response The response message to process.
  *
- * @return Completion status, 0 if success or an error code otherwise
+ * @return 0 if completed successfully or an error code.
  */
-static int attestation_requester_discover_device_cerberus_protocol (
-	const struct attestation_requester *attestation, uint8_t eid)
+static int attestation_requester_process_mctp_control_response (
+	const struct attestation_requester *attestation, struct cmd_interface_msg *response)
 {
-	UNUSED (attestation);
-	UNUSED (eid);
+	struct mctp_control_protocol_resp_header *resp_header =
+		(struct mctp_control_protocol_resp_header*) response->payload;
 
-	// TODO: Implement Cerberus protocol device discovery
+	if ((resp_header->completion_code != MCTP_CONTROL_PROTOCOL_SUCCESS) ||
+		(attestation->state->txn.requested_command != resp_header->header.command_code)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_UNEXPECTED_RESPONSE_RECEIVED, response->source_eid,
+			((attestation->state->txn.protocol << 24) |
+						(attestation->state->txn.requested_command << 16)) | (255 << 8) |
+				resp_header->header.command_code);
+
+		return ATTESTATION_REQUEST_FAILED;
+	}
+
 	return 0;
 }
-#endif
 
-#ifdef ATTESTATION_SUPPORT_SPDM
 /**
- * Perform discovery on a provided device using the SPDM protocol.
+ * Send MCTP message transport request command and get response for MCTP control.
  *
  * @param attestation Attestation requester instance to utilize.
- * @param eid EID of device to discover.
- * @param device_addr Slave address of device.
+ * @param transport The Message transport instance used to send the messages.
+ * @param request Request to process.
+ * @param response The response container received.
+ * @param command Requested command to send out.
  *
- * @return Completion status, 0 if success or an error code otherwise
+ * @return Initialization status, 0 if success or an error code.
  */
-static int attestation_requester_discover_device_spdm_protocol (
-	const struct attestation_requester *attestation, uint8_t eid, uint8_t device_addr)
+int attestation_requester_send_mctp_control_request_and_get_response (
+	const struct attestation_requester *attestation, const struct msg_transport *transport,
+	struct cmd_interface_msg *request, struct cmd_interface_msg *response, uint8_t command)
 {
-	struct spdm_discovery_device_id_block *block =
-		(struct spdm_discovery_device_id_block*) attestation->state->txn.msg_buffer;
-	struct spdm_discovery_device_id_descriptor *descriptor;
-	uint16_t pci_vid = 0;
-	uint16_t pci_device_id = 0;
-	uint16_t pci_sub_vid = 0;
-	uint16_t pci_sub_id = 0;
-	uint16_t *id;
-	size_t offset = sizeof (struct spdm_discovery_device_id_block);
-	uint8_t found = 0;
-	int i_descriptor;
-	int device_num;
+	uint32_t timeout_ms = device_manager_get_mctp_ctrl_timeout (attestation->device_mgr);
 	int status;
 
-	attestation->state->txn.protocol = ATTESTATION_PROTOCOL_DMTF_SPDM;
-	attestation->state->txn.spdm_minor_version = ATTESTATION_PROTOCOL_DMTF_SPDM_1_0;
-	attestation->state->txn.transcript_hash_type = HASH_TYPE_SHA256;
-	attestation->state->txn.measurement_hash_type = HASH_TYPE_SHA256;
-
-	status = attestation_requester_send_and_receive_spdm_get_measurements (attestation, eid,
-		device_addr, SPDM_MEASUREMENT_OPERATION_GET_DEVICE_ID, true);
+	status = attestation_requester_send_msg_transport_request_and_get_response (attestation,
+		transport, request, response, command, timeout_ms);
 	if (status != 0) {
 		return status;
 	}
 
-	if (block->completion_code != SPDM_DISCOVERY_DEVICE_ID_BLOCK_CC_SUCCESS) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_GET_DEVICE_ID_FAILED,
-			((eid << 8) | attestation->state->txn.spdm_minor_version), block->completion_code);
-
-		return ATTESTATION_GET_DEVICE_ID_FAIL;
+	status = attestation_requester_process_mctp_control_response (attestation, response);
+	if (status != 0) {
+		device_manager_update_device_state_by_eid (attestation->device_mgr, response->source_eid,
+			DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE);
 	}
 
-	// Only PCI descriptors are supported, so ensure the 4 PCI descriptors are included in response
-	if ((block->descriptor_count < 4) ||
-		(block->device_id_len <
-		((sizeof (struct spdm_discovery_device_id_descriptor) + sizeof (uint16_t)) * 4))) {
-		return 0;
-	}
-
-	for (i_descriptor = 0; i_descriptor < block->descriptor_count; ++i_descriptor) {
-		descriptor =
-			(struct spdm_discovery_device_id_descriptor*) &attestation->state->txn.msg_buffer[offset];
-
-		offset += sizeof (struct spdm_discovery_device_id_descriptor);
-		id = (uint16_t*) &attestation->state->txn.msg_buffer[offset];
-		offset += descriptor->descriptor_len;
-
-		if (descriptor->descriptor_len != sizeof (uint16_t)) {
-			continue;
-		}
-
-		switch (descriptor->descriptor_type) {
-			case SPDM_DISCOVERY_DEVICE_ID_PCI_VID:
-				pci_vid = *id;
-				found |= 1;
-				break;
-
-			case SPDM_DISCOVERY_DEVICE_ID_PCI_DEVICE_ID:
-				pci_device_id = *id;
-				found |= (1 << 1);
-				break;
-
-			case SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_VID:
-				pci_sub_vid = *id;
-				found |= (1 << 2);
-				break;
-
-			case SPDM_DISCOVERY_DEVICE_ID_PCI_SUBSYSTEM_ID:
-				pci_sub_id = *id;
-				found |= (1 << 3);
-				break;
-
-			default:
-				continue;
-		}
-	}
-
-	if (found == 0x0F) {
-		device_num = device_manager_get_device_num_by_device_ids (attestation->device_mgr, pci_vid,
-			pci_device_id, pci_sub_vid, pci_sub_id);
-		if (ROT_IS_ERROR (device_num)) {
-			return 0;
-		}
-
-		status = device_manager_update_device_state (attestation->device_mgr, device_num,
-			DEVICE_MANAGER_NEVER_ATTESTED);
-		if (status != 0) {
-			return status;
-		}
-
-		return device_manager_update_device_eid (attestation->device_mgr, device_num, eid);
-	}
-
-	return 0;
+	return status;
 }
-#endif
 
 /**
- * Perform discovery on a provided device.
+ * Get Message Type support to a provided device using MCTP control message transport.
  *
  * @param attestation Attestation requester instance to utilize.
  * @param eid EID of device to discover.
+ * @param request Request to process.
+ * @param response The response container received.
  *
  * @return Completion status, 0 if success or an error code otherwise
  */
-int attestation_requester_discover_device (const struct attestation_requester *attestation,
-	uint8_t eid)
+int attestation_requester_get_message_type (const struct attestation_requester *attestation,
+	uint8_t eid, struct cmd_interface_msg *request, struct cmd_interface_msg *response)
 {
-	struct mctp_control_get_message_type_response *msg_type_rsp;
-	uint8_t *msg_type;
-	uint8_t i_type;
-	int device_addr;
+	int request_len;
 	int status;
 
-	if (attestation == NULL) {
+	if ((attestation == NULL) || (attestation->mctp_control == NULL) ||
+		(request == NULL) || (response == NULL)) {
 		return ATTESTATION_INVALID_ARGUMENT;
 	}
 
-	if (attestation->state->get_routing_table) {
-		return ATTESTATION_REFRESH_ROUTING_TABLE;
+	status = msg_transport_create_empty_request (attestation->mctp_control,
+		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer), eid,
+		request);
+	if (status != 0) {
+		return status;
 	}
 
-	memset (&attestation->state->txn, 0, sizeof (struct attestation_requester_transaction_state));
-
-	device_addr = device_manager_get_device_addr (attestation->device_mgr,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
-	if (ROT_IS_ERROR (device_addr)) {
-		return device_addr;
+	request_len = mctp_control_protocol_generate_get_message_type_support_request (request->payload,
+		request->payload_length);
+	if (ROT_IS_ERROR (request_len)) {
+		return request_len;
 	}
 
-	attestation->state->txn.device_discovery = true;
+	//Update the payload length and request length after request message is ready
+	cmd_interface_msg_set_message_payload_length (request, request_len);
+
+	status = msg_transport_create_empty_response (attestation->state->txn.msg_buffer,
+		sizeof (attestation->state->txn.msg_buffer), response);
+	if (status != 0) {
+		return status;
+	}
 
 	status =
-		mctp_control_protocol_generate_get_message_type_support_request (
-		attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
-	if (ROT_IS_ERROR (status)) {
+		attestation_requester_send_mctp_control_request_and_get_response (attestation,
+		attestation->mctp_control, request, response, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
+	if (status != 0) {
 		return status;
 	}
 
-	status = attestation_requester_send_request_and_get_response (attestation, status, device_addr,
-		eid, false, true, MCTP_CONTROL_PROTOCOL_GET_MESSAGE_TYPE);
+	status = mctp_control_protocol_process_get_message_type_support_response (response);
 	if (status != 0) {
-		goto done;
-	}
-
-	msg_type_rsp =
-		(struct mctp_control_get_message_type_response*) attestation->state->txn.msg_buffer;
-
-	for (i_type = 0; i_type < msg_type_rsp->message_type_count; ++i_type) {
-		msg_type = attestation->state->txn.msg_buffer +
-			sizeof (struct mctp_control_get_message_type_response) + i_type;
-
-		switch (*msg_type) {
-#ifdef ATTESTATION_SUPPORT_CERBERUS_CHALLENGE
-			case MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF:
-				status = attestation_requester_discover_device_cerberus_protocol (attestation, eid);
-				goto done;
-#endif
-
-#ifdef ATTESTATION_SUPPORT_SPDM
-			case MCTP_BASE_PROTOCOL_MSG_TYPE_SPDM:
-				status = attestation_requester_discover_device_spdm_protocol (attestation, eid,
-					device_addr);
-				goto done;
-#endif
-
-			default:
-				continue;
-		}
-	}
-
-done:
-	if (status != 0) {
-		device_manager_unidentified_device_timed_out (attestation->device_mgr, eid);
-
 		return status;
 	}
 
-	return device_manager_remove_unidentified_device (attestation->device_mgr, eid);
+	return status;
 }
 
 /**
- * Check to see if routing table should be retrieved from the MCTP bridge, and fetch it if so.
+ * Perform device discovery using registered discover handlers. If no discover handler is
+ * configured or the handler has no interfaces, discovery is skipped.
  *
  * @param attestation Attestation requester instance to utilize.
- *
- * @return Completion status, 0 if success or an error code otherwise
  */
-int attestation_requester_get_mctp_routing_table (const struct attestation_requester *attestation)
+static void attestation_requester_discover_devices (
+	const struct attestation_requester *attestation)
 {
-	struct mctp_control_get_routing_table_entries_response *routing_table_rsp;
-	struct mctp_control_routing_table_entry *entry;
-	uint8_t entry_handle = 0;
-	uint8_t i_entry;
-	uint8_t i_eid;
-	int bridge_addr;
-	int bridge_eid;
-	int status;
+	const struct attestation_discover **discover = NULL;
+	size_t i;
+	size_t count;
 
-	if (attestation == NULL) {
-		return ATTESTATION_INVALID_ARGUMENT;
+	if ((attestation == NULL) || (attestation->discover_interfaces == NULL) ||
+		(attestation->interfaces_count == 0)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_DEVICE_FAILED_DISCOVERY, ATTESTATION_INVALID_ARGUMENT, 0);
+
+		return;
 	}
 
-	if (!attestation->state->get_routing_table) {
-		return 0;
+	discover = attestation->discover_interfaces;
+	count = attestation->interfaces_count;
+
+	for (i = 0; ((i < count) && (discover[i] != NULL)); ++i) {
+		discover[i]->discover_device (discover[i], attestation);
 	}
 
-	device_manager_clear_unidentified_devices (attestation->device_mgr);
-
-	bridge_addr = device_manager_get_device_addr (attestation->device_mgr,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
-	if (ROT_IS_ERROR (bridge_addr)) {
-		return bridge_addr;
-	}
-
-	bridge_eid = device_manager_get_device_eid (attestation->device_mgr,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
-	if (ROT_IS_ERROR (bridge_eid)) {
-		return bridge_eid;
-	}
-
-	while (entry_handle != 0xFF) {
-		status = mctp_control_protocol_generate_get_routing_table_entries_request (entry_handle,
-			attestation->state->txn.msg_buffer, sizeof (attestation->state->txn.msg_buffer));
-		if (ROT_IS_ERROR (status)) {
-			return status;
-		}
-
-		status = attestation_requester_send_request_and_get_response (attestation, status,
-			bridge_addr, bridge_eid, false, true, MCTP_CONTROL_PROTOCOL_GET_ROUTING_TABLE_ENTRIES);
-		if (status != 0) {
-			return status;
-		}
-
-		routing_table_rsp =
-			(struct mctp_control_get_routing_table_entries_response*) attestation->state->txn.
-			msg_buffer;
-		entry = mctp_control_get_routing_table_entries_response_get_entries (routing_table_rsp);
-
-		for (i_entry = 0; i_entry < routing_table_rsp->num_entries; ++i_entry, ++entry) {
-			if (device_manager_is_device_unattestable (attestation->device_mgr,
-				entry->starting_eid)) {
-				continue;
-			}
-
-			for (i_eid = 0; i_eid < entry->eid_range_size; ++i_eid) {
-				status = device_manager_add_unidentified_device (attestation->device_mgr,
-					entry->starting_eid + i_eid);
-				if (status != 0) {
-					return status;
-				}
-			}
-		}
-
-		entry_handle = routing_table_rsp->next_entry_handle;
-	}
-
-	attestation->state->get_routing_table = false;
-	attestation->state->mctp_bridge_wait = false;
-
-	return 0;
+	return;
 }
 #endif
+
+/**
+ * Helper function to update attestation statuses in the PCR store.
+ *
+ * @param attestation Attestation requester instance to utilize.
+ * @param pcr PCR store instance to utilize.
+ * @param measurement The measurement ID for attestation results.
+ * @param measurement_version The version associated with the measurement data.
+ *
+ * @return 0 if successful or an error code.
+ */
+static int attestation_requester_update_pcr_attestation_status (
+	const struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
+	uint8_t measurement_version)
+{
+	const uint8_t *attestation_status;
+	int status;
+
+	status = device_manager_get_attestation_status (attestation->device_mgr, &attestation_status);
+	if (!ROT_IS_ERROR (status)) {
+		status = pcr_store_update_versioned_buffer (pcr, attestation->primary_hash,	measurement,
+			attestation_status, status, true, measurement_version);
+		if (status != 0) {
+			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+				ATTESTATION_LOGGING_PCR_UPDATE_ERROR, measurement, status);
+		}
+	}
+	else {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR, status, 0);
+	}
+
+	return status;
+}
 
 /**
  * Check to see if routing table should be retrieved from the MCTP bridge, and fetch it if so.
@@ -3640,8 +4835,8 @@ void attestation_requester_discovery_and_attestation_loop (
 	const struct attestation_requester *attestation, struct pcr_store *pcr, uint16_t measurement,
 	uint8_t measurement_version)
 {
-	const uint8_t *attestation_status;
-	int eid = 0;
+	int device_num = 0;
+	int num_actions = 0;
 	int status;
 
 	if ((attestation == NULL) || (pcr == NULL)) {
@@ -3649,117 +4844,42 @@ void attestation_requester_discovery_and_attestation_loop (
 	}
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-	while (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
-		eid = device_manager_get_eid_of_next_device_to_discover (attestation->device_mgr);
-		if (!ROT_IS_ERROR (eid)) {
-			status = attestation_requester_discover_device (attestation, eid);
-			if (status != 0) {
-				if (status == ATTESTATION_REFRESH_ROUTING_TABLE) {
-					goto get_routing_table;
-				}
-
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-					ATTESTATION_LOGGING_DEVICE_FAILED_DISCOVERY,
-					attestation->state->txn.requested_command, status);
-			}
-		}
-		else if (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_NEXT_DEVICE_DISCOVERY_ERROR, eid, 0);
-		}
-	}
+	attestation_requester_discover_devices (attestation);
 #endif
 
-	eid = 0;
+	device_num = 0;
 
-	while (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
-		eid = device_manager_get_eid_of_next_device_to_attest (attestation->device_mgr);
-		if (!ROT_IS_ERROR (eid)) {
-			status = attestation_requester_attest_device (attestation, eid);
-			if (status != 0) {
-				if (status == ATTESTATION_REFRESH_ROUTING_TABLE) {
-					goto get_routing_table;
-				}
+	while (device_num != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
+		device_manager_process_force_action (attestation->device_mgr, &num_actions);
+		if (num_actions != 0) {
+			attestation_requester_update_pcr_attestation_status (attestation, pcr, measurement,
+				measurement_version);
+		}
 
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-					ATTESTATION_LOGGING_DEVICE_FAILED_ATTESTATION,
-					((eid << 16) | (attestation->state->txn.protocol << 8) |
-							attestation->state->txn.requested_command),	status);
+		device_num =
+			device_manager_get_device_num_of_next_device_to_attest (attestation->device_mgr);
+
+		if (!ROT_IS_ERROR (device_num)) {
+			status = attestation_requester_attest_device (attestation, device_num, pcr);
+			if (status == ATTESTATION_REFRESH_ROUTING_TABLE) {
+				return;
 			}
 		}
-		else if (eid != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
+		else if (device_num != DEVICE_MGR_NO_DEVICES_AVAILABLE) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_NEXT_DEVICE_ATTESTATION_ERROR, eid, 0);
+				ATTESTATION_LOGGING_NEXT_DEVICE_ATTESTATION_ERROR, device_num, 0);
+
+			break;
 		}
+
+		attestation_requester_update_pcr_attestation_status (attestation, pcr, measurement,
+			measurement_version);
 	}
 
-	status = device_manager_get_attestation_status (attestation->device_mgr, &attestation_status);
-	if (!ROT_IS_ERROR (status)) {
-		status = pcr_store_update_versioned_buffer (pcr, attestation->primary_hash, measurement,
-			attestation_status, status, true, measurement_version);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-				ATTESTATION_LOGGING_PCR_UPDATE_ERROR, measurement, status);
-		}
-	}
-	else {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR, status, 0);
-	}
-
-get_routing_table:
-#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-	status = attestation_requester_get_mctp_routing_table (attestation);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_GET_MCTP_ROUTING_TABLE_ERROR, status, 0);
-	}
-#endif
+	device_manager_clear_force_action_set_state (attestation->device_mgr,
+		DEVICE_MANAGER_FORCE_ACTION_IDLE);
 
 	return;
-}
-
-/**
- * On an MCTP bridge reset event, this function should be called to indicate that the attestation
- * requester needs to refresh the routing table and rediscover any remote devices.
- *
- * @param attestation Attestation requester instance to utilize.
- *
- * @return Completion status, 0 if success or an error code otherwise
- */
-int attestation_requestor_mctp_bridge_was_reset (const struct attestation_requester *attestation)
-{
-	if (attestation == NULL) {
-		return ATTESTATION_INVALID_ARGUMENT;
-	}
-
-	attestation->state->mctp_bridge_wait = true;
-
-	return 0;
-}
-
-/**
- * Indicate that MCTP routing table should be queried from the MCTP bridge.
- * attestation_requestor_mctp_bridge_was_reset must be called prior to sending this request.  Even
- * then, MCTP bridge will not be queried for its routing table if routing table has already been
- * refreshed due to processing of a set EID request from the MCTP bridge.
- *
- * @param attestation Attestation requester instance to utilize.
- */
-void attestation_requester_refresh_routing_table (const struct attestation_requester *attestation)
-{
-	if (attestation == NULL) {
-		return;
-	}
-
-	if (attestation->state->mctp_bridge_wait) {
-		attestation->state->get_routing_table = true;
-
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
-			ATTESTATION_LOGGING_BRIDGE_RESET_TRIGGERED_ROUTING_TABLE_SYNC, 0, 0);
-
-		platform_semaphore_post (&attestation->state->next_action);
-	}
 }
 
 /**

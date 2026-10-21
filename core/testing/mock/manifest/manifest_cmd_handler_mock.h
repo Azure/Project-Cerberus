@@ -9,7 +9,7 @@
 
 
 /**
- * A mock for a system firmware update.
+ * A mock for a handler of manifest operations.
  */
 struct manifest_cmd_handler_mock {
 	struct manifest_cmd_handler base;	/**< The base manifest handler instance. */

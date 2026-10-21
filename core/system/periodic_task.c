@@ -12,7 +12,8 @@
  * handler to prepare.
  * @param count The number of handlers in the list.
  */
-void periodic_task_prepare_handlers (const struct periodic_task_handler **handlers, size_t count)
+void periodic_task_prepare_handlers (const struct periodic_task_handler *const *handlers,
+	size_t count)
 {
 	if (handlers) {
 		size_t i;
@@ -40,7 +41,8 @@ void periodic_task_prepare_handlers (const struct periodic_task_handler **handle
  * @return 0 if the next handler was executed or an error code.  This does not report status of the
  * handler, just whether a handler was executed or not.
  */
-int periodic_task_execute_next_handler (const struct periodic_task_handler **handlers, size_t count)
+int periodic_task_execute_next_handler (const struct periodic_task_handler *const *handlers,
+	size_t count)
 {
 	size_t i;
 	const struct periodic_task_handler *next = NULL;

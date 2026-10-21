@@ -11,6 +11,7 @@
 #include "spdm_commands.h"
 #include "spdm_logging.h"
 #include "spdm_logging.h"
+#include "spdm_persistent_context.h"
 #include "spdm_secure_session_manager.h"
 #include "attestation/attestation_responder.h"
 #include "cmd_interface/device_manager.h"
@@ -19,10 +20,10 @@
 #include "common/common_math.h"
 #include "common/unused.h"
 #include "crypto/ecc.h"
+#include "crypto/ecdsa.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "mctp/mctp_base_protocol.h"
-#include "riot/riot_key_manager.h"
 
 
 /**
@@ -111,7 +112,7 @@ void spdm_generate_error_response (struct cmd_interface_msg *response, uint8_t s
 
 	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_SPDM,
 		SPDM_LOGGING_ERR_MSG,
-		(req_code << 24 | response->source_eid << 16 | error_code << 8 | error_data),
+		((uint32_t) req_code << 24 | response->source_eid << 16 | error_code << 8 | error_data),
 		internal_error_code);
 }
 
@@ -121,7 +122,7 @@ void spdm_generate_error_response (struct cmd_interface_msg *response, uint8_t s
  * @param state SPDM state.
  * @param connection_state SPDM connection state.
  */
-static void spdm_set_connection_state (struct spdm_state *state,
+static void spdm_set_connection_state (struct spdm_responder_state *state,
 	enum spdm_connection_state connection_state)
 {
 	state->connection_info.connection_state = connection_state;
@@ -133,7 +134,7 @@ static void spdm_set_connection_state (struct spdm_state *state,
  * @param state SPDM state.
  * @param spdm_error Error code.
  */
-static void spdm_handle_response_state (struct spdm_state *state, int *spdm_error)
+static void spdm_handle_response_state (struct spdm_responder_state *state, int *spdm_error)
 {
 	switch (state->response_state) {
 		case SPDM_RESPONSE_STATE_BUSY:
@@ -277,7 +278,7 @@ static bool spdm_is_version_supported (uint8_t peer_version,
  *
  * @return true if the received SPDM version is valid, else false.
  */
-static bool spdm_check_request_version_compatibility (struct spdm_state *state,
+static bool spdm_check_request_version_compatibility (struct spdm_responder_state *state,
 	const struct spdm_version_num_entry *version_num, const uint8_t version_num_count,
 	uint8_t peer_version)
 {
@@ -299,7 +300,7 @@ static bool spdm_check_request_version_compatibility (struct spdm_state *state,
  *
  * @return Negotiated version.
  */
-static uint8_t spdm_get_connection_version (const struct spdm_state *state)
+static uint8_t spdm_get_connection_version (const struct spdm_responder_state *state)
 {
 	return SPDM_MAKE_VERSION (state->connection_info.version.major_version,
 		state->connection_info.version.minor_version);
@@ -378,10 +379,15 @@ enum hash_type spdm_get_hash_type (uint32_t hash_algo)
  */
 static uint32_t spdm_get_asym_signature_size (uint32_t asym_algo)
 {
-	/* [TODO] Add support for other algorithms. */
 	switch (asym_algo) {
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P256:
+			return (ECC_KEY_LENGTH_256 * 2);
+
 		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P384:
-			return (ECC_KEY_LENGTH_384 << 1);
+			return (ECC_KEY_LENGTH_384 * 2);
+
+		case SPDM_TPM_ALG_ECDSA_ECC_NIST_P521:
+			return (ECC_KEY_LENGTH_521 * 2);
 
 		default:
 			return 0;
@@ -491,7 +497,7 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 	total_element_len = 0;
 
 	if ((spdm_version >= SPDM_VERSION_1_2) &&
-		(opaque_data_format == SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1)) {
+		(opaque_data_format & SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1)) {
 		/* Check byte alignment. */
 		if ((data_in_size & 3) != 0) {
 			goto exit;
@@ -528,7 +534,7 @@ static int spdm_validate_general_opaque_data (uint8_t spdm_version, uint8_t opaq
 				opaque_element_data_len;
 
 			if ((current_element_len & 3) != 0) {
-				if (memcmp (zero_padding,
+				if (buffer_compare (zero_padding,
 					(uint8_t*) (size_t) (opaque_element_table_header) + current_element_len,
 					4 - (current_element_len & 3)) != 0) {
 					goto exit;
@@ -633,9 +639,9 @@ static size_t spdm_get_opaque_data_version_selection_data_size (uint8_t negotiat
  *
  * @retval 0 if the element was rerieved successfully, error code otherwise.
  */
-static int spdm_get_element_from_opaque_data (struct spdm_state *state, size_t data_in_size,
-	const void *data_in, uint8_t element_id, uint8_t sm_data_id, const void **get_element_ptr,
-	size_t *get_element_len)
+static int spdm_get_element_from_opaque_data (struct spdm_responder_state *state,
+	size_t data_in_size, const void *data_in, uint8_t element_id, uint8_t sm_data_id,
+	const void **get_element_ptr, size_t *get_element_len)
 {
 	int status = CMD_HANDLER_SPDM_RESPONDER_INVALID_OPAQUE_DATA_FORMAT;
 	const struct spdm_secured_message_general_opaque_data_table_header
@@ -759,7 +765,7 @@ exit:
  *
  * @return 0 if the opaque data supported version data is valid, error code otherwise.
  */
-static int spdm_process_opaque_data_supported_version_data (struct spdm_state *state,
+static int spdm_process_opaque_data_supported_version_data (struct spdm_responder_state *state,
 	const struct spdm_version_num_entry *secure_message_version_num,
 	uint8_t secure_message_version_num_count, const void *data_in, size_t data_in_size)
 {
@@ -870,7 +876,7 @@ exit:
  * @param spdm_responder SPDM responder instance.
  * @param data_out A pointer to the buffer to store the opaque data version selection.
  **/
-static void spdm_build_opaque_data_version_selection_data (
+static int spdm_build_opaque_data_version_selection_data (
 	const struct cmd_interface_spdm_responder *spdm_responder, void *data_out)
 {
 	size_t final_data_size;
@@ -880,10 +886,17 @@ static void spdm_build_opaque_data_version_selection_data (
 	struct spdm_secured_message_opaque_element_table_header *opaque_element_table_header;
 	struct spdm_secured_message_opaque_element_version_selection *opaque_element_version_section;
 	void *end;
-	struct spdm_state *state = spdm_responder->state;
+	struct spdm_responder_state *state;
+	int status;
 
 	if (spdm_responder->secure_message_version_num_count == 0) {
-		return;
+		return CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
+	}
+
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		return status;
 	}
 
 	final_data_size =
@@ -924,6 +937,10 @@ static void spdm_build_opaque_data_version_selection_data (
 	/* Zero Padding */
 	end = opaque_element_version_section + 1;
 	memset (end, 0, (size_t) data_out + final_data_size - (size_t) end);
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
+
+	return 0;
 }
 
 /**
@@ -933,7 +950,7 @@ static void spdm_build_opaque_data_version_selection_data (
  * @param transcript_manager SPDM transcript manager.
  * @param req_rsp_code The SPDM request/response code.
  */
-static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
+static void spdm_reset_transcript_via_request_code (struct spdm_responder_state *state,
 	const struct spdm_transcript_manager *transcript_manager, uint8_t req_rsp_code)
 {
 	/* Any requests other than SPDM_GET_MEASUREMENTS resets L1/L2 */
@@ -971,158 +988,6 @@ static void spdm_reset_transcript_via_request_code (struct spdm_state *state,
 		default:
 			break;
 	}
-}
-
-/**
- * Get the list of the cerficates in slot 0.
- *
- * @param key_manager RIoT device key manager.
- * @param cert_count_out Number of certificates in the chain.
- * @param cert Certificate chain list in DER format.
- * @param keys_out On success, ptr. to the RIoT keys. This must be released by the caller by calling
- * riot_key_manager_release_riot_keys.
- *
- * @return 0 if certificate list was retrieved successfully or an error code.
- */
-static int spdm_get_certificate_list (struct riot_key_manager *key_manager,	uint8_t *cert_count_out,
-	struct der_cert *cert, const struct riot_keys **keys_out)
-{
-	int status = 0;
-	const struct der_cert *int_ca;
-	const struct der_cert *root_ca;
-	const struct riot_keys *keys = NULL;
-	uint8_t cert_count = 0;
-
-	root_ca = riot_key_manager_get_root_ca (key_manager);
-	if (root_ca != NULL) {
-		cert[cert_count] = *root_ca;
-		cert_count += 1;
-	}
-	int_ca = riot_key_manager_get_intermediate_ca (key_manager);
-	if (int_ca != NULL) {
-		cert[cert_count] = *int_ca;
-		cert_count += 1;
-	}
-
-	keys = riot_key_manager_get_riot_keys (key_manager);
-	if ((keys->devid_cert == NULL) || (keys->devid_cert_length == 0)) {
-		status = CMD_HANDLER_SPDM_RESPONDER_DEVICE_CERT_NOT_AVAILABLE;
-		goto exit;
-	}
-	cert[cert_count].cert = keys->devid_cert;
-	cert[cert_count].length = keys->devid_cert_length;
-	cert_count += 1;
-
-	if ((keys->alias_cert == NULL) || (keys->alias_cert_length == 0)) {
-		status = CMD_HANDLER_SPDM_RESPONDER_ALIAS_CERT_NOT_AVAILABLE;
-		goto exit;
-	}
-	cert[cert_count].cert = keys->alias_cert;
-	cert[cert_count].length = keys->alias_cert_length;
-	cert_count += 1;
-
-	*cert_count_out = cert_count;
-	*keys_out = keys;
-	keys = NULL;
-
-exit:
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
-	return status;
-}
-
-/**
- * Get the digest of the spdm certificate chain.
- *
- * @param key_manager RIoT device key manager.
- * @param hash_engine Hash engine for hashing operations.
- * @param hash_type Hash type.
- * @param digest Buffer to hold the digest.
- *
- * @return 0 if the digest was calculated successfully or an error code.
- */
-static int spdm_get_certificate_chain_digest (struct riot_key_manager *key_manager,
-	struct hash_engine *hash_engine, enum hash_type hash_type, uint8_t *digest)
-{
-	int status;
-	uint8_t i_cert;
-	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
-	uint8_t cert_count;
-	struct spdm_cert_chain cert_chain;
-	uint32_t cert_chain_length;
-	const struct riot_keys *keys = NULL;
-	int hash_size;
-	bool cancel_hash = false;
-
-	/* Retrieve the certificate chain. */
-	status = spdm_get_certificate_list (key_manager, &cert_count, cert, &keys);
-	if (status != 0) {
-		goto exit;
-	}
-
-	hash_size = hash_get_hash_length (hash_type);
-	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
-		status = HASH_ENGINE_UNKNOWN_HASH;
-		goto exit;
-	}
-
-	/* Hash the root cert. */
-	status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
-		cert_chain.root_hash, hash_size);
-	if (ROT_IS_ERROR (status)) {
-		goto exit;
-	}
-	status = 0;
-
-	/* Calculate the cert chain length. */
-	cert_chain_length = 0;
-	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
-		cert_chain_length += cert[i_cert].length;
-	}
-
-	cert_chain.header.length = spdm_get_digests_cert_chain_length (hash_size, cert_chain_length);
-	cert_chain.header.reserved = 0;
-
-	/* Start the cert chain hash. */
-	status = hash_start_new_hash (hash_engine, hash_type);
-	if (status != 0) {
-		goto exit;
-	}
-	cancel_hash = true;
-
-	/* Hash the header of the cert chain and the root cert digest. */
-	status = hash_engine->update (hash_engine, (uint8_t*) &cert_chain,
-		offsetof (struct spdm_cert_chain, root_hash) + hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
-	/* Hash the individual certs in the cert chain. */
-	for (i_cert = 0; i_cert < cert_count; i_cert++) {
-		status = hash_engine->update (hash_engine, cert[i_cert].cert, cert[i_cert].length);
-		if (status != 0) {
-			goto exit;
-		}
-	}
-
-	status = hash_engine->finish (hash_engine, digest, hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-	cancel_hash = false;
-
-exit:
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
-	if (cancel_hash == true) {
-		hash_engine->cancel (hash_engine);
-	}
-
-	return status;
 }
 
 /**
@@ -1175,7 +1040,7 @@ static const struct spdm_signing_context_str spdm_signing_context_str_table[] = 
  * @param is_requester True if the message is from the requester, false if from the responder.
  * @param spdm_signing_context SPDM signing context.
  */
-static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_code,
+static void spdm_create_signing_context (struct spdm_responder_state *state, uint8_t op_code,
 	bool is_requester, char *spdm_signing_context)
 {
 	uint8_t index;
@@ -1211,7 +1076,7 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
  * Generate a SPDM response signature.
  *
  * @param state SPDM state.
- * @param key_manager RIoT device key manager.
+ * @param cert_chain The certificate chain to use for signing the data.
  * @param ecc_engine ECC engine.
  * @param hash_engine Hash engine.
  * @param op_code SPDM request opcode.
@@ -1222,43 +1087,25 @@ static void spdm_create_signing_context (struct spdm_state *state, uint8_t op_co
  *
  * @return 0 if signature is generated successfully, error code otherwise.
  */
-static int spdm_responder_data_sign (struct spdm_state *state, struct riot_key_manager *key_manager,
-	struct ecc_engine *ecc_engine, struct hash_engine *hash_engine, uint8_t op_code,
-	const uint8_t *message_hash, size_t hash_size, uint8_t *signature, size_t sig_size)
+static int spdm_responder_data_sign (struct spdm_responder_state *state,
+	const struct spdm_certificate_chain *cert_chain, const struct ecc_engine *ecc_engine,
+	const struct hash_engine *hash_engine, uint8_t op_code, const uint8_t *message_hash,
+	size_t hash_size, uint8_t *signature, size_t sig_size)
 {
 	int status;
 	uint8_t *message;
 	size_t message_size;
-	uint8_t full_message_hash[HASH_MAX_HASH_LEN];
 	uint8_t spdm12_signing_context_with_hash[SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE +
 		HASH_MAX_HASH_LEN];
-	struct ecc_private_key alias_priv_key;
-	bool release_alias_key = false;
 	uint8_t spdm_version;
 	int sig_size_der;
-	uint8_t sig_der[ECC_DER_ECDSA_MAX_LENGTH];
+	uint8_t sig_der[ECC_DER_ECDSA_MAX_LENGTH] = {0};
 	uint32_t sig_r_component_size = sig_size >> 1;
 	enum hash_type hash_type;
-	const struct riot_keys *keys = NULL;
 
 	spdm_version = SPDM_MAKE_VERSION (state->connection_info.version.major_version,
 		state->connection_info.version.minor_version);
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
-	keys = riot_key_manager_get_riot_keys (key_manager);
-
-	/* Get the private key reference for the alias certificate. */
-	status = ecc_engine->init_key_pair (ecc_engine, keys->alias_key, keys->alias_key_length,
-		&alias_priv_key, NULL);
-	if (status != 0) {
-		goto exit;
-	}
-	release_alias_key = true;
-
-	sig_size_der = ecc_engine->get_signature_max_length (ecc_engine, &alias_priv_key);
-	if (ROT_IS_ERROR (sig_size_der)) {
-		status = CMD_HANDLER_SPDM_RESPONDER_INTERNAL_ERROR;
-		goto exit;
-	}
 
 	/* v1.2 (and greater) requires a signing context prepended to the hash. */
 	if (spdm_version > SPDM_VERSION_1_1) {
@@ -1275,20 +1122,16 @@ static int spdm_responder_data_sign (struct spdm_state *state, struct riot_key_m
 		message_size = SPDM_VERSION_1_2_SIGNING_CONTEXT_SIZE + hash_size;
 
 		/* Calculate the message hash as required by ECDSA. It may not be needed for other algos. */
-		status = hash_calculate (hash_engine, hash_type, message, message_size, full_message_hash,
-			hash_size);
-		if (ROT_IS_ERROR (status)) {
-			goto exit;
-		}
-		status = 0;
-
-		/* Sign the full message hash. */
-		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, full_message_hash, hash_size,
-			sig_der, sig_size_der);
+		sig_size_der = cert_chain->sign_message (cert_chain, ecc_engine, hash_engine, hash_type,
+			message, message_size, sig_der, sizeof (sig_der));
 	}
 	else {
-		sig_size_der = ecc_engine->sign (ecc_engine, &alias_priv_key, message_hash, hash_size,
-			sig_der, sig_size_der);
+		/* SPDM 1.1 and earlier cannot be made FIPS compliant with the current architecture, since
+		 * the ECDSA hash and sign happen in different steps.  This is not much of a concern since
+		 * everything is expected to use at least SPDM 1.2.
+		 */
+		status = SPDM_ERROR_VERSION_MISMATCH;
+		goto exit;
 	}
 	if (ROT_IS_ERROR (sig_size_der)) {
 		status = sig_size_der;
@@ -1303,13 +1146,7 @@ static int spdm_responder_data_sign (struct spdm_state *state, struct riot_key_m
 	}
 
 exit:
-	if (release_alias_key == true) {
-		ecc_engine->release_key_pair (ecc_engine, &alias_priv_key, NULL);
-	}
-
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
+	buffer_zeroize (sig_der, sizeof (sig_der));
 
 	return status;
 }
@@ -1319,7 +1156,7 @@ exit:
  *
  * @param transcript_manager SPDM transcript manager.
  * @param state SPDM state.
- * @param key_manager RIoT device key manager.
+ * @param cert_chain The certificate chain to use for signing the data.
  * @param ecc_engine ECC engine.
  * @param hash_engine Hash engine.
  * @param session Session information.
@@ -1329,13 +1166,13 @@ exit:
  * @return 0 if signature is generated successfully, error code otherwise.
  */
 static int spdm_generate_measurement_signature (
-	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
-	struct hash_engine *hash_engine, struct spdm_secure_session *session_info, uint8_t *signature,
-	size_t sig_size)
+	const struct spdm_transcript_manager *transcript_manager, struct spdm_responder_state *state,
+	const struct spdm_certificate_chain *cert_chain, const struct ecc_engine *ecc_engine,
+	const struct hash_engine *hash_engine, struct spdm_secure_session *session_info,
+	uint8_t *signature, size_t sig_size)
 {
 	int status;
-	uint8_t l1l2_hash[HASH_MAX_HASH_LEN];
+	uint8_t l1l2_hash[HASH_MAX_HASH_LEN] = {0};
 	int l1l2_hash_size;
 	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
 
@@ -1364,13 +1201,14 @@ static int spdm_generate_measurement_signature (
 	}
 
 	/* Sign the L1L2 hash. */
-	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
+	status = spdm_responder_data_sign (state, cert_chain, ecc_engine, hash_engine,
 		SPDM_RESPONSE_GET_MEASUREMENTS, l1l2_hash, l1l2_hash_size, signature, sig_size);
 	if (status != 0) {
 		goto exit;
 	}
 
 exit:
+	buffer_zeroize (l1l2_hash, sizeof (l1l2_hash));
 
 	return status;
 }
@@ -1380,7 +1218,7 @@ exit:
  *
  * @param transcript_manager SPDM transcript manager.
  * @param state SPDM state.
- * @param key_manager RIoT device key manager.
+ * @param cert_chain The certificate chain to use for signing the data.
  * @param ecc_engine ECC engine.
  * @param hash_engine Hash engine.
  * @param session SPDM secure session.
@@ -1390,13 +1228,13 @@ exit:
  * @return 0 if the signature is generated successfully, error code otherwise.
  */
 static int spdm_generate_key_exchange_rsp_signature (
-	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	struct riot_key_manager *key_manager, struct ecc_engine *ecc_engine,
-	struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
+	const struct spdm_transcript_manager *transcript_manager, struct spdm_responder_state *state,
+	const struct spdm_certificate_chain *cert_chain, const struct ecc_engine *ecc_engine,
+	const struct hash_engine *hash_engine, struct spdm_secure_session *session, uint8_t *signature,
 	uint32_t sig_size)
 {
 	int status;
-	uint8_t th_hash[HASH_MAX_HASH_LEN];
+	uint8_t th_hash[HASH_MAX_HASH_LEN] = {0};
 	int th_hash_size;
 
 	th_hash_size =
@@ -1411,13 +1249,14 @@ static int spdm_generate_key_exchange_rsp_signature (
 	}
 
 	/* Sign the TH hash. */
-	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
+	status = spdm_responder_data_sign (state, cert_chain, ecc_engine, hash_engine,
 		SPDM_RESPONSE_KEY_EXCHANGE, th_hash, th_hash_size, signature, sig_size);
 	if (status != 0) {
 		goto exit;
 	}
 
 exit:
+	buffer_zeroize (th_hash, sizeof (th_hash));
 
 	return status;
 }
@@ -1435,12 +1274,12 @@ exit:
  * @return 0 if the current TH HMAC is calculated successfully, error code otherwise.
  */
 static int spdm_calculate_th_hmac_for_key_exchange_rsp (
-	const struct spdm_transcript_manager *transcript_manager, struct spdm_state *state,
-	struct ecc_engine *ecc_engine, struct hash_engine *hash_engine,
+	const struct spdm_transcript_manager *transcript_manager, struct spdm_responder_state *state,
+	const struct ecc_engine *ecc_engine, const struct hash_engine *hash_engine,
 	struct spdm_secure_session *session, uint8_t *th_hmac_buffer)
 {
 	int status;
-	uint8_t th_hash[HASH_MAX_HASH_LEN];
+	uint8_t th_hash[HASH_MAX_HASH_LEN] = {0};
 	int hash_size;
 	enum hash_type hash_type;
 
@@ -1464,6 +1303,7 @@ static int spdm_calculate_th_hmac_for_key_exchange_rsp (
 	}
 
 exit:
+	buffer_zeroize (th_hash, sizeof (th_hash));
 
 	return status;
 }
@@ -1480,12 +1320,12 @@ exit:
  * @return 0 if the HMAC is verified successfully, error code otherwise.
  */
 static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *transcript_manager,
-	struct hash_engine *hash_engine, struct spdm_secure_session *session, const uint8_t *hmac,
+	const struct hash_engine *hash_engine, struct spdm_secure_session *session, const uint8_t *hmac,
 	size_t hmac_size)
 {
 	int status;
-	uint8_t th_hash[HASH_MAX_HASH_LEN];
-	uint8_t hmac_computed[HASH_MAX_HASH_LEN];
+	uint8_t th_hash[HASH_MAX_HASH_LEN] = {0};
+	uint8_t hmac_computed[HASH_MAX_HASH_LEN] = {0};
 
 	/* Get the TH hash; do not complete the hash as it is needed later. */
 	status = transcript_manager->get_hash (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_TH, false,
@@ -1503,12 +1343,14 @@ static int spdm_verify_finish_req_hmac (const struct spdm_transcript_manager *tr
 	}
 
 	/* Compare the HMAC values. */
-	if (memcmp (hmac, hmac_computed, hmac_size) != 0) {
+	if (buffer_compare (hmac, hmac_computed, hmac_size) != 0) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
 		goto exit;
 	}
 
 exit:
+	buffer_zeroize (th_hash, sizeof (th_hash));
+	buffer_zeroize (hmac_computed, sizeof (hmac_computed));
 
 	return status;
 }
@@ -1529,16 +1371,22 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_get_version_request *rq;
 	struct spdm_get_version_response *rsp;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_state *state;
-	struct spdm_secure_session_manager *session_manager;
-	uint16_t minor_ver_in_error_msg;
+	struct spdm_responder_state *state;
+	const struct spdm_secure_session_manager *session_manager;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	rq = (struct spdm_get_version_request*) request->payload;
-	state = spdm_responder->state;
 	transcript_manager = spdm_responder->transcript_manager;
 	session_manager = spdm_responder->session_manager;
 	minor_ver_in_error_msg = state->connection_info.version.minor_version;
@@ -1587,7 +1435,7 @@ int spdm_get_version (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	/* Initialize the SPDM state. No error check as this function call cannot fail. */
-	spdm_init_state (state);
+	spdm_responder_init_state (state);
 
 	/* Reset any in-progress session(s). */
 	if (session_manager) {
@@ -1624,6 +1472,8 @@ exit:
 		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
 			SPDM_REQUEST_GET_VERSION, status);
 	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -1699,17 +1549,24 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	uint8_t spdm_version;
 	size_t req_resp_size;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	uint16_t minor_ver_in_error_msg;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Validate request version and save it in the connection info. */
 	header = (struct spdm_protocol_header*) request->payload;
@@ -1739,10 +1596,6 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	if ((spdm_version >= SPDM_VERSION_1_2) &&
 		(request->payload_length >= sizeof (struct spdm_get_capabilities))) {
 		req_resp_size = sizeof (struct spdm_get_capabilities);
-	}
-	else if ((spdm_version == SPDM_VERSION_1_1) &&
-		(request->payload_length >= sizeof (struct spdm_get_capabilities_1_1))) {
-		req_resp_size = sizeof (struct spdm_get_capabilities_1_1);
 	}
 	else {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
@@ -1778,12 +1631,10 @@ int spdm_get_capabilities (const struct cmd_interface_spdm_responder *spdm_respo
 	}
 
 	/* Check the CT Exponent. */
-	if (spdm_version >= SPDM_VERSION_1_1) {
-		if (req_resp->base_capabilities.ct_exponent > SPDM_MAX_CT_EXPONENT) {
-			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
-			spdm_error = SPDM_ERROR_INVALID_REQUEST;
-			goto exit;
-		}
+	if (req_resp->base_capabilities.ct_exponent > SPDM_MAX_CT_EXPONENT) {
+		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
 	}
 
 	/* Update SPDM version in transcript manager to make sure proper behavior */
@@ -1853,6 +1704,8 @@ exit:
 		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
 			SPDM_REQUEST_GET_CAPABILITIES, status);
 	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -1978,7 +1831,7 @@ int spdm_process_get_capabilities_response (struct cmd_interface_msg *response)
  *
  * @return 0 if response was populated successfully or an error code.
  */
-static int spdm_negotiate_algorithms_construct_response (struct spdm_state *state,
+static int spdm_negotiate_algorithms_construct_response (struct spdm_responder_state *state,
 	const struct spdm_device_capability *local_capabilities,
 	const struct spdm_local_device_algorithms *local_device_algorithms,
 	struct spdm_negotiate_algorithms_request *rq,
@@ -2096,7 +1949,7 @@ static int spdm_negotiate_algorithms_construct_response (struct spdm_state *stat
 					(uint16_t) spdm_prioritize_algorithm (
 					local_algo_priority_table->key_schedule_priority_table,
 					local_algo_priority_table->key_schedule_priority_table_count,
-					local_algorithms->key_schedule,	algstruct_table->alg_supported);
+					local_algorithms->key_schedule, algstruct_table->alg_supported);
 
 				state->connection_info.peer_algorithms.key_schedule =
 					resp_no_ext_alg->algstruct_table[i_algstruct].alg_supported;
@@ -2183,18 +2036,26 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 	uint16_t ext_alg_total_count = 0;
 	size_t request_size;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	const struct spdm_local_device_algorithms *local_algorithms;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
 	local_algorithms = spdm_responder->local_algorithms;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Validate the request. */
 	header = (struct spdm_protocol_header*) request->payload;
@@ -2280,16 +2141,12 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 
 	/* Check Opaque Data Format. */
 	if (spdm_version >= SPDM_VERSION_1_2) {
-		switch (rq->other_params_support.opaque_data_format) {
-			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_NONE:
-			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_0:
-			case SPDM_ALGORITHMS_OPAQUE_DATA_FORMAT_1:
-				break;
-
-			default:
-				status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
-				spdm_error = SPDM_ERROR_INVALID_REQUEST;
-				goto exit;
+		/* Opaque data format is 4 bits, [1:0] are used to communicate requestor supported
+		 * formats and could be any combination of the bits, [3:2] are reserved  */
+		if ((rq->other_params_support.opaque_data_format >> 2) != 0) {
+			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
 		}
 	}
 
@@ -2347,9 +2204,11 @@ int spdm_negotiate_algorithms (const struct cmd_interface_spdm_responder *spdm_r
 
 exit:
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_NEGOTIATE_ALGORITHMS, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_NEGOTIATE_ALGORITHMS, status);
 	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -2403,10 +2262,14 @@ int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *respon
 	struct spdm_negotiate_algorithms_response *resp;
 	struct spdm_algorithm_request *algstruct_table;
 	size_t i_algstruct;
-	size_t offset;
+	uint8_t *end;
 
 	if (response == NULL) {
 		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	if (response->payload_length < sizeof (struct spdm_negotiate_algorithms_response)) {
+		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
 
 	resp = (struct spdm_negotiate_algorithms_response*) response->payload;
@@ -2416,25 +2279,27 @@ int spdm_process_negotiate_algorithms_response (struct cmd_interface_msg *respon
 		}
 	}
 
-	if ((response->payload_length < sizeof (struct spdm_negotiate_algorithms_response)) ||
-		(response->payload_length != resp->length) ||
+	if ((response->payload_length != resp->length) ||
 		(response->payload_length < spdm_negotiate_algorithms_min_rsp_length (resp))) {
 		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
 
 	algstruct_table = spdm_negotiate_algorithms_rsp_algstruct_table (resp);
-	offset = spdm_negotiate_algorithms_min_rsp_length (resp);
+	end = response->payload + response->payload_length;
 
 	for (i_algstruct = 0; i_algstruct < resp->num_alg_structure_tables; ++i_algstruct) {
 		/* TODO: Maybe macro for length check. */
-		if (response->payload_length <
-			(offset + algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm))) {
+		if ((uint8_t*) algstruct_table + sizeof (struct spdm_algorithm_request) > end) {
 			return CMD_HANDLER_SPDM_BAD_LENGTH;
 		}
 
-		algstruct_table = (struct spdm_algorithm_request*) (((uint8_t*) (algstruct_table + 1)) +
-			(algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm)));
-		offset += (algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm));
+		if ((uint8_t*) algstruct_table + sizeof (struct spdm_algorithm_request) +
+			(algstruct_table->ext_alg_count * sizeof (struct spdm_extended_algorithm)) > end) {
+			return CMD_HANDLER_SPDM_BAD_LENGTH;
+		}
+
+		algstruct_table =
+			spdm_negotiate_algorithms_get_next_alg_struct_table_entry (algstruct_table);
 	}
 
 	return 0;
@@ -2455,29 +2320,38 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 	int spdm_error;
 	struct spdm_get_digests_request *spdm_request;
 	struct spdm_get_digests_response *spdm_response;
+	uint8_t *digest_list;
 	uint8_t spdm_version;
 	uint32_t response_size;
 	int hash_size;
+	size_t i;
+	uint8_t cert_slot_count;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct riot_key_manager *key_manager;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	session_manager = spdm_responder->session_manager;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Validate the request. */
 	if (request->payload_length < sizeof (struct spdm_get_digests_request)) {
@@ -2554,7 +2428,9 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 		goto exit;
 	}
 
-	response_size = sizeof (struct spdm_get_digests_response) + hash_size;
+	cert_slot_count = min (SPDM_MAX_SLOT_COUNT, spdm_responder->cert_chain_count);
+
+	response_size = sizeof (struct spdm_get_digests_response) + (hash_size * cert_slot_count);
 	if (response_size > cmd_interface_msg_get_max_response (request)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -2566,14 +2442,18 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 
 	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_DIGESTS,
 		SPDM_GET_MINOR_VERSION (spdm_version));
-	spdm_response->slot_mask = 1;
 
-	/* Get the digest of the certificate chain. */
-	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
-		(uint8_t*) (spdm_response + 1));
-	if (status != 0) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
-		goto exit;
+	digest_list = (uint8_t*) (spdm_response + 1);
+	for (i = 0; i < cert_slot_count; i++) {
+		status = spdm_responder->cert_chains[i]->get_digest (spdm_responder->cert_chains[i],
+			hash_engine, hash_type, digest_list, hash_size);
+		if (status != 0) {
+			spdm_error = SPDM_ERROR_UNSPECIFIED;
+			goto exit;
+		}
+
+		spdm_response->slot_mask = (spdm_response->slot_mask << 1) | 0x01;
+		digest_list += hash_size;
 	}
 
 	/* Add response to M1M2 hash context. */
@@ -2596,9 +2476,15 @@ int spdm_get_digests (const struct cmd_interface_spdm_responder *spdm_responder,
 
 exit:
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_DIGESTS, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_GET_DIGESTS, status);
 	}
+
+	if (session != NULL) {
+		session_manager->unlock_session (session_manager, session);
+	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -2669,40 +2555,40 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	uint8_t slot_id;
 	struct spdm_get_certificate_request *spdm_request;
 	struct spdm_get_certificate_response *spdm_response;
-	uint16_t requested_offset;
-	uint16_t requested_length;
+	size_t max_cert_block_len;
+	size_t requested_offset;
+	size_t requested_length;
+	size_t total_length;
 	size_t remainder_length = 0;
 	size_t response_size;
-	struct der_cert cert[SPDM_MAX_CERT_COUNT_IN_CHAIN];
-	uint8_t cert_count = ARRAY_SIZE (cert);
 	uint32_t hash_size;
-	uint8_t *cert_chain = NULL;
-	uint32_t cert_chain_length;
-	uint32_t cert_chain_offset;
-	uint8_t i_cert;
-	uint32_t max_cert_block_len;
-	struct spdm_cert_chain_header *cert_chain_header;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct riot_key_manager *key_manager;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
-	const struct riot_keys *keys = NULL;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
+	size_t cert_chain_length = 0;
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	session_manager = spdm_responder->session_manager;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Validate the request. */
 	if (request->payload_length < sizeof (struct spdm_get_certificate_request)) {
@@ -2758,16 +2644,15 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 	slot_id = spdm_request->slot_num & SPDM_GET_CERTIFICATE_SLOT_ID_MASK;
-	if (slot_id != 0) {
+	if (slot_id >= SPDM_MAX_SLOT_COUNT) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
-	/* Retrieve the list of certificates in the certificate chain. */
-	status = spdm_get_certificate_list (key_manager, &cert_count, cert, &keys);
-	if (status != 0) {
-		spdm_error = SPDM_ERROR_UNSPECIFIED;
+	if (slot_id >= spdm_responder->cert_chain_count) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
@@ -2778,28 +2663,12 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 		goto exit;
 	}
 
-	/* Calculate the cert chain data struct. length. */
-	cert_chain_length = sizeof (struct spdm_cert_chain_header) + hash_size;
-	for (i_cert = 0; i_cert < cert_count; ++i_cert) {
-		cert_chain_length += cert[i_cert].length;
-	}
-
-	/* Allocate a temp. buffer to hold the certificate chain. */
-	cert_chain = platform_malloc (cert_chain_length);
-	if (cert_chain == NULL) {
-		status = CMD_HANDLER_SPDM_RESPONDER_NO_MEMORY;
+	status =
+		spdm_responder->cert_chains[slot_id]->get_certificate_chain_length (
+		spdm_responder->cert_chains[slot_id], hash_type, &cert_chain_length);
+	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
-	}
-	cert_chain_header = (struct spdm_cert_chain_header*) cert_chain;
-	cert_chain_header->length = (uint16_t) cert_chain_length;
-	cert_chain_header->reserved = 0;
-
-	/* Copy cert(s) to the temp. buffer. */
-	cert_chain_offset = sizeof (struct spdm_cert_chain_header) + hash_size;
-	for (i_cert = 0; i_cert < cert_count; i_cert++) {
-		memcpy (&cert_chain[cert_chain_offset], cert[i_cert].cert, cert[i_cert].length);
-		cert_chain_offset += cert[i_cert].length;
 	}
 
 	requested_offset = spdm_request->offset;
@@ -2811,26 +2680,6 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
-
-	/* Compute the maximum cert block that can be sent. */
-	max_cert_block_len = cmd_interface_msg_get_max_response (request) -
-		sizeof (struct spdm_get_certificate_response);
-
-	/* If chunking capability is not supported, adjust the requested cert chain length. */
-	if (!(state->connection_info.peer_capabilities.flags.chunk_cap &&
-		local_capabilities->flags.chunk_cap)) {
-		if (requested_length > max_cert_block_len) {
-			requested_length = max_cert_block_len;
-		}
-	}
-
-	/* Adjust the requested length. */
-	if ((size_t) (requested_offset + requested_length) > cert_chain_length) {
-		requested_length = (uint16_t) (cert_chain_length - requested_offset);
-	}
-	remainder_length = cert_chain_length - (requested_length + requested_offset);
-	response_size = sizeof (struct spdm_get_certificate_response) + requested_length;
-
 	/* Reset transcript manager state as per request code. */
 	spdm_reset_transcript_via_request_code (state, transcript_manager,
 		SPDM_REQUEST_GET_CERTIFICATE);
@@ -2846,30 +2695,47 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 		}
 	}
 
+	/* Compute the maximum cert block that can be sent. */
+	max_cert_block_len =
+		spdm_get_certificate_max_cert_buffer (cmd_interface_msg_get_max_response (request));
+
+	/* TODO: If chunking is ever supported, the entire cert length needs to be reported, even if
+	 * it's larger the available message buffer.
+	 *
+	 * if (!(state->connection_info.peer_capabilities.flags.chunk_cap &&
+	 * local_capabilities->flags.chunk_cap)) */
+	if (requested_length > max_cert_block_len) {
+		requested_length = max_cert_block_len;
+	}
+
 	/* Construct the response. */
 	spdm_response = (struct spdm_get_certificate_response*) request->payload;
-	memset (spdm_response, 0, response_size);
+	memset (spdm_response, 0, cmd_interface_msg_get_max_response (request));
+
+	status =
+		spdm_responder->cert_chains[slot_id]->get_certificate_chain (
+		spdm_responder->cert_chains[slot_id], hash_engine, hash_type, requested_offset,
+		spdm_get_certificate_resp_cert_chain (spdm_response), &requested_length, &total_length);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
+	remainder_length = total_length - requested_length;
+	if (requested_offset < remainder_length) {
+		remainder_length -= requested_offset;
+	}
+	else {
+		remainder_length = 0;
+	}
 
 	spdm_populate_header (&spdm_response->header, SPDM_RESPONSE_GET_CERTIFICATE,
 		SPDM_GET_MINOR_VERSION (spdm_version));
 	spdm_response->slot_num = slot_id;
 	spdm_response->portion_len = requested_length;
-	spdm_response->remainder_len = (uint16_t) remainder_length;
+	spdm_response->remainder_len = remainder_length;
 
-	/* Hash the root certificate if not already provided to the requester. */
-	if (requested_offset < (sizeof (struct spdm_cert_chain_header) + hash_size)) {
-		status = hash_calculate (hash_engine, hash_type, cert[0].cert, cert[0].length,
-			cert_chain + sizeof (struct spdm_cert_chain_header), hash_size);
-		if (ROT_IS_ERROR (status)) {
-			spdm_error = SPDM_ERROR_UNSPECIFIED;
-			goto exit;
-		}
-		status = 0;
-	}
-
-	/* Copy cert_chain portion to response. */
-	memcpy (spdm_get_certificate_resp_cert_chain (spdm_response), cert_chain + requested_offset,
-		requested_length);
+	response_size = spdm_get_certificate_resp_length (spdm_response);
 
 	/* Add response to M1M2 hash context. */
 	if (session == NULL) {
@@ -2890,16 +2756,15 @@ int spdm_get_certificate (const struct cmd_interface_spdm_responder *spdm_respon
 	}
 
 exit:
-	if (keys != NULL) {
-		riot_key_manager_release_riot_keys (key_manager, keys);
-	}
-
-	platform_free (cert_chain);
-
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_CERTIFICATE, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_GET_CERTIFICATE, status);
 	}
+
+	if (session != NULL) {
+		session_manager->unlock_session (session_manager, session);
+	}
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -2974,13 +2839,12 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	const struct spdm_challenge_request *spdm_request;
 	struct spdm_challenge_response *spdm_response;
 	uint8_t spdm_version;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct hash_engine *hash_engine;
-	struct riot_key_manager *key_manager;
-	struct rng_engine *rng_engine;
-	struct ecc_engine *ecc_engine;
+	const struct hash_engine *hash_engine;
+	const struct rng_engine *rng_engine;
+	const struct ecc_engine *ecc_engine;
 	enum hash_type hash_type;
 	int hash_size;
 	size_t signature_size;
@@ -2990,22 +2854,31 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	uint8_t measurement_summary_type;
 	uint32_t meas_summary_hash_size;
 	uint8_t slot_num;
-	uint8_t m1_hash[HASH_MAX_HASH_LEN];
+	uint8_t max_slot_count;
+	int i;
+	uint8_t m1_hash[HASH_MAX_HASH_LEN] = {0};
 	uint8_t *response_ptr;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	ecc_engine = spdm_responder->ecc_engine;
 	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	measurements = spdm_responder->measurements;
 	rng_engine = spdm_responder->rng_engine;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Validate the request. */
 	if (request->payload_length < sizeof (struct spdm_challenge_request)) {
@@ -3041,8 +2914,16 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 		goto exit;
 	}
 
-	if (spdm_request->slot_num != 0) {
+	slot_num = spdm_request->slot_num;
+	if (slot_num >= SPDM_MAX_SLOT_COUNT) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	max_slot_count = min (SPDM_MAX_SLOT_COUNT, spdm_responder->cert_chain_count);
+	if (slot_num >= max_slot_count) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
@@ -3069,7 +2950,6 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 		goto exit;
 	}
 
-	slot_num = spdm_request->slot_num;
 	signature_size =
 		spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
 	if (signature_size == 0) {
@@ -3117,11 +2997,16 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 		SPDM_GET_MINOR_VERSION (spdm_version));
 	spdm_response->basic_mutual_auth_req = 0;
 	spdm_response->slot_num = slot_num;
-	spdm_response->slot_mask = (1 << slot_num);
+	for (i = 0; i < max_slot_count; i++) {
+		spdm_response->slot_mask = (spdm_response->slot_mask << 1) | 0x01;
+	}
+
 	response_ptr = (uint8_t*) (spdm_response + 1);
 
 	/* Get the digest of the certificate chain. */
-	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type, response_ptr);
+	status =
+		spdm_responder->cert_chains[slot_num]->get_digest (spdm_responder->cert_chains[slot_num],
+		hash_engine, hash_type, response_ptr, hash_size);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3171,8 +3056,8 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	/* Sign the M1 hash. */
-	status = spdm_responder_data_sign (state, key_manager, ecc_engine, hash_engine,
-		SPDM_RESPONSE_CHALLENGE, m1_hash, hash_size, response_ptr, signature_size);
+	status = spdm_responder_data_sign (state, spdm_responder->cert_chains[slot_num], ecc_engine,
+		hash_engine, SPDM_RESPONSE_CHALLENGE, m1_hash, hash_size, response_ptr, signature_size);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3183,9 +3068,13 @@ int spdm_challenge (const struct cmd_interface_spdm_responder *spdm_responder,
 
 exit:
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_CHALLENGE, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_CHALLENGE, status);
 	}
+
+	buffer_zeroize (m1_hash, sizeof (m1_hash));
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -3264,37 +3153,46 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	const struct spdm_get_measurements_request *spdm_request;
 	struct spdm_get_measurements_response *spdm_response;
 	uint8_t spdm_version;
-	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_state *state;
+	const struct spdm_transcript_manager *transcript_manager = NULL;
+	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct hash_engine *hash_engine;
+	const struct hash_engine *hash_engine;
 	enum hash_type hash_type;
 	size_t signature_size;
 	size_t request_size;
 	size_t response_size;
 	const struct spdm_measurements *measurements;
-	struct rng_engine *rng_engine;
+	const struct rng_engine *rng_engine;
 	uint8_t measurement_operation;
 	int measurement_count;
 	int measurement_length;
 	bool raw_bit_stream_requested;
 	bool signature_requested;
-	struct spdm_secure_session_manager *session_manager;
+	uint8_t slot_id = 0;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_secure_session *session = NULL;
 	uint8_t session_idx = SPDM_MAX_SESSION_COUNT;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
 	hash_engine = spdm_responder->hash_engine[0];
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
 	measurements = spdm_responder->measurements;
 	rng_engine = spdm_responder->rng_engine;
 	session_manager = spdm_responder->session_manager;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Check if a session is ongoing. */
 	if ((session_manager != NULL) &&
@@ -3382,8 +3280,15 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 		}
 
 		/* Check if slot id is valid. */
-		if (*(spdm_get_measurements_rq_slot_id_ptr (spdm_request)) != 0) {
+		slot_id = *(spdm_get_measurements_rq_slot_id_ptr (spdm_request));
+		if (slot_id >= SPDM_MAX_SLOT_COUNT) {
 			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+			spdm_error = SPDM_ERROR_INVALID_REQUEST;
+			goto exit;
+		}
+
+		if (slot_id >= spdm_responder->cert_chain_count) {
+			status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
 			spdm_error = SPDM_ERROR_INVALID_REQUEST;
 			goto exit;
 		}
@@ -3502,7 +3407,7 @@ int spdm_get_measurements (const struct cmd_interface_spdm_responder *spdm_respo
 	/* Generate the signature, if requested. */
 	if (signature_requested == true) {
 		status = spdm_generate_measurement_signature (transcript_manager, state,
-			spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine, session,
+			spdm_responder->cert_chains[slot_id], spdm_responder->ecc_engine, hash_engine, session,
 			spdm_get_measurements_resp_signature (spdm_response), signature_size);
 		if (status != 0) {
 			spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -3519,9 +3424,15 @@ exit:
 		transcript_manager->reset_transcript (transcript_manager, TRANSCRIPT_CONTEXT_TYPE_L1L2,
 			(session != NULL), session_idx);
 
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_GET_MEASUREMENTS, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_GET_MEASUREMENTS, status);
 	}
+
+	if (session != NULL) {
+		session_manager->unlock_session (session_manager, session);
+	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -3607,9 +3518,9 @@ int spdm_process_get_measurements_response (struct cmd_interface_msg *response)
 
 	resp = (struct spdm_get_measurements_response*) response->payload;
 
-	if (((response->payload_length < sizeof (struct spdm_get_measurements_response)) ||
-		(response->payload_length < (sizeof (struct spdm_get_measurements_response) +
-		spdm_get_measurements_resp_measurement_record_len (resp) + SPDM_NONCE_LEN))) ||
+	if ((response->payload_length < SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH) ||
+		(response->payload_length < SPDM_GET_MEASUREMENTS_RESP_MIN_LENGTH +
+		spdm_get_measurements_resp_measurement_record_len (resp)) ||
 		(response->payload_length < spdm_get_measurements_resp_length (resp))) {
 		return CMD_HANDLER_SPDM_BAD_LENGTH;
 	}
@@ -3686,32 +3597,38 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	size_t pub_key_component_size;
 	uint8_t session_policy = 0;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	const struct spdm_device_capability *local_capabilities;
-	struct riot_key_manager *key_manager;
-	struct hash_engine *hash_engine;
-	struct rng_engine *rng_engine;
+	const struct hash_engine *hash_engine;
+	const struct rng_engine *rng_engine;
 	bool release_session = false;
 	uint8_t cert_chain_hash[HASH_MAX_HASH_LEN];
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	struct ecc_point_public_key peer_pub_key_point;
 	enum hash_type hash_type;
 	const struct spdm_measurements *measurements;
 	uint8_t meas_summary_hash_type;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	local_capabilities = spdm_responder->local_capabilities;
-	key_manager = spdm_responder->key_manager;
 	hash_engine = spdm_responder->hash_engine[0];
 	rng_engine = spdm_responder->rng_engine;
 	session_manager = spdm_responder->session_manager;
 	measurements = spdm_responder->measurements;
 	hash_type = spdm_get_hash_type (state->connection_info.peer_algorithms.base_hash_algo);
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* Check if secure session support is available. This is excessive check, as session_manager
 	 * can't be NULL if secure_message_version_num_count !=0 based on initialization checks, but
@@ -3786,14 +3703,26 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Check the slot Id. */
 	slot_id = spdm_request->slot_id;
-	if (slot_id != 0) {
+	if (slot_id >= SPDM_MAX_SLOT_COUNT) {
 		status = CMD_HANDLER_SPDM_RESPONDER_INVALID_REQUEST;
+		spdm_error = SPDM_ERROR_INVALID_REQUEST;
+		goto exit;
+	}
+
+	if (slot_id >= spdm_responder->cert_chain_count) {
+		status = CMD_HANDLER_SPDM_RESPONDER_UNSUPPORTED_SLOT;
 		spdm_error = SPDM_ERROR_INVALID_REQUEST;
 		goto exit;
 	}
 
 	/* Get the crypto parameter sizes. */
 	hash_size = hash_get_hash_length (hash_type);
+	if (hash_size == HASH_ENGINE_UNKNOWN_HASH) {
+		status = HASH_ENGINE_UNKNOWN_HASH;
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	sig_size = spdm_get_asym_signature_size (state->connection_info.peer_algorithms.base_asym_algo);
 	dhe_key_size =
 		spdm_get_dhe_pub_key_size (state->connection_info.peer_algorithms.dhe_named_group);
@@ -3874,8 +3803,8 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	release_session = true;
 
 	/* Obtain the cert chain hash. */
-	status = spdm_get_certificate_chain_digest (key_manager, hash_engine, hash_type,
-		cert_chain_hash);
+	status = spdm_responder->cert_chains[slot_id]->get_digest (spdm_responder->cert_chains[slot_id],
+		hash_engine, hash_type, cert_chain_hash, sizeof (cert_chain_hash));
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
 		goto exit;
@@ -3904,8 +3833,13 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Construct the response. */
 	response_size = sizeof (struct spdm_key_exchange_response) + dhe_key_size +
-		meas_summary_hash_size + sizeof (uint16_t) + opaque_key_exchange_rsp_size + sig_size +
-		hash_size /* HMAC */;
+		meas_summary_hash_size + sizeof (uint16_t) + opaque_key_exchange_rsp_size + sig_size;
+
+	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) ||
+		(local_capabilities->flags.handshake_in_the_clear_cap == 0)) {
+		response_size += hash_size;	/* HMAC */
+	}
+
 	if (response_size > cmd_interface_msg_get_max_response (request)) {
 		status = CMD_HANDLER_SPDM_RESPONDER_RESPONSE_TOO_LARGE;
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -3932,7 +3866,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Generate the shared secret. Also, copy the generated local public key to the response buffer. */
 	ptr = spdm_key_exchange_resp_exchange_data (spdm_response);
-	status = session_manager->generate_shared_secret (session_manager, session,	&peer_pub_key_point,
+	status = session_manager->generate_shared_secret (session_manager, session, &peer_pub_key_point,
 		ptr);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -3958,7 +3892,12 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	ptr += sizeof (uint16_t);
 
 	/* Build the selected secure session version as opaque data. */
-	spdm_build_opaque_data_version_selection_data (spdm_responder, ptr);
+	status = spdm_build_opaque_data_version_selection_data (spdm_responder, ptr);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	ptr += opaque_key_exchange_rsp_size;
 
 	/* Add the response to the TH session hash context. */
@@ -3972,7 +3911,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 
 	/* Generate the response signature. */
 	status = spdm_generate_key_exchange_rsp_signature (transcript_manager, state,
-		spdm_responder->key_manager, spdm_responder->ecc_engine, hash_engine, session, ptr,
+		spdm_responder->cert_chains[slot_id], spdm_responder->ecc_engine, hash_engine, session, ptr,
 		sig_size);
 	if (status != 0) {
 		spdm_error = SPDM_ERROR_UNSPECIFIED;
@@ -3996,7 +3935,7 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	}
 
 	/* Generate the responder verification data. */
-	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) &&
+	if ((state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0) ||
 		(local_capabilities->flags.handshake_in_the_clear_cap == 0)) {
 		status = spdm_calculate_th_hmac_for_key_exchange_rsp (transcript_manager, state,
 			spdm_responder->ecc_engine, hash_engine, session, ptr);
@@ -4032,14 +3971,21 @@ int spdm_key_exchange (const struct cmd_interface_spdm_responder *spdm_responder
 	release_session = false;
 
 exit:
+	if (session != NULL) {
+		/* Must call unlock for create_session() */
+		session_manager->unlock_session (session_manager, session);
+	}
+
 	if (release_session == true) {
 		session_manager->release_session (session_manager, session_id);
 	}
 
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_KEY_EXCHANGE, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_KEY_EXCHANGE, status);
 	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -4062,23 +4008,31 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_finish_response *spdm_response;
 	size_t response_size;
 	uint32_t session_id;
-	struct spdm_secure_session *session;
+	struct spdm_secure_session *session = NULL;
 	uint32_t hmac_size;
 	uint32_t sig_size = 0;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	const struct spdm_transcript_manager *transcript_manager;
 	const struct spdm_device_capability *local_capabilities;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
 	const uint8_t *hmac_ptr;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
-	state = spdm_responder->state;
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
 	local_capabilities = spdm_responder->local_capabilities;
 	session_manager = spdm_responder->session_manager;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	if (session_manager == NULL) {
 		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
@@ -4114,7 +4068,7 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 	}
 
 	/* Confirm that we are in a session.*/
-	if ((local_capabilities->flags.handshake_in_the_clear_cap == 0) &&
+	if ((local_capabilities->flags.handshake_in_the_clear_cap == 0) ||
 		(state->connection_info.peer_capabilities.flags.handshake_in_the_clear_cap == 0)) {
 		if (session_manager->is_last_session_id_valid (session_manager) == false) {
 			status = CMD_HANDLER_SPDM_RESPONDER_INVALID_CONNECTION_STATE;
@@ -4233,9 +4187,16 @@ int spdm_finish (const struct cmd_interface_spdm_responder *spdm_responder,
 
 exit:
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_FINISH, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_FINISH, status);
 	}
+
+	if (session != NULL) {
+		/* Must call unlock for get_session() */
+		session_manager->unlock_session (session_manager, session);
+	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -4258,18 +4219,26 @@ int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 	struct spdm_end_session_response *spdm_response;
 	size_t response_size;
 	uint32_t session_id;
-	struct spdm_secure_session *session;
-	struct spdm_state *state;
+	struct spdm_secure_session *session = NULL;
+	struct spdm_responder_state *state;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct spdm_secure_session_manager *session_manager;
+	const struct spdm_secure_session_manager *session_manager;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	transcript_manager = spdm_responder->transcript_manager;
-	state = spdm_responder->state;
 	session_manager = spdm_responder->session_manager;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	if (session_manager == NULL) {
 		status = CMD_HANDLER_SPDM_RESPONDER_UNEXPECTED_REQUEST;
@@ -4332,8 +4301,8 @@ int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 	spdm_reset_transcript_via_request_code (state, transcript_manager, SPDM_REQUEST_END_SESSION);
 
 	session->end_session_attributes = spdm_request->end_session_attributes;
-	if ((spdm_request->end_session_attributes.negotiated_state_preservation_indicator ==
-		SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR)) {
+	if (spdm_request->end_session_attributes.negotiated_state_preservation_indicator ==
+		SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR) {
 		state->connection_info.end_session_attributes.negotiated_state_preservation_indicator =
 			SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR;
 	}
@@ -4353,9 +4322,15 @@ int spdm_end_session (const struct cmd_interface_spdm_responder *spdm_responder,
 
 exit:
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_END_SESSION, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_END_SESSION, status);
 	}
+
+	if (session != NULL) {
+		/* Must call unlock for get_session() */
+		session_manager->unlock_session (session_manager, session);
+	}
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -4374,18 +4349,26 @@ int spdm_vendor_defined_request (const struct cmd_interface_spdm_responder *spdm
 	int status = 0;
 	int spdm_error;
 	uint8_t spdm_version;
-	struct spdm_state *state;
+	struct spdm_responder_state *state;
 	uint32_t session_id;
-	struct spdm_secure_session *session;
-	struct spdm_secure_session_manager *session_manager;
+	struct spdm_secure_session *session = NULL;
+	const struct spdm_secure_session_manager *session_manager;
 	struct spdm_vendor_defined_request_response *spdm_req_resp;
+	uint16_t minor_ver_in_error_msg = 0x0;	/* Default to SPDM 1.0 */
 
 	if ((spdm_responder == NULL) || (request == NULL)) {
 		return CMD_HANDLER_SPDM_RESPONDER_INVALID_ARGUMENT;
 	}
 
-	state = spdm_responder->state;
+	status = spdm_responder->spdm_context->get_responder_state (spdm_responder->spdm_context,
+		&state);
+	if (status != 0) {
+		spdm_error = SPDM_ERROR_UNSPECIFIED;
+		goto exit;
+	}
+
 	session_manager = spdm_responder->session_manager;
+	minor_ver_in_error_msg = state->connection_info.version.minor_version;
 
 	/* vdm_handler is optional */
 	if (spdm_responder->vdm_handler == NULL) {
@@ -4472,9 +4455,16 @@ int spdm_vendor_defined_request (const struct cmd_interface_spdm_responder *spdm
 
 exit:
 	if (status != 0) {
-		spdm_generate_error_response (request, state->connection_info.version.minor_version,
-			spdm_error, 0x00, NULL, 0, SPDM_REQUEST_VENDOR_DEFINED_REQUEST, status);
+		spdm_generate_error_response (request, minor_ver_in_error_msg, spdm_error, 0x00, NULL, 0,
+			SPDM_REQUEST_VENDOR_DEFINED_REQUEST, status);
 	}
+
+	if (session != NULL) {
+		/* Must call unlock for get_session() */
+		session_manager->unlock_session (session_manager, session);
+	}
+
+	spdm_responder->spdm_context->unlock (spdm_responder->spdm_context);
 
 	return 0;
 }
@@ -4491,22 +4481,36 @@ exit:
  *
  * @return 0 if completed successfully, or an error code
  */
-int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_type,
+int spdm_format_signature_digest (const struct hash_engine *hash, enum hash_type hash_type,
 	uint8_t spdm_minor_version, char *spdm_context, uint8_t *digest)
 {
 	uint8_t combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN] = {0};
 	char spdm_prefix[] = "dmtf-spdm-v1.x.*";
 	size_t spdm_prefix_len = strlen (spdm_prefix);
 	size_t hash_len = hash_get_hash_length (hash_type);
+	size_t spdm_context_len;
 	int status;
+
+	if ((hash == NULL) || (spdm_context == NULL) || (digest == NULL)) {
+		return CMD_HANDLER_SPDM_INVALID_ARGUMENT;
+	}
+
+	spdm_context_len = strlen (spdm_context);
+
+	// SPDM prefix repeated 4 times, one zero byte after.
+	// Effectively means that spdm_context cannot be longer than 35 bytes
+	if (spdm_context_len > SPDM_COMBINED_PREFIX_LEN - (spdm_prefix_len * 4 + 1)) {
+		return CMD_HANDLER_SPDM_SIG_CONTEXT_TOO_LONG;
+	}
 
 	spdm_prefix[13] = spdm_minor_version + '0';
 
-	strcpy ((char*) combined_spdm_prefix, spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix);
-	strcpy ((char*) &combined_spdm_prefix[100 - strlen (spdm_context)], spdm_context);
+	memcpy (combined_spdm_prefix, spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 2], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[spdm_prefix_len * 3], spdm_prefix, spdm_prefix_len);
+	memcpy (&combined_spdm_prefix[SPDM_COMBINED_PREFIX_LEN - spdm_context_len], spdm_context,
+		spdm_context_len);
 
 	status = hash_start_new_hash (hash, hash_type);
 	if (status != 0) {
@@ -4530,33 +4534,6 @@ int spdm_format_signature_digest (struct hash_engine *hash, enum hash_type hash_
 
 fail:
 	hash->cancel (hash);
-
-	return status;
-}
-
-/**
- * Initialize the SPDM state.
- *
- * @param state SPDM state.
- *
- * @return 0 if the state was successfully initialized or an error code.
- */
-int spdm_init_state (struct spdm_state *state)
-{
-	int status = 0;
-
-	if (state == NULL) {
-		status = CMD_HANDLER_SPDM_INVALID_ARGUMENT;
-		goto exit;
-	}
-
-	memset (state, 0, sizeof (struct spdm_state));
-
-	/* Initialize the state. */
-	state->connection_info.connection_state = SPDM_CONNECTION_STATE_NOT_STARTED;
-	state->response_state = SPDM_RESPONSE_STATE_NORMAL;
-
-exit:
 
 	return status;
 }

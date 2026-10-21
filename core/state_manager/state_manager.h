@@ -21,18 +21,21 @@ enum manifest_region {
 
 
 /**
+ * Variable context for managing state information.
+ */
+struct state_manager_state {
+	uint32_t store_addr;		/**< The address of the last storage location used. */
+	uint16_t nv_state;			/**< The current non-volatile state. */
+	uint16_t last_nv_stored;	/**< The last state value stored in flash. */
+	uint8_t volatile_state;		/**< The current volatile state. */
+	platform_mutex state_lock;	/**< Synchronization lock for state. */
+	platform_mutex store_lock;	/**< Synchronization lock for store actions. */
+};
+
+/**
  * Manager for state information.
  */
 struct state_manager {
-	const struct flash *nv_store;	/**< The flash that contains the stored state. */
-	uint32_t base_addr;				/**< The first address of the state storage. */
-	uint32_t store_addr;			/**< The address of the last storage location used. */
-	uint16_t nv_state;				/**< The current non-volatile state. */
-	uint16_t last_nv_stored;		/**< The last state value stored in flash. */
-	uint8_t volatile_state;			/**< The current volatile state. */
-	platform_mutex state_lock;		/**< Synchronization lock for state. */
-	platform_mutex store_lock;		/**< Synchronization lock for store actions. */
-
 	/**
 	 * Save the setting for the manifest region that contains the active manifest.
 	 * This setting will be stored in non-volatile memory on the next call to store state.
@@ -43,7 +46,7 @@ struct state_manager {
 	 *
 	 * @return 0 if the setting was saved or an an error code if the setting was invalid.
 	 */
-	int (*save_active_manifest) (struct state_manager *manager, uint8_t manifest_index,
+	int (*save_active_manifest) (const struct state_manager *manager, uint8_t manifest_index,
 		enum manifest_region active);
 
 	/**
@@ -54,7 +57,7 @@ struct state_manager {
 	 *
 	 * @return The active manifest region.
 	 */
-	enum manifest_region (*get_active_manifest) (struct state_manager *manager,
+	enum manifest_region (*get_active_manifest) (const struct state_manager *manager,
 		uint8_t manifest_index);
 
 	/**
@@ -65,7 +68,7 @@ struct state_manager {
 	 *
 	 * @return 0 if the defaults were restored or an error code if the instance is not valid.
 	 */
-	int (*restore_default_state) (struct state_manager *manager);
+	int (*restore_default_state) (const struct state_manager *manager);
 
 	/**
 	 * Check whether state manager manifest index provided is valid.
@@ -75,21 +78,28 @@ struct state_manager {
 	 *
 	 * @return 0 if valid or an error code.
 	 */
-	int (*is_manifest_valid) (struct state_manager *manager, uint8_t manifest_index);
+	int (*is_manifest_valid) (const struct state_manager *manager, uint8_t manifest_index);
+
+	struct state_manager_state *state;	/**< Variable context for state management. */
+	const struct flash *nv_store;		/**< The flash that contains the stored state. */
+	uint32_t base_addr;					/**< The first address of the state storage. */
 };
 
 
-int state_manager_init (struct state_manager *manager, const struct flash *state_flash,
-	uint32_t store_addr);
-void state_manager_release (struct state_manager *manager);
-
-int state_manager_store_non_volatile_state (struct state_manager *manager);
-void state_manager_block_non_volatile_state_storage (struct state_manager *manager, bool block);
+int state_manager_store_non_volatile_state (const struct state_manager *manager);
+void state_manager_block_non_volatile_state_storage (const struct state_manager *manager,
+	bool block);
 
 /* Internal functions for use by derived types. */
-int state_manager_save_active_manifest (struct state_manager *manager, enum manifest_region active,
+int state_manager_init (struct state_manager *manager, struct state_manager_state *state,
+	const struct flash *state_flash, uint32_t store_addr);
+int state_manager_init_state (const struct state_manager *manager);
+void state_manager_release (const struct state_manager *manager);
+
+int state_manager_save_active_manifest (const struct state_manager *manager,
+	enum manifest_region active, uint8_t bit);
+enum manifest_region state_manager_get_active_manifest (const struct state_manager *manager,
 	uint8_t bit);
-enum manifest_region state_manager_get_active_manifest (struct state_manager *manager, uint8_t bit);
 
 
 #define	STATE_MANAGER_ERROR(code)		ROT_ERROR (ROT_MODULE_STATE_MANAGER, code)

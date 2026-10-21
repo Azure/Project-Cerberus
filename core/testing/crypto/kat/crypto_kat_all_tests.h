@@ -21,6 +21,24 @@ static void add_all_crypto_kat_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
+#if (defined TESTING_RUN_AES_KAT_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_KAT_SUITE
+	TESTING_RUN_SUITE (aes_kat);
+#endif
+#if (defined TESTING_RUN_AES_KEY_WRAP_KAT_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AES_KEY_WRAP_KAT_SUITE
+	TESTING_RUN_SUITE (aes_key_wrap_kat);
+#endif
+#if (defined TESTING_RUN_ECDH_KAT_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_ECDH_KAT_SUITE
+	TESTING_RUN_SUITE (ecdh_kat);
+#endif
 #if (defined TESTING_RUN_ECDSA_KAT_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
@@ -38,6 +56,12 @@ static void add_all_crypto_kat_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_KDF_KAT_SUITE
 	TESTING_RUN_SUITE (kdf_kat);
+#endif
+#if (defined TESTING_RUN_SIGNATURE_VERIFICATION_KAT_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_SIGNATURE_VERIFICATION_KAT_SUITE
+	TESTING_RUN_SUITE (signature_verification_kat);
 #endif
 }
 

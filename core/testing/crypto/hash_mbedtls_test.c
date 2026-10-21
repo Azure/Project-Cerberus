@@ -7,6 +7,7 @@
 #include <string.h>
 #include "testing.h"
 #include "crypto/hash_mbedtls.h"
+#include "crypto/hash_mbedtls_static.h"
 #include "testing/crypto/hash_testing.h"
 
 
@@ -19,12 +20,13 @@ TEST_SUITE_LABEL ("hash_mbedtls");
 
 static void hash_mbedtls_test_init (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 #ifdef HASH_ENABLE_SHA1
@@ -41,6 +43,7 @@ static void hash_mbedtls_test_init (CuTest *test)
 	CuAssertPtrNotNull (test, engine.base.calculate_sha512);
 	CuAssertPtrNotNull (test, engine.base.start_sha512);
 #endif
+	CuAssertPtrNotNull (test, engine.base.get_active_algorithm);
 	CuAssertPtrNotNull (test, engine.base.update);
 	CuAssertPtrNotNull (test, engine.base.get_hash);
 	CuAssertPtrNotNull (test, engine.base.finish);
@@ -51,11 +54,64 @@ static void hash_mbedtls_test_init (CuTest *test)
 
 static void hash_mbedtls_test_init_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (NULL);
+	status = hash_mbedtls_init (NULL, &state);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	status = hash_mbedtls_init (&engine, NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+}
+
+static void hash_mbedtls_test_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+
+	TEST_START;
+
+#ifdef HASH_ENABLE_SHA1
+	CuAssertPtrNotNull (test, engine.base.calculate_sha1);
+	CuAssertPtrNotNull (test, engine.base.start_sha1);
+#endif
+	CuAssertPtrNotNull (test, engine.base.calculate_sha256);
+	CuAssertPtrNotNull (test, engine.base.start_sha256);
+#ifdef HASH_ENABLE_SHA384
+	CuAssertPtrNotNull (test, engine.base.calculate_sha384);
+	CuAssertPtrNotNull (test, engine.base.start_sha384);
+#endif
+#ifdef HASH_ENABLE_SHA512
+	CuAssertPtrNotNull (test, engine.base.calculate_sha512);
+	CuAssertPtrNotNull (test, engine.base.start_sha512);
+#endif
+	CuAssertPtrNotNull (test, engine.base.get_active_algorithm);
+	CuAssertPtrNotNull (test, engine.base.update);
+	CuAssertPtrNotNull (test, engine.base.get_hash);
+	CuAssertPtrNotNull (test, engine.base.finish);
+	CuAssertPtrNotNull (test, engine.base.cancel);
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
+static void hash_mbedtls_test_static_init_null (CuTest *test)
+{
+	struct hash_engine_mbedtls null_state = hash_mbedtls_static_init (NULL);
+	int status;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (NULL);
+	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
+
+	status = hash_mbedtls_init_state (&null_state);
 	CuAssertIntEquals (test, HASH_ENGINE_INVALID_ARGUMENT, status);
 }
 
@@ -69,24 +125,38 @@ static void hash_mbedtls_test_release_null (CuTest *test)
 #ifdef HASH_ENABLE_SHA1
 static void hash_mbedtls_test_sha1_incremental (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -96,27 +166,44 @@ static void hash_mbedtls_test_sha1_incremental (CuTest *test)
 
 static void hash_mbedtls_test_sha1_incremental_multi (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -126,13 +213,14 @@ static void hash_mbedtls_test_sha1_incremental_multi (CuTest *test)
 
 static void hash_mbedtls_test_sha1_incremental_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -153,6 +241,7 @@ static void hash_mbedtls_test_sha1_incremental_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_sha1_incremental_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
@@ -160,7 +249,7 @@ static void hash_mbedtls_test_sha1_incremental_update_to_full_hash_block (CuTest
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -185,6 +274,7 @@ static void hash_mbedtls_test_sha1_incremental_update_to_full_hash_block (CuTest
 static void hash_mbedtls_test_sha1_incremental_update_to_full_hash_block_after_full_block (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
@@ -192,7 +282,7 @@ static void hash_mbedtls_test_sha1_incremental_update_to_full_hash_block_after_f
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -219,13 +309,14 @@ static void hash_mbedtls_test_sha1_incremental_update_to_full_hash_block_after_f
 
 static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_single_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -246,13 +337,14 @@ static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_single_updat
 
 static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_partial_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -276,13 +368,14 @@ static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_partial_upda
 
 static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -304,13 +397,14 @@ static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_not_aligned 
 static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -334,13 +428,14 @@ static void hash_mbedtls_test_sha1_incremental_multiple_hash_blocks_not_aligned_
 
 static void hash_mbedtls_test_sha1_incremental_partial_block_480_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -361,13 +456,14 @@ static void hash_mbedtls_test_sha1_incremental_partial_block_480_bits (CuTest *t
 
 static void hash_mbedtls_test_sha1_incremental_partial_block_448_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -388,13 +484,14 @@ static void hash_mbedtls_test_sha1_incremental_partial_block_448_bits (CuTest *t
 
 static void hash_mbedtls_test_sha1_incremental_partial_block_440_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -415,13 +512,14 @@ static void hash_mbedtls_test_sha1_incremental_partial_block_440_bits (CuTest *t
 
 static void hash_mbedtls_test_sha1_incremental_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -439,26 +537,81 @@ static void hash_mbedtls_test_sha1_incremental_empty_hash_buffer (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha1_incremental_get_hash (CuTest *test)
+static void hash_mbedtls_test_sha1_incremental_static_init (CuTest *test)
 {
-	struct hash_engine_mbedtls engine;
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
+static void hash_mbedtls_test_sha1_incremental_get_hash (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -466,8 +619,14 @@ static void hash_mbedtls_test_sha1_incremental_get_hash (CuTest *test)
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -477,13 +636,14 @@ static void hash_mbedtls_test_sha1_incremental_get_hash (CuTest *test)
 
 static void hash_mbedtls_test_sha1_incremental_get_hash_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -512,6 +672,7 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_full_hash_block (CuTest 
 
 static void hash_mbedtls_test_sha1_incremental_get_hash_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
@@ -519,7 +680,7 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_update_to_full_hash_bloc
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -552,6 +713,7 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_update_to_full_hash_bloc
 static void hash_mbedtls_test_sha1_incremental_get_hash_update_to_full_hash_block_after_full_block (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
@@ -559,7 +721,7 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_update_to_full_hash_bloc
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -595,13 +757,14 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_update_to_full_hash_bloc
 static void hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_single_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -631,13 +794,14 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_sin
 static void hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -670,13 +834,14 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_par
 static void hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_not_aligned (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -707,13 +872,14 @@ static void
 hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -745,13 +911,14 @@ hash_mbedtls_test_sha1_incremental_get_hash_multiple_hash_blocks_not_aligned_par
 
 static void hash_mbedtls_test_sha1_incremental_get_hash_partial_block_480_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -780,13 +947,14 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_partial_block_480_bits (
 
 static void hash_mbedtls_test_sha1_incremental_get_hash_partial_block_448_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -815,13 +983,14 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_partial_block_448_bits (
 
 static void hash_mbedtls_test_sha1_incremental_get_hash_partial_block_440_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -850,6 +1019,7 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_partial_block_440_bits (
 
 static void hash_mbedtls_test_sha1_incremental_get_hash_without_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -857,7 +1027,7 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_without_update (CuTest *
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -881,8 +1051,65 @@ static void hash_mbedtls_test_sha1_incremental_get_hash_without_update (CuTest *
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha1_incremental_get_hash_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = testing_validate_array (SHA1_TEST_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha1_incremental_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -890,7 +1117,7 @@ static void hash_mbedtls_test_sha1_incremental_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -922,20 +1149,31 @@ static void hash_mbedtls_test_sha1_incremental_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha1_incremental_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha1 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -948,13 +1186,14 @@ static void hash_mbedtls_test_sha1_incremental_cancel (CuTest *test)
 
 static void hash_mbedtls_test_sha1_incremental_after_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -985,14 +1224,52 @@ static void hash_mbedtls_test_sha1_incremental_after_cancel (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha1_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha1 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA1, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha1_start_incremental_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (NULL);
@@ -1003,6 +1280,7 @@ static void hash_mbedtls_test_sha1_start_incremental_null (CuTest *test)
 
 static void hash_mbedtls_test_sha1_start_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -1010,7 +1288,7 @@ static void hash_mbedtls_test_sha1_start_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -1033,6 +1311,7 @@ static void hash_mbedtls_test_sha1_start_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha1_update_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -1040,7 +1319,7 @@ static void hash_mbedtls_test_sha1_update_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -1063,6 +1342,7 @@ static void hash_mbedtls_test_sha1_update_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha1_finish_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -1070,7 +1350,7 @@ static void hash_mbedtls_test_sha1_finish_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -1093,6 +1373,7 @@ static void hash_mbedtls_test_sha1_finish_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha1_get_hash_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -1100,7 +1381,7 @@ static void hash_mbedtls_test_sha1_get_hash_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -1123,6 +1404,7 @@ static void hash_mbedtls_test_sha1_get_hash_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha1_finish_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -1130,7 +1412,7 @@ static void hash_mbedtls_test_sha1_finish_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -1156,6 +1438,7 @@ static void hash_mbedtls_test_sha1_finish_small_hash_buffer (CuTest *test)
 
 static void hash_mbedtls_test_sha1_get_hash_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -1163,7 +1446,7 @@ static void hash_mbedtls_test_sha1_get_hash_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -1190,24 +1473,38 @@ static void hash_mbedtls_test_sha1_get_hash_small_hash_buffer (CuTest *test)
 
 static void hash_mbedtls_test_sha256_incremental (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1217,27 +1514,44 @@ static void hash_mbedtls_test_sha256_incremental (CuTest *test)
 
 static void hash_mbedtls_test_sha256_incremental_multi (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1247,13 +1561,14 @@ static void hash_mbedtls_test_sha256_incremental_multi (CuTest *test)
 
 static void hash_mbedtls_test_sha256_incremental_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1274,6 +1589,7 @@ static void hash_mbedtls_test_sha256_incremental_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_sha256_incremental_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
@@ -1281,7 +1597,7 @@ static void hash_mbedtls_test_sha256_incremental_update_to_full_hash_block (CuTe
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1306,6 +1622,7 @@ static void hash_mbedtls_test_sha256_incremental_update_to_full_hash_block (CuTe
 static void hash_mbedtls_test_sha256_incremental_update_to_full_hash_block_after_full_block (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
@@ -1313,7 +1630,7 @@ static void hash_mbedtls_test_sha256_incremental_update_to_full_hash_block_after
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1340,13 +1657,14 @@ static void hash_mbedtls_test_sha256_incremental_update_to_full_hash_block_after
 
 static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_single_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1367,13 +1685,14 @@ static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_single_upd
 
 static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_partial_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1397,13 +1716,14 @@ static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_partial_up
 
 static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1425,13 +1745,14 @@ static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_not_aligne
 static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1455,13 +1776,14 @@ static void hash_mbedtls_test_sha256_incremental_multiple_hash_blocks_not_aligne
 
 static void hash_mbedtls_test_sha256_incremental_partial_block_480_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1482,13 +1804,14 @@ static void hash_mbedtls_test_sha256_incremental_partial_block_480_bits (CuTest 
 
 static void hash_mbedtls_test_sha256_incremental_partial_block_448_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1509,13 +1832,14 @@ static void hash_mbedtls_test_sha256_incremental_partial_block_448_bits (CuTest 
 
 static void hash_mbedtls_test_sha256_incremental_partial_block_440_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1536,13 +1860,14 @@ static void hash_mbedtls_test_sha256_incremental_partial_block_440_bits (CuTest 
 
 static void hash_mbedtls_test_sha256_incremental_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1560,26 +1885,81 @@ static void hash_mbedtls_test_sha256_incremental_empty_hash_buffer (CuTest *test
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha256_incremental_get_hash (CuTest *test)
+static void hash_mbedtls_test_sha256_incremental_static_init (CuTest *test)
 {
-	struct hash_engine_mbedtls engine;
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
+static void hash_mbedtls_test_sha256_incremental_get_hash (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
 
 	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1587,8 +1967,14 @@ static void hash_mbedtls_test_sha256_incremental_get_hash (CuTest *test)
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -1598,13 +1984,14 @@ static void hash_mbedtls_test_sha256_incremental_get_hash (CuTest *test)
 
 static void hash_mbedtls_test_sha256_incremental_get_hash_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1633,6 +2020,7 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_full_hash_block (CuTes
 
 static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
@@ -1640,7 +2028,7 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_bl
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1674,6 +2062,7 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_bl
 (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
@@ -1681,7 +2070,7 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_bl
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1717,13 +2106,14 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_bl
 static void hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_single_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1753,13 +2143,14 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_s
 static void hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1792,13 +2183,14 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_p
 static void hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_not_aligned (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1829,13 +2221,14 @@ static void
 hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1867,13 +2260,14 @@ hash_mbedtls_test_sha256_incremental_get_hash_multiple_hash_blocks_not_aligned_p
 
 static void hash_mbedtls_test_sha256_incremental_get_hash_partial_block_480_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1902,13 +2296,14 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_partial_block_480_bits
 
 static void hash_mbedtls_test_sha256_incremental_get_hash_partial_block_448_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1937,13 +2332,14 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_partial_block_448_bits
 
 static void hash_mbedtls_test_sha256_incremental_get_hash_partial_block_440_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -1972,6 +2368,7 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_partial_block_440_bits
 
 static void hash_mbedtls_test_sha256_incremental_get_hash_without_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -1979,7 +2376,7 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_without_update (CuTest
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2003,8 +2400,65 @@ static void hash_mbedtls_test_sha256_incremental_get_hash_without_update (CuTest
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha256_incremental_get_hash_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = testing_validate_array (SHA256_TEST_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha256_incremental_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -2012,7 +2466,7 @@ static void hash_mbedtls_test_sha256_incremental_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2044,20 +2498,31 @@ static void hash_mbedtls_test_sha256_incremental_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha256_incremental_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha256 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -2070,13 +2535,14 @@ static void hash_mbedtls_test_sha256_incremental_cancel (CuTest *test)
 
 static void hash_mbedtls_test_sha256_incremental_after_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2107,14 +2573,52 @@ static void hash_mbedtls_test_sha256_incremental_after_cancel (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha256_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha256 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA256, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha256_start_incremental_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (NULL);
@@ -2125,6 +2629,7 @@ static void hash_mbedtls_test_sha256_start_incremental_null (CuTest *test)
 
 static void hash_mbedtls_test_sha256_start_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -2132,7 +2637,7 @@ static void hash_mbedtls_test_sha256_start_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2155,6 +2660,7 @@ static void hash_mbedtls_test_sha256_start_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha256_update_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -2162,7 +2668,7 @@ static void hash_mbedtls_test_sha256_update_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2185,6 +2691,7 @@ static void hash_mbedtls_test_sha256_update_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha256_finish_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -2192,7 +2699,7 @@ static void hash_mbedtls_test_sha256_finish_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2215,6 +2722,7 @@ static void hash_mbedtls_test_sha256_finish_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha256_get_hash_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -2222,7 +2730,7 @@ static void hash_mbedtls_test_sha256_get_hash_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2245,6 +2753,7 @@ static void hash_mbedtls_test_sha256_get_hash_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha256_finish_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -2252,7 +2761,7 @@ static void hash_mbedtls_test_sha256_finish_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2278,6 +2787,7 @@ static void hash_mbedtls_test_sha256_finish_small_hash_buffer (CuTest *test)
 
 static void hash_mbedtls_test_sha256_get_hash_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -2285,7 +2795,7 @@ static void hash_mbedtls_test_sha256_get_hash_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -2312,24 +2822,38 @@ static void hash_mbedtls_test_sha256_get_hash_small_hash_buffer (CuTest *test)
 #ifdef HASH_ENABLE_SHA384
 static void hash_mbedtls_test_sha384_incremental (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2339,27 +2863,44 @@ static void hash_mbedtls_test_sha384_incremental (CuTest *test)
 
 static void hash_mbedtls_test_sha384_incremental_multi (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2369,13 +2910,14 @@ static void hash_mbedtls_test_sha384_incremental_multi (CuTest *test)
 
 static void hash_mbedtls_test_sha384_incremental_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2396,6 +2938,7 @@ static void hash_mbedtls_test_sha384_incremental_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_sha384_incremental_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
@@ -2403,7 +2946,7 @@ static void hash_mbedtls_test_sha384_incremental_update_to_full_hash_block (CuTe
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2428,6 +2971,7 @@ static void hash_mbedtls_test_sha384_incremental_update_to_full_hash_block (CuTe
 static void hash_mbedtls_test_sha384_incremental_update_to_full_hash_block_after_full_block (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
@@ -2435,7 +2979,7 @@ static void hash_mbedtls_test_sha384_incremental_update_to_full_hash_block_after
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2462,13 +3006,14 @@ static void hash_mbedtls_test_sha384_incremental_update_to_full_hash_block_after
 
 static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_single_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2489,13 +3034,14 @@ static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_single_upd
 
 static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_partial_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2519,13 +3065,14 @@ static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_partial_up
 
 static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2547,13 +3094,14 @@ static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_not_aligne
 static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2577,13 +3125,14 @@ static void hash_mbedtls_test_sha384_incremental_multiple_hash_blocks_not_aligne
 
 static void hash_mbedtls_test_sha384_incremental_partial_block_992_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2604,13 +3153,14 @@ static void hash_mbedtls_test_sha384_incremental_partial_block_992_bits (CuTest 
 
 static void hash_mbedtls_test_sha384_incremental_partial_block_960_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2631,13 +3181,14 @@ static void hash_mbedtls_test_sha384_incremental_partial_block_960_bits (CuTest 
 
 static void hash_mbedtls_test_sha384_incremental_partial_block_952_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2658,13 +3209,14 @@ static void hash_mbedtls_test_sha384_incremental_partial_block_952_bits (CuTest 
 
 static void hash_mbedtls_test_sha384_incremental_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2682,26 +3234,81 @@ static void hash_mbedtls_test_sha384_incremental_empty_hash_buffer (CuTest *test
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha384_incremental_get_hash (CuTest *test)
+static void hash_mbedtls_test_sha384_incremental_static_init (CuTest *test)
 {
-	struct hash_engine_mbedtls engine;
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
+static void hash_mbedtls_test_sha384_incremental_get_hash (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2709,8 +3316,14 @@ static void hash_mbedtls_test_sha384_incremental_get_hash (CuTest *test)
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -2720,13 +3333,14 @@ static void hash_mbedtls_test_sha384_incremental_get_hash (CuTest *test)
 
 static void hash_mbedtls_test_sha384_incremental_get_hash_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2755,6 +3369,7 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_full_hash_block (CuTes
 
 static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
@@ -2762,7 +3377,7 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_bl
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2796,6 +3411,7 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_bl
 (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
@@ -2803,7 +3419,7 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_bl
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2839,13 +3455,14 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_bl
 static void hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_single_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2875,13 +3492,14 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_s
 static void hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2914,13 +3532,14 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_p
 static void hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_not_aligned (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2951,13 +3570,14 @@ static void
 hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -2989,13 +3609,14 @@ hash_mbedtls_test_sha384_incremental_get_hash_multiple_hash_blocks_not_aligned_p
 
 static void hash_mbedtls_test_sha384_incremental_get_hash_partial_block_992_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3024,13 +3645,14 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_partial_block_992_bits
 
 static void hash_mbedtls_test_sha384_incremental_get_hash_partial_block_960_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3059,13 +3681,14 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_partial_block_960_bits
 
 static void hash_mbedtls_test_sha384_incremental_get_hash_partial_block_952_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3094,6 +3717,7 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_partial_block_952_bits
 
 static void hash_mbedtls_test_sha384_incremental_get_hash_without_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3101,7 +3725,7 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_without_update (CuTest
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3125,8 +3749,65 @@ static void hash_mbedtls_test_sha384_incremental_get_hash_without_update (CuTest
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha384_incremental_get_hash_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = testing_validate_array (SHA384_TEST_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha384_incremental_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3134,7 +3815,7 @@ static void hash_mbedtls_test_sha384_incremental_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3166,20 +3847,31 @@ static void hash_mbedtls_test_sha384_incremental_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha384_incremental_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha384 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -3192,13 +3884,14 @@ static void hash_mbedtls_test_sha384_incremental_cancel (CuTest *test)
 
 static void hash_mbedtls_test_sha384_incremental_after_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3229,14 +3922,52 @@ static void hash_mbedtls_test_sha384_incremental_after_cancel (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha384_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha384 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA384, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha384_start_incremental_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (NULL);
@@ -3247,6 +3978,7 @@ static void hash_mbedtls_test_sha384_start_incremental_null (CuTest *test)
 
 static void hash_mbedtls_test_sha384_start_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3254,7 +3986,7 @@ static void hash_mbedtls_test_sha384_start_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3277,6 +4009,7 @@ static void hash_mbedtls_test_sha384_start_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha384_update_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3284,7 +4017,7 @@ static void hash_mbedtls_test_sha384_update_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3307,6 +4040,7 @@ static void hash_mbedtls_test_sha384_update_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha384_finish_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3314,7 +4048,7 @@ static void hash_mbedtls_test_sha384_finish_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3337,6 +4071,7 @@ static void hash_mbedtls_test_sha384_finish_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha384_get_hash_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3344,7 +4079,7 @@ static void hash_mbedtls_test_sha384_get_hash_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3367,6 +4102,7 @@ static void hash_mbedtls_test_sha384_get_hash_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha384_finish_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3374,7 +4110,7 @@ static void hash_mbedtls_test_sha384_finish_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3400,6 +4136,7 @@ static void hash_mbedtls_test_sha384_finish_small_hash_buffer (CuTest *test)
 
 static void hash_mbedtls_test_sha384_get_hash_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -3407,7 +4144,7 @@ static void hash_mbedtls_test_sha384_get_hash_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -3435,24 +4172,38 @@ static void hash_mbedtls_test_sha384_get_hash_small_hash_buffer (CuTest *test)
 #ifdef HASH_ENABLE_SHA512
 static void hash_mbedtls_test_sha512_incremental (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3462,27 +4213,44 @@ static void hash_mbedtls_test_sha512_incremental (CuTest *test)
 
 static void hash_mbedtls_test_sha512_incremental_multi (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
-	CuAssertIntEquals (test, 0, status);
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3492,13 +4260,14 @@ static void hash_mbedtls_test_sha512_incremental_multi (CuTest *test)
 
 static void hash_mbedtls_test_sha512_incremental_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3519,6 +4288,7 @@ static void hash_mbedtls_test_sha512_incremental_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_sha512_incremental_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
@@ -3526,7 +4296,7 @@ static void hash_mbedtls_test_sha512_incremental_update_to_full_hash_block (CuTe
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3551,6 +4321,7 @@ static void hash_mbedtls_test_sha512_incremental_update_to_full_hash_block (CuTe
 static void hash_mbedtls_test_sha512_incremental_update_to_full_hash_block_after_full_block (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
@@ -3558,7 +4329,7 @@ static void hash_mbedtls_test_sha512_incremental_update_to_full_hash_block_after
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3585,13 +4356,14 @@ static void hash_mbedtls_test_sha512_incremental_update_to_full_hash_block_after
 
 static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_single_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3612,13 +4384,14 @@ static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_single_upd
 
 static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_partial_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3642,13 +4415,14 @@ static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_partial_up
 
 static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3670,13 +4444,14 @@ static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_not_aligne
 static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3700,13 +4475,14 @@ static void hash_mbedtls_test_sha512_incremental_multiple_hash_blocks_not_aligne
 
 static void hash_mbedtls_test_sha512_incremental_partial_block_992_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3727,13 +4503,14 @@ static void hash_mbedtls_test_sha512_incremental_partial_block_992_bits (CuTest 
 
 static void hash_mbedtls_test_sha512_incremental_partial_block_960_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3754,13 +4531,14 @@ static void hash_mbedtls_test_sha512_incremental_partial_block_960_bits (CuTest 
 
 static void hash_mbedtls_test_sha512_incremental_partial_block_952_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3781,13 +4559,14 @@ static void hash_mbedtls_test_sha512_incremental_partial_block_952_bits (CuTest 
 
 static void hash_mbedtls_test_sha512_incremental_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3805,35 +4584,99 @@ static void hash_mbedtls_test_sha512_incremental_empty_hash_buffer (CuTest *test
 	hash_mbedtls_release (&engine);
 }
 
-static void hash_mbedtls_test_sha512_incremental_get_hash (CuTest *test)
+static void hash_mbedtls_test_sha512_incremental_static_init (CuTest *test)
 {
-	struct hash_engine_mbedtls engine;
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
-	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
 
+	hash_mbedtls_release (&engine);
+}
+
+static void hash_mbedtls_test_sha512_incremental_get_hash (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine;
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -3843,13 +4686,14 @@ static void hash_mbedtls_test_sha512_incremental_get_hash (CuTest *test)
 
 static void hash_mbedtls_test_sha512_incremental_get_hash_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3878,6 +4722,7 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_full_hash_block (CuTes
 
 static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
@@ -3885,7 +4730,7 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_bl
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3919,6 +4764,7 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_bl
 (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
@@ -3926,7 +4772,7 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_bl
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3962,13 +4808,14 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_bl
 static void hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_single_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -3998,13 +4845,14 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_s
 static void hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4037,13 +4885,14 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_p
 static void hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_not_aligned (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4074,13 +4923,14 @@ static void
 hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_not_aligned_partial_update (
 	CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4112,13 +4962,14 @@ hash_mbedtls_test_sha512_incremental_get_hash_multiple_hash_blocks_not_aligned_p
 
 static void hash_mbedtls_test_sha512_incremental_get_hash_partial_block_992_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4147,13 +4998,14 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_partial_block_992_bits
 
 static void hash_mbedtls_test_sha512_incremental_get_hash_partial_block_960_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4182,13 +5034,14 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_partial_block_960_bits
 
 static void hash_mbedtls_test_sha512_incremental_get_hash_partial_block_952_bits (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4217,6 +5070,7 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_partial_block_952_bits
 
 static void hash_mbedtls_test_sha512_incremental_get_hash_without_update (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4224,7 +5078,7 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_without_update (CuTest
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4248,8 +5102,65 @@ static void hash_mbedtls_test_sha512_incremental_get_hash_without_update (CuTest
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha512_incremental_get_hash_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = testing_validate_array (SHA512_TEST_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha512_incremental_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4257,7 +5168,7 @@ static void hash_mbedtls_test_sha512_incremental_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4289,20 +5200,31 @@ static void hash_mbedtls_test_sha512_incremental_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha512_incremental_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.start_sha512 (&engine.base);
 	CuAssertIntEquals (test, 0, status);
 
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
 	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
 	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
@@ -4315,13 +5237,14 @@ static void hash_mbedtls_test_sha512_incremental_cancel (CuTest *test)
 
 static void hash_mbedtls_test_sha512_incremental_after_cancel (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4352,14 +5275,52 @@ static void hash_mbedtls_test_sha512_incremental_after_cancel (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_sha512_incremental_cancel_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.start_sha512 (&engine.base);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_SHA512, type);
+
+	engine.base.cancel (&engine.base);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	status = engine.base.finish (&engine.base, hash, sizeof (hash));
+	CuAssertIntEquals (test, HASH_ENGINE_NO_ACTIVE_HASH, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_sha512_start_incremental_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (NULL);
@@ -4370,6 +5331,7 @@ static void hash_mbedtls_test_sha512_start_incremental_null (CuTest *test)
 
 static void hash_mbedtls_test_sha512_start_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4377,7 +5339,7 @@ static void hash_mbedtls_test_sha512_start_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4400,6 +5362,7 @@ static void hash_mbedtls_test_sha512_start_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha512_update_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4407,7 +5370,7 @@ static void hash_mbedtls_test_sha512_update_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4430,6 +5393,7 @@ static void hash_mbedtls_test_sha512_update_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha512_finish_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4437,7 +5401,7 @@ static void hash_mbedtls_test_sha512_finish_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4460,6 +5424,7 @@ static void hash_mbedtls_test_sha512_finish_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha512_get_hash_after_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4467,7 +5432,7 @@ static void hash_mbedtls_test_sha512_get_hash_after_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4490,6 +5455,7 @@ static void hash_mbedtls_test_sha512_get_hash_after_finish (CuTest *test)
 
 static void hash_mbedtls_test_sha512_finish_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4497,7 +5463,7 @@ static void hash_mbedtls_test_sha512_finish_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4523,6 +5489,7 @@ static void hash_mbedtls_test_sha512_finish_small_hash_buffer (CuTest *test)
 
 static void hash_mbedtls_test_sha512_get_hash_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4530,7 +5497,7 @@ static void hash_mbedtls_test_sha512_get_hash_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -4557,13 +5524,14 @@ static void hash_mbedtls_test_sha512_get_hash_small_hash_buffer (CuTest *test)
 
 static void hash_mbedtls_test_incremental_update_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -4580,13 +5548,14 @@ static void hash_mbedtls_test_incremental_update_null (CuTest *test)
 
 static void hash_mbedtls_test_incremental_update_no_start (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.update (&engine.base, (uint8_t*) message, strlen (message));
@@ -4597,6 +5566,7 @@ static void hash_mbedtls_test_incremental_update_no_start (CuTest *test)
 
 static void hash_mbedtls_test_incremental_finish_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4604,7 +5574,7 @@ static void hash_mbedtls_test_incremental_finish_null (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -4627,13 +5597,14 @@ static void hash_mbedtls_test_incremental_finish_null (CuTest *test)
 
 static void hash_mbedtls_test_incremental_finish_no_start (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.finish (&engine.base, hash, sizeof (hash));
@@ -4644,12 +5615,13 @@ static void hash_mbedtls_test_incremental_finish_no_start (CuTest *test)
 
 static void hash_mbedtls_test_incremental_cancel_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	engine.base.cancel (NULL);
@@ -4659,12 +5631,13 @@ static void hash_mbedtls_test_incremental_cancel_null (CuTest *test)
 
 static void hash_mbedtls_test_incremental_cancel_no_start (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	engine.base.cancel (&engine.base);
@@ -4674,13 +5647,14 @@ static void hash_mbedtls_test_incremental_cancel_no_start (CuTest *test)
 
 static void hash_mbedtls_test_incremental_get_hash_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -4697,13 +5671,14 @@ static void hash_mbedtls_test_incremental_get_hash_null (CuTest *test)
 
 static void hash_mbedtls_test_incremental_get_hash_no_start (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_hash (&engine.base, hash, sizeof (hash));
@@ -4712,22 +5687,45 @@ static void hash_mbedtls_test_incremental_get_hash_no_start (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_get_active_algorithm_null (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine;
+	int status;
+	enum hash_type type;
+
+	TEST_START;
+
+	status = hash_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (NULL);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
+
+	hash_mbedtls_release (&engine);
+}
+
 #ifdef HASH_ENABLE_SHA1
 static void hash_mbedtls_test_calculate_sha1 (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA1_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4737,13 +5735,14 @@ static void hash_mbedtls_test_calculate_sha1 (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha1_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, HASH_TESTING_FULL_BLOCK_512,
@@ -4758,13 +5757,14 @@ static void hash_mbedtls_test_calculate_sha1_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha1_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
@@ -4779,13 +5779,14 @@ static void hash_mbedtls_test_calculate_sha1_multiple_hash_blocks_not_aligned (C
 
 static void hash_mbedtls_test_calculate_sha1_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA1_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, NULL, 0, hash, sizeof (hash));
@@ -4797,8 +5798,32 @@ static void hash_mbedtls_test_calculate_sha1_empty_hash_buffer (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_calculate_sha1_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA1_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA1_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_calculate_sha1_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4806,7 +5831,7 @@ static void hash_mbedtls_test_calculate_sha1_null (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (NULL, (uint8_t*) message, strlen (message), hash,
@@ -4825,6 +5850,7 @@ static void hash_mbedtls_test_calculate_sha1_null (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha1_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4832,7 +5858,7 @@ static void hash_mbedtls_test_calculate_sha1_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha1 (&engine.base);
@@ -4858,6 +5884,7 @@ static void hash_mbedtls_test_calculate_sha1_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha1_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4865,7 +5892,7 @@ static void hash_mbedtls_test_calculate_sha1_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha1 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -4878,6 +5905,7 @@ static void hash_mbedtls_test_calculate_sha1_small_hash_buffer (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha256 (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4885,7 +5913,7 @@ static void hash_mbedtls_test_calculate_sha256 (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -4900,18 +5928,23 @@ static void hash_mbedtls_test_calculate_sha256 (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha256_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, HASH_TESTING_FULL_BLOCK_512,
 		HASH_TESTING_FULL_BLOCK_512_LEN, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA256_FULL_BLOCK_512_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -4921,13 +5954,14 @@ static void hash_mbedtls_test_calculate_sha256_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha256_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
@@ -4942,13 +5976,14 @@ static void hash_mbedtls_test_calculate_sha256_multiple_hash_blocks_not_aligned 
 
 static void hash_mbedtls_test_calculate_sha256_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA256_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, NULL, 0, hash, sizeof (hash));
@@ -4960,8 +5995,32 @@ static void hash_mbedtls_test_calculate_sha256_empty_hash_buffer (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_calculate_sha256_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA256_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha256 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA256_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_calculate_sha256_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4969,7 +6028,7 @@ static void hash_mbedtls_test_calculate_sha256_null (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (NULL, (uint8_t*) message, strlen (message), hash,
@@ -4989,6 +6048,7 @@ static void hash_mbedtls_test_calculate_sha256_null (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha256_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -4996,7 +6056,7 @@ static void hash_mbedtls_test_calculate_sha256_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha256 (&engine.base);
@@ -5022,6 +6082,7 @@ static void hash_mbedtls_test_calculate_sha256_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha256_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -5029,7 +6090,7 @@ static void hash_mbedtls_test_calculate_sha256_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha256 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -5042,19 +6103,24 @@ static void hash_mbedtls_test_calculate_sha256_small_hash_buffer (CuTest *test)
 #ifdef HASH_ENABLE_SHA384
 static void hash_mbedtls_test_calculate_sha384 (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA384_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -5064,13 +6130,14 @@ static void hash_mbedtls_test_calculate_sha384 (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha384_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (&engine.base, HASH_TESTING_FULL_BLOCK_1024,
@@ -5085,13 +6152,14 @@ static void hash_mbedtls_test_calculate_sha384_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha384_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (&engine.base, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
@@ -5106,13 +6174,14 @@ static void hash_mbedtls_test_calculate_sha384_multiple_hash_blocks_not_aligned 
 
 static void hash_mbedtls_test_calculate_sha384_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA384_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (&engine.base, NULL, 0, hash, sizeof (hash));
@@ -5124,8 +6193,32 @@ static void hash_mbedtls_test_calculate_sha384_empty_hash_buffer (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_calculate_sha384_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA384_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA384_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_calculate_sha384_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -5133,7 +6226,7 @@ static void hash_mbedtls_test_calculate_sha384_null (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (NULL, (uint8_t*) message, strlen (message), hash,
@@ -5153,6 +6246,7 @@ static void hash_mbedtls_test_calculate_sha384_null (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha384_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -5160,7 +6254,7 @@ static void hash_mbedtls_test_calculate_sha384_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha384 (&engine.base);
@@ -5186,6 +6280,7 @@ static void hash_mbedtls_test_calculate_sha384_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha384_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -5193,7 +6288,7 @@ static void hash_mbedtls_test_calculate_sha384_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha384 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -5207,19 +6302,24 @@ static void hash_mbedtls_test_calculate_sha384_small_hash_buffer (CuTest *test)
 #ifdef HASH_ENABLE_SHA512
 static void hash_mbedtls_test_calculate_sha512 (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
 	uint8_t hash[SHA512_HASH_LENGTH];
+	enum hash_type type;
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
 		sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
+
+	type = engine.base.get_active_algorithm (&engine.base);
+	CuAssertIntEquals (test, HASH_TYPE_INVALID, type);
 
 	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
 	CuAssertIntEquals (test, 0, status);
@@ -5229,13 +6329,14 @@ static void hash_mbedtls_test_calculate_sha512 (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha512_full_hash_block (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (&engine.base, HASH_TESTING_FULL_BLOCK_1024,
@@ -5250,13 +6351,14 @@ static void hash_mbedtls_test_calculate_sha512_full_hash_block (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha512_multiple_hash_blocks_not_aligned (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (&engine.base, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
@@ -5271,13 +6373,14 @@ static void hash_mbedtls_test_calculate_sha512_multiple_hash_blocks_not_aligned 
 
 static void hash_mbedtls_test_calculate_sha512_empty_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	uint8_t hash[SHA512_HASH_LENGTH];
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (&engine.base, NULL, 0, hash, sizeof (hash));
@@ -5289,8 +6392,32 @@ static void hash_mbedtls_test_calculate_sha512_empty_hash_buffer (CuTest *test)
 	hash_mbedtls_release (&engine);
 }
 
+static void hash_mbedtls_test_calculate_sha512_static_init (CuTest *test)
+{
+	struct hash_engine_mbedtls_state state;
+	struct hash_engine_mbedtls engine = hash_mbedtls_static_init (&state);
+	int status;
+	char *message = "Test";
+	uint8_t hash[SHA512_HASH_LENGTH];
+
+	TEST_START;
+
+	status = hash_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
+		sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	status = testing_validate_array (SHA512_TEST_HASH, hash, sizeof (hash));
+	CuAssertIntEquals (test, 0, status);
+
+	hash_mbedtls_release (&engine);
+}
+
 static void hash_mbedtls_test_calculate_sha512_null (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -5298,7 +6425,7 @@ static void hash_mbedtls_test_calculate_sha512_null (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (NULL, (uint8_t*) message, strlen (message), hash,
@@ -5318,6 +6445,7 @@ static void hash_mbedtls_test_calculate_sha512_null (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha512_without_finish (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -5325,7 +6453,7 @@ static void hash_mbedtls_test_calculate_sha512_without_finish (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.start_sha512 (&engine.base);
@@ -5351,6 +6479,7 @@ static void hash_mbedtls_test_calculate_sha512_without_finish (CuTest *test)
 
 static void hash_mbedtls_test_calculate_sha512_small_hash_buffer (CuTest *test)
 {
+	struct hash_engine_mbedtls_state state;
 	struct hash_engine_mbedtls engine;
 	int status;
 	char *message = "Test";
@@ -5358,7 +6487,7 @@ static void hash_mbedtls_test_calculate_sha512_small_hash_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = hash_mbedtls_init (&engine);
+	status = hash_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.calculate_sha512 (&engine.base, (uint8_t*) message, strlen (message), hash,
@@ -5375,6 +6504,8 @@ TEST_SUITE_START (hash_mbedtls);
 
 TEST (hash_mbedtls_test_init);
 TEST (hash_mbedtls_test_init_null);
+TEST (hash_mbedtls_test_static_init);
+TEST (hash_mbedtls_test_static_init_null);
 TEST (hash_mbedtls_test_release_null);
 #ifdef HASH_ENABLE_SHA1
 TEST (hash_mbedtls_test_sha1_incremental);
@@ -5390,6 +6521,7 @@ TEST (hash_mbedtls_test_sha1_incremental_partial_block_480_bits);
 TEST (hash_mbedtls_test_sha1_incremental_partial_block_448_bits);
 TEST (hash_mbedtls_test_sha1_incremental_partial_block_440_bits);
 TEST (hash_mbedtls_test_sha1_incremental_empty_hash_buffer);
+TEST (hash_mbedtls_test_sha1_incremental_static_init);
 TEST (hash_mbedtls_test_sha1_incremental_get_hash);
 TEST (hash_mbedtls_test_sha1_incremental_get_hash_full_hash_block);
 TEST (hash_mbedtls_test_sha1_incremental_get_hash_update_to_full_hash_block);
@@ -5402,9 +6534,11 @@ TEST (hash_mbedtls_test_sha1_incremental_get_hash_partial_block_480_bits);
 TEST (hash_mbedtls_test_sha1_incremental_get_hash_partial_block_448_bits);
 TEST (hash_mbedtls_test_sha1_incremental_get_hash_partial_block_440_bits);
 TEST (hash_mbedtls_test_sha1_incremental_get_hash_without_update);
+TEST (hash_mbedtls_test_sha1_incremental_get_hash_static_init);
 TEST (hash_mbedtls_test_sha1_incremental_after_finish);
 TEST (hash_mbedtls_test_sha1_incremental_cancel);
 TEST (hash_mbedtls_test_sha1_incremental_after_cancel);
+TEST (hash_mbedtls_test_sha1_incremental_cancel_static_init);
 TEST (hash_mbedtls_test_sha1_start_incremental_null);
 TEST (hash_mbedtls_test_sha1_start_without_finish);
 TEST (hash_mbedtls_test_sha1_update_after_finish);
@@ -5426,6 +6560,7 @@ TEST (hash_mbedtls_test_sha256_incremental_partial_block_480_bits);
 TEST (hash_mbedtls_test_sha256_incremental_partial_block_448_bits);
 TEST (hash_mbedtls_test_sha256_incremental_partial_block_440_bits);
 TEST (hash_mbedtls_test_sha256_incremental_empty_hash_buffer);
+TEST (hash_mbedtls_test_sha256_incremental_static_init);
 TEST (hash_mbedtls_test_sha256_incremental_get_hash);
 TEST (hash_mbedtls_test_sha256_incremental_get_hash_full_hash_block);
 TEST (hash_mbedtls_test_sha256_incremental_get_hash_update_to_full_hash_block);
@@ -5438,9 +6573,11 @@ TEST (hash_mbedtls_test_sha256_incremental_get_hash_partial_block_480_bits);
 TEST (hash_mbedtls_test_sha256_incremental_get_hash_partial_block_448_bits);
 TEST (hash_mbedtls_test_sha256_incremental_get_hash_partial_block_440_bits);
 TEST (hash_mbedtls_test_sha256_incremental_get_hash_without_update);
+TEST (hash_mbedtls_test_sha256_incremental_get_hash_static_init);
 TEST (hash_mbedtls_test_sha256_incremental_after_finish);
 TEST (hash_mbedtls_test_sha256_incremental_cancel);
 TEST (hash_mbedtls_test_sha256_incremental_after_cancel);
+TEST (hash_mbedtls_test_sha256_incremental_cancel_static_init);
 TEST (hash_mbedtls_test_sha256_start_incremental_null);
 TEST (hash_mbedtls_test_sha256_start_without_finish);
 TEST (hash_mbedtls_test_sha256_update_after_finish);
@@ -5462,6 +6599,7 @@ TEST (hash_mbedtls_test_sha384_incremental_partial_block_992_bits);
 TEST (hash_mbedtls_test_sha384_incremental_partial_block_960_bits);
 TEST (hash_mbedtls_test_sha384_incremental_partial_block_952_bits);
 TEST (hash_mbedtls_test_sha384_incremental_empty_hash_buffer);
+TEST (hash_mbedtls_test_sha384_incremental_static_init);
 TEST (hash_mbedtls_test_sha384_incremental_get_hash);
 TEST (hash_mbedtls_test_sha384_incremental_get_hash_full_hash_block);
 TEST (hash_mbedtls_test_sha384_incremental_get_hash_update_to_full_hash_block);
@@ -5474,9 +6612,11 @@ TEST (hash_mbedtls_test_sha384_incremental_get_hash_partial_block_992_bits);
 TEST (hash_mbedtls_test_sha384_incremental_get_hash_partial_block_960_bits);
 TEST (hash_mbedtls_test_sha384_incremental_get_hash_partial_block_952_bits);
 TEST (hash_mbedtls_test_sha384_incremental_get_hash_without_update);
+TEST (hash_mbedtls_test_sha384_incremental_get_hash_static_init);
 TEST (hash_mbedtls_test_sha384_incremental_after_finish);
 TEST (hash_mbedtls_test_sha384_incremental_cancel);
 TEST (hash_mbedtls_test_sha384_incremental_after_cancel);
+TEST (hash_mbedtls_test_sha384_incremental_cancel_static_init);
 TEST (hash_mbedtls_test_sha384_start_incremental_null);
 TEST (hash_mbedtls_test_sha384_start_without_finish);
 TEST (hash_mbedtls_test_sha384_update_after_finish);
@@ -5499,6 +6639,8 @@ TEST (hash_mbedtls_test_sha512_incremental_partial_block_992_bits);
 TEST (hash_mbedtls_test_sha512_incremental_partial_block_960_bits);
 TEST (hash_mbedtls_test_sha512_incremental_partial_block_952_bits);
 TEST (hash_mbedtls_test_sha512_incremental_empty_hash_buffer);
+TEST (hash_mbedtls_test_sha512_incremental_empty_hash_buffer);
+TEST (hash_mbedtls_test_sha512_incremental_static_init);
 TEST (hash_mbedtls_test_sha512_incremental_get_hash);
 TEST (hash_mbedtls_test_sha512_incremental_get_hash_full_hash_block);
 TEST (hash_mbedtls_test_sha512_incremental_get_hash_update_to_full_hash_block);
@@ -5511,9 +6653,11 @@ TEST (hash_mbedtls_test_sha512_incremental_get_hash_partial_block_992_bits);
 TEST (hash_mbedtls_test_sha512_incremental_get_hash_partial_block_960_bits);
 TEST (hash_mbedtls_test_sha512_incremental_get_hash_partial_block_952_bits);
 TEST (hash_mbedtls_test_sha512_incremental_get_hash_without_update);
+TEST (hash_mbedtls_test_sha512_incremental_get_hash_static_init);
 TEST (hash_mbedtls_test_sha512_incremental_after_finish);
 TEST (hash_mbedtls_test_sha512_incremental_cancel);
 TEST (hash_mbedtls_test_sha512_incremental_after_cancel);
+TEST (hash_mbedtls_test_sha512_incremental_cancel_static_init);
 TEST (hash_mbedtls_test_sha512_start_incremental_null);
 TEST (hash_mbedtls_test_sha512_start_without_finish);
 TEST (hash_mbedtls_test_sha512_update_after_finish);
@@ -5530,11 +6674,13 @@ TEST (hash_mbedtls_test_incremental_cancel_null);
 TEST (hash_mbedtls_test_incremental_cancel_no_start);
 TEST (hash_mbedtls_test_incremental_get_hash_null);
 TEST (hash_mbedtls_test_incremental_get_hash_no_start);
+TEST (hash_mbedtls_test_get_active_algorithm_null);
 #ifdef HASH_ENABLE_SHA1
 TEST (hash_mbedtls_test_calculate_sha1);
 TEST (hash_mbedtls_test_calculate_sha1_full_hash_block);
 TEST (hash_mbedtls_test_calculate_sha1_multiple_hash_blocks_not_aligned);
 TEST (hash_mbedtls_test_calculate_sha1_empty_hash_buffer);
+TEST (hash_mbedtls_test_calculate_sha1_static_init);
 TEST (hash_mbedtls_test_calculate_sha1_null);
 TEST (hash_mbedtls_test_calculate_sha1_without_finish);
 TEST (hash_mbedtls_test_calculate_sha1_small_hash_buffer);
@@ -5543,6 +6689,7 @@ TEST (hash_mbedtls_test_calculate_sha256);
 TEST (hash_mbedtls_test_calculate_sha256_full_hash_block);
 TEST (hash_mbedtls_test_calculate_sha256_multiple_hash_blocks_not_aligned);
 TEST (hash_mbedtls_test_calculate_sha256_empty_hash_buffer);
+TEST (hash_mbedtls_test_calculate_sha256_static_init);
 TEST (hash_mbedtls_test_calculate_sha256_null);
 TEST (hash_mbedtls_test_calculate_sha256_without_finish);
 TEST (hash_mbedtls_test_calculate_sha256_small_hash_buffer);
@@ -5551,6 +6698,7 @@ TEST (hash_mbedtls_test_calculate_sha384);
 TEST (hash_mbedtls_test_calculate_sha384_full_hash_block);
 TEST (hash_mbedtls_test_calculate_sha384_multiple_hash_blocks_not_aligned);
 TEST (hash_mbedtls_test_calculate_sha384_empty_hash_buffer);
+TEST (hash_mbedtls_test_calculate_sha384_static_init);
 TEST (hash_mbedtls_test_calculate_sha384_null);
 TEST (hash_mbedtls_test_calculate_sha384_without_finish);
 TEST (hash_mbedtls_test_calculate_sha384_small_hash_buffer);
@@ -5560,6 +6708,7 @@ TEST (hash_mbedtls_test_calculate_sha512);
 TEST (hash_mbedtls_test_calculate_sha512_full_hash_block);
 TEST (hash_mbedtls_test_calculate_sha512_multiple_hash_blocks_not_aligned);
 TEST (hash_mbedtls_test_calculate_sha512_empty_hash_buffer);
+TEST (hash_mbedtls_test_calculate_sha512_static_init);
 TEST (hash_mbedtls_test_calculate_sha512_null);
 TEST (hash_mbedtls_test_calculate_sha512_without_finish);
 TEST (hash_mbedtls_test_calculate_sha512_small_hash_buffer);

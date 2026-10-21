@@ -13,12 +13,14 @@
  * RMA context will be supported.
  */
 struct cmd_interface_rma {
-	struct cmd_interface base;				/**< Base command handler instance.  */
-	struct device_manager *device_manager;	/**< Device manager instance */
+	struct cmd_interface base;					/**< Base command handler instance.  */
+	struct device_manager *device_manager;		/**< Device manager instance */
+	struct cmd_interface_device_id device_id;	/**< Device ID information */
 };
 
 
-int cmd_interface_rma_init (struct cmd_interface_rma *intf, struct device_manager *device_manager);
+int cmd_interface_rma_init (struct cmd_interface_rma *intf, struct device_manager *device_manager,
+	uint16_t vendor_id, uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id);
 void cmd_interface_rma_release (const struct cmd_interface_rma *intf);
 
 

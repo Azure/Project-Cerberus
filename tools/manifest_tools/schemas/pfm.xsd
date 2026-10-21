@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" vc:minVersion="1.1">
+
+    <xs:include schemaLocation="common.xsd"/>
+
+    <!-- Root element for Platform Firmware Manifest -->
+    <xs:element name="Firmware">
+        <xs:complexType>
+            <xs:all>
+                <xs:element name="VersionAddr" type="HexInteger32">
+                    <xs:annotation>
+                        <xs:documentation>Address on flash of the version string identifier.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="UnusedByte" type="HexByte" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Byte to check for in unused flash regions.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="RuntimeUpdate" type="xs:boolean" minOccurs="0">
+                    <xs:annotation>
+                        <xs:documentation>Flag to indicate if the firmware can update at run-time.</xs:documentation>
+                    </xs:annotation>
+                </xs:element>
+                <xs:element name="ReadWrite" minOccurs="0" maxOccurs="unbounded">
+                    <xs:annotation>
+                        <xs:documentation>Defines a single R/W data region.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="Region" type="RWRegion" maxOccurs="255"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="SignedImage" maxOccurs="255">
+                    <xs:annotation>
+                        <xs:documentation>Defines a single image that needs authentication.</xs:documentation>
+                    </xs:annotation>
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:choice>
+                                <xs:sequence>
+                                    <xs:element name="PublicKey" type="xs:string" minOccurs="0"/>
+                                    <xs:element name="Signature" type="HexSignature" minOccurs="0"/>
+                                </xs:sequence>
+                                <xs:sequence>
+                                    <xs:element name="Hash" type="xs:hexBinary" minOccurs="0"/>
+                                    <xs:element name="HashType" type="HashType" default="SHA256" minOccurs="0"/>
+                                </xs:sequence>
+                            </xs:choice>
+                            <xs:element name="Region" type="Region" maxOccurs="255"/>
+                            <xs:element name="ValidateOnBoot" type="xs:boolean"/>
+                        </xs:sequence>
+
+                        <xs:assert test="
+                            not(Hash) or 
+                            string-length(normalize-space(xs:string(Hash))) = 
+                            (
+                                if (HashType = 'SHA256') then 64
+                                else if (HashType = 'SHA384') then 96
+                                else if (HashType = 'SHA512') then 128
+                                else -1
+                            )
+                        ">
+                            <xs:annotation>
+                                <xs:documentation>
+                                    Validates digests's length to match the selected hash type.
+                                </xs:documentation>
+                            </xs:annotation>
+                        </xs:assert>
+                    </xs:complexType>
+                </xs:element>
+            </xs:all>
+            <xs:attribute name="type" type="PFMType"/>
+            <xs:attribute name="version" type="PFMVersion" use="required"/>
+            <xs:attribute name="platform" type="PlatformIdSKU" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- Simple type definitions -->
+
+    <xs:simpleType name="PFMVersion">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="255"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PFMType">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="255"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="OperationOnFailureType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Nothing"/>
+            <xs:enumeration value="Restore"/>
+            <xs:enumeration value="Erase"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="Region">
+        <xs:annotation>
+            <xs:documentation>Defines a region of contiguous flash.</xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="StartAddr" type="HexInteger32"/>
+            <xs:element name="EndAddr" type="HexInteger32"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="RWRegion">
+        <xs:complexContent>
+            <xs:extension base="Region">
+                <xs:sequence>
+                    <xs:element name="OperationOnFailure" type="OperationOnFailureType" default="Nothing" minOccurs="0"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:simpleType name="HexSignature">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9a-fA-F\s]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

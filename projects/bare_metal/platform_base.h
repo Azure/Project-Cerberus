@@ -21,8 +21,12 @@
 
 
 /* Use common byte swapping macros.  Assumes a little endian CPU. */
-#define	platform_htonl		SWAP_BYTES_UINT32
-#define platform_htons		SWAP_BYTES_UINT16
+#define	platform_htonll		common_math_swap_bytes_uint64
+#define	platform_ntohll		common_math_swap_bytes_uint64
+#define	platform_htonl		common_math_swap_bytes_uint32
+#define	platform_ntohl		common_math_swap_bytes_uint32
+#define platform_htons		common_math_swap_bytes_uint16
+#define platform_ntohs		common_math_swap_bytes_uint16
 
 
 /* platform_clock and system time functions depend on hardware features. */

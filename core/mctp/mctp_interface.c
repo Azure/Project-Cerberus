@@ -179,74 +179,6 @@ int mctp_interface_get_buffer_overhead (const struct msg_transport *transport, u
 	return total_overhead;
 }
 
-/**
- * @deprecated Pairs with the deprecated issue_request call and will be removed.
- *
- * Handle a response message for a request issued with issue_request.
- *
- * @param mctp The MCTP handler that has received a response message.
- *
- * @return 0 if response processing was successful or an error code.
- */
-static int mctp_interface_deprecated_handle_response_message (const struct mctp_interface *mctp)
-{
-	int status;
-
-	/* We know the message is one of the three supported types by this point.  If it wasn't,
-	 * it would have failed earlier in packet processing. */
-	if (MCTP_BASE_PROTOCOL_IS_CONTROL_MSG (mctp->state->msg_type)) {
-		if (mctp->cmd_mctp) {
-			status = mctp->cmd_mctp->process_response (mctp->cmd_mctp, &mctp->state->req_buffer);
-			if (status == CMD_HANDLER_ERROR_MESSAGE) {
-				debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-					MCTP_LOGGING_MCTP_CONTROL_RSP_FAIL, status, mctp->state->channel_id);
-			}
-		}
-		else {
-			status = MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
-			goto exit;
-		}
-	}
-	else if (MCTP_BASE_PROTOCOL_IS_VENDOR_MSG (mctp->state->msg_type)) {
-		status = mctp->cmd_cerberus->process_response (mctp->cmd_cerberus,
-			&mctp->state->req_buffer);
-	}
-	else if (MCTP_BASE_PROTOCOL_IS_SPDM_MSG (mctp->state->msg_type)) {
-		if (mctp->cmd_spdm) {
-			cmd_interface_msg_remove_protocol_header (&mctp->state->req_buffer,
-				sizeof (struct spdm_protocol_mctp_header));
-
-			status = mctp->cmd_spdm->process_response (mctp->cmd_spdm, &mctp->state->req_buffer);
-		}
-		else {
-			status = MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
-			goto exit;
-		}
-	}
-	else {
-		status = MCTP_BASE_PROTOCOL_UNSUPPORTED_OPERATION;
-	}
-
-	if (status == CMD_HANDLER_ERROR_MESSAGE) {
-		mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_ERROR_DEPRECATED;
-		status = 0;
-	}
-	else if (status != 0) {
-		mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_FAIL_DEPRECATED;
-	}
-	else {
-		mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_SUCCESS;
-	}
-
-	platform_semaphore_post (&mctp->state->wait_for_response);
-
-exit:
-	mctp_interface_reset_message_assembly (mctp);
-	platform_mutex_unlock (&mctp->state->response_lock);
-
-	return status;
-}
-
 int mctp_interface_send_request_message (const struct msg_transport *transport,
 	struct cmd_interface_msg *request, uint32_t timeout_ms, struct cmd_interface_msg *response)
 {
@@ -256,6 +188,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 	uint8_t msg_type;
 	int src_eid;
 	int src_addr;
+	int dest_eid;
 	int dest_addr;
 	int status;
 
@@ -268,6 +201,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 		return MSG_TRANSPORT_INVALID_ARGUMENT;
 	}
 
+	dest_eid = request->target_eid;
 	dest_addr = device_manager_get_device_addr_by_eid (mctp->device_manager, request->target_eid);
 	if (ROT_IS_ERROR (dest_addr)) {
 		return dest_addr;
@@ -320,7 +254,6 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 
 	mctp->state->response_msg_tag = mctp->state->next_msg_tag;
 	mctp->state->response_msg_type = msg_type;
-	mctp->state->response_eid = request->target_eid;
 	mctp->state->response_msg = response;
 
 	/* The message tag has been consumed, regardless of whether the message transaction is
@@ -356,8 +289,7 @@ int mctp_interface_send_request_message (const struct msg_transport *transport,
 	}
 	else if (status == 1) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_RSP_TIMEOUT,
-			(mctp->state->response_eid << 8) | mctp->state->response_msg_tag, timeout_ms);
+			MCTP_LOGGING_RSP_TIMEOUT, (dest_eid << 8) | mctp->state->response_msg_tag, timeout_ms);
 
 		status = MSG_TRANSPORT_REQUEST_TIMEOUT;
 	}
@@ -378,16 +310,14 @@ unlock_tx:
  * response message.
  *
  * @param mctp The MCTP handler to check the packet against.
- * @param source_addr I2C address of the device that sent the response packet.
- * @param src_eid EID of the device that sent the response packet.
  * @param msg_tag Message tag of the response packet.
  * @param som Flag indicating if the packet is the first in the message.
  * @param msg_type Message type of the response message.  This is only valid for SOM packets.
  *
  * @return true if the response message is part of an expected response or false if not.
  */
-static bool mctp_interface_is_expected_response (const struct mctp_interface *mctp,
-	uint8_t source_addr, uint8_t src_eid, uint8_t msg_tag, bool som, uint8_t msg_type)
+static bool mctp_interface_is_expected_response (const struct mctp_interface *mctp, uint8_t msg_tag,
+	bool som, uint8_t msg_type)
 {
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	bool expected = true;
@@ -395,8 +325,7 @@ static bool mctp_interface_is_expected_response (const struct mctp_interface *mc
 	platform_mutex_lock (&mctp->state->response_lock);
 
 	if ((mctp->state->rsp_state != MCTP_INTERFACE_RESPONSE_WAITING) &&
-		(mctp->state->rsp_state != MCTP_INTERFACE_RESPONSE_PENDING) &&
-		(mctp->state->rsp_state != MCTP_INTERFACE_RESPONSE_WAITING_DEPRECATED)) {
+		(mctp->state->rsp_state != MCTP_INTERFACE_RESPONSE_PENDING)) {
 		/* We are not waiting for any response.  Just drop the message. */
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
 			MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_UNEXPECTED, mctp->state->channel_id);
@@ -410,17 +339,6 @@ static bool mctp_interface_is_expected_response (const struct mctp_interface *mc
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
 			MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_WRONG_TAG,
 			(mctp->state->response_msg_tag << 16) | (msg_tag << 8) |
-				mctp->state->channel_id);
-
-		expected = false;
-		goto exit;
-	}
-
-	if (src_eid != mctp->state->response_eid) {
-		/* This response message came from a different endpoint than expected.  Drop it. */
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_RSP_DROPPED, MCTP_LOGGING_RSP_DROPPED_WRONG_SOURCE,
-			(mctp->state->response_eid << 24) | (source_addr << 16) | (src_eid << 8) |
 				mctp->state->channel_id);
 
 		expected = false;
@@ -444,8 +362,6 @@ exit:
 
 	return expected;
 #else
-	UNUSED (source_addr);
-	UNUSED (src_eid);
 	UNUSED (msg_tag);
 	UNUSED (som);
 	UNUSED (msg_type);
@@ -463,18 +379,12 @@ exit:
  *
  * @param mctp The MCTP handler that has received a response message.
  *
- * @return 0 or the result of any deprecated response processing.
+ * @return 0 or the result of response processing.
  */
 static int mctp_interface_handle_response_message (const struct mctp_interface *mctp)
 {
 #ifdef CMD_ENABLE_ISSUE_REQUEST
 	platform_mutex_lock (&mctp->state->response_lock);
-
-	/* Handle deprecated response processing. */
-	if (mctp->state->rsp_state == MCTP_INTERFACE_RESPONSE_WAITING_DEPRECATED) {
-		return mctp_interface_deprecated_handle_response_message (mctp);
-	}
-
 	if (mctp->state->rsp_state == MCTP_INTERFACE_RESPONSE_PENDING) {
 		/* Received the expected response message.  Nothing is waiting for it so drop it. */
 		mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_IDLE;
@@ -584,19 +494,12 @@ static int mctp_interface_handle_request_message (const struct mctp_interface *m
  * @param device_mgr The device manager linked to command interface.
  * @param channel The channel to use for sending request messages.  This can be null if sending
  * requests is not necessary.
- * @param cmd_cerberus The command interface for legacy processing of Cerberus response messages.
- * This can be null if sending requests is not necessary.
- * @param cmd_mctp The command interface for legacy processing of MCTP response messages.  This can
- * be null if sending requests is not necessary.
- * @param cmd_spdm The command interface for legacy processing of SPDM response messages. This is
- * optional and can be set to NULL if SPDM responses are not supported.
  *
  * @return Initialization status, 0 if success or an error code.
  */
 int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_state *state,
 	const struct cmd_interface_multi_handler *req_handler, struct device_manager *device_mgr,
-	const struct cmd_channel *channel, const struct cmd_interface *cmd_cerberus,
-	const struct cmd_interface *cmd_mctp, const struct cmd_interface *cmd_spdm)
+	const struct cmd_channel *channel)
 {
 	if (mctp == NULL) {
 		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
@@ -613,14 +516,8 @@ int mctp_interface_init (struct mctp_interface *mctp, struct mctp_interface_stat
 	mctp->base.send_request_message = mctp_interface_send_request_message;
 
 	mctp->channel = channel;
-	mctp->cmd_cerberus = cmd_cerberus;
-	mctp->cmd_mctp = cmd_mctp;
-	mctp->cmd_spdm = cmd_spdm;
 #else
 	UNUSED (channel);
-	UNUSED (cmd_cerberus);
-	UNUSED (cmd_mctp);
-	UNUSED (cmd_spdm);
 #endif
 
 	mctp->state = state;
@@ -839,7 +736,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 	uint8_t crc = 0;
 	uint8_t response_addr = 0;
 	uint8_t tag_owner;
-	uint8_t msg_type;
+	uint8_t msg_type = 0;
 	size_t payload_len;
 	bool som;
 	bool eom;
@@ -868,8 +765,7 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 		}
 
 		if (tag_owner == MCTP_BASE_PROTOCOL_TO_RESPONSE) {
-			if (!mctp_interface_is_expected_response (mctp, response_addr, src_eid, msg_tag, som,
-				msg_type)) {
+			if (!mctp_interface_is_expected_response (mctp, msg_tag, som, msg_type)) {
 				/* Unexpected response packets must not interrupt message assembly and should be
 				 * ignored. */
 				return 0;
@@ -986,202 +882,3 @@ int mctp_interface_process_packet (const struct mctp_interface *mctp, struct cmd
 
 	return 0;
 }
-
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-/**
- * @deprecated Do not use this API for new workflows.  Use the msg_transport interface instead.
- * This is only being maintained to support existing workflows temporarily while they get migrated.
- * Once they get moved, this API will be removed.
- *
- * Packetize a request message and send it over a command channel.  This call will block until the
- * full message has been transmitted and a response has been received or the operation times out.
- * If a timeout_ms of 0 is provided, the request is sent and the function returns immediately
- * without waiting for a response.
- *
- * @param mctp MCTP instance that will be processing the request message.
- * @param channel Command channel to use for transmitting the packets.
- * @param dest_addr The destination address for the request.
- * @param dest_eid The destination EID for the request.
- * @param request Buffer that contains the request body to send.
- * @param length Length of the request message before any packetization.
- * @param msg_buffer Buffer that will be used to store the packetized message.  This can be
- * overlapping with the request buffer.  If the buffers overlap, the request data will be modified
- * upon return.
- * @param max_length Maximum length of the message buffer.  This buffer should be
- * MCTP_BASE_PROTOCOL_MAX_MESSAGE_LEN bytes to ensure any message packetized in any way can fit.
- * @param timeout_ms Timeout period in milliseconds to wait for response to be received.  If
- * wait for response not needed, set to 0.
- *
- * @return 0 if the request was transmitted successfully or an error code.
- */
-int mctp_interface_issue_request (const struct mctp_interface *mctp,
-	const struct cmd_channel *channel, uint8_t dest_addr, uint8_t dest_eid, uint8_t *request,
-	size_t length, uint8_t *msg_buffer, size_t max_length, uint32_t timeout_ms)
-{
-	/* TODO: Delete this function in favor of using the msg_transport interface. */
-	struct mctp_base_protocol_message_header *msg_header;
-	struct cmd_message cmd_msg;
-	size_t max_transmission_unit;
-	size_t num_packets;
-	uint8_t msg_type;
-	int src_eid;
-	int src_addr;
-	int status;
-
-	if ((mctp == NULL) || (channel == NULL) || (request == NULL) || (msg_buffer == NULL) ||
-		(length == 0)) {
-		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
-	}
-
-	if (length > device_manager_get_max_message_len_by_eid (mctp->device_manager, dest_eid)) {
-		return MCTP_BASE_PROTOCOL_MSG_TOO_LARGE;
-	}
-
-	max_transmission_unit = device_manager_get_max_transmission_unit_by_eid (mctp->device_manager,
-		dest_eid);
-
-	num_packets = (MCTP_BASE_PROTOCOL_PACKETS_IN_MESSAGE (length, max_transmission_unit));
-
-	if (max_length < MCTP_BASE_PROTOCOL_MESSAGE_LEN (num_packets, length)) {
-		return MCTP_BASE_PROTOCOL_BUF_TOO_SMALL;
-	}
-
-	src_eid = device_manager_get_device_eid (mctp->device_manager, DEVICE_MANAGER_SELF_DEVICE_NUM);
-	if (ROT_IS_ERROR (src_eid)) {
-		return src_eid;
-	}
-
-	src_addr = device_manager_get_device_addr (mctp->device_manager,
-		DEVICE_MANAGER_SELF_DEVICE_NUM);
-	if (ROT_IS_ERROR (src_addr)) {
-		return src_addr;
-	}
-
-	if (buffer_are_overlapping (request, length, msg_buffer, max_length)) {
-		if ((request + length) != (msg_buffer + max_length)) {
-			memmove (msg_buffer + max_length - length, request, length);
-			request = msg_buffer + max_length - length;
-		}
-	}
-
-	msg_header = (struct mctp_base_protocol_message_header*) request;
-	msg_type = msg_header->msg_type;
-
-	platform_mutex_lock (&mctp->state->request_lock);
-
-	status = mctp_interface_generate_packets_from_payload (mctp, request, length, dest_eid,
-		dest_addr, src_eid, src_addr, mctp->state->next_msg_tag, MCTP_BASE_PROTOCOL_TO_REQUEST,
-		msg_buffer, max_length, &cmd_msg.pkt_size);
-	if (ROT_IS_ERROR (status)) {
-		goto unlock;
-	}
-
-	cmd_msg.msg_size = status;
-	cmd_msg.data = msg_buffer;
-	cmd_msg.dest_addr = dest_addr;
-
-	platform_mutex_lock (&mctp->state->response_lock);
-
-	mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_WAITING_DEPRECATED;
-	mctp->state->response_msg_tag = mctp->state->next_msg_tag;
-	mctp->state->response_msg_type = msg_type;
-	mctp->state->response_eid = dest_eid;
-	mctp->state->response_msg = NULL;
-
-	mctp->state->next_msg_tag = (mctp->state->next_msg_tag + 1) % 8;
-
-	status = platform_semaphore_reset (&mctp->state->wait_for_response);
-	if (status != 0) {
-		goto exit;
-	}
-
-	platform_mutex_unlock (&mctp->state->response_lock);
-
-	status = cmd_channel_send_message (channel, &cmd_msg);
-	if (status != 0) {
-		platform_mutex_lock (&mctp->state->response_lock);
-		mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_IDLE;
-		platform_mutex_unlock (&mctp->state->response_lock);
-
-		goto unlock;
-	}
-
-	if (timeout_ms == 0) {
-		goto unlock;
-	}
-
-	status = platform_semaphore_wait (&mctp->state->wait_for_response, timeout_ms);
-
-	platform_mutex_lock (&mctp->state->response_lock);
-
-	if (status == 1) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MCTP,
-			MCTP_LOGGING_RSP_TIMEOUT,
-			(mctp->state->response_eid << 8) | mctp->state->response_msg_tag, timeout_ms);
-
-		status = MCTP_BASE_PROTOCOL_RESPONSE_TIMEOUT;
-	}
-	else if (mctp->state->rsp_state == MCTP_INTERFACE_RESPONSE_ERROR_DEPRECATED) {
-		status = MCTP_BASE_PROTOCOL_ERROR_RESPONSE;
-	}
-	else if (mctp->state->rsp_state == MCTP_INTERFACE_RESPONSE_FAIL_DEPRECATED) {
-		status = MCTP_BASE_PROTOCOL_FAIL_RESPONSE;
-	}
-
-exit:
-	mctp->state->rsp_state = MCTP_INTERFACE_RESPONSE_IDLE;
-	platform_mutex_unlock (&mctp->state->response_lock);
-
-unlock:
-	platform_mutex_unlock (&mctp->state->request_lock);
-
-	return status;
-}
-
-/**
- * Generate and send an MCTP control protocol Discovery Notify request to the MCTP bridge.
- *
- * @param mctp MCTP instance that will be processing the request message.
- * @param timeout_ms The amount of time, in milliseconds, to wait for a response from the bridge.
- * If this is 0, the response will be ignored and the function will return immediately after sending
- * the request.
- * @param response Output for the discovery response message, if one is required.  This must be
- * provided if there is a non-zero timeout.  Otherwise, it can be null.  If provided, it must be
- * initialized per the same parameter in {@link msg_transport.send_request_message}.
- *
- * @return 0 if the request was transmitted successfully or an error code.
- */
-int mctp_interface_send_discovery_notify (const struct mctp_interface *mctp, uint32_t timeout_ms,
-	struct cmd_interface_msg *response)
-{
-	uint8_t request_data[MCTP_BASE_PROTOCOL_MIN_MESSAGE_LEN];
-	struct cmd_interface_msg request;
-	int bridge_eid;
-	int status;
-
-	if (mctp == NULL) {
-		return MCTP_BASE_PROTOCOL_INVALID_ARGUMENT;
-	}
-
-	bridge_eid = device_manager_get_device_eid (mctp->device_manager,
-		DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM);
-	if (ROT_IS_ERROR (bridge_eid)) {
-		return bridge_eid;
-	}
-
-	msg_transport_create_empty_request (&mctp->base, request_data, sizeof (request_data),
-		bridge_eid, &request);
-
-	cmd_interface_msg_set_message_payload_length (&request,
-		mctp_control_protocol_generate_discovery_notify_request (request.payload,
-		request.payload_length));
-
-	status = mctp_interface_send_request_message (&mctp->base, &request, timeout_ms, response);
-	if (status == MSG_TRANSPORT_NO_WAIT_RESPONSE) {
-		status = 0;
-	}
-
-	return status;
-}
-
-#endif

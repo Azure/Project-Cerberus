@@ -331,3 +331,46 @@ int dme_structure_raw_ecc_le_init_le_ecc384_with_sha512_nonce_and_challenge (
 		dme_struct_data, dme_struct_length, dme->dme_key_be.x, dme->dme_key_be.y,
 		dme->dme_key_be.key_length, dme->signature_be.r, dme->signature_be.s, sig_hash);
 }
+
+/**
+ * Initialize DME information for a device that uses a chained DME structure that contains:
+ * - SHA-384 digest of an intermediate signing key directly endorsed by DME.
+ * - SHA-384 measurement of DICE layer 0.
+ * - ECDSA P-384 signature over the previous fields using SHA-384 and the DME private key.
+ * - ECC P-384 public key of the intermediate signing key.
+ * - SHA-384 digest of the DICE Device ID public key.
+ *
+ * This is DME structure type 8.
+ *
+ * @param dme The DME information to initialize.
+ * @param dme_struct_data The DME structure data signed by the DME key.
+ * @param dme_struct_length Length of the DME structure.
+ * @param dme_key_x Raw X coordinate of the DME public key.
+ * @param dme_key_y Raw Y coordinate of the DME public key.
+ * @param key_length  Length of the DME ECC key.  This represents the length of a single public key
+ * coordinate.  The DME key must be a P-384 key.
+ * @param signature_r Raw r value of the ECDSA signature.  This must be the same length as the
+ * public key coordinates.
+ * @param signature_s Raw s value of the ECDSA signature.  This must be the same length as the
+ * public key coordinates.
+ * @param sig_hash The hash algorithm that was used to generate the signature.
+ *
+ * @return 0 if the DME information was successfully initialized or an error code.
+ */
+int dme_structure_raw_ecc_le_init_chained_ecc384_sha384 (struct dme_structure_raw_ecc_le *dme,
+	const uint8_t *dme_struct_data, size_t dme_struct_length, const uint8_t *dme_key_x,
+	const uint8_t *dme_key_y, size_t key_length, const uint8_t *signature_r,
+	const uint8_t *signature_s, enum hash_type sig_hash)
+{
+	int status;
+
+	status = dme_structure_raw_ecc_le_convert_to_be (dme, dme_key_x, dme_key_y, key_length,
+		signature_r, signature_s);
+	if (status != 0) {
+		return status;
+	}
+
+	return dme_structure_raw_ecc_init_chained_ecc384_sha384 (&dme->base, dme_struct_data,
+		dme_struct_length, dme->dme_key_be.x, dme->dme_key_be.y, dme->dme_key_be.key_length,
+		dme->signature_be.r, dme->signature_be.s, sig_hash);
+}

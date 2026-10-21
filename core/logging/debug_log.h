@@ -63,6 +63,11 @@ enum debug_log_component {
 	DEBUG_LOG_COMPONENT_ATTESTATION,			/**< Log entry for attestation operations. */
 	DEBUG_LOG_COMPONENT_SPDM,					/**< Log entry for SPDM stack. */
 	DEBUG_LOG_COMPONENT_CRASH_DUMP,				/**< Log entry for exception or crash diagnostics. */
+	DEBUG_LOG_COMPONENT_KEYSTORE,				/**< Log entry for keystore operations */
+	DEBUG_LOG_COMPONENT_MMIO,					/**< Log entry for MMIO operations */
+	DEBUG_LOG_COMPONENT_ACVP,					/**< Log entry for FIPS ACVP testing. */
+	DEBUG_LOG_COMPONENT_FIPS,					/**< Log entry for FIPS handling. */
+	DEBUG_LOG_COMPONENT_RMA,					/**< Log entry for RMA handling. */
 	DEBUG_LOG_COMPONENT_DEVICE_SPECIFIC = 0xf0,	/**< Base component ID for device-specific messages. */
 	/* Component IDs 0xf0 - 0xff are reserved for device-specific logging. */
 };
@@ -100,9 +105,7 @@ struct debug_log_entry {
 
 int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_index, uint32_t arg1,
 	uint32_t arg2);
-#ifndef LOGGING_DISABLE_FLUSH
 int debug_log_flush (void);
-#endif
 int debug_log_clear (void);
 int debug_log_get_size (void);
 int debug_log_read_contents (uint32_t offset, uint8_t *contents, size_t length);

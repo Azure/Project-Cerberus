@@ -20,19 +20,6 @@ static int cmd_interface_multi_handler_mock_process_request (const struct cmd_in
 		MOCK_ARG_PTR_CALL (request));
 }
 
-static int cmd_interface_multi_handler_mock_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	struct cmd_interface_multi_handler_mock *mock = (struct cmd_interface_multi_handler_mock*) intf;
-
-	if (mock == NULL) {
-		return MOCK_INVALID_ARGUMENT;
-	}
-
-	MOCK_RETURN (&mock->mock, cmd_interface_multi_handler_mock_process_response, intf,
-		MOCK_ARG_PTR_CALL (response));
-}
-
 static int cmd_interface_multi_handler_mock_is_message_type_supported (
 	const struct cmd_interface_multi_handler *intf, uint32_t message_type)
 {
@@ -49,7 +36,6 @@ static int cmd_interface_multi_handler_mock_is_message_type_supported (
 static int cmd_interface_multi_handler_mock_func_arg_count (void *func)
 {
 	if ((func == cmd_interface_multi_handler_mock_process_request) ||
-		(func == cmd_interface_multi_handler_mock_process_response) ||
 		(func == cmd_interface_multi_handler_mock_is_message_type_supported)) {
 		return 1;
 	}
@@ -62,9 +48,6 @@ static const char* cmd_interface_multi_handler_mock_func_name_map (void *func)
 {
 	if (func == cmd_interface_multi_handler_mock_process_request) {
 		return "process_request";
-	}
-	else if (func == cmd_interface_multi_handler_mock_process_response) {
-		return "process_response";
 	}
 	else if (func == cmd_interface_multi_handler_mock_is_message_type_supported) {
 		return "is_message_type_supported";
@@ -80,12 +63,6 @@ static const char* cmd_interface_multi_handler_mock_arg_name_map (void *func, in
 		switch (arg) {
 			case 0:
 				return "request";
-		}
-	}
-	else if (func == cmd_interface_multi_handler_mock_process_response) {
-		switch (arg) {
-			case 0:
-				return "response";
 		}
 	}
 	else if (func == cmd_interface_multi_handler_mock_is_message_type_supported) {
@@ -123,7 +100,6 @@ int cmd_interface_multi_handler_mock_init (struct cmd_interface_multi_handler_mo
 	mock_set_name (&mock->mock, "cmd_interface_multi_handler");
 
 	mock->base.base.process_request = cmd_interface_multi_handler_mock_process_request;
-	mock->base.base.process_response = cmd_interface_multi_handler_mock_process_response;
 
 	mock->base.is_message_type_supported =
 		cmd_interface_multi_handler_mock_is_message_type_supported;

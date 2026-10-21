@@ -67,6 +67,17 @@ extern const uint32_t SFDP_PARAMS_ADDR_MX25U51245G;
 extern const uint32_t SFDP_PARAMS_MX25U51245G[];
 extern const size_t SFDP_PARAMS_MX25U51245G_LEN;
 
+/* MX66UW2G345G */
+extern const uint8_t FLASH_ID_MX66UW2G345G[];
+
+extern const uint32_t SFDP_HEADER_MX66UW2G345G[];
+extern const size_t SFDP_HEADER_MX66UW2G345G_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_MX66UW2G345G;
+
+extern const uint32_t SFDP_PARAMS_MX66UW2G345G[];
+extern const size_t SFDP_PARAMS_MX66UW2G345G_LEN;
+
 
 /* Winbond flash */
 
@@ -80,6 +91,17 @@ extern const uint32_t SFDP_PARAMS_ADDR_W25Q16JV;
 
 extern const uint32_t SFDP_PARAMS_W25Q16JV[];
 extern const size_t SFDP_PARAMS_W25Q16JV_LEN;
+
+/* W25Q16RV */
+extern const uint8_t FLASH_ID_W25Q16RV[];
+
+extern const uint32_t SFDP_HEADER_W25Q16RV[];
+extern const size_t SFDP_HEADER_W25Q16RV_LEN;
+
+extern const uint32_t SFDP_PARAMS_ADDR_W25Q16RV;
+
+extern const uint32_t SFDP_PARAMS_W25Q16RV[];
+extern const size_t SFDP_PARAMS_W25Q16RV_LEN;
 
 /* W25Q256JV */
 extern const uint8_t FLASH_ID_W25Q256JV[];

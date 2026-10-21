@@ -7,10 +7,9 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "firmware_update.h"
 #include "firmware_update_control.h"
-#include "cmd_interface/cerberus_protocol.h"
 #include "system/event_task.h"
-#include "system/system.h"
 
 
 /**
@@ -26,8 +25,9 @@ enum {
  * Variable context for the firmware update handler.
  */
 struct firmware_update_handler_state {
-	int update_status;	/**< The last firmware update status. */
-	bool recovery_boot;	/**< Flag indicating the system has booted the recovery image. */
+	int update_status;			/**< The last firmware update status. */
+	bool recovery_boot;			/**< Flag indicating the system has booted the recovery image. */
+	bool skip_active_restore;	/**< Flag indicating the active image should not be restored. */
 };
 
 /**
@@ -59,16 +59,33 @@ int firmware_update_handler_init (struct firmware_update_handler *handler,
 int firmware_update_handler_init_keep_recovery_updated (struct firmware_update_handler *handler,
 	struct firmware_update_handler_state *state, const struct firmware_update *updater,
 	const struct event_task *task, bool running_recovery);
+int firmware_update_handler_init_control_preparation (
+	struct firmware_update_handler *handler, struct firmware_update_handler_state *state,
+	const struct firmware_update *updater, const struct event_task *task,
+	bool keep_recovery_updated, bool running_recovery, bool skip_active_restore);
 int firmware_update_handler_init_state (const struct firmware_update_handler *handler,
 	bool running_recovery);
+int firmware_update_handler_init_state_control_preparation (
+	const struct firmware_update_handler *handler, bool running_recovery, bool skip_active_restore);
 void firmware_update_handler_release (const struct firmware_update_handler *handler);
 
+void firmware_update_handler_set_update_status_with_error (
+	const struct firmware_update_handler *handler, enum firmware_update_status status,
+	int error_code);
+
 /* Internal functions for use by derived types. */
-int firmware_update_handler_start_update (const struct firmware_update_control *update);
+int firmware_update_handler_submit_event (const struct firmware_update_handler *handler,
+	const struct event_task_handler *event_handler, uint32_t action, const uint8_t *data,
+	size_t length);
+
+int firmware_update_handler_start_update (const struct firmware_update_control *update,
+	bool execute_on_completion);
 int firmware_update_handler_get_status (const struct firmware_update_control *update);
 int32_t firmware_update_handler_get_remaining_len (const struct firmware_update_control *update);
 int firmware_update_handler_prepare_staging (const struct firmware_update_control *update,
 	size_t size);
+int firmware_update_handler_set_image_digest (const struct firmware_update_control *update,
+	enum hash_type hash_type, const uint8_t *digest, size_t length);
 int firmware_update_handler_write_staging (const struct firmware_update_control *update,
 	uint8_t *buf, size_t buf_len);
 
@@ -76,6 +93,7 @@ void firmware_update_handler_status_change (const struct firmware_update_notific
 	enum firmware_update_status status);
 
 void firmware_update_handler_prepare_for_updates (const struct firmware_update_handler *fw);
+void firmware_update_handler_prepare (const struct event_task_handler *handler);
 void firmware_update_handler_execute (const struct event_task_handler *handler,
 	struct event_task_context *context, bool *reset);
 

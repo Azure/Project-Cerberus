@@ -26,8 +26,8 @@ struct device_rma_transition {
 };
 
 
-#define	ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR(\
-	code)		 ROT_ERROR (ROT_MODULE_DEVICE_RMA_TRANSITION, code)
+#define	ROT_MODULE_DEVICE_RMA_TRANSITION_ERROR(code)         \
+	ROT_ERROR (ROT_MODULE_DEVICE_RMA_TRANSITION, code)
 
 /**
  * Error codes that can be generated when configuring a device for RMA.

@@ -4,8 +4,10 @@
 #ifndef SIGNATURE_VERIFICATION_H_
 #define SIGNATURE_VERIFICATION_H_
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "crypto/hash.h"
 #include "status/rot_status.h"
 
 
@@ -29,6 +31,23 @@ struct signature_verification {
 	 */
 	int (*verify_signature) (const struct signature_verification *verification,
 		const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length);
+
+	/**
+	 * Get the maximum signature length expected by the verification context.
+	 *
+	 * Where there is an active verification key, this will return the maximum signature length
+	 * appropriate for that key.
+	 *
+	 * When there is no verification key set, this will return the maximum possible signature length
+	 * supported.
+	 *
+	 * @param verification The verification context to query.
+	 * @param max_length Output for the maximum signature length.
+	 *
+	 * @return 0 if the maximum signature length was determined successfully or an error code.
+	 */
+	int (*get_max_signature_length) (const struct signature_verification *verification,
+		size_t *max_length);
 
 	/**
 	 * Set the key to use for signature verification.
@@ -69,6 +88,22 @@ struct signature_verification {
 };
 
 
+int signature_verification_verify_message (const struct signature_verification *sig_verify,
+	const struct hash_engine *hash, enum hash_type hash_algo, const uint8_t *message,
+	size_t msg_length, const uint8_t *key, size_t key_length, const uint8_t *signature,
+	size_t sig_length);
+int signature_verification_verify_hash (const struct signature_verification *sig_verify,
+	const struct hash_engine *hash, const uint8_t *key, size_t key_length, const uint8_t *signature,
+	size_t sig_length);
+int signature_verification_verify_hash_and_finish (const struct signature_verification *sig_verify,
+	const struct hash_engine *hash, const uint8_t *key, size_t key_length, const uint8_t *signature,
+	size_t sig_length);
+int signature_verification_verify_hash_and_finish_save_digest (
+	const struct signature_verification *sig_verify, const struct hash_engine *hash,
+	const uint8_t *key, size_t key_length, const uint8_t *signature, size_t sig_length,
+	uint8_t *digest, size_t digest_length, bool *digest_valid);
+
+
 #define	SIG_VERIFICATION_ERROR(code)		ROT_ERROR (ROT_MODULE_SIG_VERIFICATION, code)
 
 /**
@@ -84,6 +119,10 @@ enum {
 	SIG_VERIFICATION_UNSUPPORTED = SIG_VERIFICATION_ERROR (0x06),		/**< The operation is not supported by the implementation. */
 	SIG_VERIFICATION_CHECK_KEY_FAILED = SIG_VERIFICATION_ERROR (0x07),	/**< Failed to determine if the key is valid for verification. */
 	SIG_VERIFICATION_INVALID_KEY = SIG_VERIFICATION_ERROR (0x08),		/**< The key cannot be used for verification. */
+	SIG_VERIFICATION_UNKNOWN_HASH = SIG_VERIFICATION_ERROR (0x09),		/**< The hash to verify is an unknown type. */
+	SIG_VERIFICATION_INCONSISTENT_KEY = SIG_VERIFICATION_ERROR (0x0a),	/**< A null key of non-zero length or a non-null key of zero length. */
+	SIG_VERIFICATION_NO_ACTIVE_HASH = SIG_VERIFICATION_ERROR (0x0b),	/**< There is no active hash context available to sign. */
+	SIG_VERIFICATION_SIG_LENGTH_FAILED = SIG_VERIFICATION_ERROR (0x0c),	/**< Failed to get the maximum signature length. */
 };
 
 

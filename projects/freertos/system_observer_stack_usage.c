@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "system_observer_stack_usage.h"
 #include "common/unused.h"
 

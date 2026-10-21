@@ -10,7 +10,7 @@
  */
 enum {
 	ROT_MODULE_INIT = 0x0000,							/**< Top-level application that initializes the system. */
-	ROT_MODULE_AES_ENGINE = 0x0001,						/**< An AES crypto engine.  All engines use the same ID. */
+	ROT_MODULE_AES_GCM_ENGINE = 0x0001,					/**< An AES-GCM crypto engine.  All engines use the same ID. */
 	ROT_MODULE_ECC_ENGINE = 0x0002,						/**< An ECC crypto engine.  All engines use the same ID. */
 	ROT_MODULE_HASH_ENGINE = 0x0003,					/**< A hash crypto engine.  All engines use the same ID. */
 	ROT_MODULE_RSA_ENGINE = 0x0004,						/**< An RSA crypto engine.  All engines use the same ID. */
@@ -146,9 +146,9 @@ enum {
 	ROT_MODULE_MCTP_NOTIFIER = 0x0086,					/**< MCTP Notifier module. */
 	ROT_MODULE_SPDM_SECURE_SESSION_MANAGER = 0x0087,	/**< SPDM Secure Session Manager. */
 	ROT_MODULE_ECDSA = 0x0088,							/**< ECDSA signature handling. */
-	ROT_MODULE_KEY_CACHE = 0x0089,						/**< Key cache to handle rsa key management */
-	ROT_MODULE_EPHEMERAL_KEY_MANAGER = 0x008a,			/**< Ephemeral key manager */
-	ROT_MODULE_EPHEMERAL_KEY_GENERATION = 0x008b,		/**< Ephemeral key generation */
+	ROT_MODULE_KEY_CACHE = 0x0089,						/**< Key cache to handle rsa key management. */
+	ROT_MODULE_EPHEMERAL_KEY_MANAGER = 0x008a,			/**< Ephemeral key manager. */
+	ROT_MODULE_EPHEMERAL_KEY_GENERATION = 0x008b,		/**< Ephemeral key generation. */
 	ROT_MODULE_AUTHORIZED_EXECUTION = 0x008c,			/**< Execution context for authorized operations. */
 	ROT_MODULE_SPDM_VDM_PROTOCOL = 0x008d,				/**< SPDM vendor defined messages protocol. */
 	ROT_MODULE_SPDM_PCISIG_PROTOCOL = 0x008e,			/**< SPDM PCISIG messages protocol. */

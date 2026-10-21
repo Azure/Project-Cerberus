@@ -49,18 +49,19 @@ struct cmd_background_handler {
 	struct cmd_background base_cmd;				/**< The base interface for command handling. */
 	struct event_task_handler base_event;		/**< THe base interface for task integration. */
 	struct cmd_background_handler_state *state;	/**< Variable context for the handler. */
-	struct riot_key_manager *keys;				/**< Manager for the RIoT keys and certificates. */
+	const struct riot_key_manager *keys;		/**< Manager for the RIoT keys and certificates. */
 	const struct event_task *task;				/**< The task context executing the handler. */
 #ifdef CMD_ENABLE_UNSEAL
 	struct attestation_responder *attestation;	/**< Attestation responder to utilize for attestation operations. */
-	struct hash_engine *hash;					/**< Hash engine to be used in attestation operations. */
+	const struct hash_engine *hash;				/**< Hash engine to be used in attestation operations. */
 #endif
 };
 
 
 int cmd_background_handler_init (struct cmd_background_handler *handler,
 	struct cmd_background_handler_state *state, struct attestation_responder *attestation,
-	struct hash_engine *hash, struct riot_key_manager *riot, const struct event_task *task);
+	const struct hash_engine *hash, const struct riot_key_manager *riot,
+	const struct event_task *task);
 int cmd_background_handler_init_state (const struct cmd_background_handler *handler);
 void cmd_background_handler_release (const struct cmd_background_handler *handler);
 

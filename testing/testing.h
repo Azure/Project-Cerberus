@@ -5,7 +5,7 @@
 #define TESTING_H_
 
 #include <stdint.h>
-#include "platform_io.h"
+#include "platform_io_api.h"
 #include "CuTest/CuTest.h"
 
 

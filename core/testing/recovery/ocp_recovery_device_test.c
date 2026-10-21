@@ -8,6 +8,7 @@
 #include "testing.h"
 #include "recovery/ocp_recovery_device.h"
 #include "testing/crypto/hash_testing.h"
+#include "testing/mock/flash/flash_mock.h"
 #include "testing/mock/recovery/ocp_recovery_device_hw_mock.h"
 #include "testing/mock/recovery/ocp_recovery_device_variable_cms_mock.h"
 
@@ -38,6 +39,8 @@ TEST_SUITE_LABEL ("ocp_recovery_device");
 struct ocp_recovery_device_testing {
 	struct ocp_recovery_device_hw_mock hw;										/**< Mock for the recovery HW interface. */
 	struct ocp_recovery_device_variable_cms_mock log;							/**< Mock for a log-backed CMS. */
+	struct flash_mock flash;													/**< Mock for flash operations. */
+	struct ocp_recovery_device_flash_cms cms_flash;								/**< Flash interface for the flash region. */
 	struct ocp_recovery_device_state state;										/**< Variable state of the recovery handler. */
 	struct ocp_recovery_device test;											/**< Recovery handler under test. */
 	uint8_t cms_0[OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN];						/**< Buffer for CMS code R/W region (type 0). */
@@ -45,6 +48,7 @@ struct ocp_recovery_device_testing {
 	uint8_t cms_5[OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN];						/**< Buffer for CMS vendor R/W region (type 5). */
 	uint8_t cms_6[OCP_RECOVERY_DEVICE_TESTING_CMS_6_LEN];						/**< Buffer for CMS vendor RO region (type 6). */
 	struct ocp_recovery_device_cms cms[OCP_RECOVERY_DEVICE_TESTING_MAX_CMS];	/**< List of CMS regions. */
+	uint32_t flash_erase_offset;												/**< Buffer to store the offset we already erase before write. */
 };
 
 
@@ -65,6 +69,9 @@ static void ocp_recovery_device_testing_init_dependencies (CuTest *test,
 	status = ocp_recovery_device_variable_cms_mock_init (&recovery->log);
 	CuAssertIntEquals (test, 0, status);
 
+	status = flash_mock_init (&recovery->flash);
+	CuAssertIntEquals (test, 0, status);
+
 	memset (recovery->cms_0, 0, sizeof (recovery->cms_0));
 	memset (recovery->cms_1, 0, sizeof (recovery->cms_1));
 	memset (recovery->cms_5, 0, sizeof (recovery->cms_5));
@@ -73,22 +80,27 @@ static void ocp_recovery_device_testing_init_dependencies (CuTest *test,
 	recovery->cms[0].base_addr = recovery->cms_0;
 	recovery->cms[0].length = sizeof (recovery->cms_0);
 	recovery->cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery->cms[0].cms_flash = false;
 
 	recovery->cms[1].base_addr = recovery->cms_1;
 	recovery->cms[1].length = sizeof (recovery->cms_1);
 	recovery->cms[1].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_LOG;
+	recovery->cms[1].cms_flash = false;
 
 	recovery->cms[2].variable = &recovery->log.base;
 	recovery->cms[2].length = 0;
 	recovery->cms[2].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_LOG;
+	recovery->cms[2].cms_flash = false;
 
 	recovery->cms[3].base_addr = recovery->cms_5;
 	recovery->cms[3].length = sizeof (recovery->cms_5);
 	recovery->cms[3].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_VENDOR_RW;
+	recovery->cms[3].cms_flash = false;
 
 	recovery->cms[4].base_addr = recovery->cms_6;
 	recovery->cms[4].length = sizeof (recovery->cms_6);
 	recovery->cms[4].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_VENDOR_RO;
+	recovery->cms[4].cms_flash = false;
 }
 
 /**
@@ -106,6 +118,9 @@ static void ocp_recovery_device_testing_release_dependencies (CuTest *test,
 	CuAssertIntEquals (test, 0, status);
 
 	status = ocp_recovery_device_variable_cms_mock_validate_and_release (&recovery->log);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_mock_validate_and_release (&recovery->flash);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -392,6 +407,68 @@ static void ocp_recovery_device_test_init_ro_polling_region_unaligned (CuTest *t
 	ocp_recovery_device_testing_release (test, &recovery);
 }
 
+static void ocp_recovery_device_test_init_cms_flash (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	int status;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_init_cms_flash_addr_overflow (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 512;
+	int status;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, OCP_RECOVERY_DEVICE_CMS_FLASH_ADDR_OVERFLOW, status);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
 static void ocp_recovery_device_test_init_null (CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
@@ -551,6 +628,72 @@ static void ocp_recovery_device_test_static_init_ro_polling_region_unaligned (Cu
 	recovery.cms[4].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_VENDOR_RO_POLLING;
 	status = ocp_recovery_device_init_state (&test_static);
 	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_release_dependencies (test, &recovery);
+	ocp_recovery_device_release (&test_static);
+}
+
+static void ocp_recovery_device_test_static_init_cms_flash (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	struct ocp_recovery_device test_static = ocp_recovery_device_static_init (&recovery.state,
+		&recovery.hw.base, recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	int status;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init_state (&test_static);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_release_dependencies (test, &recovery);
+	ocp_recovery_device_release (&test_static);
+}
+
+static void ocp_recovery_device_test_static_init_cms_flash_addr_overflow (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	struct ocp_recovery_device test_static = ocp_recovery_device_static_init (&recovery.state,
+		&recovery.hw.base, recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 512;
+	int status;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init_state (&test_static);
+	CuAssertIntEquals (test, OCP_RECOVERY_DEVICE_CMS_FLASH_ADDR_OVERFLOW, status);
 
 	ocp_recovery_device_testing_release_dependencies (test, &recovery);
 	ocp_recovery_device_release (&test_static);
@@ -4713,6 +4856,844 @@ static void ocp_recovery_device_test_indirect_data_read_min_region_multiple (CuT
 	ocp_recovery_device_testing_release (test, &recovery);
 }
 
+static void ocp_recovery_device_test_indirect_data_read_flash (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected[252];
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, recovery.cms_0, sizeof (expected));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, sizeof (expected), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_sequential (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected[3][252];
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected[0], recovery.cms_0, sizeof (expected[0]));
+	memcpy (expected[1], &recovery.cms_0[sizeof (expected[0])], sizeof (expected[0]));
+	memcpy (expected[2], &recovery.cms_0[sizeof (expected[0]) * 2], sizeof (expected[0]));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected[0])));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected[0], sizeof (expected[0]), 2);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + sizeof (expected[0])), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (expected[0])));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected[1], sizeof (expected[0]), 2);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + sizeof (expected[0]) * 2), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (expected[0])));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected[2], sizeof (expected[0]), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected[0]), status);
+
+	status = testing_validate_array (expected[0], output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected[0]));
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected[0]), status);
+
+	status = testing_validate_array (expected[1], output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected[0]) * 2);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected[0]), status);
+
+	status = testing_validate_array (expected[2], output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected[0]) * 3);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_less_than_max (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected[OCP_RECOVERY_DEVICE_TESTING_CMS_1_LEN];
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = OCP_RECOVERY_DEVICE_TESTING_CMS_1_LEN;
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, recovery.cms_0, sizeof (expected));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, sizeof (expected), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_1_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_at_offset (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 1024;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 2048;
+	uint8_t expected[252];
+	union ocp_recovery_device_cmd_buffer output;
+	uint32_t offset = 0x40;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, &recovery.cms_0[offset], sizeof (expected));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, sizeof (expected), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		offset + sizeof (expected));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_less_than_max_at_offset (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 512;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint32_t offset = 0x40;
+	uint8_t expected[OCP_RECOVERY_DEVICE_TESTING_CMS_1_LEN - offset];
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = OCP_RECOVERY_DEVICE_TESTING_CMS_1_LEN;
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, &recovery.cms_0[offset], sizeof (expected));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, sizeof (expected), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_1_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		offset + sizeof (expected));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_sequential_with_wrap (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected_end[0x40];
+	uint8_t expected_wrap[2][252];
+	union ocp_recovery_device_cmd_buffer output;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN - sizeof (expected_end);
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected_end, &recovery.cms_0[offset], sizeof (expected_end));
+	memcpy (expected_wrap[0], recovery.cms_0, sizeof (expected_wrap[0]));
+	memcpy (expected_wrap[1], &recovery.cms_0[sizeof (expected_wrap[0])],
+		sizeof (expected_wrap[0]));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected_end)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected_end, sizeof (expected_end), 2);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected_wrap[0])));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected_wrap[0],
+		sizeof (expected_wrap[0]), 2);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + sizeof (expected_wrap[0])), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (expected_wrap[0])));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected_wrap[1],
+		sizeof (expected_wrap[0]), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected_end), status);
+
+	status = testing_validate_array (expected_end, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected_wrap[0]), status);
+
+	status = testing_validate_array (expected_wrap[0], output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected_wrap[0]));
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected_wrap[0]), status);
+
+	status = testing_validate_array (expected_wrap[1], output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected_wrap));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void
+ocp_recovery_device_test_indirect_data_read_flash_sequential_with_wrap_status_sticky_on_read (
+	CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected_end[0x40];
+	uint8_t expected_wrap[2][252];
+	union ocp_recovery_device_cmd_buffer output;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN - sizeof (expected_end);
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected_end, &recovery.cms_0[offset], sizeof (expected_end));
+	memcpy (expected_wrap[0], recovery.cms_0, sizeof (expected_wrap[0]));
+	memcpy (expected_wrap[1], &recovery.cms_0[sizeof (expected_wrap[0])],
+		sizeof (expected_wrap[0]));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + offset), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected_end)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected_end, sizeof (expected_end), 2);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected_wrap[0])));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected_wrap[0],
+		sizeof (expected_wrap[0]), 2);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + sizeof (expected_wrap[0])), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (sizeof (expected_wrap[0])));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected_wrap[1],
+		sizeof (expected_wrap[0]), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected_end), status);
+
+	status = testing_validate_array (expected_end, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected_wrap[0]), status);
+
+	status = testing_validate_array (expected_wrap[0], output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	/* Don't read the indirect status here to make sure the status stays after the next command. */
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected_wrap[0]));
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected_wrap[0]), status);
+
+	status = testing_validate_array (expected_wrap[1], output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected_wrap));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_at_offset_out_of_range (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 1024;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 2048;
+	uint8_t expected[252];
+	union ocp_recovery_device_cmd_buffer output;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN + 4;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, &recovery.cms_0, sizeof (expected));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, sizeof (expected), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_at_offset_unaligned (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 512;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected[OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN - 4];
+	union ocp_recovery_device_cmd_buffer output;
+	uint32_t offset = 2;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN;
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, &recovery.cms_0[4], sizeof (expected));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr + 4), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, sizeof (expected), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_5_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_at_offset_out_of_range_unaligned (
+	CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 512;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected[OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN];
+	union ocp_recovery_device_cmd_buffer output;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN + 3;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN;
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, &recovery.cms_0[4], sizeof (expected));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, sizeof (expected), 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_5_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_unaligned_region_length (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	size_t data_length = 13;
+	uint8_t expected[OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN] = {0};
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = OCP_RECOVERY_DEVICE_TESTING_CMS_5_LEN;
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery.cms[0].length = data_length;
+
+	memset (output.bytes, 0xff, sizeof (output.bytes));
+	memcpy (recovery.cms_0, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED,
+		HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED_LEN);
+	memcpy (expected, recovery.cms_0, data_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash, 0,
+		MOCK_ARG (base_addr), MOCK_ARG_NOT_NULL, MOCK_ARG (data_length));
+	status |= mock_expect_output (&recovery.flash.mock, 1, expected, data_length, 2);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, sizeof (expected), status);
+
+	status = testing_validate_array (expected, output.bytes, status);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_5_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, sizeof (expected));
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_read_flash_fail (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	uint8_t expected[252];
+	union ocp_recovery_device_cmd_buffer output;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.read, &recovery.flash,
+		FLASH_READ_FAILED, MOCK_ARG (0), MOCK_ARG_NOT_NULL, MOCK_ARG (sizeof (expected)));
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_read_request (&recovery.test, &output);
+	CuAssertIntEquals (test, FLASH_READ_FAILED, status);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
 static void ocp_recovery_device_test_indirect_data_read_out_of_range_cms (CuTest *test)
 {
 	struct ocp_recovery_device_testing recovery;
@@ -5498,6 +6479,1121 @@ static void ocp_recovery_device_test_indirect_data_write_min_region_multiple (Cu
 	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 5,
 		OCP_RECOVERY_DEVICE_TESTING_CMS_6_WORDS);
 	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 3, msg_length);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 252;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message.bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_get_sector_size_fail (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 252;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, FLASH_SECTOR_SIZE_FAILED, MOCK_ARG_NOT_NULL);
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, FLASH_SECTOR_SIZE_FAILED, status);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_sector_erase_fail (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 252;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		FLASH_SECTOR_ERASE_FAILED, MOCK_ARG (base_addr));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, FLASH_SECTOR_ERASE_FAILED, status);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_sequential (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message[3];
+	size_t msg_length = 252;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message[0].bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+	memcpy (message[1].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length], msg_length);
+	memcpy (message[2].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length * 2], msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message[0].bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr + sector));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + msg_length),
+		MOCK_ARG_PTR_CONTAINS (message[1].bytes, msg_length), MOCK_ARG (msg_length));
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr + sector * 2));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + msg_length * 2),
+		MOCK_ARG_PTR_CONTAINS (message[2].bytes, msg_length), MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[0], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[1], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length * 2);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[2], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length * 3);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_less_than_max (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 128;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message.bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_at_offset (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 1024;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 2048;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 252;
+	uint32_t offset = 0x40;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + offset),
+		MOCK_ARG_PTR_CONTAINS (message.bytes, msg_length), MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, offset + msg_length);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_less_than_max_at_offset (
+	CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 1024;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 2048;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 128;
+	uint32_t offset = 0x40;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + offset),
+		MOCK_ARG_PTR_CONTAINS (message.bytes, msg_length), MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, offset + msg_length);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_sequential_with_wrap (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message[3];
+	size_t msg_length = 0x40;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN - 0x40;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery.flash_erase_offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN;
+
+	memcpy (message[0].bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+	memcpy (message[1].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length], msg_length);
+	memcpy (message[2].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length * 2], msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + offset),
+		MOCK_ARG_PTR_CONTAINS (message[0].bytes, msg_length), MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message[1].bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + msg_length),
+		MOCK_ARG_PTR_CONTAINS (message[2].bytes, msg_length), MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[0], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[1], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[2], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length * 2);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void
+ocp_recovery_device_test_indirect_data_write_flash_sequential_with_wrap_status_sticky_on_write (
+	CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message[3];
+	size_t msg_length = 0x40;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN - 0x40;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery.flash_erase_offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN;
+
+	memcpy (message[0].bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+	memcpy (message[1].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length], msg_length);
+	memcpy (message[2].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length * 2], msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + offset),
+		MOCK_ARG_PTR_CONTAINS (message[0].bytes, msg_length), MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message[1].bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + msg_length),
+		MOCK_ARG_PTR_CONTAINS (message[2].bytes, msg_length), MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[0], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[1], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	/* Don't read the indirect status here to make sure the status stays after the next command. */
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[2], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length * 2);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_at_offset_out_of_range (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 1024;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 2048;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 252;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN + 2;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery.flash_erase_offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN;
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message.bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_unaligned (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 5;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message.bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, 8);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_sequential_unaligned (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message[3];
+	size_t msg_length = 6;
+	size_t aligned_length = 8;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message[0].bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+	memcpy (message[1].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length], msg_length);
+	memcpy (message[2].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length * 2], msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message[0].bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + aligned_length),
+		MOCK_ARG_PTR_CONTAINS (message[1].bytes, msg_length), MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + aligned_length * 2),
+		MOCK_ARG_PTR_CONTAINS (message[2].bytes, msg_length), MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[0], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, aligned_length);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[1], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, aligned_length * 2);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[2], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, aligned_length * 3);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_wrap_in_middle (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 252;
+	size_t msg_end = 16;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN - msg_end;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery.flash_erase_offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN;
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,	msg_end,
+		MOCK_ARG (base_addr + offset), MOCK_ARG_PTR_CONTAINS (message.bytes, msg_end),
+		MOCK_ARG (msg_end));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length - msg_end, MOCK_ARG (base_addr),
+		MOCK_ARG_PTR_CONTAINS (&message.bytes[msg_end], msg_length - msg_end),
+		MOCK_ARG (msg_length - msg_end));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length - msg_end);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_sequential_with_wrap_in_middle (
+	CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message[3];
+	size_t msg_length = 252;
+	size_t msg_end = 16;
+	uint32_t offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN - (msg_end + msg_length);
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	recovery.flash_erase_offset = OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN;
+
+	memcpy (message[0].bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+	memcpy (message[1].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length], msg_length);
+	memcpy (message[2].bytes, &HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED[msg_length * 2], msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + offset),
+		MOCK_ARG_PTR_CONTAINS (message[0].bytes, msg_length), MOCK_ARG (msg_length));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + offset + msg_length),
+		MOCK_ARG_PTR_CONTAINS (message[1].bytes, msg_end), MOCK_ARG (msg_end));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr),
+		MOCK_ARG_PTR_CONTAINS (&message[1].bytes[msg_end], msg_length - msg_end),
+		MOCK_ARG (msg_length - msg_end));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr + sector));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		msg_length, MOCK_ARG (base_addr + msg_length - msg_end),
+		MOCK_ARG_PTR_CONTAINS (message[2].bytes, msg_length), MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, offset);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[0], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_LEN - msg_end);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[1], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0x01, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0, msg_length - msg_end);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message[2], msg_length);
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_check_protocol_status (test, &recovery, 0);
+	ocp_recovery_device_testing_check_indirect_status (test, &recovery, 0, 0,
+		OCP_RECOVERY_DEVICE_TESTING_CMS_0_WORDS);
+	ocp_recovery_device_testing_check_indirect_ctrl (test, &recovery, 0,
+		(msg_length * 2) - msg_end);
+
+	ocp_recovery_device_testing_release (test, &recovery);
+}
+
+static void ocp_recovery_device_test_indirect_data_write_flash_fail (CuTest *test)
+{
+	struct ocp_recovery_device_testing recovery;
+	int status;
+	uint32_t base_addr = 0;
+	struct ocp_recovery_device_flash_cms cms_flash =
+		ocp_recovery_device_flash_cms_static_init (&recovery.flash.base,
+		&recovery.flash_erase_offset, base_addr);
+	uint32_t device_size = 1024;
+	union ocp_recovery_device_cmd_buffer message;
+	size_t msg_length = 252;
+	uint32_t sector = 0x100;
+
+	TEST_START;
+
+	ocp_recovery_device_testing_init_dependencies (test, &recovery);
+
+	recovery.cms[0].flash = &cms_flash;
+	recovery.cms[0].length = sizeof (recovery.cms_0);
+	recovery.cms[0].type = OCP_RECOVERY_INDIRECT_STATUS_REGION_RECOVERY_CODE;
+	recovery.cms[0].cms_flash = true;
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.get_device_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &device_size, sizeof (device_size), -1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_init (&recovery.test, &recovery.state, &recovery.hw.base,
+		recovery.cms, OCP_RECOVERY_DEVICE_TESTING_MAX_CMS);
+	CuAssertIntEquals (test, 0, status);
+
+	memcpy (message.bytes, HASH_TESTING_MULTI_BLOCK_NOT_ALIGNED, msg_length);
+
+	status = mock_expect (&recovery.flash.mock, recovery.flash.base.sector_erase, &recovery.flash,
+		0, MOCK_ARG (base_addr));
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.get_sector_size,
+		&recovery.flash, 0,	MOCK_ARG_NOT_NULL);
+	status |= mock_expect_output (&recovery.flash.mock, 0, &sector, sizeof (sector), -1);
+
+	status |= mock_expect (&recovery.flash.mock, recovery.flash.base.write, &recovery.flash,
+		FLASH_WRITE_FAILED, MOCK_ARG (base_addr), MOCK_ARG_PTR_CONTAINS (message.bytes, msg_length),
+		MOCK_ARG (msg_length));
+
+	CuAssertIntEquals (test, 0, status);
+
+	ocp_recovery_device_testing_set_indirect_ctrl (test, &recovery, 0, 0);
+
+	status = ocp_recovery_device_start_new_command (&recovery.test, OCP_RECOVERY_CMD_INDIRECT_DATA);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ocp_recovery_device_write_request (&recovery.test, &message, msg_length);
+	CuAssertIntEquals (test, FLASH_WRITE_FAILED, status);
 
 	ocp_recovery_device_testing_release (test, &recovery);
 }
@@ -6477,6 +8573,8 @@ TEST_SUITE_START (ocp_recovery_device);
 TEST (ocp_recovery_device_test_init);
 TEST (ocp_recovery_device_test_init_ro_region_unaligned);
 TEST (ocp_recovery_device_test_init_ro_polling_region_unaligned);
+TEST (ocp_recovery_device_test_init_cms_flash);
+TEST (ocp_recovery_device_test_init_cms_flash_addr_overflow);
 TEST (ocp_recovery_device_test_init_null);
 TEST (ocp_recovery_device_test_init_rw_region_unaligned);
 TEST (ocp_recovery_device_test_init_rw_polling_region_unaligned);
@@ -6484,6 +8582,8 @@ TEST (ocp_recovery_device_test_init_log_region_rw);
 TEST (ocp_recovery_device_test_static_init);
 TEST (ocp_recovery_device_test_static_init_ro_region_unaligned);
 TEST (ocp_recovery_device_test_static_init_ro_polling_region_unaligned);
+TEST (ocp_recovery_device_test_static_init_cms_flash);
+TEST (ocp_recovery_device_test_static_init_cms_flash_addr_overflow);
 TEST (ocp_recovery_device_test_init_state_null);
 TEST (ocp_recovery_device_test_static_init_rw_region_unaligned);
 TEST (ocp_recovery_device_test_static_init_rw_polling_region_unaligned);
@@ -6593,6 +8693,18 @@ TEST (ocp_recovery_device_test_indirect_data_read_from_log_size_error);
 TEST (ocp_recovery_device_test_indirect_data_read_from_log_data_error);
 TEST (ocp_recovery_device_test_indirect_data_read_min_region);
 TEST (ocp_recovery_device_test_indirect_data_read_min_region_multiple);
+TEST (ocp_recovery_device_test_indirect_data_read_flash);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_sequential);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_less_than_max);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_at_offset);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_less_than_max_at_offset);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_sequential_with_wrap);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_sequential_with_wrap_status_sticky_on_read);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_at_offset_out_of_range);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_at_offset_unaligned);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_at_offset_out_of_range_unaligned);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_unaligned_region_length);
+TEST (ocp_recovery_device_test_indirect_data_read_flash_fail);
 TEST (ocp_recovery_device_test_indirect_data_read_out_of_range_cms);
 TEST (ocp_recovery_device_test_indirect_data_read_unsupported);
 TEST (ocp_recovery_device_test_indirect_data_write);
@@ -6611,6 +8723,21 @@ TEST (ocp_recovery_device_test_indirect_data_write_wrap_in_middle);
 TEST (ocp_recovery_device_test_indirect_data_write_sequential_with_wrap_in_middle);
 TEST (ocp_recovery_device_test_indirect_data_write_min_region);
 TEST (ocp_recovery_device_test_indirect_data_write_min_region_multiple);
+TEST (ocp_recovery_device_test_indirect_data_write_flash);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_get_sector_size_fail);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_sector_erase_fail);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_sequential);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_less_than_max);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_at_offset);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_less_than_max_at_offset);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_sequential_with_wrap);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_sequential_with_wrap_status_sticky_on_write);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_at_offset_out_of_range);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_unaligned);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_sequential_unaligned);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_wrap_in_middle);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_sequential_with_wrap_in_middle);
+TEST (ocp_recovery_device_test_indirect_data_write_flash_fail);
 TEST (ocp_recovery_device_test_indirect_data_write_multiple_wrap_single_write);
 TEST (ocp_recovery_device_test_indirect_data_write_zero_length);
 TEST (ocp_recovery_device_test_indirect_data_write_out_of_range_cms);

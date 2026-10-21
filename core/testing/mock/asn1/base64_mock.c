@@ -7,8 +7,8 @@
 #include "base64_mock.h"
 
 
-static int base64_mock_encode (struct base64_engine *engine, const uint8_t *data, size_t length,
-	uint8_t *encoded, size_t enc_length)
+static int base64_mock_encode (const struct base64_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *encoded, size_t enc_length)
 {
 	struct base64_engine_mock *mock = (struct base64_engine_mock*) engine;
 

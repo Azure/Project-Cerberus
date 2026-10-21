@@ -15,12 +15,12 @@
  */
 struct ephemeral_key_generation_rsa {
 	struct ephemeral_key_generation base;	/**< Ephemeral key generation object */
-	struct rsa_engine *engine;				/**< The base RSA engine. */
+	const struct rsa_engine *engine;		/**< The base RSA engine. */
 };
 
 
 int ephemeral_key_generation_rsa_init (struct ephemeral_key_generation_rsa *key_gen_rsa,
-	struct rsa_engine *engine);
+	const struct rsa_engine *engine);
 void ephemeral_key_generation_rsa_release (
 	struct ephemeral_key_generation_rsa *key_gen_rsa);
 

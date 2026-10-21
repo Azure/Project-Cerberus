@@ -5,8 +5,17 @@
 #define SPDM_PROTOCOL_H_
 
 #include <stdint.h>
+#include "platform_config.h"
 #include "mctp/mctp_base_protocol.h"
 
+/* Configurable SPDM protocol parameters. Defaults can be overridden in platform_config.h */
+
+/**
+ * Maximum supported transfer size for SPDM 1.0 and 1.1 messages.
+ */
+#ifndef SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN
+#define SPDM_1_0_AND_1_1_MAX_RESPONSE_LEN			MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY
+#endif
 
 /**
  * Minimum length for any SPDM message.
@@ -115,7 +124,7 @@
  * message handling (for both request and response messages).  See if it can be removed to avoid
  * duplication.
  */
-struct spdm_protocol_mctp_header {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_protocol_mctp_header {
 	uint8_t msg_type:7;			/**< Identifier for the type of message. */
 	uint8_t integrity_check:1;	/**< Flag indicating if an integrity check has been added. */
 };
@@ -123,11 +132,19 @@ struct spdm_protocol_mctp_header {
 /**
  * SPDM portion of packet header
  */
-struct spdm_protocol_header {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE spdm_protocol_header {
 	uint8_t spdm_minor_version:4;	/**< SPDM specification minor version used for the message. */
 	uint8_t spdm_major_version:4;	/**< SPDM specification major version used for the message. */
 	uint8_t req_rsp_code;			/**< Request/Response code for the message. */
 };
+
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (sizeof (struct spdm_protocol_header) == 2,
+	"Unexpected size of struct spdm_protocol_header");
 
 #pragma pack(pop)
 

@@ -44,6 +44,8 @@ int authorized_execution_config_reset_init_restore_platform_config (
 	struct authorized_execution_config_reset *execution, const struct config_reset *reset);
 int authorized_execution_config_reset_init_clear_component_manifests (
 	struct authorized_execution_config_reset *execution, const struct config_reset *reset);
+int authorized_execution_config_reset_init_clear_provisioned_certificates (
+	struct authorized_execution_config_reset *execution, const struct config_reset *reset);
 
 void authorized_execution_config_reset_release (
 	const struct authorized_execution_config_reset *execution);

@@ -8,7 +8,7 @@
 #include "base64_openssl.h"
 
 
-static int base64_openssl_encode (struct base64_engine *engine, const uint8_t *data, size_t length,
+int base64_openssl_encode (const struct base64_engine *engine, const uint8_t *data, size_t length,
 	uint8_t *encoded, size_t enc_length)
 {
 	if ((engine == NULL) || (data == NULL) || (encoded == NULL)) {
@@ -49,7 +49,7 @@ int base64_openssl_init (struct base64_engine_openssl *engine)
  *
  * @param engine The base64 engine to release.
  */
-void base64_openssl_release (struct base64_engine_openssl *engine)
+void base64_openssl_release (const struct base64_engine_openssl *engine)
 {
 
 }

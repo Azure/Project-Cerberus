@@ -50,9 +50,9 @@ struct config_reset {
 	size_t config_count;										/**< Number of default configuration managers. */
 	const struct manifest_manager *const *component_manifests;	/**< List of component manifests to disable attesting external component. */
 	size_t component_manifests_count;							/**< Number of component manifest managers. */
-	struct state_manager *const *state;							/**< List of state information to reset. */
+	const struct state_manager *const *state;					/**< List of state information to reset. */
 	size_t state_count;											/**< Number of state managers. */
-	struct riot_key_manager *riot;								/**< Manager for RIoT keys. */
+	const struct riot_key_manager *riot;						/**< Manager for RIoT keys. */
 	struct aux_attestation *aux;								/**< Manager for attestation keys. */
 	struct recovery_image_manager *recovery;					/**< Manager for host recovery images. */
 	const struct keystore *const *keystores;					/**< Array of keystores to clear keys of. */
@@ -64,15 +64,17 @@ int config_reset_init (struct config_reset *reset,
 	const struct manifest_manager *const *bypass_config, size_t bypass_count,
 	const struct manifest_manager *const *platform_config, size_t platform_count,
 	const struct manifest_manager *const *component_manifests, size_t component_manifests_count,
-	struct state_manager *const *state, size_t state_count, struct riot_key_manager *riot,
-	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	const struct keystore *const *keystores, size_t keystore_count);
+	const struct state_manager *const *state, size_t state_count,
+	const struct riot_key_manager *riot, struct aux_attestation *aux,
+	struct recovery_image_manager *recovery, const struct keystore *const *keystores,
+	size_t keystore_count);
 void config_reset_release (const struct config_reset *reset);
 
 int config_reset_restore_bypass (const struct config_reset *reset);
 int config_reset_restore_defaults (const struct config_reset *reset);
 int config_reset_restore_platform_config (const struct config_reset *reset);
 int config_reset_clear_component_manifests (const struct config_reset *reset);
+int config_reset_clear_provisioned_certificates (const struct config_reset *reset);
 
 
 #define	CONFIG_RESET_ERROR(code)		ROT_ERROR (ROT_MODULE_CONFIG_RESET, code)
@@ -84,6 +86,7 @@ enum {
 	CONFIG_RESET_INVALID_ARGUMENT = CONFIG_RESET_ERROR (0x00),	/**< Input parameter is null or not valid. */
 	CONFIG_RESET_NO_MEMORY = CONFIG_RESET_ERROR (0x01),			/**< Memory allocation failed. */
 	CONFIG_RESET_NO_MANIFESTS = CONFIG_RESET_ERROR (0x02),		/**< No manifest are available. */
+	CONFIG_RESET_NO_CERTS = CONFIG_RESET_ERROR (0x03),			/**< Certificate clearing is not supported. */
 };
 
 

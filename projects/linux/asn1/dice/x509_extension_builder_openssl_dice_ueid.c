@@ -1,13 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <string.h>
 #include <openssl/asn1t.h>
 #include <openssl/err.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include "platform_api.h"
 #include "x509_extension_builder_openssl_dice_ueid.h"
+#include "asn1/dice/tcg_dice_oid.h"
 #include "asn1/dice/x509_extension_builder_dice_ueid.h"
 #include "common/unused.h"
 
@@ -16,8 +17,8 @@
  * Defines the structure of the Ueid extension for use with the OpenSSL ASN.1 encoding framework.
  */
 typedef struct dice_ueid_st {
-	ASN1_OCTET_STRING *ueid;		/**< The UEID string. */
-	ASN1_ENCODING enc;				/**< ASN1 encoding. */
+	ASN1_OCTET_STRING *ueid;	/**< The UEID string. */
+	ASN1_ENCODING enc;			/**< ASN1 encoding. */
 } DICE_UEID;
 
 ASN1_SEQUENCE_enc (DICE_UEID, enc, 0) = {
@@ -37,7 +38,7 @@ int x509_extension_builder_openssl_dice_ueid_build (const struct x509_extension_
 	uint8_t *ueid_der = NULL;
 	int ueid_len;
 
-	if ((dice == NULL) || (extension == NULL)) {
+	if ((dice == NULL) || (extension == NULL) || (dice->ueid == NULL) || (dice->ueid_length == 0)) {
 		return DICE_UEID_EXTENSION_INVALID_ARGUMENT;
 	}
 
@@ -58,14 +59,14 @@ int x509_extension_builder_openssl_dice_ueid_build (const struct x509_extension_
 		goto exit;
 	}
 
-	x509_extension_builder_init_extension_descriptor (extension, false,
-		X509_EXTENSION_BUILDER_DICE_UEID_OID, X509_EXTENSION_BUILDER_DICE_UEID_OID_LENGTH, ueid_der,
-		ueid_len);
+	x509_extension_builder_init_extension_descriptor (extension, false, TCG_DICE_OID_UEID_EXTENSION,
+		TCG_DICE_OID_UEID_EXTENSION_LENGTH, ueid_der, ueid_len);
 
 	status = 0;
 
 exit:
 	DICE_UEID_free (ueid_ext);
+
 	return status;
 }
 
@@ -74,7 +75,7 @@ void x509_extension_builder_openssl_dice_ueid_free (const struct x509_extension_
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 /**

@@ -266,6 +266,70 @@ static void host_processor_single_test_flash_rollback_dirty_checked_bypass (CuTe
 	host_processor_single_testing_validate_and_release (test, &host);
 }
 
+static void host_processor_single_test_flash_rollback_static_init (CuTest *test)
+{
+	struct host_processor_single_testing host = {
+		.test = host_processor_single_static_init (&host.state, &host.control.base,
+			&host.flash_mgr.base, &host.host_state, &host.filter.base, &host.pfm_mgr.base,
+			&host.recovery_manager.base)
+	};
+	int status;
+
+	TEST_START;
+
+	host_processor_single_testing_init_static (test, &host);
+
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
+	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_single_testing_validate_and_release (test, &host);
+}
+
+static void host_processor_single_test_flash_rollback_static_init_pulse_reset (CuTest *test)
+{
+	struct host_processor_single_testing host = {
+		.test = host_processor_single_static_init_pulse_reset (&host.state, &host.control.base,
+			&host.flash_mgr.base, &host.host_state, &host.filter.base, &host.pfm_mgr.base,
+			&host.recovery_manager.base, 100)
+	};
+	int status;
+
+	TEST_START;
+
+	host_processor_single_testing_init_static (test, &host);
+
+	status = host.test.base.flash_rollback (&host.test.base, &host.hash.base, &host.rsa.base, false,
+		false);
+	CuAssertIntEquals (test, HOST_PROCESSOR_NO_ROLLBACK, status);
+
+	status = host_state_manager_is_inactive_dirty (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	status = host_state_manager_is_pfm_dirty (&host.host_state);
+	CuAssertIntEquals (test, true, status);
+
+	CuAssertIntEquals (test, HOST_STATE_PREVALIDATED_NONE,
+		host_state_manager_get_run_time_validation (&host.host_state));
+
+	status = host_state_manager_is_bypass_mode (&host.host_state);
+	CuAssertIntEquals (test, false, status);
+
+	host_processor_single_testing_validate_and_release (test, &host);
+}
+
 static void host_processor_single_test_flash_rollback_null (CuTest *test)
 {
 	struct host_processor_single_testing host;
@@ -305,6 +369,8 @@ TEST (host_processor_single_test_flash_rollback_dirty);
 TEST (host_processor_single_test_flash_rollback_dirty_bypass);
 TEST (host_processor_single_test_flash_rollback_dirty_checked);
 TEST (host_processor_single_test_flash_rollback_dirty_checked_bypass);
+TEST (host_processor_single_test_flash_rollback_static_init);
+TEST (host_processor_single_test_flash_rollback_static_init_pulse_reset);
 TEST (host_processor_single_test_flash_rollback_null);
 
 TEST_SUITE_END;

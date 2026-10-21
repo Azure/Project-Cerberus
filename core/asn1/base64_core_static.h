@@ -8,7 +8,7 @@
 
 
 /* Internal functions declared to allow for static initialization. */
-int base64_core_encode (struct base64_engine *engine, const uint8_t *data, size_t length,
+int base64_core_encode (const struct base64_engine *engine, const uint8_t *data, size_t length,
 	uint8_t *encoded, size_t enc_length);
 
 

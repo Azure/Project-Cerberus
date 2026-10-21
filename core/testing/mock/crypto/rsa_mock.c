@@ -7,7 +7,8 @@
 #include "rsa_mock.h"
 
 
-static int rsa_mock_generate_key (struct rsa_engine *engine, struct rsa_private_key *key, int bits)
+static int rsa_mock_generate_key (const struct rsa_engine *engine, struct rsa_private_key *key,
+	int bits)
 {
 	struct rsa_engine_mock *mock = (struct rsa_engine_mock*) engine;
 
@@ -19,7 +20,7 @@ static int rsa_mock_generate_key (struct rsa_engine *engine, struct rsa_private_
 		MOCK_ARG_CALL (bits));
 }
 
-static int rsa_mock_init_private_key (struct rsa_engine *engine, struct rsa_private_key *key,
+static int rsa_mock_init_private_key (const struct rsa_engine *engine, struct rsa_private_key *key,
 	const uint8_t *der, size_t length)
 {
 	struct rsa_engine_mock *mock = (struct rsa_engine_mock*) engine;
@@ -32,7 +33,7 @@ static int rsa_mock_init_private_key (struct rsa_engine *engine, struct rsa_priv
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
-static void rsa_mock_release_key (struct rsa_engine *engine, struct rsa_private_key *key)
+static void rsa_mock_release_key (const struct rsa_engine *engine, struct rsa_private_key *key)
 {
 	struct rsa_engine_mock *mock = (struct rsa_engine_mock*) engine;
 
@@ -43,7 +44,7 @@ static void rsa_mock_release_key (struct rsa_engine *engine, struct rsa_private_
 	MOCK_VOID_RETURN (&mock->mock, rsa_mock_release_key, engine, MOCK_ARG_PTR_CALL (key));
 }
 
-static int rsa_mock_get_private_key_der (struct rsa_engine *engine,
+static int rsa_mock_get_private_key_der (const struct rsa_engine *engine,
 	const struct rsa_private_key *key, uint8_t **der, size_t *length)
 {
 	struct rsa_engine_mock *mock = (struct rsa_engine_mock*) engine;
@@ -56,7 +57,7 @@ static int rsa_mock_get_private_key_der (struct rsa_engine *engine,
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
-static int rsa_mock_decrypt (struct rsa_engine *engine, const struct rsa_private_key *key,
+static int rsa_mock_decrypt (const struct rsa_engine *engine, const struct rsa_private_key *key,
 	const uint8_t *encrypted, size_t in_length, const uint8_t *label, size_t label_length,
 	enum hash_type pad_hash, uint8_t *decrypted, size_t out_length)
 {
@@ -72,7 +73,7 @@ static int rsa_mock_decrypt (struct rsa_engine *engine, const struct rsa_private
 		MOCK_ARG_CALL (out_length));
 }
 
-static int rsa_mock_init_public_key (struct rsa_engine *engine, struct rsa_public_key *key,
+static int rsa_mock_init_public_key (const struct rsa_engine *engine, struct rsa_public_key *key,
 	const uint8_t *der, size_t length)
 {
 	struct rsa_engine_mock *mock = (struct rsa_engine_mock*) engine;
@@ -85,7 +86,7 @@ static int rsa_mock_init_public_key (struct rsa_engine *engine, struct rsa_publi
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_CALL (length));
 }
 
-static int rsa_mock_get_public_key_der (struct rsa_engine *engine,
+static int rsa_mock_get_public_key_der (const struct rsa_engine *engine,
 	const struct rsa_private_key *key, uint8_t **der, size_t *length)
 {
 	struct rsa_engine_mock *mock = (struct rsa_engine_mock*) engine;
@@ -98,7 +99,7 @@ static int rsa_mock_get_public_key_der (struct rsa_engine *engine,
 		MOCK_ARG_PTR_CALL (der), MOCK_ARG_PTR_CALL (length));
 }
 
-static int rsa_mock_sig_verify (struct rsa_engine *engine, const struct rsa_public_key *key,
+static int rsa_mock_sig_verify (const struct rsa_engine *engine, const struct rsa_public_key *key,
 	const uint8_t *signature, size_t sig_length, enum hash_type sig_hash, const uint8_t *match,
 	size_t match_length)
 {

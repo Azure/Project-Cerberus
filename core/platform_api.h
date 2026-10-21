@@ -26,6 +26,17 @@
  */
 typedef void (*timer_callback) (void *context);
 
+/**
+ * In case of Little Endian system this macro is NO-OP
+ * This attribute sets the storage order, aka endianness to little endian
+ * on Big Endian systems
+ */
+#if (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || \
+    defined(__BIG_ENDIAN__) || defined(_MIPSEB) || defined(__MIPSEB) || defined(__MIPSEB__)
+#define PLATFORM_LITTLE_ENDIAN_STORAGE __attribute__((scalar_storage_order("little-endian")))
+#else
+#define PLATFORM_LITTLE_ENDIAN_STORAGE
+#endif
 
 /* Include specifics for the platform port. */
 #include "platform.h"
@@ -96,6 +107,28 @@ void free (void *ptr);
  * Byte order conversion.
  **************************/
 
+#ifndef platform_htonll
+/**
+ * Convert a 64-bit integer from host byte order to network byte order (big endian).
+ *
+ * @param hostlonglong Integer in host byte order.
+ *
+ * @return Integer in network byte order.
+ */
+uint64_t platform_htonll (uint64_t hostlonglong);
+#endif
+
+#ifndef platform_ntohll
+/**
+ * Convert a 64-bit integer from network byte order to host byte order.
+ *
+ * @param netlonglong Integer in network byte order.
+ *
+ * @return Integer in host byte order.
+ */
+uint64_t platform_ntohll (uint64_t netlonglong);
+#endif
+
 #ifndef platform_htonl
 /**
  * Convert a 32-bit integer from host byte order to network byte order (big endian).
@@ -107,6 +140,17 @@ void free (void *ptr);
 uint32_t platform_htonl (uint32_t hostlong);
 #endif
 
+#ifndef platform_ntohl
+/**
+ * Convert a 32-bit integer from network byte order to host byte order.
+ *
+ * @param netlong Integer in network byte order.
+ *
+ * @return Integer in host byte order.
+ */
+uint32_t platform_ntohl (uint32_t netlong);
+#endif
+
 #ifndef platform_htons
 /**
  * Convert a 16-bit integer from host byte order to network byte order (big endian).
@@ -115,7 +159,18 @@ uint32_t platform_htonl (uint32_t hostlong);
  *
  * @return Integer in network byte order.
  */
-uint32_t platform_htons (uint32_t hostshort);
+uint16_t platform_htons (uint16_t hostshort);
+#endif
+
+#ifndef platform_ntohs
+/**
+ * Convert a 16-bit integer from network byte order to host byte order.
+ *
+ * @param netshort Integer in network byte order.
+ *
+ * @return Integer in host byte order.
+ */
+uint16_t platform_ntohs (uint16_t netshort);
 #endif
 
 

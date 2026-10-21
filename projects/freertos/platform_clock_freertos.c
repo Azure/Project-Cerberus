@@ -9,7 +9,10 @@
 
 int platform_init_timeout (uint32_t msec, platform_clock *timeout)
 {
-	TickType_t now = xTaskGetTickCount ();
+	/* It's safe to use the ISR version of the xTaskGetTickCount () call when running
+	 * on a 32-bit processor with a 32-bit (or less) tick count. We can then re-use the same
+	 * platform APIs for both ISR and non-ISR contexts. */
+	TickType_t now = xTaskGetTickCountFromISR ();
 
 	if (timeout == NULL) {
 		return PLATFORM_TIMEOUT_ERROR (PLATFORM_INVALID_ARGUMENT);
@@ -23,7 +26,10 @@ int platform_init_timeout (uint32_t msec, platform_clock *timeout)
 
 int platform_increase_timeout (uint32_t msec, platform_clock *timeout)
 {
-	TickType_t now = xTaskGetTickCount ();
+	/* It's safe to use the ISR version of the xTaskGetTickCount () call when running
+	 * on a 32-bit processor with a 32-bit (or less) tick count. We can then re-use the same
+	 * platform APIs for both ISR and non-ISR contexts. */
+	TickType_t now = xTaskGetTickCountFromISR ();
 
 	if (timeout == NULL) {
 		return PLATFORM_TIMEOUT_ERROR (PLATFORM_INVALID_ARGUMENT);
@@ -43,7 +49,10 @@ int platform_increase_timeout (uint32_t msec, platform_clock *timeout)
 
 int platform_has_timeout_expired (const platform_clock *timeout)
 {
-	TickType_t now = xTaskGetTickCount ();
+	/* It's safe to use the ISR version of the xTaskGetTickCount () call when running
+	 * on a 32-bit processor with a 32-bit (or less) tick count. We can then re-use the same
+	 * platform APIs for both ISR and non-ISR contexts. */
+	TickType_t now = xTaskGetTickCountFromISR ();
 
 	if (timeout == NULL) {
 		return PLATFORM_TIMEOUT_ERROR (PLATFORM_INVALID_ARGUMENT);
@@ -73,7 +82,10 @@ int platform_has_timeout_expired (const platform_clock *timeout)
 
 int platform_get_timeout_remaining (const platform_clock *timeout, uint32_t *msec)
 {
-	TickType_t now = xTaskGetTickCount ();
+	/* It's safe to use the ISR version of the xTaskGetTickCount () call when running
+	 * on a 32-bit processor with a 32-bit (or less) tick count. We can then re-use the same
+	 * platform APIs for both ISR and non-ISR contexts. */
+	TickType_t now = xTaskGetTickCountFromISR ();
 	uint32_t remaining = 0;
 
 	if ((timeout == NULL) || (msec == NULL)) {
@@ -99,12 +111,16 @@ int platform_get_timeout_remaining (const platform_clock *timeout, uint32_t *mse
 	}
 
 	*msec = remaining * portTICK_PERIOD_MS;
+
 	return 0;
 }
 
 int platform_init_current_tick (platform_clock *currtime)
 {
-	TickType_t now = xTaskGetTickCount ();
+	/* It's safe to use the ISR version of the xTaskGetTickCount () call when running
+	 * on a 32-bit processor with a 32-bit (or less) tick count. We can then re-use the same
+	 * platform APIs for both ISR and non-ISR contexts. */
+	TickType_t now = xTaskGetTickCountFromISR ();
 
 	if (currtime == NULL) {
 		return PLATFORM_TIMEOUT_ERROR (PLATFORM_INVALID_ARGUMENT);

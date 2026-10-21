@@ -3,8 +3,11 @@
 
 #include <string.h>
 #include "spdm_secure_session_manager.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
+#include "crypto/ecdh.h"
 #include "crypto/kdf.h"
+#include "fips/fips_logging.h"
 
 /**
  * Initialize a secure session's state.
@@ -15,17 +18,27 @@
  * @param is_requester true if the local host is the SPDM requester.
  * @param connection_info Peer Connection info.
  */
-static void spdm_secure_session_manager_init_session_state (
+static int spdm_secure_session_manager_init_session_state (
 	const struct spdm_secure_session_manager *session_manager, uint32_t session_index,
-	uint32_t session_id, bool is_requester,	const struct spdm_connection_info *connection_info)
+	uint32_t session_id, bool is_requester, const struct spdm_connection_info *connection_info)
 {
 	enum spdm_secure_session_type session_type;
 	struct spdm_get_capabilities_flags_format req_capability;
 	struct spdm_get_capabilities_flags_format resp_capability;
 	struct spdm_secure_session *session;
 	const struct spdm_transcript_manager *transcript_manager;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
-	session = &session_manager->state->sessions[session_index];
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return status;
+	}
+
+	session = &state->sessions[session_index];
 	transcript_manager = session_manager->transcript_manager;
 
 	/* Determine the session type. */
@@ -65,6 +78,10 @@ static void spdm_secure_session_manager_init_session_state (
 	session->aead_iv_size = spdm_get_aead_iv_size (session->aead_cipher_suite);
 	session->aead_tag_size = spdm_get_aead_tag_size (session->aead_cipher_suite);
 	session->peer_capabilities = connection_info->peer_capabilities;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return 0;
 }
 
 struct spdm_secure_session* spdm_secure_session_manager_create_session (
@@ -73,19 +90,32 @@ struct spdm_secure_session* spdm_secure_session_manager_create_session (
 {
 	struct spdm_secure_session *sessions;
 	uint8_t index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+	struct spdm_secure_session *session = NULL;
 
 	if ((session_manager == NULL) || (session_id == SPDM_INVALID_SESSION_ID) ||
-		(connection_info == NULL) ||
-		(session_manager->state->current_session_count >= SPDM_MAX_SESSION_COUNT)) {
+		(connection_info == NULL)) {
 		return NULL;
 	}
 
-	sessions = session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return NULL;
+	}
+
+	if (state->current_session_count >= SPDM_MAX_SESSION_COUNT) {
+		goto exit;
+	}
+
+	sessions = state->sessions;
 
 	/* Check if the session exists. */
 	for (index = 0; index < SPDM_MAX_SESSION_COUNT; index++) {
 		if (sessions[index].session_id == session_id) {
-			return NULL;
+			goto exit;
 		}
 	}
 
@@ -95,13 +125,20 @@ struct spdm_secure_session* spdm_secure_session_manager_create_session (
 			spdm_secure_session_manager_init_session_state (session_manager, index, session_id,
 				is_requester, connection_info);
 
-			session_manager->state->current_session_count++;
+			state->current_session_count++;
 
-			return &sessions[index];
+			session = &sessions[index];
+			break;
 		}
 	}
 
-	return NULL;
+exit:
+	if (session == NULL) {
+		/* Client is expected to call unlock_session() in case session was created successfully*/
+		session_manager->spdm_context->unlock (session_manager->spdm_context);
+	}
+
+	return session;
 }
 
 void spdm_secure_session_manager_release_session (
@@ -110,23 +147,34 @@ void spdm_secure_session_manager_release_session (
 	struct spdm_secure_session *sessions;
 	const struct spdm_transcript_manager *transcript_manager;
 	size_t session_index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
 	if ((session_manager == NULL) || (session_id == SPDM_INVALID_SESSION_ID)) {
 		return;
 	}
 
-	sessions = session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return;
+	}
+
+	sessions = state->sessions;
 	transcript_manager = session_manager->transcript_manager;
 
 	for (session_index = 0; session_index < SPDM_MAX_SESSION_COUNT; session_index++) {
 		if (sessions[session_index].session_id == session_id) {
 			memset (&sessions[session_index], 0, sizeof (struct spdm_secure_session));
 			transcript_manager->reset_session_transcript (transcript_manager, session_index);
-			session_manager->state->current_session_count--;
+			state->current_session_count--;
 
-			return;
+			break;
 		}
 	}
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 /**
@@ -136,22 +184,10 @@ void spdm_secure_session_manager_release_session (
  */
 static void spdm_secure_session_clear_handshake_secret (struct spdm_secure_session *session)
 {
-	memset (session->master_secret.handshake_secret, 0,
-		sizeof (session->master_secret.handshake_secret));
 	memset (&session->handshake_secret, 0, sizeof (struct spdm_secure_session_handshake_secrets));
 
 	session->requester_backup_valid = false;
 	session->responder_backup_valid = false;
-}
-
-/**
- * Clear the master secrets.
- *
- * @param session SPDM secure session.
- */
-static void spdm_secure_session_clear_master_secret (struct spdm_secure_session *session)
-{
-	memset (session->master_secret.master_secret, 0, sizeof (session->master_secret.master_secret));
 }
 
 void spdm_secure_session_manager_set_session_state (
@@ -176,32 +212,51 @@ void spdm_secure_session_manager_set_session_state (
 		/* Session handshake keys should be zeroized after the handshake phase. */
 		if (session_state == SPDM_SESSION_STATE_ESTABLISHED) {
 			spdm_secure_session_clear_handshake_secret (session);
-			spdm_secure_session_clear_master_secret (session);
 		}
 	}
+
+	session_manager->unlock_session (session_manager, session);
 }
 
 void spdm_secure_session_manager_reset (const struct spdm_secure_session_manager *session_manager)
 {
 	struct spdm_secure_session *sessions;
 	size_t session_index;
+	uint32_t session_id;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
 	if (session_manager == NULL) {
 		return;
 	}
 
-	sessions = session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return;
+	}
+
+	sessions = state->sessions;
 
 	/* Release all sessions. */
 	for (session_index = 0; session_index < SPDM_MAX_SESSION_COUNT; session_index++) {
-		if (sessions[session_index].session_id != SPDM_INVALID_SESSION_ID) {
-			spdm_secure_session_manager_release_session (session_manager,
-				sessions[session_index].session_id);
+		session_id = sessions[session_index].session_id;
+
+		if (session_id != SPDM_INVALID_SESSION_ID) {
+			spdm_secure_session_manager_release_session (session_manager, session_id);
+
+			observable_notify_observers_with_ptr (&session_manager->state->observable,
+				offsetof (struct spdm_protocol_session_observer, on_close_session), &session_id);
 		}
 	}
 
-	/* Reset the state. */
-	memset (session_manager->state, 0, sizeof (struct spdm_secure_session_manager_state));
+	/* Reset the state, maintaining the observer manager. */
+	memset (session_manager->state, 0,
+		offsetof (struct spdm_secure_session_manager_state, observable));
+	memset (state, 0, sizeof (struct spdm_secure_session_manager_persistent_state));
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 struct spdm_secure_session* spdm_secure_session_manager_get_session (
@@ -209,19 +264,41 @@ struct spdm_secure_session* spdm_secure_session_manager_get_session (
 {
 	struct spdm_secure_session *sessions;
 	size_t index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
 
 	if ((session_manager == NULL) || (session_id == SPDM_INVALID_SESSION_ID)) {
 		return NULL;
 	}
 
-	sessions = (struct spdm_secure_session*) session_manager->state->sessions;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return NULL;
+	}
+
+	sessions = (struct spdm_secure_session*) state->sessions;
 	for (index = 0; index < SPDM_MAX_SESSION_COUNT; index++) {
 		if (sessions[index].session_id == session_id) {
+			/* keep it locked, caller is supposed to call unlock_session() */
 			return &sessions[index];
 		}
 	}
 
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
 	return NULL;
+}
+
+void spdm_secure_session_manager_unlock_session (
+	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session)
+{
+	if ((session_manager == NULL) || (session == NULL)) {
+		return;
+	}
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 int spdm_secure_session_manager_generate_shared_secret (
@@ -229,17 +306,18 @@ int spdm_secure_session_manager_generate_shared_secret (
 	const struct ecc_point_public_key *peer_pub_key_point, uint8_t *local_pub_key_point)
 {
 	int status;
-	uint8_t peer_pub_key_der[ECC_DER_MAX_PUBLIC_LENGTH];
+	uint8_t peer_pub_key_der[ECC_DER_MAX_PUBLIC_LENGTH] = {0};
 	int der_len;
-	struct ecc_engine *ecc_engine;
+	const struct ecc_engine *ecc_engine;
 	struct ecc_public_key peer_pub_key;
 	struct ecc_private_key local_priv_key;
 	struct ecc_public_key local_pub_key;
 	uint8_t *local_pub_key_der = NULL;
-	size_t local_pub_key_der_len;
+	size_t local_pub_key_der_len = 0;
 	bool release_local_key_pair = false;
 	bool release_peer_pub_key = false;
 	int shared_secret_len;
+	struct debug_log_entry_info pct_error = {};
 	size_t key_point_length;
 
 	if ((session_manager == NULL) || (session == NULL) || (peer_pub_key_point == NULL) ||
@@ -267,9 +345,21 @@ int spdm_secure_session_manager_generate_shared_secret (
 	release_peer_pub_key = true;
 
 	/* Generate an ephemeral key pair. */
-	status = ecc_engine->generate_key_pair (ecc_engine, key_point_length, &local_priv_key,
+	status = ecdh_generate_random_key (ecc_engine, key_point_length, &local_priv_key,
 		&local_pub_key);
 	if (status != 0) {
+		if (session_manager->error != NULL) {
+			/* TODO: Consider creating global fatal_error() function which would pass control to
+			 * error handling task for eventual reset. */
+			pct_error.severity = DEBUG_LOG_SEVERITY_ERROR;
+			pct_error.component = DEBUG_LOG_COMPONENT_FIPS;
+			pct_error.msg_index = FIPS_LOGGING_ECDH_PCT_FAILED;
+			pct_error.arg1 = session_manager->algo_info.ecdh_instance_id;
+			pct_error.arg2 = status;
+			pct_error.format = 1;
+
+			session_manager->error->enter_error_state (session_manager->error, &pct_error);
+		}
 		goto exit;
 	}
 	release_local_key_pair = true;
@@ -319,7 +409,10 @@ exit:
 		ecc_engine->release_key_pair (ecc_engine, NULL, &peer_pub_key);
 	}
 
+	buffer_zeroize (local_pub_key_der, local_pub_key_der_len);
 	platform_free (local_pub_key_der);
+
+	buffer_zeroize (peer_pub_key_der, sizeof (peer_pub_key_der));
 
 	return status;
 }
@@ -368,17 +461,14 @@ static void spdm_secure_session_manager_bin_concat (struct spdm_version_number v
 /**
  * Generate the SPDM finished key for a session.
  *
- * @param hash_engine Hash engine instance to use.
+ * @param hkdf HKDF interface to be used.
  * @param session SPDM session.
- * @param hmac_hash_type HMAC hash type.
- * @param handshake_secret Handshake secret.
  * @param finished_key Buffer to store the finished key.
  *
  * @return 0 if the SPDM finished key for a session is generated, error code otherwise.
  */
-static int spdm_secure_session_manager_generate_finished_key (struct hash_engine *hash_engine,
-	struct spdm_secure_session *session, enum hmac_hash hmac_hash_type,
-	const uint8_t *handshake_secret, uint8_t *finished_key)
+static int spdm_secure_session_manager_generate_finished_key (const struct hkdf_interface *hkdf,
+	struct spdm_secure_session *session, uint8_t *finished_key)
 {
 	int status;
 	size_t hash_size;
@@ -392,8 +482,7 @@ static int spdm_secure_session_manager_generate_finished_key (struct hash_engine
 		sizeof (SPDM_BIN_STR_7_LABEL) - 1, NULL, (uint16_t) hash_size, hash_size, bin_str7,
 		&bin_str7_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, handshake_secret, hash_size,	bin_str7,
-		bin_str7_size, finished_key, hash_size);
+	status = hkdf->expand (hkdf, bin_str7, bin_str7_size, finished_key, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -406,20 +495,19 @@ exit:
 /**
  * Generate the SPDM AEAD key and IV for a session.
  *
- * @param hash_engine Hash engine instance to use.
- * @param spdm_secured_message_context SPDM secured message context.
+ * @param hkdf HKDF interface
+ * @param session SPDM secured session.
  * @param hmac_hash_type HMAC hash type.
- * @param major_secret Major secret.
  * @param key Buffer to store the AEAD key.
  * @param iv Buffer to store the AEAD IV.
  *
  * @return 0 if the SPDM AEAD key and IV are generated, error code otherwise.
  */
-static int spdm_session_manager_generate_aead_key_and_iv (struct hash_engine *hash_engine,
-	struct spdm_secure_session *session, enum hmac_hash hmac_hash_type,	const uint8_t *major_secret,
-	uint8_t *key, uint8_t *iv)
+static int spdm_secure_session_manager_generate_aead_key_and_iv (
+	const struct hkdf_interface *hkdf, struct spdm_secure_session *session,	uint8_t *key,
+	uint8_t *iv)
 {
-	bool status;
+	int status;
 	size_t hash_size;
 	size_t key_length;
 	size_t iv_length;
@@ -438,8 +526,7 @@ static int spdm_session_manager_generate_aead_key_and_iv (struct hash_engine *ha
 		sizeof (SPDM_BIN_STR_5_LABEL) - 1, NULL, (uint16_t) key_length, hash_size, bin_str5,
 		&bin_str5_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, major_secret, hash_size, bin_str5,
-		bin_str5_size, key, key_length);
+	status = hkdf->expand (hkdf, bin_str5, bin_str5_size, key, key_length);
 	if (status != 0) {
 		goto exit;
 	}
@@ -450,8 +537,7 @@ static int spdm_session_manager_generate_aead_key_and_iv (struct hash_engine *ha
 		sizeof (SPDM_BIN_STR_6_LABEL) - 1, NULL, (uint16_t) iv_length, hash_size, bin_str6,
 		&bin_str6_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, major_secret, hash_size, bin_str6,
-		bin_str6_size, iv, iv_length);
+	status = hkdf->expand (hkdf, bin_str6, bin_str6_size, iv, iv_length);
 	if (status != 0) {
 		goto exit;
 	}
@@ -466,22 +552,21 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 {
 	int status;
 	const struct spdm_transcript_manager *transcript_manager;
-	struct hash_engine *hash_engine;
-	uint8_t th1_hash[HASH_MAX_HASH_LEN];
+	uint8_t th1_hash[HASH_MAX_HASH_LEN] = {0};
 	size_t hash_size;
+	uint8_t bin_str0[128];
+	size_t bin_str0_size;
 	uint8_t bin_str1[128];
 	size_t bin_str1_size;
 	uint8_t bin_str2[128];
 	size_t bin_str2_size;
-	uint8_t salt0[HASH_MAX_HASH_LEN];
-	enum hmac_hash hmac_hash_type;
+	enum hash_type hash_type;
 
 	if ((session_manager == NULL) || (session == NULL)) {
-		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
-		goto exit;
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
+
 	transcript_manager = session_manager->transcript_manager;
-	hash_engine = session_manager->hash_engine;
 	hash_size = session->hash_size;
 
 	/* Step 1: Get the TH hash; do not complete the hash context as it is needed later. */
@@ -492,14 +577,24 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	}
 
 	/* Step 2: Use the TH hash to generate the session handshake key. */
-	hmac_hash_type = (enum hmac_hash) spdm_get_hash_type (session->base_hash_algo);
+	hash_type = spdm_get_hash_type (session->base_hash_algo);
 
-	memset (salt0, 0, sizeof (salt0));
+	/* Generate HKDF PRK of salt0 with DHE shared secret. */
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
+		session->master_secret.dhe_secret, hash_size, NULL, 0);
 
-	/* Generate HMAC of salt0 with DHE shared secret. */
-	status = hash_generate_hmac (hash_engine, salt0, session->dhe_key_size,
-		session->master_secret.dhe_secret, hash_size, hmac_hash_type,
-		session->master_secret.handshake_secret, hash_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate Salt1 for future master secret generation */
+	bin_str0_size = sizeof (bin_str0);
+	spdm_secure_session_manager_bin_concat (session->version, SPDM_BIN_STR_0_LABEL,
+		sizeof (SPDM_BIN_STR_0_LABEL) - 1, NULL, (uint16_t) hash_size, hash_size, bin_str0,
+		&bin_str0_size);
+
+	status = session_manager->hkdf->expand (session_manager->hkdf, bin_str0, bin_str0_size,
+		session->master_secret.master_secret_salt1, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -510,9 +605,31 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 		sizeof (SPDM_BIN_STR_1_LABEL) - 1, th1_hash, (uint16_t) hash_size, hash_size, bin_str1,
 		&bin_str1_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str1, bin_str1_size,	session->handshake_secret.request_handshake_secret,
-		hash_size);
+	/* Generate request handshake secret and set it as PRK */
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str1, bin_str1_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate the requester finished key. */
+	status = spdm_secure_session_manager_generate_finished_key (session_manager->hkdf, session,
+		session->handshake_secret.request_finished_key);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate the requester AEAD key and IV. */
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
+		session->handshake_secret.request_handshake_encryption_key,
+		session->handshake_secret.request_handshake_salt);
+	if (status != 0) {
+		goto exit;
+	}
+	session->handshake_secret.request_handshake_sequence_number = 0;
+
+	/* Generate HKDF PRK of salt0 with DHE shared secret. */
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type,
+		session->master_secret.dhe_secret, hash_size, NULL, 0);
 	if (status != 0) {
 		goto exit;
 	}
@@ -523,42 +640,20 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 		sizeof (SPDM_BIN_STR_2_LABEL) - 1, th1_hash, (uint16_t) hash_size, hash_size, bin_str2,
 		&bin_str2_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str2, bin_str2_size,	session->handshake_secret.response_handshake_secret,
-		hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
-	/* Generate the requester finished key. */
-	status = spdm_secure_session_manager_generate_finished_key (hash_engine, session,
-		hmac_hash_type, session->handshake_secret.request_handshake_secret,
-		session->handshake_secret.request_finished_key);
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str2, bin_str2_size);
 	if (status != 0) {
 		goto exit;
 	}
 
 	/* Generate the responder finished key. */
-	status = spdm_secure_session_manager_generate_finished_key (hash_engine, session,
-		hmac_hash_type, session->handshake_secret.response_handshake_secret,
+	status = spdm_secure_session_manager_generate_finished_key (session_manager->hkdf, session,
 		session->handshake_secret.response_finished_key);
 	if (status != 0) {
 		goto exit;
 	}
 
-	/* Generate the requester AEAD key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->handshake_secret.request_handshake_secret,
-		session->handshake_secret.request_handshake_encryption_key,
-		session->handshake_secret.request_handshake_salt);
-	if (status != 0) {
-		goto exit;
-	}
-	session->handshake_secret.request_handshake_sequence_number = 0;
-
 	/* Generate the responder AEAD key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->handshake_secret.response_handshake_secret,
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
 		session->handshake_secret.response_handshake_encryption_key,
 		session->handshake_secret.response_handshake_salt);
 	if (status != 0) {
@@ -567,9 +662,11 @@ int spdm_secure_session_manager_generate_session_handshake_keys (
 	session->handshake_secret.response_handshake_sequence_number = 0;
 
 	/* Clear the DHE shared secret. */
-	memset (session->master_secret.dhe_secret, 0, SPDM_MAX_DHE_SHARED_SECRET_SIZE);
+	buffer_zeroize (session->master_secret.dhe_secret, SPDM_MAX_DHE_SHARED_SECRET_SIZE);
 
 exit:
+	buffer_zeroize (th1_hash, sizeof (th1_hash));
+	session_manager->hkdf->clear_prk (session_manager->hkdf);
 
 	return status;
 }
@@ -577,19 +674,63 @@ exit:
 bool spdm_secure_session_manager_is_last_session_id_valid (
 	const struct spdm_secure_session_manager *session_manager)
 {
-	return session_manager->state->last_spdm_request_secure_session_id_valid;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+	bool ret = false;
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return false;
+	}
+
+	ret = state->last_spdm_request_secure_session_id_valid;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return ret;
 }
 
 uint32_t spdm_secure_session_manager_get_last_session_id (
 	const struct spdm_secure_session_manager *session_manager)
 {
-	return session_manager->state->last_spdm_request_secure_session_id;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+	uint32_t ret = SPDM_INVALID_SESSION_ID;
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return SPDM_INVALID_SESSION_ID;
+	}
+
+	ret = state->last_spdm_request_secure_session_id;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return ret;
 }
 
 void spdm_secure_session_manager_reset_last_session_id_validity (
 	const struct spdm_secure_session_manager *session_manager)
 {
-	session_manager->state->last_spdm_request_secure_session_id_valid = false;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return;
+	}
+
+	state->last_spdm_request_secure_session_id_valid = false;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 }
 
 int spdm_secure_session_manager_generate_session_data_keys (
@@ -597,47 +738,28 @@ int spdm_secure_session_manager_generate_session_data_keys (
 {
 	int status;
 	size_t hash_size;
-	uint8_t salt1[HASH_MAX_HASH_LEN];
-	uint8_t bin_str0[128];
-	size_t bin_str0_size;
 	uint8_t bin_str3[128];
 	size_t bin_str3_size;
 	uint8_t bin_str4[128];
 	size_t bin_str4_size;
-	uint8_t bin_str8[128];
-	size_t bin_str8_size;
-	uint8_t zero_filled_buffer[HASH_MAX_HASH_LEN];
-	enum hmac_hash hmac_hash_type;
-	struct hash_engine *hash_engine;
+	enum hash_type hash_type;
 	const struct spdm_transcript_manager *transcript_manager;
-	uint8_t th2_hash[HASH_MAX_HASH_LEN];
+	uint8_t th2_hash[HASH_MAX_HASH_LEN] = {0};
+	uint8_t zero_filled_buffer[HASH_MAX_HASH_LEN];
 
 	if ((session_manager == NULL) || (session == NULL)) {
 		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
 	hash_size = session->hash_size;
-	hmac_hash_type = (enum hmac_hash) spdm_get_hash_type (session->base_hash_algo);
-	hash_engine = session_manager->hash_engine;
+	hash_type = spdm_get_hash_type (session->base_hash_algo);
 	transcript_manager = session_manager->transcript_manager;
 
-	/* Derive salt1 key. */
-	bin_str0_size = sizeof (bin_str0);
-	spdm_secure_session_manager_bin_concat (session->version, SPDM_BIN_STR_0_LABEL,
-		sizeof (SPDM_BIN_STR_0_LABEL) - 1, NULL, (uint16_t) hash_size, hash_size, bin_str0,
-		&bin_str0_size);
-
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.handshake_secret,
-		hash_size, bin_str0, bin_str0_size, salt1, hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
-	/* Generate the master secret. */
 	memset (zero_filled_buffer, 0, sizeof (zero_filled_buffer));
 
-	status = hash_generate_hmac (hash_engine, salt1, hash_size, zero_filled_buffer, hash_size,
-		hmac_hash_type, session->master_secret.master_secret, hash_size);
+	/* Generate the master secret. */
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type, zero_filled_buffer,
+		hash_size, session->master_secret.master_secret_salt1, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -655,8 +777,22 @@ int spdm_secure_session_manager_generate_session_data_keys (
 		sizeof (SPDM_BIN_STR_3_LABEL) - 1, th2_hash, (uint16_t) hash_size, hash_size, bin_str3,
 		&bin_str3_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.master_secret,
-		hash_size, bin_str3, bin_str3_size, session->data_secret.request_data_secret, hash_size);
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str3, bin_str3_size);
+	if (status != 0) {
+		goto exit;
+	}
+
+	/* Generate the requester data encryption key and IV. */
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
+		session->data_secret.request_data_encryption_key, session->data_secret.request_data_salt);
+	if (status != 0) {
+		goto exit;
+	}
+	session->data_secret.request_data_sequence_number = 0;
+
+	/* Generate the master secret for respond key generation. */
+	status = session_manager->hkdf->extract (session_manager->hkdf, hash_type, zero_filled_buffer,
+		hash_size, session->master_secret.master_secret_salt1, hash_size);
 	if (status != 0) {
 		goto exit;
 	}
@@ -667,45 +803,25 @@ int spdm_secure_session_manager_generate_session_data_keys (
 		sizeof (SPDM_BIN_STR_4_LABEL) - 1, th2_hash, (uint16_t) hash_size, hash_size, bin_str4,
 		&bin_str4_size);
 
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.master_secret,
-		hash_size, bin_str4, bin_str4_size, session->data_secret.response_data_secret, hash_size);
+	status = session_manager->hkdf->update_prk (session_manager->hkdf, bin_str4, bin_str4_size);
 	if (status != 0) {
 		goto exit;
 	}
-
-	/* Generate the export master secret. */
-	bin_str8_size = sizeof (bin_str8);
-	spdm_secure_session_manager_bin_concat (session->version, SPDM_BIN_STR_8_LABEL,
-		sizeof (SPDM_BIN_STR_8_LABEL) - 1, th2_hash, (uint16_t) hash_size, hash_size, bin_str8,
-		&bin_str8_size);
-
-	status = kdf_hkdf_expand (hash_engine, hmac_hash_type, session->master_secret.master_secret,
-		hash_size, bin_str8, bin_str8_size,	session->export_master_secret, hash_size);
-	if (status != 0) {
-		goto exit;
-	}
-
-	/* Generate the requester data encryption key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->data_secret.request_data_secret, session->data_secret.request_data_encryption_key,
-		session->data_secret.request_data_salt);
-	if (status != 0) {
-		goto exit;
-	}
-	session->data_secret.request_data_sequence_number = 0;
 
 	/* Generate the responder data encryption key and IV. */
-	status = spdm_session_manager_generate_aead_key_and_iv (hash_engine, session, hmac_hash_type,
-		session->data_secret.response_data_secret,
+	status = spdm_secure_session_manager_generate_aead_key_and_iv (session_manager->hkdf, session,
 		session->data_secret.response_data_encryption_key, session->data_secret.response_data_salt);
 	if (status != 0) {
 		goto exit;
 	}
 	session->data_secret.response_data_sequence_number = 0;
 
+	/* Don't generate export master secret. We are keeping Salt1 for generating mster secret,
+	 * so we could use it later to regenearate export secret */
+
 exit:
-	/* Zeroize salt1 for security */
-	memset (salt1, 0, hash_size);
+	buffer_zeroize (th2_hash, sizeof (th2_hash));
+	session_manager->hkdf->clear_prk (session_manager->hkdf);
 
 	return status;
 }
@@ -721,7 +837,7 @@ exit:
 static void spdm_secure_session_manager_generate_iv (uint64_t sequence_number, uint8_t *iv,
 	const uint8_t *salt, size_t aead_iv_size)
 {
-	uint8_t iv_temp[SPDM_MAX_AEAD_IV_SIZE];
+	uint8_t iv_temp[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	size_t index;
 
 	/* Construct the AEAD IV from the salt and the sequence number. */
@@ -735,6 +851,8 @@ static void spdm_secure_session_manager_generate_iv (uint64_t sequence_number, u
 	for (index = 0; index < sizeof (sequence_number); index++) {
 		iv[index] = iv[index] ^ iv_temp[index];
 	}
+
+	buffer_zeroize (iv_temp, sizeof (iv_temp));
 }
 
 /**
@@ -769,7 +887,7 @@ int spdm_secure_session_manager_decrypt_message (
 	size_t plaintext_size;
 	size_t ciphertext_size;
 	const uint8_t *tag;
-	struct aes_engine *aes_engine;
+	const struct aes_gcm_engine *aes_engine;
 
 	UNUSED (sequence_number);
 	UNUSED (salt);
@@ -846,7 +964,7 @@ int spdm_secure_session_manager_decode_secure_message (
 	const struct spdm_secure_session_manager *session_manager, struct cmd_interface_msg *request)
 {
 	int status;
-	struct spdm_secure_session *session;
+	struct spdm_secure_session *session = NULL;
 	enum spdm_secure_session_state session_state;
 	enum spdm_secure_session_type session_type;
 	size_t aead_iv_size;
@@ -854,20 +972,25 @@ int spdm_secure_session_manager_decode_secure_message (
 	uint8_t *salt;
 	uint64_t sequence_number;
 	uint8_t sequence_num_in_header_size;
-	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE];
+	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	struct spdm_secured_message_data_header_1 *secured_message_data_header_1;
-	struct spdm_secure_session_manager_state *session_manager_state;
+	struct spdm_secure_session_manager_persistent_state *state;
 
 	if ((session_manager == NULL) || (request == NULL)) {
-		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
-		goto exit;
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	session_manager_state = session_manager->state;
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return status;
+	}
 
 	/* Reset the last secure session id processed. */
-	session_manager_state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
-	session_manager_state->last_spdm_request_secure_session_id_valid = false;
+	state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
+	state->last_spdm_request_secure_session_id_valid = false;
 
 	/* Get the session Id from the secure message. */
 	if (request->payload_length < sizeof (struct spdm_secured_message_data_header_1)) {
@@ -926,7 +1049,7 @@ int spdm_secure_session_manager_decode_secure_message (
 
 	switch (session_type) {
 		case SPDM_SESSION_TYPE_ENC_MAC:
-			status = spdm_secure_session_manager_decrypt_message (session_manager, session,	request,
+			status = spdm_secure_session_manager_decrypt_message (session_manager, session, request,
 				sequence_number, sequence_num_in_header_size, key, salt, iv);
 			break;
 
@@ -936,10 +1059,15 @@ int spdm_secure_session_manager_decode_secure_message (
 			goto exit;
 	}
 
-	session_manager_state->last_spdm_request_secure_session_id = session->session_id;
-	session_manager_state->last_spdm_request_secure_session_id_valid = true;
+	state->last_spdm_request_secure_session_id = session->session_id;
+	state->last_spdm_request_secure_session_id_valid = true;
 
 exit:
+	buffer_zeroize (iv, sizeof (iv));
+	if (session != NULL) {
+		session_manager->unlock_session (session_manager, session);
+	}
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 
 	return status;
 }
@@ -958,7 +1086,7 @@ exit:
  */
 static int spdm_secure_session_manager_encrypt_message (
 	const struct spdm_secure_session_manager *session_manager, struct spdm_secure_session *session,
-	struct cmd_interface_msg *request, uint8_t sequence_num_in_header_size,	const uint8_t *key,
+	struct cmd_interface_msg *request, uint8_t sequence_num_in_header_size, const uint8_t *key,
 	const uint8_t *iv)
 {
 	int status;
@@ -974,7 +1102,7 @@ static int spdm_secure_session_manager_encrypt_message (
 	struct spdm_secured_message_data_header_1 *record_header_1;
 	struct spdm_secured_message_data_header_2 *record_header_2;
 	struct spdm_secured_message_cipher_header *enc_msg_header;
-	struct aes_engine *aes_engine;
+	const struct aes_gcm_engine *aes_engine;
 	uint8_t *tag;
 	uint8_t *add_data;
 
@@ -1047,24 +1175,32 @@ int spdm_secure_session_manager_encode_secure_message (
 	const uint8_t *key;
 	uint8_t *salt;
 	size_t aead_iv_size;
-	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE];
+	uint8_t iv[SPDM_MAX_AEAD_IV_SIZE] = {0};
 	uint64_t sequence_number;
 	uint8_t sequence_num_in_header_size;
-	struct spdm_secure_session *session;
+	struct spdm_secure_session *session = NULL;
 	uint8_t req_rsp_code;
+	uint32_t session_id;
+	struct spdm_secure_session_manager_persistent_state *state;
 
 	if ((session_manager == NULL) || (request == NULL)) {
-		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
-		goto exit;
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	if (session_manager->state->last_spdm_request_secure_session_id_valid == false) {
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+	if (status != 0) {
+		return status;
+	}
+
+	if (state->last_spdm_request_secure_session_id_valid == false) {
 		status = SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR;
 		goto exit;
 	}
 
 	session = session_manager->get_session (session_manager,
-		session_manager->state->last_spdm_request_secure_session_id);
+		state->last_spdm_request_secure_session_id);
 	if (session == NULL) {
 		status = SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR;
 		goto exit;
@@ -1114,7 +1250,7 @@ int spdm_secure_session_manager_encode_secure_message (
 
 	switch (session_type) {
 		case SPDM_SESSION_TYPE_ENC_MAC:
-			status = spdm_secure_session_manager_encrypt_message (session_manager, session,	request,
+			status = spdm_secure_session_manager_encrypt_message (session_manager, session, request,
 				sequence_num_in_header_size, key, iv);
 			break;
 
@@ -1125,22 +1261,75 @@ int spdm_secure_session_manager_encode_secure_message (
 	}
 
 	if (status == 0) {
+		session_id = session->session_id;
+
 		switch (req_rsp_code) {
 			case SPDM_RESPONSE_FINISH:
-				if ((session_manager->local_capabilities->flags.handshake_in_the_clear_cap == 0) &&
-					(session->peer_capabilities.flags.handshake_in_the_clear_cap == 0)) {
-					spdm_secure_session_manager_set_session_state (session_manager,
-						session->session_id, SPDM_SESSION_STATE_ESTABLISHED);
-				}
+				/* Change session state regardless of handshake type (in clear vs not)*/
+				spdm_secure_session_manager_set_session_state (session_manager, session_id,
+					SPDM_SESSION_STATE_ESTABLISHED);
+
+				observable_notify_observers_with_ptr (&session_manager->state->observable,
+					offsetof (struct spdm_protocol_session_observer, on_new_session), &session_id);
 				break;
 
 			case SPDM_RESPONSE_END_SESSION:
-				session_manager->release_session (session_manager, session->session_id);
+				session_manager->release_session (session_manager, session_id);
+
+				observable_notify_observers_with_ptr (&session_manager->state->observable,
+					offsetof (struct spdm_protocol_session_observer, on_close_session),
+					&session_id);
 				break;
 		}
 	}
 
 exit:
+	buffer_zeroize (iv, sizeof (iv));
+	if (session != NULL) {
+		session_manager->unlock_session (session_manager, session);
+	}
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return status;
+}
+
+int spdm_secure_session_manager_is_termination_policy_set (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	struct spdm_secure_session *session;
+	uint8_t index;
+	struct spdm_secure_session_manager_persistent_state *state;
+	int status;
+
+	if (session_manager == NULL) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &state);
+
+	if (status != 0) {
+		return status;
+	}
+
+	for (index = 0; index < SPDM_MAX_SESSION_COUNT; index++) {
+		session = &state->sessions[index];
+
+		/* The termination policy value is only valid for established sessions. */
+		if ((session->session_id == SPDM_INVALID_SESSION_ID) ||
+			(session->session_state != SPDM_SESSION_STATE_ESTABLISHED)) {
+			continue;
+		}
+
+		if (session->session_policy == 0) {
+			status = SPDM_SECURE_SESSION_MANAGER_TERMINATION_POLICY_NOT_SET;
+			goto exit;
+		}
+	}
+
+exit:
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
 
 	return status;
 }
@@ -1157,15 +1346,22 @@ exit:
  * @param rng RNG engine.
  * @param ecc ECC engine.
  * @param transcript_manager Transcript Manager.
+ * @param hkdf HKDF implementation
+ * @param error Error state management interface.
+ * @param algo_info Metadata for provided algorithms
+ * @param spdm_context SPDM context for retrieving persistent state.
  *
  * @return 0 if the session manager is initialized successfully, error code otherwise.
  */
 int spdm_secure_session_manager_init (struct spdm_secure_session_manager *session_manager,
 	struct spdm_secure_session_manager_state *state,
 	const struct spdm_device_capability *local_capabilities,
-	const struct spdm_device_algorithms *local_algorithms, struct aes_engine *aes_engine,
-	struct hash_engine *hash_engine, struct rng_engine *rng_engine, struct ecc_engine *ecc_engine,
-	const struct spdm_transcript_manager *transcript_manager)
+	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
+	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
+	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager,
+	const struct hkdf_interface *hkdf, const struct error_state_entry_interface *error,
+	struct spdm_secure_session_manager_algo_info algo_info,
+	const struct spdm_persistent_context_interface *spdm_context)
 {
 	int status;
 
@@ -1185,6 +1381,10 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 	session_manager->ecc_engine = ecc_engine;
 	session_manager->transcript_manager = transcript_manager;
 	session_manager->max_spdm_session_sequence_number = SPDM_MAX_SECURE_SESSION_SEQUENCE_NUMBER;
+	session_manager->hkdf = hkdf;
+	session_manager->error = error;
+	session_manager->algo_info = algo_info;
+	session_manager->spdm_context = spdm_context;
 
 	session_manager->create_session = spdm_secure_session_manager_create_session;
 	session_manager->release_session = spdm_secure_session_manager_release_session;
@@ -1203,6 +1403,9 @@ int spdm_secure_session_manager_init (struct spdm_secure_session_manager *sessio
 		spdm_secure_session_manager_reset_last_session_id_validity;
 	session_manager->decode_secure_message = spdm_secure_session_manager_decode_secure_message;
 	session_manager->encode_secure_message = spdm_secure_session_manager_encode_secure_message;
+	session_manager->is_termination_policy_set =
+		spdm_secure_session_manager_is_termination_policy_set;
+	session_manager->unlock_session = spdm_secure_session_manager_unlock_session;
 
 	status = spdm_secure_session_manager_init_state (session_manager);
 
@@ -1218,11 +1421,15 @@ exit:
  */
 void spdm_secure_session_manager_release (const struct spdm_secure_session_manager *session_manager)
 {
-	UNUSED (session_manager);
+	if ((session_manager != NULL) && (session_manager->state != NULL)) {
+		observable_release (&session_manager->state->observable);
+	}
 }
 
 /**
- * Initialize the Session Manager state.
+ * Initialize the Session Manager runtime state. This function does not touch persistent state
+ * of secure session manager. Consumer should call spdm_secure_session_manager_init_persistent_state ()
+ * for persistent state initialization if it is required.
  *
  * @param session_manager Session manager whose state is to be initialized.
  *
@@ -1240,7 +1447,8 @@ int spdm_secure_session_manager_init_state (
 		(session_manager->aes_engine == NULL) || (session_manager->hash_engine == NULL) ||
 		(session_manager->rng_engine == NULL) || (session_manager->ecc_engine == NULL) ||
 		(session_manager->transcript_manager == NULL) ||
-		(session_manager->max_spdm_session_sequence_number == 0)) {
+		(session_manager->max_spdm_session_sequence_number == 0) ||
+		(session_manager->hkdf == NULL) || (session_manager->spdm_context == NULL)) {
 		status = SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
 		goto exit;
 	}
@@ -1248,11 +1456,82 @@ int spdm_secure_session_manager_init_state (
 	state = session_manager->state;
 	memset (state, 0, sizeof (struct spdm_secure_session_manager_state));
 
-	/* Initialize the state. */
-	state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
-	state->last_spdm_request_secure_session_id_valid = false;
+	status = observable_init (&state->observable);
 
 exit:
 
 	return status;
+}
+
+/**
+ * Initialize the Session Manager persistent state (the one which could survive warm reset).
+ *
+ * @param session_manager Session manager whose state is to be initialized.
+ *
+ * @return 0 if a session manager state was initialize successfully or an error code.
+ */
+int spdm_secure_session_manager_init_persistent_state (
+	const struct spdm_secure_session_manager *session_manager)
+{
+	int status = 0;
+	struct spdm_secure_session_manager_persistent_state *persistent_state;
+
+	if ((session_manager == NULL) || (session_manager->spdm_context == NULL)) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	status =
+		session_manager->spdm_context->get_secure_session_manager_state (
+		session_manager->spdm_context, &persistent_state);
+	if (status != 0) {
+		return status;
+	}
+
+	memset (persistent_state, 0, sizeof (struct spdm_secure_session_manager_persistent_state));
+
+	/* Initialize the state. */
+	persistent_state->last_spdm_request_secure_session_id = SPDM_INVALID_SESSION_ID;
+	persistent_state->last_spdm_request_secure_session_id_valid = false;
+
+	session_manager->spdm_context->unlock (session_manager->spdm_context);
+
+	return 0;
+}
+
+/**
+ * Add an observer for session management notifications.
+ *
+ * @param session_manager The session manager to register with.
+ * @param observer The observer to add.
+ *
+ * @return 0 if the observer was successfully added or an error code.
+ */
+int spdm_secure_session_manager_add_spdm_protocol_session_observer (
+	const struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer)
+{
+	if ((session_manager == NULL) || (session_manager->state == NULL)) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	return observable_add_observer (&session_manager->state->observable, (void*) observer);
+}
+
+/**
+ * Remove an observer from session management notifications.
+ *
+ * @param session_manager The session manager to deregister from.
+ * @param observer The observer to remove.
+ *
+ * @return 0 if the observer was successfully removed or an error code.
+ */
+int spdm_secure_session_manager_remove_spdm_protocol_session_observer (
+	const struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer)
+{
+	if ((session_manager == NULL) || (session_manager->state == NULL)) {
+		return SPDM_SECURE_SESSION_MANAGER_INVALID_ARGUMENT;
+	}
+
+	return observable_remove_observer (&session_manager->state->observable, (void*) observer);
 }

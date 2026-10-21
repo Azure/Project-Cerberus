@@ -4,8 +4,10 @@
 #include <string.h>
 #include "ecc_kat_vectors.h"
 #include "ecdsa_kat.h"
+#include "asn1/ecc_der_util.h"
 #include "common/buffer_util.h"
 #include "common/unused.h"
+#include "crypto/signature_verification.h"
 
 
 /**
@@ -19,7 +21,7 @@ struct ecdsa_kat_rng {
 };
 
 
-static int ecdsa_kat_rng_generate_random_buffer (struct rng_engine *engine, size_t rand_len,
+static int ecdsa_kat_rng_generate_random_buffer (const struct rng_engine *engine, size_t rand_len,
 	uint8_t *buf)
 {
 	const struct ecdsa_kat_rng *rng = (const struct ecdsa_kat_rng*) engine;
@@ -44,6 +46,575 @@ static int ecdsa_kat_rng_generate_random_buffer (struct rng_engine *engine, size
 	}
 
 /**
+ * Run an ECDSA known answer test (KAT) for signature generation using ECC P-256 and SHA-256.
+ *
+ * It's only necessary to run an ECDSA signature generation self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_sign_p256_sha256 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+	struct ecdsa_kat_rng rng =
+		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P256_SHA256_ECDSA_K, ECC_KEY_LENGTH_256);
+	uint8_t signature[ECC_DER_P256_ECDSA_MAX_LENGTH] = {0};
+	int status;
+
+	status = ecdsa_sign_message (ecc, hash, HASH_TYPE_SHA256, &rng.base,
+		ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER, ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER_LEN,
+		ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, signature,
+		sizeof (signature));
+	if (ROT_IS_ERROR (status)) {
+		goto exit;
+	}
+
+	if ((size_t) status != ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN) {
+		status = ECDSA_P256_SIGN_SELF_TEST_FAILED;
+		goto exit;
+	}
+
+	status = buffer_compare (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER, signature, status);
+	if (status != 0) {
+		status = ECDSA_P256_SIGN_SELF_TEST_FAILED;
+	}
+
+exit:
+	buffer_zeroize (signature, sizeof (signature));
+
+	return status;
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature generation using ECC P-384 and SHA-384.
+ *
+ * It's only necessary to run an ECDSA signature generation self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_sign_p384_sha384 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+	struct ecdsa_kat_rng rng =
+		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P384_SHA384_ECDSA_K, ECC_KEY_LENGTH_384);
+	uint8_t signature[ECC_DER_P384_ECDSA_MAX_LENGTH] = {0};
+	int status;
+
+	status = ecdsa_sign_message (ecc, hash, HASH_TYPE_SHA384, &rng.base,
+		ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER, ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN,
+		ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, signature,
+		sizeof (signature));
+	if (ROT_IS_ERROR (status)) {
+		goto exit;
+	}
+
+	if ((size_t) status != ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN) {
+		status = ECDSA_P384_SIGN_SELF_TEST_FAILED;
+		goto exit;
+	}
+
+	status = buffer_compare (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER, signature, status);
+	if (status != 0) {
+		status = ECDSA_P384_SIGN_SELF_TEST_FAILED;
+	}
+
+exit:
+	buffer_zeroize (signature, sizeof (signature));
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature generation using ECC P-521 and SHA-512.
+ *
+ * It's only necessary to run an ECDSA signature generation self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_sign_p521_sha512 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+	struct ecdsa_kat_rng rng =
+		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P521_SHA512_ECDSA_K, ECC_KEY_LENGTH_521);
+	uint8_t signature[ECC_DER_P521_ECDSA_MAX_LENGTH] = {0};
+	int status;
+
+	status = ecdsa_sign_message (ecc, hash, HASH_TYPE_SHA512, &rng.base,
+		ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER, ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER_LEN,
+		ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, signature,
+		sizeof (signature));
+	if (ROT_IS_ERROR (status)) {
+		goto exit;
+	}
+
+	if ((size_t) status != ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN) {
+		status = ECDSA_P521_SIGN_SELF_TEST_FAILED;
+		goto exit;
+	}
+
+	status = buffer_compare (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER, signature, status);
+	if (status != 0) {
+		status = ECDSA_P521_SIGN_SELF_TEST_FAILED;
+	}
+
+exit:
+	buffer_zeroize (signature, sizeof (signature));
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature generation using ECC P-256 and SHA-256 without
+ * completing the active hash context.
+ *
+ * It's only necessary to run an ECDSA signature generation self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_sign_hash_p256_sha256 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+	struct ecdsa_kat_rng rng =
+		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P256_SHA256_ECDSA_K, ECC_KEY_LENGTH_256);
+	uint8_t signature[ECC_DER_P256_ECDSA_MAX_LENGTH] = {0};
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash->start_sha256 (hash);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecdsa_sign_hash (ecc, hash, &rng.base, ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P256_ECC_PRIVATE_DER_LEN, signature, sizeof (signature));
+	if (ROT_IS_ERROR (status)) {
+		goto exit;
+	}
+
+	if ((size_t) status != ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN) {
+		status = ECDSA_P256_SIGN_SELF_TEST_FAILED;
+		goto exit;
+	}
+
+	status = buffer_compare (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER, signature, status);
+	if (status != 0) {
+		status = ECDSA_P256_SIGN_SELF_TEST_FAILED;
+	}
+
+exit:
+	hash->cancel (hash);
+	buffer_zeroize (signature, sizeof (signature));
+
+	return status;
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature generation using ECC P-384 and SHA-384 without
+ * completing the active hash context.
+ *
+ * It's only necessary to run an ECDSA signature generation self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_sign_hash_p384_sha384 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+	struct ecdsa_kat_rng rng =
+		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P384_SHA384_ECDSA_K, ECC_KEY_LENGTH_384);
+	uint8_t signature[ECC_DER_P384_ECDSA_MAX_LENGTH] = {0};
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash->start_sha384 (hash);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecdsa_sign_hash (ecc, hash, &rng.base, ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P384_ECC_PRIVATE_DER_LEN, signature, sizeof (signature));
+	if (ROT_IS_ERROR (status)) {
+		goto exit;
+	}
+
+	if ((size_t) status != ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN) {
+		status = ECDSA_P384_SIGN_SELF_TEST_FAILED;
+		goto exit;
+	}
+
+	status = buffer_compare (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER, signature, status);
+	if (status != 0) {
+		status = ECDSA_P384_SIGN_SELF_TEST_FAILED;
+	}
+
+exit:
+	hash->cancel (hash);
+	buffer_zeroize (signature, sizeof (signature));
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature generation using ECC P-521 and SHA-512 without
+ * completing the active hash context.
+ *
+ * It's only necessary to run an ECDSA signature generation self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_sign_hash_p521_sha512 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+	struct ecdsa_kat_rng rng =
+		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P521_SHA512_ECDSA_K, ECC_KEY_LENGTH_521);
+	uint8_t signature[ECC_DER_P521_ECDSA_MAX_LENGTH] = {0};
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash->start_sha512 (hash);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecdsa_sign_hash (ecc, hash, &rng.base, ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER,
+		ECC_KAT_VECTORS_P521_ECC_PRIVATE_DER_LEN, signature, sizeof (signature));
+	if (ROT_IS_ERROR (status)) {
+		goto exit;
+	}
+
+	if ((size_t) status != ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN) {
+		status = ECDSA_P521_SIGN_SELF_TEST_FAILED;
+		goto exit;
+	}
+
+	status = buffer_compare (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER, signature, status);
+	if (status != 0) {
+		status = ECDSA_P521_SIGN_SELF_TEST_FAILED;
+	}
+
+exit:
+	hash->cancel (hash);
+	buffer_zeroize (signature, sizeof (signature));
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature verification using ECC P-256 and SHA-256.
+ *
+ * It's only necessary to run an ECDSA signature verification self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_verify_p256_sha256 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+	int status;
+
+	status = ecdsa_verify_message (ecc, hash, HASH_TYPE_SHA256, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN);
+	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
+		status = ECDSA_P256_VERIFY_SELF_TEST_FAILED;
+	}
+
+	return status;
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature verification using ECC P-384 and SHA-384.
+ *
+ * It's only necessary to run an ECDSA signature verification self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_verify_p384_sha384 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+	int status;
+
+	status = ecdsa_verify_message (ecc, hash, HASH_TYPE_SHA384, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN);
+	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
+		status = ECDSA_P384_VERIFY_SELF_TEST_FAILED;
+	}
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature verification using ECC P-521 and SHA-512.
+ *
+ * It's only necessary to run an ECDSA signature verification self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_verify_p521_sha512 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+	int status;
+
+	status = ecdsa_verify_message (ecc, hash, HASH_TYPE_SHA512, ECC_KAT_VECTORS_ECDSA_SIGNED,
+		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN);
+	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
+		status = ECDSA_P521_VERIFY_SELF_TEST_FAILED;
+	}
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature verification using ECC P-256 and SHA-256
+ * without completing the active hash context.
+ *
+ * It's only necessary to run an ECDSA signature verification self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_verify_hash_p256_sha256 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash->start_sha256 (hash);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecdsa_verify_hash (ecc, hash, ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P256_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE_DER_LEN);
+	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
+		status = ECDSA_P256_VERIFY_SELF_TEST_FAILED;
+	}
+
+exit:
+	hash->cancel (hash);
+
+	return status;
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature verification using ECC P-384 and SHA-384
+ * without completing the active hash context.
+ *
+ * It's only necessary to run an ECDSA signature verification self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_verify_hash_p384_sha384 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash->start_sha384 (hash);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecdsa_verify_hash (ecc, hash, ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P384_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE_DER_LEN);
+	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
+		status = ECDSA_P384_VERIFY_SELF_TEST_FAILED;
+	}
+
+exit:
+	hash->cancel (hash);
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
+ * Run an ECDSA known answer test (KAT) for signature verification using ECC P-521 and SHA-512
+ * without completing the active hash context.
+ *
+ * It's only necessary to run an ECDSA signature verification self-test for a single curve supported
+ * by the platform.
+ *
+ * @param ecc The ECC engine to use for the self-test.
+ * @param hash The hash engine to use for the self-test.
+ *
+ * @return 0 if the self-test completed successfully or an error code.
+ */
+int ecdsa_kat_run_self_test_verify_hash_p521_sha512 (const struct ecc_engine *ecc,
+	const struct hash_engine *hash)
+{
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+	int status;
+
+	if (hash == NULL) {
+		return ECDSA_INVALID_ARGUMENT;
+	}
+
+	status = hash->start_sha512 (hash);
+	if (status != 0) {
+		return status;
+	}
+
+	status = hash->update (hash, ECC_KAT_VECTORS_ECDSA_SIGNED, ECC_KAT_VECTORS_ECDSA_SIGNED_LEN);
+	if (status != 0) {
+		goto exit;
+	}
+
+	status = ecdsa_verify_hash (ecc, hash, ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER,
+		ECC_KAT_VECTORS_P521_ECC_PUBLIC_DER_LEN, ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER,
+		ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE_DER_LEN);
+	if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
+		status = ECDSA_P521_VERIFY_SELF_TEST_FAILED;
+	}
+
+exit:
+	hash->cancel (hash);
+
+	return status;
+#else
+	UNUSED (ecc);
+	UNUSED (hash);
+
+	return ECDSA_UNSUPPORTED_SELF_TEST;
+#endif
+}
+
+/**
  * Run an ECDSA known answer test (KAT) for signature generation directly against an ECC hardware
  * driver interface using ECC P-256 and SHA-256.
  *
@@ -56,7 +627,7 @@ static int ecdsa_kat_rng_generate_random_buffer (struct rng_engine *engine, size
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_sign_p256_sha256 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	struct ecdsa_kat_rng rng =
 		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P256_SHA256_ECDSA_K, ECC_KEY_LENGTH_256);
@@ -67,24 +638,31 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p256_sha256 (const struct ecc_hw *ecc_hw
 		ECC_KAT_VECTORS_P256_ECC_PRIVATE, ECC_KEY_LENGTH_256, ECC_KAT_VECTORS_ECDSA_SIGNED,
 		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, &signature);
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	if (signature.length != ECC_KEY_LENGTH_256) {
-		return ECDSA_P256_SIGN_SELF_TEST_FAILED;
+		status = ECDSA_P256_SIGN_SELF_TEST_FAILED;
+		goto exit;
 	}
 
-	if (buffer_compare (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE.r, signature.r,
-		ECC_KEY_LENGTH_256) != 0) {
-		return ECDSA_P256_SIGN_SELF_TEST_FAILED;
+	status = buffer_compare (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE.r, signature.r,
+		ECC_KEY_LENGTH_256);
+	if (status != 0) {
+		status = ECDSA_P256_SIGN_SELF_TEST_FAILED;
+		goto exit;
 	}
 
-	if (buffer_compare (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE.s, signature.s,
-		ECC_KEY_LENGTH_256) != 0) {
-		return ECDSA_P256_SIGN_SELF_TEST_FAILED;
+	status = buffer_compare (ECC_KAT_VECTORS_P256_SHA256_ECDSA_SIGNATURE.s, signature.s,
+		ECC_KEY_LENGTH_256);
+	if (status != 0) {
+		status = ECDSA_P256_SIGN_SELF_TEST_FAILED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (&signature, sizeof (signature));
+
+	return status;
 }
 
 /**
@@ -100,9 +678,9 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p256_sha256 (const struct ecc_hw *ecc_hw
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_sign_p384_sha384 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	struct ecdsa_kat_rng rng =
 		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P384_SHA384_ECDSA_K, ECC_KEY_LENGTH_384);
 	struct ecc_ecdsa_signature signature = {0};
@@ -112,24 +690,31 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p384_sha384 (const struct ecc_hw *ecc_hw
 		ECC_KAT_VECTORS_P384_ECC_PRIVATE, ECC_KEY_LENGTH_384, ECC_KAT_VECTORS_ECDSA_SIGNED,
 		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, &signature);
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	if (signature.length != ECC_KEY_LENGTH_384) {
-		return ECDSA_P384_SIGN_SELF_TEST_FAILED;
+		status = ECDSA_P384_SIGN_SELF_TEST_FAILED;
+		goto exit;
 	}
 
-	if (buffer_compare (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE.r, signature.r,
-		ECC_KEY_LENGTH_384) != 0) {
-		return ECDSA_P384_SIGN_SELF_TEST_FAILED;
+	status = buffer_compare (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE.r, signature.r,
+		ECC_KEY_LENGTH_384);
+	if (status != 0) {
+		status = ECDSA_P384_SIGN_SELF_TEST_FAILED;
+		goto exit;
 	}
 
-	if (buffer_compare (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE.s, signature.s,
-		ECC_KEY_LENGTH_384) != 0) {
-		return ECDSA_P384_SIGN_SELF_TEST_FAILED;
+	status = buffer_compare (ECC_KAT_VECTORS_P384_SHA384_ECDSA_SIGNATURE.s, signature.s,
+		ECC_KEY_LENGTH_384);
+	if (status != 0) {
+		status = ECDSA_P384_SIGN_SELF_TEST_FAILED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (&signature, sizeof (signature));
+
+	return status;
 #else
 	UNUSED (ecc_hw);
 	UNUSED (hash);
@@ -151,9 +736,9 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p384_sha384 (const struct ecc_hw *ecc_hw
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_sign_p521_sha512 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	struct ecdsa_kat_rng rng =
 		ecdsa_kat_rng_static_init (ECC_KAT_VECTORS_P521_SHA512_ECDSA_K, ECC_KEY_LENGTH_521);
 	struct ecc_ecdsa_signature signature = {0};
@@ -163,24 +748,31 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p521_sha512 (const struct ecc_hw *ecc_hw
 		ECC_KAT_VECTORS_P521_ECC_PRIVATE, ECC_KEY_LENGTH_521, ECC_KAT_VECTORS_ECDSA_SIGNED,
 		ECC_KAT_VECTORS_ECDSA_SIGNED_LEN, &signature);
 	if (status != 0) {
-		return status;
+		goto exit;
 	}
 
 	if (signature.length != ECC_KEY_LENGTH_521) {
-		return ECDSA_P521_SIGN_SELF_TEST_FAILED;
+		status = ECDSA_P521_SIGN_SELF_TEST_FAILED;
+		goto exit;
 	}
 
-	if (buffer_compare (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE.r, signature.r,
-		ECC_KEY_LENGTH_521) != 0) {
-		return ECDSA_P521_SIGN_SELF_TEST_FAILED;
+	status = buffer_compare (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE.r, signature.r,
+		ECC_KEY_LENGTH_521);
+	if (status != 0) {
+		status = ECDSA_P521_SIGN_SELF_TEST_FAILED;
+		goto exit;
 	}
 
-	if (buffer_compare (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE.s, signature.s,
-		ECC_KEY_LENGTH_521) != 0) {
-		return ECDSA_P521_SIGN_SELF_TEST_FAILED;
+	status = buffer_compare (ECC_KAT_VECTORS_P521_SHA512_ECDSA_SIGNATURE.s, signature.s,
+		ECC_KEY_LENGTH_521);
+	if (status != 0) {
+		status = ECDSA_P521_SIGN_SELF_TEST_FAILED;
 	}
 
-	return 0;
+exit:
+	buffer_zeroize (&signature, sizeof (signature));
+
+	return status;
 #else
 	UNUSED (ecc_hw);
 	UNUSED (hash);
@@ -202,7 +794,7 @@ int ecdsa_kat_run_self_test_ecc_hw_sign_p521_sha512 (const struct ecc_hw *ecc_hw
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_verify_p256_sha256 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
 	int status;
 
@@ -229,9 +821,9 @@ int ecdsa_kat_run_self_test_ecc_hw_verify_p256_sha256 (const struct ecc_hw *ecc_
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_verify_p384_sha384 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
+#if (defined HASH_ENABLE_SHA384) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384)
 	int status;
 
 	status = ecdsa_ecc_hw_verify_message (ecc_hw, hash, HASH_TYPE_SHA384,
@@ -263,9 +855,9 @@ int ecdsa_kat_run_self_test_ecc_hw_verify_p384_sha384 (const struct ecc_hw *ecc_
  * @return 0 if the self-test completed successfully or an error code.
  */
 int ecdsa_kat_run_self_test_ecc_hw_verify_p521_sha512 (const struct ecc_hw *ecc_hw,
-	struct hash_engine *hash)
+	const struct hash_engine *hash)
 {
-#if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
+#if (defined HASH_ENABLE_SHA512) && (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521)
 	int status;
 
 	status = ecdsa_ecc_hw_verify_message (ecc_hw, hash, HASH_TYPE_SHA512,

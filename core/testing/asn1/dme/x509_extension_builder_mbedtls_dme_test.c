@@ -163,6 +163,8 @@ static void x509_extension_builder_mbedtls_dme_test_build (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	builder.base.free (&builder.base, &extension);
+	CuAssertPtrEquals (test, NULL, extension.data);
+	CuAssertIntEquals (test, 0, extension.data_length);
 
 	x509_extension_builder_mbedtls_dme_release (&builder);
 }
@@ -447,6 +449,26 @@ static void x509_extension_builder_mbedtls_dme_test_build_no_dme_key (CuTest *te
 
 	status = builder.base.build (&builder.base, &extension);
 	CuAssertIntEquals (test, DME_EXTENSION_NO_DME_KEY, status);
+
+	x509_extension_builder_mbedtls_dme_release (&builder);
+}
+
+static void x509_extension_builder_mbedtls_dme_test_free_null (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dme builder;
+	struct dme_structure dme;
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	dme_structure_testing_structure_ecc384_sha384 (&dme);
+
+	status = x509_extension_builder_mbedtls_dme_init (&builder, &dme);
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
 
 	x509_extension_builder_mbedtls_dme_release (&builder);
 }
@@ -1022,6 +1044,28 @@ static void x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buff
 	x509_extension_builder_mbedtls_dme_release (&builder);
 }
 
+static void x509_extension_builder_mbedtls_dme_test_free_with_buffer_null (CuTest *test)
+{
+	struct x509_extension_builder_mbedtls_dme builder;
+	struct dme_structure dme;
+	uint8_t ext_buffer[X509_EXTENSION_BUILDER_MBEDTLS_DME_TESTING_BUFFER_LENGTH (ECC384_SHA384)];
+	int status;
+	struct x509_extension extension = {0};
+
+	TEST_START;
+
+	dme_structure_testing_structure_ecc384_sha384 (&dme);
+
+	status = x509_extension_builder_mbedtls_dme_init_with_buffer (&builder, &dme, ext_buffer,
+		sizeof (ext_buffer));
+	CuAssertIntEquals (test, 0, status);
+
+	builder.base.free (NULL, &extension);
+	builder.base.free (&builder.base, NULL);
+
+	x509_extension_builder_mbedtls_dme_release (&builder);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (x509_extension_builder_mbedtls_dme);
@@ -1044,6 +1088,7 @@ TEST (x509_extension_builder_mbedtls_dme_test_build_no_structure_data);
 TEST (x509_extension_builder_mbedtls_dme_test_build_no_signature_type_oid);
 TEST (x509_extension_builder_mbedtls_dme_test_build_no_signature);
 TEST (x509_extension_builder_mbedtls_dme_test_build_no_dme_key);
+TEST (x509_extension_builder_mbedtls_dme_test_free_null);
 TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer);
 TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_ecc256_sha256);
 TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_no_device_oid);
@@ -1064,6 +1109,7 @@ TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_dme
 TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_dme_key);
 TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext_sequence_len);
 TEST (x509_extension_builder_mbedtls_dme_test_build_with_buffer_small_buffer_ext_sequence_tag);
+TEST (x509_extension_builder_mbedtls_dme_test_free_with_buffer_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

@@ -101,8 +101,8 @@ int X509MakeDeviceCert (
 
 int X509GetAliasCertTBS (
 	DERBuilderContext *Tbs,	RIOT_X509_TBS_DATA *TbsData, RIOT_ECC_PUBLIC *AliasKeyPub,
-	RIOT_ECC_PUBLIC *DevIdKeyPub, uint8_t *Fwid, size_t FwidLen, int type, struct hash_engine *hash,
-	struct base64_engine *base64);
+	RIOT_ECC_PUBLIC *DevIdKeyPub, uint8_t *Fwid, size_t FwidLen, int type,
+	const struct hash_engine *hash, const struct base64_engine *base64);
 
 int X509MakeAliasCert (
 	DERBuilderContext *AliasCert, RIOT_ECC_SIGNATURE *TbsSig);

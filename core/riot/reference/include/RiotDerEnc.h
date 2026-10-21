@@ -71,6 +71,9 @@ int DERAddIA5String (
 int DERAddTime (
 	DERBuilderContext *Context, const char *Str);
 
+int DERAddTaggedIntegerFromArray (
+	DERBuilderContext *Context,	const uint8_t *Val,	uint32_t NumBytes, uint8_t Tag);
+
 int DERAddIntegerFromArray (
 	DERBuilderContext *Context, const uint8_t *Val, uint32_t NumBytes);
 
@@ -125,7 +128,7 @@ int DERTbsToCert (
 
 int DERtoPEM (
 	DERBuilderContext *Context,	uint32_t Type, char *PEM, uint32_t *Length,
-	struct base64_engine *base64);
+	const struct base64_engine *base64);
 
 int DERAddNull (
 	DERBuilderContext *Context);

@@ -18,6 +18,17 @@ static void system_observer_mock_on_shutdown (struct system_observer *observer)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, system_observer_mock_on_shutdown, observer);
 }
 
+static void system_observer_mock_on_shutdown_failed (struct system_observer *observer)
+{
+	struct system_observer_mock *mock = (struct system_observer_mock*) observer;
+
+	if (mock == NULL) {
+		return;
+	}
+
+	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, system_observer_mock_on_shutdown_failed, observer);
+}
+
 static int system_observer_mock_func_arg_count (void *func)
 {
 	return 0;
@@ -27,6 +38,9 @@ static const char* system_observer_mock_func_name_map (void *func)
 {
 	if (func == system_observer_mock_on_shutdown) {
 		return "on_shutdown";
+	}
+	else if (func == system_observer_mock_on_shutdown_failed) {
+		return "on_shutdown_failed";
 	}
 	else {
 		return "unknown";
@@ -63,6 +77,7 @@ int system_observer_mock_init (struct system_observer_mock *mock)
 	mock_set_name (&mock->mock, "system_observer");
 
 	mock->base.on_shutdown = system_observer_mock_on_shutdown;
+	mock->base.on_shutdown_failed = system_observer_mock_on_shutdown_failed;
 
 	mock->mock.func_arg_count = system_observer_mock_func_arg_count;
 	mock->mock.func_name_map = system_observer_mock_func_name_map;

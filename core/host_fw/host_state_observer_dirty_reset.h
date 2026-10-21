@@ -19,7 +19,8 @@ struct host_state_observer_dirty_reset {
 
 int host_state_observer_dirty_reset_init (struct host_state_observer_dirty_reset *observer,
 	const struct host_control *control);
-void host_state_observer_dirty_reset_release (struct host_state_observer_dirty_reset *observer);
+void host_state_observer_dirty_reset_release (
+	const struct host_state_observer_dirty_reset *observer);
 
 
 #endif	/* HOST_STATE_OBSERVER_DIRTY_RESET_H_ */

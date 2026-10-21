@@ -33,7 +33,7 @@ struct config_reset_testing {
 	const struct manifest_manager *bypass[3];				/**< List of bypass manifests. */
 	const struct manifest_manager *config[3];				/**< List of platform config manifests. */
 	const struct manifest_manager *component[3];			/**< List of component manifests. */
-	struct state_manager *state_list[3];					/**< List of state managers. */
+	const struct state_manager *state_list[3];				/**< List of state managers. */
 	const struct keystore *keystore_array[2];				/**< List of keystores. */
 	struct config_reset test;								/**< Configuration reset manager under test. */
 };
@@ -88,8 +88,8 @@ void config_reset_testing_init_attestation_keys (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot_key_manager_init_static (&keys->riot, &keys->riot_keystore.base, &riot_core,
-		&keys->x509.base);
+	status = riot_key_manager_init_static_keys (&keys->riot, &keys->riot_state,
+		&keys->riot_keystore.base, &riot_core, &keys->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&keys->aux, &keys->aux_keystore.base, &keys->rsa.base,
@@ -175,8 +175,8 @@ void config_reset_testing_init_attestation_keys_valid_cert_chain (CuTest *test,
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot_key_manager_init_static (&keys->riot, &keys->riot_keystore.base, &riot_core,
-		&keys->x509.base);
+	status = riot_key_manager_init_static_keys (&keys->riot, &keys->riot_state,
+		&keys->riot_keystore.base, &riot_core, &keys->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	status = aux_attestation_init (&keys->aux, &keys->aux_keystore.base, &keys->rsa.base,
@@ -1932,6 +1932,114 @@ static void config_reset_test_clear_component_manifests_clear_error (CuTest *tes
 	config_reset_testing_release (test, &reset);
 }
 
+static void config_reset_test_clear_provisioned_certificates (CuTest *test)
+{
+	struct config_reset_testing reset;
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init (test, &reset);
+
+	status = mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = config_reset_clear_provisioned_certificates (&reset.test);
+	CuAssertIntEquals (test, 0, status);
+
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_clear_provisioned_certificates_no_riot (CuTest *test)
+{
+	struct config_reset_testing reset;
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = config_reset_init (&reset.test, reset.bypass, 1, reset.config, 1, reset.component, 1,
+		reset.state_list, 1, NULL, &reset.keys.aux, &reset.recovery.base, reset.keystore_array, 2);
+	CuAssertIntEquals (test, 0, status);
+
+	status = config_reset_clear_provisioned_certificates (&reset.test);
+	CuAssertIntEquals (test, CONFIG_RESET_NO_CERTS, status);
+
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_clear_provisioned_certificates_static_init (CuTest *test)
+{
+	struct config_reset_testing reset = {
+		.test = config_reset_static_init (reset.bypass, 1, reset.config, 1, reset.component, 1,
+			reset.state_list, 1, &reset.keys.riot, &reset.keys.aux, &reset.recovery.base,
+			reset.keystore_array, 2)
+	};
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init_dependencies (test, &reset);
+
+	status = mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (1));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (2));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = config_reset_clear_provisioned_certificates (&reset.test);
+	CuAssertIntEquals (test, 0, status);
+
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_clear_provisioned_certificates_null (CuTest *test)
+{
+	struct config_reset_testing reset;
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init (test, &reset);
+
+	status = config_reset_clear_provisioned_certificates (NULL);
+	CuAssertIntEquals (test, CONFIG_RESET_INVALID_ARGUMENT, status);
+
+	config_reset_testing_release (test, &reset);
+}
+
+static void config_reset_test_clear_provisioned_certificates_error (CuTest *test)
+{
+	struct config_reset_testing reset;
+	int status;
+
+	TEST_START;
+
+	config_reset_testing_init (test, &reset);
+
+	status = mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, 0, MOCK_ARG (0));
+	status |= mock_expect (&reset.keys.riot_keystore.mock, reset.keys.riot_keystore.base.erase_key,
+		&reset.keys.riot_keystore, KEYSTORE_ERASE_FAILED, MOCK_ARG (1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = config_reset_clear_provisioned_certificates (&reset.test);
+	CuAssertIntEquals (test, KEYSTORE_ERASE_FAILED, status);
+
+	config_reset_testing_release (test, &reset);
+}
+
 
 // *INDENT-OFF*
 TEST_SUITE_START (config_reset);
@@ -1990,6 +2098,11 @@ TEST (config_reset_test_clear_component_manifests_no_manifests);
 TEST (config_reset_test_clear_component_manifests_static_init);
 TEST (config_reset_test_clear_component_manifests_null);
 TEST (config_reset_test_clear_component_manifests_clear_error);
+TEST (config_reset_test_clear_provisioned_certificates);
+TEST (config_reset_test_clear_provisioned_certificates_no_riot);
+TEST (config_reset_test_clear_provisioned_certificates_static_init);
+TEST (config_reset_test_clear_provisioned_certificates_null);
+TEST (config_reset_test_clear_provisioned_certificates_error);
 
 TEST_SUITE_END;
 // *INDENT-ON*

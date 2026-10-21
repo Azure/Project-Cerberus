@@ -115,7 +115,7 @@ int event_task_freertos_notify (const struct event_task *task,
  */
 int event_task_freertos_init (struct event_task_freertos *task,
 	struct event_task_freertos_state *state, struct system *system,
-	const struct event_task_handler **handlers, size_t num_handlers)
+	const struct event_task_handler *const *handlers, size_t num_handlers)
 {
 	if (task == NULL) {
 		return EVENT_TASK_INVALID_ARGUMENT;

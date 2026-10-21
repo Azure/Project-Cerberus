@@ -96,6 +96,7 @@ enum spi_flash_sfdp_4byte_addressing {
 	SPI_FLASH_SFDP_4BYTE_MODE_COMMAND,				/**< Use a command to switch the mode. */
 	SPI_FLASH_SFDP_4BYTE_MODE_COMMAND_WRITE_ENABLE,	/**< Issue write enable before mode switch. */
 	SPI_FLASH_SFDP_4BYTE_MODE_FIXED,				/**< Device is permanently in 4-byte mode. */
+	SPI_FLASH_SFDP_4BYTE_MODE_INSTRUCTION_SET,		/**< 4-byte addressing is only supported through the explicit command set. */
 };
 
 /**
@@ -108,6 +109,7 @@ enum spi_flash_sfdp_quad_enable {
 	SPI_FLASH_SFDP_QUAD_QE_BIT7_SR2,			/**< Quad enable is bit 7 in status register 2. */
 	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_NO_CLR,		/**< Quad enable is bit 1 in status register 2, without inadvertent clearing. */
 	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35,			/**< Quad enable is bit 1 in status register 2, using 35 to read. */
+	SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31,			/**< Quad enable is bit 1 in status register 2, using 35 to read and 31 to write. */
 	SPI_FLASH_SFDP_QUAD_NO_QE_HOLD_DISABLE = 8,	/**< No quad enable bit, but HOLD/RESET can be disabled. */
 };
 

@@ -70,7 +70,7 @@ void CuAssertInt64Equals_LineMsg (CuTest *tc, const char *file, int line, const 
 void CuAssertDblEquals_LineMsg (CuTest *tc,	const char *file, int line, const char *message,
 	double expected, double actual, double delta);
 void CuAssertPtrEquals_LineMsg (CuTest *tc,	const char *file, int line, const char *message,
-	void *expected, void *actual);
+	const void *expected, const void *actual);
 
 /* public assert functions */
 
@@ -128,6 +128,7 @@ void CuSuiteAddSuite (CuSuite *testSuite, CuSuite *testSuite2);
 void CuSuiteRun (CuSuite *testSuite);
 void CuSuiteSummary (CuSuite *testSuite, CuString *summary);
 void CuSuiteDetails (CuSuite *testSuite, CuString *details);
+void CuSuiteToJUnitXML (CuSuite *testSuite, CuString *report);
 
 
 #endif	/* CUTEST_H_ */

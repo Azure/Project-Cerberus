@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning" elementFormDefault="qualified" vc:minVersion="1.1">
+    <xs:simpleType name="HexInteger">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(0[xX])?[0-9a-fA-F]+"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="HexInteger16">
+        <xs:annotation>
+            <xs:documentation>16-bit hexadecimal integer (0x0000 to 0xFFFF)</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(0[xX])?0*[0-9a-fA-F]{1,4}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="HexInteger32">
+        <xs:annotation>
+            <xs:documentation>32-bit hexadecimal integer (0x00000000 to 0xFFFFFFFF)</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(0[xX])?0*[0-9a-fA-F]{1,8}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="HexByte">
+        <xs:annotation>
+            <xs:documentation>8-bit hexadecimal integer (0x00 to 0xFF)</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="(0[xX])?[0-9a-fA-F]{1,2}"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="HashType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SHA256"/>
+            <xs:enumeration value="SHA384"/>
+            <xs:enumeration value="SHA512"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="EndiannessType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="LittleEndian"/>
+            <xs:enumeration value="BigEndian"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="PlatformIdSKU">
+        <xs:restriction base="xs:string">
+            <xs:maxLength value="255"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>

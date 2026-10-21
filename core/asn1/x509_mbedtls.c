@@ -9,6 +9,7 @@
 #include "x509_mbedtls.h"
 #include "common/unused.h"
 #include "crypto/crypto_logging.h"
+#include "crypto/mbedtls_compat.h"
 #include "logging/debug_log.h"
 #include "mbedtls/asn1write.h"
 #include "mbedtls/bignum.h"
@@ -16,6 +17,18 @@
 #include "mbedtls/pk.h"
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/x509_csr.h"
+
+
+/**
+ * Get the context to pass when adding extensions to certificates or CSR.
+ *
+ * @param x The X.509 certificate or CSR builder context.
+ */
+#if MBEDTLS_IS_VERSION_3
+#define	X509_MBEDTLS_EXT_CONTEXT(x)		x
+#else
+#define	X509_MBEDTLS_EXT_CONTEXT(x)		x.extensions
+#endif
 
 
 /**
@@ -62,6 +75,7 @@ static void x509_mbedtls_free_cert (void *cert)
 /**
  * Initialize a key context from a DER formatted key.
  *
+ * @param mbedtls X.509 engine context being used.
  * @param key The key instance that will be initialized.
  * @param der The DER formatted key to load.
  * @param length The length of the DER key.
@@ -69,14 +83,20 @@ static void x509_mbedtls_free_cert (void *cert)
  *
  * @return 0 if the key was successfully loaded or an error code.
  */
-static int x509_mbedtls_load_key (mbedtls_pk_context *key, const uint8_t *der, size_t length,
-	bool require_priv)
+static int x509_mbedtls_load_key (const struct x509_engine_mbedtls *mbedtls,
+	mbedtls_pk_context *key, const uint8_t *der, size_t length, bool require_priv)
 {
 	int status;
 
 	mbedtls_pk_init (key);
 
+#if MBEDTLS_IS_VERSION_3
+	status = mbedtls_pk_parse_key (key, der, length, NULL, 0, mbedtls_ctr_drbg_random,
+		&mbedtls->state->ctr_drbg);
+#else
+	UNUSED (mbedtls);
 	status = mbedtls_pk_parse_key (key, der, length, NULL, 0);
+#endif
 	if (status != 0) {
 		if (require_priv) {
 			goto exit;
@@ -114,6 +134,245 @@ int x509_mbedtls_close_asn1_object (uint8_t **pos, uint8_t *start, uint8_t tag, 
 }
 
 /**
+ * Construct the key usage data that can be added as an extension to a certificate or CSR.
+ *
+ * @param usage The key usage to advertise in the extension.
+ * @param ext_data Output buffer for the extension data.  This will be updated on output to
+ * reference the start of the extension data.
+ * @param ext_length Maximum length of the extension data.  This will be updated on outut to
+ * indicate the length of the extension data.
+ *
+ * @return 0 if the extension was successfully added or an error code.
+ */
+static int x509_mbedtls_build_key_usage_extension_data (int usage, uint8_t **ext_data,
+	size_t *ext_length)
+{
+	uint8_t *pos;
+	int length;
+
+	pos = *ext_data + *ext_length;
+	length = mbedtls_asn1_write_bitstring (&pos, *ext_data, (uint8_t*) &usage,
+		(usage & 0x04) ? 6 : 5);
+	if (length < 0) {
+		return length;
+	}
+
+	*ext_data = pos;
+	*ext_length = length;
+
+	return 0;
+}
+
+/**
+ * Construct the extended key usage sequence that can be added as an extension to a certificate or
+ * CSR.
+ *
+ * @param oid The encoded OID string to add.
+ * @param oid_length Length of the OID string.
+ * @param ext_data Output buffer for the extension data.  This will be updated on output to
+ * reference the start of the extension data.
+ * @param ext_length Maximum length of the extension data.  This will be updated on outut to
+ * indicate the length of the extension data.
+ *
+ * @return 0 if the extension data was successfully created or an error code.
+ */
+static int x509_mbedtls_build_extended_key_usage_extension_data (const char *oid, int oid_length,
+	uint8_t **ext_data, size_t *ext_length)
+{
+	uint8_t *pos;
+	int status;
+	int length;
+
+	pos = *ext_data + *ext_length;
+	length = mbedtls_asn1_write_oid (&pos, *ext_data, oid, oid_length);
+	if (length < 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_ASN1_WRITE_OID_EC, length, 0);
+
+		return length;
+	}
+
+	status = x509_mbedtls_close_asn1_object (&pos, *ext_data,
+		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &length);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, length, 0);
+
+		return status;
+	}
+
+	*ext_data = pos;
+	*ext_length = length;
+
+	return 0;
+}
+
+/**
+ * Construct the basic constraints data that can be added as an extension to a certificate or CSR.
+ *
+ * @param ca Flag indicating if the cA flag should be set.
+ * @param pathlen The value of the pathLengthConstraint.  Greater that the max path length will omit
+ * the constraint.
+ * @param ext_data Output buffer for the extension data.  This will be updated on output to
+ * reference the start of the extension data.
+ * @param ext_length Maximum length of the extension data.  This will be updated on outut to
+ * indicate the length of the extension data.
+ *
+ * @return 0 if the extension data was successfully created or an error code.
+ */
+static int x509_mbedtls_build_basic_constraints_extension_data (bool ca, int pathlen,
+	uint8_t **ext_data, size_t *ext_length)
+{
+	uint8_t *pos;
+	int length = 0;
+	int ret;
+
+	pos = *ext_data + *ext_length;
+
+	if (ca) {
+		if (pathlen <= X509_CERT_MAX_PATHLEN) {
+			MBEDTLS_ASN1_CHK_ADD (length, mbedtls_asn1_write_int (&pos, *ext_data, pathlen));
+		}
+
+		MBEDTLS_ASN1_CHK_ADD (length, mbedtls_asn1_write_bool (&pos, *ext_data, 1));
+	}
+
+	ret = x509_mbedtls_close_asn1_object (&pos, *ext_data,
+		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &length);
+	if (ret != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, ret, 0);
+
+		return ret;
+	}
+
+	*ext_data = pos;
+	*ext_length = length;
+
+	return 0;
+}
+
+#if MBEDTLS_IS_VERSION_3
+/**
+ * Create and add the key usage extension to a CSR.
+ *
+ * @param extensions The list of extensions to update.
+ * @param usage The key usage to advertise in the extension.
+ *
+ * @return 0 if the extension was successfully added or an error code.
+ */
+static int x509_mbedtls_add_key_usage_extension (mbedtls_x509write_csr *x509, int usage)
+{
+	uint8_t ext[4];
+	uint8_t *pos = ext;
+	size_t length = sizeof (ext);
+	int status;
+
+	status = x509_mbedtls_build_key_usage_extension_data (usage, &pos, &length);
+	if (status != 0) {
+		return status;
+	}
+
+	return mbedtls_x509write_csr_set_extension (x509, MBEDTLS_OID_KEY_USAGE,
+		MBEDTLS_OID_SIZE (MBEDTLS_OID_KEY_USAGE), 1, pos, length);
+}
+
+/**
+ * Create and add the extended key usage extension to a CSR.
+ *
+ * @param x509 The CSR to update with the extendend key usage.
+ * @param oid The encoded OID string to add.
+ * @param oid_length Length of the OID string.
+ * @param critical Critical flag for the extension.
+ *
+ * @return 0 if the extension was successfully added or an error code.
+ */
+static int x509_mbedtls_add_extended_key_usage_extension (mbedtls_x509write_csr *x509,
+	const char *oid, int oid_length, bool critical)
+{
+	uint8_t ext[20];
+	uint8_t *pos = ext;
+	size_t length = sizeof (ext);
+	int status;
+
+	status = x509_mbedtls_build_extended_key_usage_extension_data (oid, oid_length, &pos, &length);
+	if (status != 0) {
+		return status;
+	}
+
+	return mbedtls_x509write_csr_set_extension (x509, MBEDTLS_OID_EXTENDED_KEY_USAGE,
+		MBEDTLS_OID_SIZE (MBEDTLS_OID_EXTENDED_KEY_USAGE), critical, pos, length);
+}
+
+/**
+ * Create and add the basic constraints extension to a CSR.
+ *
+ * @param x509 The CSR to update with the extendend key usage.
+ * @param ca Flag indicating if the cA flag should be set.
+ * @param pathlen The value of the pathLengthConstraint.  Greater that the max path length will omit
+ * the constraint.
+ *
+ * @return 0 if the extension was successfully added or an error code.
+ */
+static int x509_mbedtls_add_basic_constraints_extension (mbedtls_x509write_csr *x509, bool ca,
+	int pathlen)
+{
+	uint8_t ext[9];
+	uint8_t *pos = ext;
+	size_t length = sizeof (ext);
+	int status;
+
+	status = x509_mbedtls_build_basic_constraints_extension_data (ca, pathlen, &pos, &length);
+	if (status != 0) {
+		return status;
+	}
+
+	return mbedtls_x509write_csr_set_extension (x509, MBEDTLS_OID_BASIC_CONSTRAINTS,
+		MBEDTLS_OID_SIZE (MBEDTLS_OID_BASIC_CONSTRAINTS), 1, pos, length);
+}
+
+/**
+ * Add a custom extensions to a certificate or CSR.
+ *
+ * @param builder The extension to add.
+ * @param is_cert Flag to indicate if the X.509 context is a certificate rather than a CSR.
+ * @param x509 The X.509 context to update with the new extension.
+ *
+ * @return 0 if the extension was add successfully or an error code.
+ */
+static int x509_mbedtls_add_custom_extension (const struct x509_extension_builder *builder,
+	bool is_cert, void *x509)
+{
+	struct x509_extension extension = {0};
+	int status;
+
+	if (builder == NULL) {
+		/* Silently skip null extension builders. */
+		return 0;
+	}
+
+	status = builder->build (builder, &extension);
+	if (status != 0) {
+		return status;
+	}
+
+	if (is_cert) {
+		status = mbedtls_x509write_crt_set_extension ((struct mbedtls_x509write_cert*) x509,
+			(char*) extension.oid, extension.oid_length, extension.critical, extension.data,
+			extension.data_length);
+	}
+	else {
+		status = mbedtls_x509write_csr_set_extension ((struct mbedtls_x509write_csr*) x509,
+			(char*) extension.oid, extension.oid_length, extension.critical, extension.data,
+			extension.data_length);
+	}
+
+	builder->free (builder, &extension);
+
+	return status;
+}
+#else	// MBEDTLS_IS_VERSION_3
+/**
  * Create and add the key usage extension to a certificate or CSR.
  *
  * @param extensions The list of extensions to update.
@@ -124,13 +383,13 @@ int x509_mbedtls_close_asn1_object (uint8_t **pos, uint8_t *start, uint8_t tag, 
 static int x509_mbedtls_add_key_usage_extension (mbedtls_asn1_named_data **extensions, int usage)
 {
 	uint8_t ext[4];
-	uint8_t *pos;
-	int length;
+	uint8_t *pos = ext;
+	size_t length = sizeof (ext);
+	int status;
 
-	pos = ext + sizeof (ext);
-	length = mbedtls_asn1_write_bitstring (&pos, ext, (uint8_t*) &usage, (usage & 0x04) ? 6 : 5);
-	if (length < 0) {
-		return length;
+	status = x509_mbedtls_build_key_usage_extension_data (usage, &pos, &length);
+	if (status != 0) {
+		return status;
 	}
 
 	return mbedtls_x509_set_extension (extensions, MBEDTLS_OID_KEY_USAGE,
@@ -151,25 +410,12 @@ static int x509_mbedtls_add_extended_key_usage_extension (mbedtls_asn1_named_dat
 	const char *oid, int oid_length, bool critical)
 {
 	uint8_t ext[20];
-	uint8_t *pos;
+	uint8_t *pos = ext;
+	size_t length = sizeof (ext);
 	int status;
-	int length;
 
-	pos = ext + sizeof (ext);
-	length = mbedtls_asn1_write_oid (&pos, ext, oid, oid_length);
-	if (length < 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_WRITE_OID_EC, length, 0);
-
-		return length;
-	}
-
-	status = x509_mbedtls_close_asn1_object (&pos, ext,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &length);
+	status = x509_mbedtls_build_extended_key_usage_extension_data (oid, oid_length, &pos, &length);
 	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, length, 0);
-
 		return status;
 	}
 
@@ -191,27 +437,13 @@ static int x509_mbedtls_add_basic_constraints_extension (mbedtls_asn1_named_data
 	bool ca, int pathlen)
 {
 	uint8_t ext[9];
-	uint8_t *pos;
-	int length = 0;
-	int ret;
+	uint8_t *pos = ext;
+	size_t length = sizeof (ext);
+	int status;
 
-	pos = ext + sizeof (ext);
-
-	if (ca) {
-		if (pathlen <= X509_CERT_MAX_PATHLEN) {
-			MBEDTLS_ASN1_CHK_ADD (length, mbedtls_asn1_write_int (&pos, ext, pathlen));
-		}
-
-		MBEDTLS_ASN1_CHK_ADD (length, mbedtls_asn1_write_bool (&pos, ext, 1));
-	}
-
-	ret = x509_mbedtls_close_asn1_object (&pos, ext,
-		(MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE), &length);
-	if (ret != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_ASN1_CLOSE_EC, ret, 0);
-
-		return ret;
+	status = x509_mbedtls_build_basic_constraints_extension_data (ca, pathlen, &pos, &length);
+	if (status != 0) {
+		return status;
 	}
 
 	return mbedtls_x509_set_extension (extensions, MBEDTLS_OID_BASIC_CONSTRAINTS,
@@ -219,19 +451,22 @@ static int x509_mbedtls_add_basic_constraints_extension (mbedtls_asn1_named_data
 }
 
 /**
- * Add a custom extensions to a certificate.
+ * Add a custom extensions to a certificate or CSR.
  *
  * @param builder The extension to add.
+ * @param is_cert Flag to indicate if the X.509 context is a certificate rather than a CSR.
  * @param extensions List of extensions for the certificate that will be updated with the new
  * extension.
  *
  * @return 0 if the extension was add successfully or an error code.
  */
 static int x509_mbedtls_add_custom_extension (const struct x509_extension_builder *builder,
-	mbedtls_asn1_named_data **extensions)
+	bool is_cert, mbedtls_asn1_named_data **extensions)
 {
 	struct x509_extension extension = {0};
 	int status;
+
+	UNUSED (is_cert);
 
 	if (builder == NULL) {
 		/* Silently skip null extension builders. */
@@ -250,17 +485,19 @@ static int x509_mbedtls_add_custom_extension (const struct x509_extension_builde
 
 	return status;
 }
+#endif	// MBEDTLS_IS_VERSION_3
 
-static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *priv_key,
+int x509_mbedtls_create_csr (const struct x509_engine *engine, const uint8_t *priv_key,
 	size_t key_length, enum hash_type sig_hash, const char *name, int type, const uint8_t *eku,
 	size_t eku_length, const struct x509_extension_builder *const *extra_extensions,
 	size_t ext_count, uint8_t **csr, size_t *csr_length)
 {
-	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	mbedtls_x509write_csr x509;
 	mbedtls_pk_context key;
 	mbedtls_md_type_t md_alg;
 	char *subject;
+	uint8_t key_usage;
 	size_t i;
 	int status;
 
@@ -305,7 +542,7 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 
 	mbedtls_x509write_csr_init (&x509);
 
-	status = x509_mbedtls_load_key (&key, priv_key, key_length, true);
+	status = x509_mbedtls_load_key (mbedtls, &key, priv_key, key_length, true);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_X509_LOAD_KEY_EC, status, 0);
@@ -332,14 +569,13 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 	}
 
 	if (type) {
-		status = x509_mbedtls_add_key_usage_extension (&x509.extensions,
-			MBEDTLS_X509_KU_KEY_CERT_SIGN);
+		key_usage = MBEDTLS_X509_KU_KEY_CERT_SIGN;
 	}
 	else {
-		status = x509_mbedtls_add_key_usage_extension (&x509.extensions,
-			(MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_KEY_AGREEMENT));
+		key_usage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_KEY_AGREEMENT;
 	}
 
+	status = x509_mbedtls_add_key_usage_extension (&X509_MBEDTLS_EXT_CONTEXT (x509), key_usage);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_KEY_USAGE_EC, status, 0);
@@ -347,20 +583,9 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 		goto err_free_subject;
 	}
 
-	if (type == X509_CERT_END_ENTITY) {
-		status = x509_mbedtls_add_extended_key_usage_extension (&x509.extensions,
-			MBEDTLS_OID_CLIENT_AUTH, MBEDTLS_OID_SIZE (MBEDTLS_OID_CLIENT_AUTH), true);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_EXT_KEY_USAGE_EC, status, 0);
-
-			goto err_free_subject;
-		}
-	}
-
 	if (eku != NULL) {
-		status = x509_mbedtls_add_extended_key_usage_extension (&x509.extensions, (char*) eku,
-			eku_length, false);
+		status = x509_mbedtls_add_extended_key_usage_extension (&X509_MBEDTLS_EXT_CONTEXT (x509),
+			(char*) eku, eku_length, false);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_EXT_KEY_USAGE_EC, status, 0);
@@ -370,8 +595,8 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 	}
 
 	if (type) {
-		status = x509_mbedtls_add_basic_constraints_extension (&x509.extensions, true,
-			X509_CERT_PATHLEN (type));
+		status = x509_mbedtls_add_basic_constraints_extension (&X509_MBEDTLS_EXT_CONTEXT (x509),
+			true, X509_CERT_PATHLEN (type));
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_BASIC_CONSTRAINTS_EC, status, 0);
@@ -381,15 +606,16 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 	}
 
 	for (i = 0; i < ext_count; i++) {
-		status = x509_mbedtls_add_custom_extension (extra_extensions[i], &x509.extensions);
+		status = x509_mbedtls_add_custom_extension (extra_extensions[i], false,
+			&X509_MBEDTLS_EXT_CONTEXT (x509));
 		if (status != 0) {
 			goto err_free_subject;
 		}
 	}
 
 	mbedtls_x509write_csr_set_md_alg (&x509, md_alg);
-	status = mbedtls_x509write_csr_der (&x509, mbedtls->der_buf, X509_MAX_SIZE,
-		mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
+	status = mbedtls_x509write_csr_der (&x509, mbedtls->state->der_buf, X509_MAX_SIZE,
+		mbedtls_ctr_drbg_random, &mbedtls->state->ctr_drbg);
 	if (status < 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_X509_CSR_DER_WRITE_EC, status, 0);
@@ -403,7 +629,7 @@ static int x509_mbedtls_create_csr (struct x509_engine *engine, const uint8_t *p
 		goto err_free_subject;
 	}
 
-	memcpy (*csr, &mbedtls->der_buf[X509_MAX_SIZE - status], status);
+	memcpy (*csr, &mbedtls->state->der_buf[X509_MAX_SIZE - status], status);
 	*csr_length = status;
 	status = 0;
 
@@ -415,6 +641,36 @@ err_free_csr:
 	mbedtls_x509write_csr_free (&x509);
 
 	return status;
+}
+
+/**
+ * Callback to use for handling any extra extensions that have been added to the certificate that
+ * mbedTLS doesn't understand.  This callback does nothing except return success, indicating that
+ * certificate parsing should continue.
+ *
+ * This should not be used with authentication flows, since it will cause unknown critical
+ * extensions to be treated as valid.
+ *
+ * @param p_ctx Unused.  Necessary for mbedtls callback compatibility.
+ * @param crt Unused.  Necessary for mbedtls callback compatibility.
+ * @param oid Unused.  Necessary for mbedtls callback compatibility.
+ * @param critical Unused.  Necessary for mbedtls callback compatibility.
+ * @param p Unused.  Necessary for mbedtls callback compatibility.
+ * @param end Unused.  Necessary for mbedtls callback compatibility.
+ *
+ * @return Always returns 0
+ */
+static int x509_mbedtls_accept_unknown_extensions (void *p_ctx, mbedtls_x509_crt const *crt,
+	mbedtls_x509_buf const *oid, int critical, const unsigned char *p, const unsigned char *end)
+{
+	UNUSED (p_ctx);
+	UNUSED (crt);
+	UNUSED (oid);
+	UNUSED (critical);
+	UNUSED (p);
+	UNUSED (end);
+
+	return 0;
 }
 
 /**
@@ -438,7 +694,7 @@ err_free_csr:
  *
  * @return 0 if the certificate was successfully created or an error code.
  */
-static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
+static int x509_mbedtls_create_certificate (const struct x509_engine_mbedtls *mbedtls,
 	struct x509_certificate *cert, mbedtls_pk_context *cert_key, enum hash_type sig_hash,
 	const uint8_t *serial_num, size_t serial_length, const char *name, int type,
 	mbedtls_pk_context *ca_key, const struct x509_certificate *ca_cert,
@@ -484,6 +740,31 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 	mbedtls_x509write_crt_set_subject_key (&x509_build, cert_key);
 	mbedtls_x509write_crt_set_issuer_key (&x509_build, signing_key);
 
+#if MBEDTLS_IS_VERSION_3
+	{
+		bool valid_serial = false;
+
+		/* Ensure the serial number is not 0. */
+		for (i = 0; i < serial_length; i++) {
+			if (serial_num[i] != 0) {
+				valid_serial = true;
+				break;
+			}
+		}
+
+		if (!valid_serial) {
+			status = X509_ENGINE_INVALID_SERIAL_NUM;
+			goto err_free_crt;
+		}
+
+		status = mbedtls_x509write_crt_set_serial_raw (&x509_build, (uint8_t*) serial_num,
+			serial_length);
+		if (status != 0) {
+			status = X509_ENGINE_INVALID_SERIAL_NUM;
+			goto err_free_crt;
+		}
+	}
+#else
 	status = mbedtls_mpi_read_binary (&x509_build.serial, serial_num, serial_length);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
@@ -496,6 +777,7 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 		status = X509_ENGINE_INVALID_SERIAL_NUM;
 		goto err_free_crt;
 	}
+#endif
 
 	subject = platform_malloc (strlen (name) + 4);
 	if (subject == NULL) {
@@ -515,24 +797,30 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 
 	if (!ca_key) {
 		status = mbedtls_x509write_crt_set_issuer_name (&x509_build, subject);
-
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 				CRYPTO_LOG_MSG_MBEDTLS_CRT_SET_ISSUER_EC, status, 0);
+			goto err_free_subject;
 		}
 	}
 	else {
-		mbedtls_asn1_store_named_data (&x509_build.issuer, (char*) ca_x509->subject.oid.p,
-			ca_x509->subject.oid.len, ca_x509->subject.val.p, ca_x509->subject.val.len);
-		if (x509_build.issuer == NULL) {
+		struct mbedtls_asn1_named_data *issuer_cn;
+
+		/* The alternative to accessing internal fields is to use mbedtls_x509_dn_gets() to get the
+		 * subject name from the issuer certificate and pass that to
+		 * mbedtls_x509write_crt_set_issuer_name().  However, mbedtls_x509_dn_gets() returns an
+		 * escaped string rather than the raw data.  This escaped string is rejected as invalid when
+		 * to mbedtls_x509write_crt_set_issuer_name() using mbedTLS version 2.x.  It works fine with
+		 * mbedTLS 3.x, but just keep the same flow in both cases (at least for now) to avoid the
+		 * need to unnecessarily link in mbedtls_x509_dn_gets(). */
+		issuer_cn = mbedtls_asn1_store_named_data (&x509_build.MBEDTLS_PRIVATE (issuer),
+			(char*) ca_x509->subject.oid.p, ca_x509->subject.oid.len, ca_x509->subject.val.p,
+			ca_x509->subject.val.len);
+		if (issuer_cn == NULL) {
 			status = X509_ENGINE_NO_MEMORY;
 		}
 
-		x509_build.issuer->val.tag = MBEDTLS_ASN1_UTF8_STRING;
-	}
-
-	if (status != 0) {
-		goto err_free_subject;
+		issuer_cn->val.tag = MBEDTLS_ASN1_UTF8_STRING;
 	}
 
 	status = mbedtls_x509write_crt_set_validity (&x509_build, "20180101000000", "99991231235959");
@@ -560,11 +848,10 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 	}
 
 	if (type) {
-		status = x509_mbedtls_add_key_usage_extension (&x509_build.extensions,
-			MBEDTLS_X509_KU_KEY_CERT_SIGN);
+		status = mbedtls_x509write_crt_set_key_usage (&x509_build, MBEDTLS_X509_KU_KEY_CERT_SIGN);
 	}
 	else {
-		status = x509_mbedtls_add_key_usage_extension (&x509_build.extensions,
+		status = mbedtls_x509write_crt_set_key_usage (&x509_build,
 			(MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_KEY_AGREEMENT));
 	}
 
@@ -575,20 +862,14 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 		goto err_free_subject;
 	}
 
-	if (type == X509_CERT_END_ENTITY) {
-		status = x509_mbedtls_add_extended_key_usage_extension (&x509_build.extensions,
-			MBEDTLS_OID_CLIENT_AUTH, MBEDTLS_OID_SIZE (MBEDTLS_OID_CLIENT_AUTH), true);
-		if (status != 0) {
-			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_EXT_KEY_USAGE_EC, status, 0);
-
-			goto err_free_subject;
-		}
-	}
-
 	if (type) {
-		status = x509_mbedtls_add_basic_constraints_extension (&x509_build.extensions, true,
-			X509_CERT_PATHLEN (type));
+		int pathlen = X509_CERT_PATHLEN (type);
+
+		if (pathlen > X509_CERT_MAX_PATHLEN) {
+			pathlen = -1;
+		}
+
+		status = mbedtls_x509write_crt_set_basic_constraints (&x509_build, true, pathlen);
 		if (status != 0) {
 			debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 				CRYPTO_LOG_MSG_MBEDTLS_X509_ADD_BASIC_CONSTRAINTS_EC, status, 0);
@@ -598,15 +879,16 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 	}
 
 	for (i = 0; i < ext_count; i++) {
-		status = x509_mbedtls_add_custom_extension (extra_extensions[i], &x509_build.extensions);
+		status = x509_mbedtls_add_custom_extension (extra_extensions[i], true,
+			&X509_MBEDTLS_EXT_CONTEXT (x509_build));
 		if (status != 0) {
 			goto err_free_subject;
 		}
 	}
 
 	mbedtls_x509write_crt_set_md_alg (&x509_build, md_alg);
-	status = mbedtls_x509write_crt_der (&x509_build, mbedtls->der_buf, X509_MAX_SIZE,
-		mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
+	status = mbedtls_x509write_crt_der (&x509_build, mbedtls->state->der_buf, X509_MAX_SIZE,
+		mbedtls_ctr_drbg_random, &mbedtls->state->ctr_drbg);
 	if (status < 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_CRT_WRITE_DER_EC, status, 0);
@@ -620,7 +902,11 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 		goto err_free_subject;
 	}
 
-	status = mbedtls_x509_crt_parse_der (x509, &mbedtls->der_buf[X509_MAX_SIZE - status], status);
+	/* The certificate that is being parsed was just created here, so allow any unknown extensions
+	 * to be parsed successfully, even if they are critical. */
+	status = mbedtls_x509_crt_parse_der_with_ext_cb (x509,
+		&mbedtls->state->der_buf[X509_MAX_SIZE - status], status, 1,
+		x509_mbedtls_accept_unknown_extensions, NULL);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_CRT_PARSE_DER_EC, status, 0);
@@ -630,7 +916,6 @@ static int x509_mbedtls_create_certificate (struct x509_engine_mbedtls *mbedtls,
 	}
 
 	cert->context = x509;
-	status = 0;
 
 err_free_subject:
 	platform_free (subject);
@@ -640,11 +925,12 @@ err_free_crt:
 	return status;
 }
 
-static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engine,
+int x509_mbedtls_create_self_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 	enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 	int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	mbedtls_pk_context cert_key;
 	int status;
 
@@ -657,7 +943,7 @@ static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engi
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = x509_mbedtls_load_key (&cert_key, priv_key, key_length, true);
+	status = x509_mbedtls_load_key (mbedtls, &cert_key, priv_key, key_length, true);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_X509_LOAD_KEY_EC, status, 0);
@@ -665,8 +951,8 @@ static int x509_mbedtls_create_self_signed_certificate (struct x509_engine *engi
 		goto err_exit;
 	}
 
-	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		sig_hash, serial_num, serial_length, name, type, NULL, NULL, extra_extensions, ext_count);
+	status = x509_mbedtls_create_certificate (mbedtls, cert, &cert_key, sig_hash, serial_num,
+		serial_length, name, type, NULL, NULL, extra_extensions, ext_count);
 
 	mbedtls_pk_free (&cert_key);
 err_exit:
@@ -674,12 +960,13 @@ err_exit:
 	return status;
 }
 
-static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine,
+int x509_mbedtls_create_ca_signed_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert, const uint8_t *key, size_t key_length, const uint8_t *serial_num,
 	size_t serial_length, const char *name, int type, const uint8_t *ca_priv_key,
 	size_t ca_key_length, enum hash_type sig_hash, const struct x509_certificate *ca_cert,
 	const struct x509_extension_builder *const *extra_extensions, size_t ext_count)
 {
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	mbedtls_pk_context cert_key;
 	mbedtls_pk_context ca_key;
 	int status;
@@ -694,7 +981,7 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
-	status = x509_mbedtls_load_key (&cert_key, key, key_length, false);
+	status = x509_mbedtls_load_key (mbedtls, &cert_key, key, key_length, false);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_X509_LOAD_KEY_EC, status, 0);
@@ -702,7 +989,7 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 		goto err_exit;
 	}
 
-	status = x509_mbedtls_load_key (&ca_key, ca_priv_key, ca_key_length, true);
+	status = x509_mbedtls_load_key (mbedtls, &ca_key, ca_priv_key, ca_key_length, true);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_X509_LOAD_KEY_EC, status, 0);
@@ -710,9 +997,8 @@ static int x509_mbedtls_create_ca_signed_certificate (struct x509_engine *engine
 		goto err_free_key;
 	}
 
-	status = x509_mbedtls_create_certificate ((struct x509_engine_mbedtls*) engine, cert, &cert_key,
-		sig_hash, serial_num, serial_length, name, type, &ca_key, ca_cert, extra_extensions,
-		ext_count);
+	status = x509_mbedtls_create_certificate (mbedtls, cert, &cert_key, sig_hash, serial_num,
+		serial_length, name, type, &ca_key, ca_cert, extra_extensions, ext_count);
 
 	mbedtls_pk_free (&ca_key);
 err_free_key:
@@ -723,7 +1009,7 @@ err_exit:
 }
 #endif
 
-static int x509_mbedtls_load_certificate (struct x509_engine *engine, struct x509_certificate *cert,
+int x509_mbedtls_load_certificate (const struct x509_engine *engine, struct x509_certificate *cert,
 	const uint8_t *der, size_t length)
 {
 	mbedtls_x509_crt *x509;
@@ -752,7 +1038,7 @@ static int x509_mbedtls_load_certificate (struct x509_engine *engine, struct x50
 	return status;
 }
 
-static void x509_mbedtls_release_certificate (struct x509_engine *engine,
+void x509_mbedtls_release_certificate (const struct x509_engine *engine,
 	struct x509_certificate *cert)
 {
 	UNUSED (engine);
@@ -764,7 +1050,7 @@ static void x509_mbedtls_release_certificate (struct x509_engine *engine,
 }
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
-static int x509_mbedtls_get_certificate_der (struct x509_engine *engine,
+int x509_mbedtls_get_certificate_der (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **der, size_t *length)
 {
 	mbedtls_x509_crt *x509;
@@ -793,7 +1079,7 @@ static int x509_mbedtls_get_certificate_der (struct x509_engine *engine,
 #endif
 
 #ifdef X509_ENABLE_AUTHENTICATION
-static int x509_mbedtls_get_certificate_version (struct x509_engine *engine,
+int x509_mbedtls_get_certificate_version (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	if ((engine == NULL) || (cert == NULL)) {
@@ -803,7 +1089,7 @@ static int x509_mbedtls_get_certificate_version (struct x509_engine *engine,
 	return ((mbedtls_x509_crt*) cert->context)->version;
 }
 
-static int x509_mbedtls_get_serial_number (struct x509_engine *engine,
+int x509_mbedtls_get_serial_number (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t *serial_num, size_t length)
 {
 	mbedtls_x509_crt *x509;
@@ -822,7 +1108,7 @@ static int x509_mbedtls_get_serial_number (struct x509_engine *engine,
 	return x509->serial.len;
 }
 
-static int x509_mbedtls_get_public_key_type (struct x509_engine *engine,
+int x509_mbedtls_get_public_key_type (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	if ((engine == NULL) || (cert == NULL)) {
@@ -844,7 +1130,7 @@ static int x509_mbedtls_get_public_key_type (struct x509_engine *engine,
 	}
 }
 
-static int x509_mbedtls_get_public_key_length (struct x509_engine *engine,
+int x509_mbedtls_get_public_key_length (const struct x509_engine *engine,
 	const struct x509_certificate *cert)
 {
 	if ((engine == NULL) || (cert == NULL)) {
@@ -854,10 +1140,10 @@ static int x509_mbedtls_get_public_key_length (struct x509_engine *engine,
 	return mbedtls_pk_get_bitlen (&((mbedtls_x509_crt*) (cert->context))->pk);
 }
 
-static int x509_mbedtls_get_public_key (struct x509_engine *engine,
+int x509_mbedtls_get_public_key (const struct x509_engine *engine,
 	const struct x509_certificate *cert, uint8_t **key, size_t *key_length)
 {
-	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	int status;
 
 	if (key == NULL) {
@@ -870,7 +1156,7 @@ static int x509_mbedtls_get_public_key (struct x509_engine *engine,
 	}
 
 	status = mbedtls_pk_write_pubkey_der (&((mbedtls_x509_crt*) cert->context)->pk,
-		mbedtls->der_buf, X509_MAX_SIZE);
+		mbedtls->state->der_buf, X509_MAX_SIZE);
 	if (status < 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_PUBKEY_DER_EC, status, 0);
@@ -883,7 +1169,7 @@ static int x509_mbedtls_get_public_key (struct x509_engine *engine,
 		return X509_ENGINE_NO_MEMORY;
 	}
 
-	memcpy (*key, &mbedtls->der_buf[X509_MAX_SIZE - status], status);
+	memcpy (*key, &mbedtls->state->der_buf[X509_MAX_SIZE - status], status);
 	*key_length = status;
 
 	return 0;
@@ -903,16 +1189,21 @@ static int x509_mbedtls_verify_cert_signature (mbedtls_x509_crt *cert, mbedtls_p
 	const mbedtls_md_info_t *md_info;
 	int status;
 
-	md_info = mbedtls_md_info_from_type (cert->sig_md);
+	/* This function makes direct use of private fields in the X.509 structure.  Unfortunately, it
+	 * seems this can't be avoided, since there are no APIs to easily verify the signature of a
+	 * single certificate. */
+
+	md_info = mbedtls_md_info_from_type (cert->MBEDTLS_PRIVATE (sig_md));
 	if (md_info == NULL) {
 		return X509_ENGINE_UNSUPPORTED_SIG_TYPE;
 	}
 
 	mbedtls_md (md_info, cert->tbs.p, cert->tbs.len, hash);
 
-	status = mbedtls_pk_verify_ext (cert->sig_pk, cert->sig_opts, key, cert->sig_md, hash,
-		mbedtls_md_get_size (md_info), cert->sig.p, cert->sig.len);
-
+	status = mbedtls_pk_verify_ext (cert->MBEDTLS_PRIVATE (sig_pk),
+		cert->MBEDTLS_PRIVATE (sig_opts), key, cert->MBEDTLS_PRIVATE (sig_md), hash,
+		mbedtls_md_get_size (md_info), cert->MBEDTLS_PRIVATE (sig).p,
+		cert->MBEDTLS_PRIVATE (sig).len);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_VERIFY_EC, status, 0);
@@ -939,7 +1230,7 @@ static bool x509_mbedtls_is_self_signed (mbedtls_x509_crt *x509)
 	}
 }
 
-static int x509_mbedtls_init_ca_cert_store (struct x509_engine *engine, struct x509_ca_certs *store)
+int x509_mbedtls_init_ca_cert_store (const struct x509_engine *engine, struct x509_ca_certs *store)
 {
 	struct x509_mbedtls_ca_store_context *store_ctx;
 
@@ -958,7 +1249,7 @@ static int x509_mbedtls_init_ca_cert_store (struct x509_engine *engine, struct x
 	return 0;
 }
 
-static void x509_mbedtls_release_ca_cert_store (struct x509_engine *engine,
+void x509_mbedtls_release_ca_cert_store (const struct x509_engine *engine,
 	struct x509_ca_certs *store)
 {
 	UNUSED (engine);
@@ -988,8 +1279,8 @@ static void x509_mbedtls_release_ca_cert_store (struct x509_engine *engine,
  *
  * @return 0 if the certificate chain was updated successfully or an error code.
  */
-static int x509_mbedtls_add_ca_to_cert_chain (struct x509_engine *engine, mbedtls_x509_crt **chain,
-	const uint8_t *der, size_t length, bool is_root)
+static int x509_mbedtls_add_ca_to_cert_chain (const struct x509_engine *engine,
+	mbedtls_x509_crt **chain, const uint8_t *der, size_t length, bool is_root)
 {
 	struct x509_certificate cert;
 	mbedtls_x509_crt *x509;
@@ -1002,7 +1293,9 @@ static int x509_mbedtls_add_ca_to_cert_chain (struct x509_engine *engine, mbedtl
 
 	x509 = (mbedtls_x509_crt*) cert.context;
 
-	if (!x509->ca_istrue) {
+	/* Not ideal to access the private field, but this information is not readily available from any
+	 * other public field or API. */
+	if (!x509->MBEDTLS_PRIVATE (ca_istrue)) {
 		status = X509_ENGINE_NOT_CA_CERT;
 		goto err_free_cert;
 	}
@@ -1040,7 +1333,7 @@ err_exit:
 	return status;
 }
 
-static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+int x509_mbedtls_add_root_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	if (store == NULL) {
@@ -1051,7 +1344,7 @@ static int x509_mbedtls_add_root_ca (struct x509_engine *engine, struct x509_ca_
 		&((struct x509_mbedtls_ca_store_context*) store->context)->root_ca, der, length, true);
 }
 
-static int x509_mbedtls_add_trusted_ca (struct x509_engine *engine, struct x509_ca_certs *store,
+int x509_mbedtls_add_trusted_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
 	const uint8_t *der, size_t length)
 {
 	if (store == NULL) {
@@ -1062,8 +1355,8 @@ static int x509_mbedtls_add_trusted_ca (struct x509_engine *engine, struct x509_
 		&((struct x509_mbedtls_ca_store_context*) store->context)->root_ca, der, length, false);
 }
 
-static int x509_mbedtls_add_intermediate_ca (struct x509_engine *engine,
-	struct x509_ca_certs *store, const uint8_t *der, size_t length)
+int x509_mbedtls_add_intermediate_ca (const struct x509_engine *engine, struct x509_ca_certs *store,
+	const uint8_t *der, size_t length)
 {
 	if (store == NULL) {
 		return X509_ENGINE_INVALID_ARGUMENT;
@@ -1074,10 +1367,10 @@ static int x509_mbedtls_add_intermediate_ca (struct x509_engine *engine,
 		false);
 }
 
-static int x509_mbedtls_authenticate (struct x509_engine *engine,
+int x509_mbedtls_authenticate (const struct x509_engine *engine,
 	const struct x509_certificate *cert, const struct x509_ca_certs *store)
 {
-	struct x509_engine_mbedtls *mbedtls = (struct x509_engine_mbedtls*) engine;
+	const struct x509_engine_mbedtls *mbedtls = (const struct x509_engine_mbedtls*) engine;
 	struct x509_mbedtls_ca_store_context *store_ctx;
 	mbedtls_x509_crt *x509;
 	int status;
@@ -1112,30 +1405,17 @@ static int x509_mbedtls_authenticate (struct x509_engine *engine,
  * Initialize an instance for handling X.509 certificates using mbedTLS.
  *
  * @param engine The X.509 engine to initialize.
+ * @param state Variable context for X.509 operations.  This must be uninitialized.
  *
- * @return 0 if the X.509 engine  was successfully initialized or an error code.
+ * @return 0 if the X.509 engine was successfully initialized or an error code.
  */
-int x509_mbedtls_init (struct x509_engine_mbedtls *engine)
+int x509_mbedtls_init (struct x509_engine_mbedtls *engine, struct x509_engine_mbedtls_state *state)
 {
-	int status;
-
 	if (engine == NULL) {
 		return X509_ENGINE_INVALID_ARGUMENT;
 	}
 
 	memset (engine, 0, sizeof (struct x509_engine_mbedtls));
-
-	mbedtls_ctr_drbg_init (&engine->ctr_drbg);
-	mbedtls_entropy_init (&engine->entropy);
-
-	status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
-		0);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
-
-		goto exit;
-	}
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 	engine->base.create_csr = x509_mbedtls_create_csr;
@@ -1161,11 +1441,50 @@ int x509_mbedtls_init (struct x509_engine_mbedtls *engine)
 	engine->base.authenticate = x509_mbedtls_authenticate;
 #endif
 
+	engine->state = state;
+
+	return x509_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of on mbedTLS X.509 engine.  The rest of the instance is
+ * assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The X.509 engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int x509_mbedtls_init_state (const struct x509_engine_mbedtls *engine)
+{
+	int status = 0;
+
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return X509_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+#ifdef X509_ENABLE_CREATE_CERTIFICATES
+	mbedtls_ctr_drbg_init (&engine->state->ctr_drbg);
+	mbedtls_entropy_init (&engine->state->entropy);
+
+	status = mbedtls_ctr_drbg_seed (&engine->state->ctr_drbg, mbedtls_entropy_func,
+		&engine->state->entropy, NULL, 0);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
+
+		goto exit;
+	}
+
 	return 0;
 
 exit:
-	mbedtls_entropy_free (&engine->entropy);
-	mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+	mbedtls_entropy_free (&engine->state->entropy);
+	mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
+#endif
 
 	return status;
 }
@@ -1175,10 +1494,14 @@ exit:
  *
  * @param engine The X.509 engine to release.
  */
-void x509_mbedtls_release (struct x509_engine_mbedtls *engine)
+void x509_mbedtls_release (const struct x509_engine_mbedtls *engine)
 {
+#ifdef X509_ENABLE_CREATE_CERTIFICATES
 	if (engine) {
-		mbedtls_entropy_free (&engine->entropy);
-		mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+		mbedtls_entropy_free (&engine->state->entropy);
+		mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 	}
+#else
+	UNUSED (engine);
+#endif
 }

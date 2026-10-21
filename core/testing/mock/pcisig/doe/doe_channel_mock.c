@@ -3,7 +3,6 @@
 
 #include <string.h>
 #include "doe_channel_mock.h"
-#include "platform_io.h"
 #include "cmd_interface/cmd_interface.h"
 #include "pcisig/doe/doe_base_protocol.h"
 #include "pcisig/doe/doe_interface.h"

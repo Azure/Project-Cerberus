@@ -66,7 +66,7 @@ target_compile_options(
 		-Wall
 		-Wextra
  		-Werror
-		-g -ggdb3
+		-g
 	)
 
 target_compile_definitions(

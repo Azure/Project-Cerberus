@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "asn1/x509_extension_builder.h"
+#include "crypto/ecc.h"
 
 
 extern const uint8_t RIOT_CORE_DEVICE_ID_OID[];
@@ -171,6 +172,20 @@ extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY_384[];
 extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_384_LEN;
 extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY_521[];
 extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_521_LEN;
+
+extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY_RAW[];
+extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_RAW_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY_384_RAW[];
+extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_384_RAW_LEN;
+extern const uint8_t RIOT_CORE_ALIAS_PUBLIC_KEY_521_RAW[];
+extern const size_t RIOT_CORE_ALIAS_PUBLIC_KEY_521_RAW_LEN;
+extern const struct ecc_point_public_key RIOT_CORE_ALIAS_PUBLIC_KEY_POINT;
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
+extern const struct ecc_point_public_key RIOT_CORE_ALIAS_PUBLIC_KEY_384_POINT;
+#endif
+#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
+extern const struct ecc_point_public_key RIOT_CORE_ALIAS_PUBLIC_KEY_521_POINT;
+#endif
 
 extern const uint8_t RIOT_CORE_ALIAS_SERIAL[];
 extern const size_t RIOT_CORE_ALIAS_SERIAL_LEN;

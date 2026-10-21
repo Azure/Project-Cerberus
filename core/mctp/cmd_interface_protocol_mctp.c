@@ -58,12 +58,7 @@ int cmd_interface_protocol_mctp_parse_message (const struct cmd_interface_protoc
 			cmd_interface_msg_set_max_response (message, MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT);
 		}
 
-		/* TODO:  MCTP control message structures currently assume presence of the message header,
-		 * so it needs to be left in place.  Update MCTP control message handling to remove this
-		 * header and eliminate this processing exception here. */
-		if (header->msg_type != MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG) {
-			cmd_interface_msg_remove_protocol_header (message, sizeof (*header));
-		}
+		cmd_interface_msg_remove_protocol_header (message, sizeof (*header));
 	}
 	else {
 		/* Do not make assumptions about the integrity check requirements or capabilities of vendor
@@ -85,12 +80,8 @@ int cmd_interface_protocol_mctp_handle_request_result (
 	}
 
 	if (message_type != MCTP_BASE_PROTOCOL_MSG_TYPE_VENDOR_DEF) {
-		/* TODO:  Just like in the pre-processing phase, this exception needs to be eliminated and
-		 * the protocol header added back to MCTP control messages. */
-		if (message_type != MCTP_BASE_PROTOCOL_MSG_TYPE_CONTROL_MSG) {
-			cmd_interface_msg_add_protocol_header (message,
-				sizeof (struct mctp_base_protocol_message_header));
-		}
+		cmd_interface_msg_add_protocol_header (message,
+			sizeof (struct mctp_base_protocol_message_header));
 
 		/* Only update the header in the case of a successful response. */
 		if (result == 0) {

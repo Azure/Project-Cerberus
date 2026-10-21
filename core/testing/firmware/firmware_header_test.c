@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "testing.h"
+#include "common/buffer_util.h"
 #include "common/image_header.h"
 #include "firmware/firmware_header.h"
 #include "testing/common/image_header_testing.h"
@@ -238,10 +239,10 @@ static void firmware_header_test_init_null (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = firmware_header_init (NULL, &flash.base, 0x10000);
-	CuAssertIntEquals (test, IMAGE_HEADER_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, FIRMWARE_HEADER_INVALID_ARGUMENT, status);
 
 	status = firmware_header_init (&header, NULL, 0x10000);
-	CuAssertIntEquals (test, IMAGE_HEADER_INVALID_ARGUMENT, status);
+	CuAssertIntEquals (test, FIRMWARE_HEADER_INVALID_ARGUMENT, status);
 
 	status = flash_mock_validate_and_release (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -1241,9 +1242,9 @@ static void firmware_header_test_get_earliest_allowed_revision_unknown_format (C
 	TEST_START;
 
 	memcpy (max_header, FIRMWARE_HEADER_FORMAT_2, IMAGE_HEADER_BASE_LEN);
-	*((uint16_t*) max_header) = 1024;
-	*((uint16_t*) &max_header[2]) = 0xffff;
-	*((uint16_t*) &max_header[11]) = 0x1234;
+	buffer_unaligned_write16 ((uint16_t*) &max_header[0], 1024);
+	buffer_unaligned_write16 ((uint16_t*) &max_header[2], 0xffff);
+	buffer_unaligned_write16 ((uint16_t*) &max_header[11], 0x1234);
 
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);
@@ -1454,10 +1455,10 @@ static void firmware_header_test_get_signature_info_unknown_format (CuTest *test
 	TEST_START;
 
 	memcpy (max_header, FIRMWARE_HEADER_FORMAT_3, IMAGE_HEADER_BASE_LEN);
-	*((uint16_t*) max_header) = 1024;
-	*((uint16_t*) &max_header[2]) = 0xffff;
-	*((uint32_t*) &max_header[13]) = 0x56789;
-	*((uint32_t*) &max_header[17]) = 0x100;
+	buffer_unaligned_write16 ((uint16_t*) &max_header[0], 1024);
+	buffer_unaligned_write16 ((uint16_t*) &max_header[2], 0xffff);
+	buffer_unaligned_write32 ((uint32_t*) &max_header[13], 0x56789);
+	buffer_unaligned_write32 ((uint32_t*) &max_header[17], 0x100);
 
 	status = flash_mock_init (&flash);
 	CuAssertIntEquals (test, 0, status);

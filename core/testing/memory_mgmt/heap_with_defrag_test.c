@@ -86,7 +86,7 @@ static void heap_with_defrag_testing_check_value (CuTest *test, uint8_t value, u
 static void heap_with_defrag_test_macros (CuTest *test)
 {
 	uint8_t block_with_ctrl_header[] = {
-		0xAA, 0x92, 0x02, 0x21,
+		0xAA, 0x92, 0x02, 0x21, 0xFF, 0xFF, 0xFF, 0xFF,
 		0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x11, 0x22,
 		0xA1, 0xB1, 0xC1, 0xD1, 0xE1, 0xF1, 0x12, 0x21,
 		0xA4, 0xB4, 0xC4, 0xD4, 0xE4, 0xF4, 0x14, 0x24,
@@ -97,6 +97,8 @@ static void heap_with_defrag_test_macros (CuTest *test)
 		&block_with_ctrl_header[sizeof (struct heap_with_defrag_ctrl_block)]);
 
 	TEST_START;
+
+	CuAssertTrue (test,	sizeof (block_with_ctrl_header) >= HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN);
 
 	CuAssertIntEquals (test, sizeof (struct heap_with_defrag_ctrl_block),
 		HEAP_WITH_DEFRAG_CTRL_BLOCK_HEADER_LEN);

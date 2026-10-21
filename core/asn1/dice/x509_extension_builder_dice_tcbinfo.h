@@ -32,11 +32,6 @@ size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
 	const struct tcg_dice_tcbinfo *tcb);
 
 
-/* Internal definitions for use by TcbInfo extension builders. */
-extern const uint8_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID[];
-extern const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH;
-
-
 #define	DICE_TCBINFO_EXTENSION_ERROR(code)		ROT_ERROR (ROT_MODULE_DICE_TCBINFO_EXTENSION, code)
 
 /**
@@ -49,6 +44,12 @@ enum {
 	DICE_TCBINFO_EXTENSION_UNKNOWN_FWID = DICE_TCBINFO_EXTENSION_ERROR (0x03),		/**< The FWID digest is an unknown type. */
 	DICE_TCBINFO_EXTENSION_NO_FWID = DICE_TCBINFO_EXTENSION_ERROR (0x04),			/**< No FWID digest was provided in the TCB info. */
 	DICE_TCBINFO_EXTENSION_NO_VERSION = DICE_TCBINFO_EXTENSION_ERROR (0x05),		/**< No version was provided in the TCB info. */
+	DICE_TCBINFO_EXTENSION_NO_SVN = DICE_TCBINFO_EXTENSION_ERROR (0x06),			/**< No SVN was provided in the TCB info. */
+	DICE_TCBINFO_EXTENSION_NO_FWID_LIST = DICE_TCBINFO_EXTENSION_ERROR (0x07),		/**< No FWID list was provided in the TCB info. */
+	DICE_TCBINFO_EXTENSION_NO_IR_ID = DICE_TCBINFO_EXTENSION_ERROR (0x08),			/**< No ID was provided for a named digest. */
+	DICE_TCBINFO_EXTENSION_UNKNOWN_IR_DIGEST = DICE_TCBINFO_EXTENSION_ERROR (0x09),	/**< A named digest uses an unknown digest type. */
+	DICE_TCBINFO_EXTENSION_NO_IR_DIGEST = DICE_TCBINFO_EXTENSION_ERROR (0x0a),		/**< No digest value was provided for a named digest. */
+	DICE_TCBINFO_EXTENSION_NO_IR_DIGEST_LIST = DICE_TCBINFO_EXTENSION_ERROR (0x0b),	/**< No digest list was provided for a named digest. */
 };
 
 

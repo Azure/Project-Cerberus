@@ -36,7 +36,10 @@ static void debug_log_testing_init_dependencies (CuTest *test, struct logging_mo
 	}
 
 	debug_log = &logger->base;
-	debug_timestamp = &rtc->base;
+
+	if (rtc != NULL) {
+		debug_timestamp = &rtc->base;
+	}
 }
 
 /**

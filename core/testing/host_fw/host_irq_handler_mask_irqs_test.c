@@ -160,7 +160,7 @@ static void host_irq_handler_mask_irqs_test_static_init (CuTest *test)
 	CuAssertPtrNotNull (test, test_static.base.assert_cs1);
 	CuAssertPtrNotNull (test, test_static.base.force_recovery);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	host_irq_handler_mask_irqs_release (&test_static);
@@ -179,7 +179,7 @@ static void host_irq_handler_mask_irqs_test_static_init_no_recovery (CuTest *tes
 
 	host_irq_handler_testing_init_dependencies (test, &handler.common);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	host_irq_handler_mask_irqs_release (&test_static);
@@ -210,16 +210,16 @@ static void host_irq_handler_mask_irqs_test_static_init_null (CuTest *test)
 	status = host_irq_handler_mask_irqs_config_interrupts (NULL);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_host.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_host);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_hash.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_hash);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_rsa.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_rsa);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_irq_ctrl.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_irq_ctrl);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
 	host_irq_handler_testing_release_dependencies (test, &handler.common);
@@ -364,7 +364,7 @@ static void host_irq_handler_mask_irqs_test_static_init_enable_exit_reset (CuTes
 	CuAssertPtrNotNull (test, test_static.base.assert_cs1);
 	CuAssertPtrNotNull (test, test_static.base.force_recovery);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&handler.common.irq.mock, handler.common.irq.base.enable_exit_reset,
@@ -391,7 +391,7 @@ static void host_irq_handler_mask_irqs_test_static_init_enable_exit_reset_no_rec
 		&handler.common.irq, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&handler.common.irq.mock, handler.common.irq.base.enable_exit_reset,
@@ -419,7 +419,7 @@ static void host_irq_handler_mask_irqs_test_static_init_enable_exit_reset_irq_er
 		&handler.common.irq, HOST_IRQ_HANDLER_EXIT_RESET_FAILED, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_EXIT_RESET_FAILED, status);
 
 	host_irq_handler_testing_release_dependencies (test, &handler.common);
@@ -449,16 +449,16 @@ static void host_irq_handler_mask_irqs_test_static_init_enable_exit_reset_null (
 	status = host_irq_handler_mask_irqs_config_interrupts (NULL);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_host.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_host);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_hash.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_hash);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_rsa.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_rsa);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_irq_ctrl.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static_null_irq_ctrl);
 	CuAssertIntEquals (test, HOST_IRQ_HANDLER_INVALID_ARGUMENT, status);
 
 	host_irq_handler_testing_release_dependencies (test, &handler.common);
@@ -513,7 +513,7 @@ static void host_irq_handler_mask_irqs_test_release_irq_error_static_init (CuTes
 		&handler.common.irq, 0, MOCK_ARG (true));
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = mock_expect (&handler.common.irq.mock, handler.common.irq.base.enable_exit_reset,
@@ -580,7 +580,7 @@ static void host_irq_handler_mask_irqs_test_enter_reset_static_init (CuTest *tes
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base.enter_reset (&test_static.base);
@@ -698,7 +698,7 @@ static void host_irq_handler_mask_irqs_test_exit_reset_static_init (CuTest *test
 		handler.common.recovery.base.on_host_out_of_reset, &handler.common.recovery, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	test_static.base.exit_reset (&test_static.base);
@@ -769,7 +769,7 @@ static void host_irq_handler_mask_irqs_test_assert_cs0_static_init (CuTest *test
 		&handler.common.recovery, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	test_static.base.assert_cs0 (&test_static.base);
@@ -852,7 +852,7 @@ static void host_irq_handler_mask_irqs_test_assert_cs1_static_init (CuTest *test
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = host_irq_handler_mask_irqs_config_interrupts (&test_static.base);
+	status = host_irq_handler_mask_irqs_config_interrupts (&test_static);
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.base.assert_cs1 (&test_static.base);

@@ -34,7 +34,7 @@ static int cmd_background_mock_unseal_result (const struct cmd_background *cmd, 
 }
 
 static int cmd_background_mock_execute_authorized_operation (const struct cmd_background *cmd,
-	const struct authorized_execution *execution)
+	const struct cmd_authorization_operation_context *op_context)
 {
 	struct cmd_background_mock *mock = (struct cmd_background_mock*) cmd;
 
@@ -43,7 +43,7 @@ static int cmd_background_mock_execute_authorized_operation (const struct cmd_ba
 	}
 
 	MOCK_RETURN (&mock->mock, cmd_background_mock_execute_authorized_operation, cmd,
-		MOCK_ARG_PTR_CALL (execution));
+		MOCK_ARG_PTR_CALL (op_context));
 }
 
 static int cmd_background_mock_get_authorized_operation_status (const struct cmd_background *cmd)
@@ -188,7 +188,7 @@ static const char* cmd_background_mock_arg_name_map (void *func, int arg)
 	else if (func == cmd_background_mock_execute_authorized_operation) {
 		switch (arg) {
 			case 0:
-				return "execution";
+				return "op_context";
 		}
 	}
 

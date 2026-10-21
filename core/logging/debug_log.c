@@ -70,7 +70,6 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
 #endif
 }
 
-#ifndef LOGGING_DISABLE_FLUSH
 /**
  * Flush any buffered contents of the debug log.
  *
@@ -78,6 +77,7 @@ int debug_log_create_entry (uint8_t severity, uint8_t component, uint8_t msg_ind
  */
 int debug_log_flush ()
 {
+#ifndef LOGGING_DISABLE_FLUSH
 #ifdef LOGGING_SUPPORT_DEBUG_LOG
 	if (debug_log == NULL) {
 		return LOGGING_NO_LOG_AVAILABLE;
@@ -88,8 +88,11 @@ int debug_log_flush ()
 
 	return LOGGING_NO_LOG_AVAILABLE;
 #endif
-}
+#else
+
+	return 0;
 #endif
+}
 
 /**
  * Remove all entries from the debug log.

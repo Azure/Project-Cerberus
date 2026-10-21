@@ -6,9 +6,12 @@
 #include <string.h>
 #include "device_manager.h"
 #include "platform_api.h"
+#include "attestation/attestation_discover.h"
+#include "attestation/attestation_logging.h"
 #include "common/buffer_util.h"
 #include "common/common_math.h"
 #include "crypto/hash.h"
+#include "logging/debug_log.h"
 #include "manifest/pcd/pcd.h"
 #include "mctp/mctp_base_protocol.h"
 
@@ -23,8 +26,8 @@
  *
  * @param state Device state
  */
-#define device_manager_is_device_unauthenticated(state)         \
-	((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) ||  \
+#define device_manager_is_device_unauthenticated(state) \
+	((state == DEVICE_MANAGER_READY_FOR_ATTESTATION) || \
 	(state == DEVICE_MANAGER_ATTESTATION_FAILED) || \
 	(state == DEVICE_MANAGER_ATTESTATION_INTERRUPTED) || \
 	(state == DEVICE_MANAGER_ATTESTATION_INVALID_VERSION) || \
@@ -36,62 +39,24 @@
 	(state == DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT) || \
 	(state == DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH) || \
 	(state == DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS) || \
-	(state == DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE))
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE) || \
+	(state == DEVICE_MANAGER_ATTESTATION_INVALID_CFM) || \
+	(state == DEVICE_MANAGER_NOT_PRESENT))
 
 /**
  * Determine if device is ready to be attested
  *
  * @param state Device state
  */
-#define device_manager_can_device_be_attested(state)            \
-	(device_manager_is_device_unauthenticated(state) || (state == DEVICE_MANAGER_AUTHENTICATED) || \
+#define device_manager_can_device_be_attested(state) \
+	(device_manager_is_device_unauthenticated(state) || \
+	(state == DEVICE_MANAGER_AUTHENTICATED) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT) || \
 	(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT) || \
-	(state == DEVICE_MANAGER_NEVER_ATTESTED))
-
-
-/**
- * Update device manager device table entry state
- *
- * @param mgr Device manager instance to utilize.
- * @param device_num Device table entry to update.
- * @param state Device state.
- *
- * @return Completion status, 0 if success or an error code.
- */
-int device_manager_update_device_state (struct device_manager *mgr, int device_num,
-	enum device_manager_device_state state)
-{
-	enum device_manager_device_state prev_state;
-	uint32_t timeout = 0;
-
-	if ((mgr == NULL) || (state >= MAX_DEVICE_MANAGER_STATES)) {
-		return DEVICE_MGR_INVALID_ARGUMENT;
-	}
-
-	if (device_num >= mgr->num_devices) {
-		return DEVICE_MGR_UNKNOWN_DEVICE;
-	}
-
-	prev_state = mgr->entries[device_num].state;
-	mgr->entries[device_num].state = state;
-
-	if ((state == DEVICE_MANAGER_AUTHENTICATED) ||
-		(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
-		timeout = mgr->authenticated_cadence_ms;
-	}
-	else if ((device_manager_is_device_unauthenticated (state)) &&
-		(device_manager_is_device_unauthenticated (prev_state) ||
-		(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
-		timeout = mgr->unauthenticated_cadence_ms;
-	}
-	else if (state == DEVICE_MANAGER_NEVER_ATTESTED) {
-		timeout = 0;
-	}
-
-	return platform_init_timeout (timeout, &mgr->entries[device_num].attestation_timeout);
-}
+	(state == DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT) || \
+	(state == DEVICE_MANAGER_NEVER_ATTESTED) || \
+	(state == DEVICE_MANAGER_FORCE_ATTESTATION))
 
 /**
  * Initialize a device manager.
@@ -103,8 +68,9 @@ int device_manager_update_device_state (struct device_manager *mgr, int device_n
  * @param mgr Device manager instance to initialize.
  * @param num_requester_devices Number of requester devices to manage. This must be at least 1 to
  * 	support the local device.
- * @param num_unique_responder_devices Number of unique responder devices to manage.
- * @param num_responder_devices Number of responder devices to manage.
+ * @param num_unique_responder_devices Number of different types of responder devices to manage.
+ * This value does not have an affect on the total number devices being managed.
+ * @param num_responder_devices Total number of responder devices to manage.
  * @param hierarchy Role of the local device in the Cerberus hierarchy (PA vs. AC RoT).
  * @param bus_role Role the local device will take on the I2C bus.
  * @param unauthenticated_cadence_ms Period to wait before reauthenticating unauthenticated device.
@@ -191,6 +157,12 @@ int device_manager_init (struct device_manager *mgr, int num_requester_devices,
 		goto error_exit;
 	}
 
+	status = platform_mutex_init (&mgr->action_mutex);
+	if (status != 0) {
+		observable_release (&mgr->observable);
+		goto error_exit;
+	}
+
 	return 0;
 
 error_exit:
@@ -202,7 +174,7 @@ free_entries:
 }
 
 /**
- * Initialize a device manager for an AC-RoT Cerberus.  This will set Cerberus hierachy role to
+ * Initialize a device manager for an AC-RoT Cerberus.  This will set Cerberus hierarchy role to
  * DEVICE_MANAGER_AC_ROT_MODE, set the number of responder devices to zero, and set all the
  * component attestation defaults to zero.
  *
@@ -220,30 +192,6 @@ int device_manager_init_ac_rot (struct device_manager *mgr, int num_requester_de
 		bus_role, 0, 0, 0, 0, 0, 0, 0);
 }
 
-#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
-/**
- * Free unidentified devices circular list
- *
- * @param mgr Device manager instance to utilize
- */
-void device_manager_clear_unidentified_devices (struct device_manager *mgr)
-{
-	struct device_manager_unidentified_entry *entry;
-
-	if (mgr->unidentified != NULL) {
-		while (mgr->unidentified->next != mgr->unidentified) {
-			entry = mgr->unidentified->next;
-			mgr->unidentified->next = entry->next;
-			platform_free (entry);
-		}
-
-		platform_free (mgr->unidentified);
-
-		mgr->unidentified = NULL;
-	}
-}
-#endif
-
 /**
  * Release device manager
  *
@@ -252,6 +200,14 @@ void device_manager_clear_unidentified_devices (struct device_manager *mgr)
 void device_manager_release (struct device_manager *mgr)
 {
 	if (mgr) {
+		if (mgr->entries != NULL) {
+			int i;
+
+			for (i = 0; i < mgr->num_devices; ++i) {
+				platform_free (mgr->entries[i].component_type_list);
+			}
+		}
+
 		platform_free (mgr->entries);
 		platform_free (mgr->attestation_status);
 
@@ -260,7 +216,9 @@ void device_manager_release (struct device_manager *mgr)
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 		device_manager_clear_unidentified_devices (mgr);
 #endif
+
 		observable_release (&mgr->observable);
+		platform_mutex_free (&mgr->action_mutex);
 	}
 }
 
@@ -326,6 +284,35 @@ int device_manager_get_device_num (struct device_manager *mgr, uint8_t eid)
 }
 
 /**
+ * Find device index in device manager table using Component ID and index in PCD.
+ *
+ * @param mgr The device manager to utilize.
+ * @param component_id The component ID to find.
+ * @param component_instance The component instance to find.
+ *
+ *
+ * @return The device number if found or an error code.
+ */
+int device_manager_get_device_num_by_component (struct device_manager *mgr, uint32_t component_id,
+	uint8_t component_instance)
+{
+	int i_device;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
+		if ((mgr->entries[i_device].component_id == component_id) &&
+			(mgr->entries[i_device].instance_id == component_instance)) {
+			return i_device;
+		}
+	}
+
+	return DEVICE_MGR_UNKNOWN_DEVICE;
+}
+
+/**
  * Find device SMBUS address for a device in device manager table.
  *
  * @param mgr The device manager to utilize.
@@ -339,12 +326,50 @@ int device_manager_get_device_addr (struct device_manager *mgr, int device_num)
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
 	return mgr->entries[device_num].smbus_addr;
 }
+
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+/**
+ * Find device entry with requested EID in unidentified device list.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to find.
+ * @param entry Container to fill with pointer to requested device entry.
+ * @param prev Container to fill with pointer to device right before requested device entry. Can be
+ * 	set to NULL if not needed.
+ *
+ * @return 0 if completed successfully or an error code.
+ */
+static int device_manager_find_unidentified_device (struct device_manager *mgr, uint8_t eid,
+	struct device_manager_unidentified_entry **entry,
+	struct device_manager_unidentified_entry **prev)
+{
+	struct device_manager_unidentified_entry *previous;
+
+	previous = mgr->unidentified;
+
+	while (previous->next->eid != eid) {
+		previous = previous->next;
+
+		if (previous == mgr->unidentified) {
+			return DEVICE_MGR_UNKNOWN_DEVICE;
+		}
+	}
+
+	*entry = previous->next;
+
+	if (prev != NULL) {
+		*prev = previous;
+	}
+
+	return 0;
+}
+#endif
 
 /**
  * Find device SMBUS address for a device in device manager table.
@@ -356,11 +381,39 @@ int device_manager_get_device_addr (struct device_manager *mgr, int device_num)
  */
 int device_manager_get_device_addr_by_eid (struct device_manager *mgr, uint8_t eid)
 {
+	int device_num;
+
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	return device_manager_get_device_addr (mgr, device_manager_get_device_num (mgr, eid));
+	device_num = device_manager_get_device_num (mgr, eid);
+
+#ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+	{
+		int status;
+		struct device_manager_unidentified_entry *entry;
+
+		if (device_num == DEVICE_MGR_UNKNOWN_DEVICE) {
+			if (mgr->unidentified == NULL) {
+				return DEVICE_MGR_UNKNOWN_DEVICE;
+			}
+
+			status = device_manager_find_unidentified_device (mgr, eid, &entry, NULL);
+			if (status != 0) {
+				return status;
+			}
+
+			device_num = DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM;
+		}
+	}
+#else
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+#endif
+
+	return device_manager_get_device_addr (mgr, device_num);
 }
 
 /**
@@ -377,7 +430,7 @@ int device_manager_get_device_eid (struct device_manager *mgr, int device_num)
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -399,7 +452,7 @@ int device_manager_update_device_eid (struct device_manager *mgr, int device_num
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -411,6 +464,104 @@ int device_manager_update_device_eid (struct device_manager *mgr, int device_num
 	}
 
 	return 0;
+}
+
+/**
+ * Update device manager device table entry with new instance id.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ * @param instance_id Device instance id to use.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_device_instance_id (struct device_manager *mgr, int device_num,
+	uint8_t instance_id)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	mgr->entries[device_num].instance_id = instance_id;
+
+	return 0;
+}
+
+/**
+ * Update device manager device table entry by EID with new instance id.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device table entry to update.
+ * @param instance_id Device instance id to use.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_device_instance_id_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint8_t instance_id)
+{
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_update_device_instance_id (mgr, device_num, instance_id);
+}
+
+/**
+ * Get the instance ID for a device by device number.
+ *
+ * @param device_mgr Device manager instance to utilize.
+ * @param device_num Device number in device manager table.
+ * @param instance_id Output buffer for the resolved instance ID.
+ *
+ * @return 0 if success or an error code otherwise.
+ */
+int device_manager_get_instance_id (struct device_manager *device_mgr, int device_num,
+	uint8_t *instance_id)
+{
+	if ((device_mgr == NULL) || (instance_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= device_mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	*instance_id = device_mgr->entries[device_num].instance_id;
+
+	return 0;
+}
+
+/**
+ * Get the instance ID for a device by EID.
+ *
+ * @param device_mgr Device manager instance to utilize.
+ * @param eid EID of the device to look up.
+ * @param instance_id Output buffer for the resolved instance ID.
+ *
+ * @return 0 if success or an error code otherwise.
+ */
+int device_manager_get_instance_id_by_eid (struct device_manager *device_mgr, uint8_t eid,
+	uint8_t *instance_id)
+{
+	int device_num;
+
+	if ((device_mgr == NULL) || (instance_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	device_num = device_manager_get_device_num (device_mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_get_instance_id (device_mgr, device_num, instance_id);
 }
 
 /**
@@ -433,7 +584,7 @@ int device_manager_update_not_attestable_device_entry (struct device_manager *mg
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -446,6 +597,9 @@ int device_manager_update_not_attestable_device_entry (struct device_manager *mg
 }
 
 /**
+ * @deprecated This function is deprecated. Use device_manager_update_component_device_entry()
+ * instead for future changes.
+ *
  * Update device manager device table MCTP bridge component entry.  All attestable devices need to
  * be in device entries that follow non-attestable devices.  The order in which device entries are
  * added needs to follow order in PCD.
@@ -468,13 +622,15 @@ int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, 
 	uint8_t components_count, uint32_t component_id, uint8_t pcd_component_index)
 {
 	int i_component;
+	int instance_id = 0;
 	int status;
 
 	if ((mgr == NULL) || (components_count == 0)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if ((device_num + components_count) > mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices) ||
+		((device_num + components_count) > mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -487,6 +643,80 @@ int device_manager_update_mctp_bridge_device_entry (struct device_manager *mgr, 
 		mgr->entries[i_component].smbus_addr =
 			mgr->entries[DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM].smbus_addr;
 		mgr->entries[device_num].pcd_component_index = pcd_component_index;
+		mgr->entries[i_component].instance_id = instance_id++;
+
+		/* Single-source: type matches component_id, so skip allocation and
+		 * rely on the accessor to return component_id directly. */
+		mgr->entries[i_component].component_type_count = 1;
+		mgr->entries[i_component].component_type_list = NULL;
+
+		status = device_manager_update_device_state (mgr, i_component, DEVICE_MANAGER_UNIDENTIFIED);
+		if (status != 0) {
+			return status;
+		}
+
+		status = platform_init_timeout (0, &mgr->entries[i_component].attestation_timeout);
+		if (status != 0) {
+			return status;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Update a PCD component device entry into the device manager table.
+ * All attestable devices need to be in device entries that follow non-attestable devices.
+ * The order in which device entries are added needs to follow order in PCD.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num First device table entry to populate.
+ * @param components_count Number of identical component instances described by this entry.
+ * @param entry Component entry parameters (PCI IDs, component ID, PCD index, discover handler).
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_component_device_entry (struct device_manager *mgr, int device_num,
+	uint8_t components_count, const struct device_manager_entry *entry)
+{
+	int i_component;
+	int instance_id = 0;
+	int status;
+
+	if ((mgr == NULL) || (components_count == 0) || (entry == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices) ||
+		((device_num + components_count) > mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	for (i_component = device_num; i_component < (device_num + components_count); ++i_component) {
+		memcpy (&mgr->entries[i_component], entry, sizeof (struct device_manager_entry));
+		mgr->entries[i_component].smbus_addr =
+			mgr->entries[DEVICE_MANAGER_MCTP_BRIDGE_DEVICE_NUM].smbus_addr;
+		mgr->entries[i_component].instance_id = instance_id++;
+
+		if (entry->component_type_list != NULL) {
+			/* Multi-source or redirect: heap-allocate and copy the type list. */
+			mgr->entries[i_component].component_type_count = entry->component_type_count;
+			mgr->entries[i_component].component_type_list =
+				platform_calloc (entry->component_type_count,
+				sizeof (struct pcd_allowed_component_type_info));
+			if (mgr->entries[i_component].component_type_list == NULL) {
+				return DEVICE_MGR_NO_MEMORY;
+			}
+
+			memcpy (mgr->entries[i_component].component_type_list, entry->component_type_list,
+				entry->component_type_count * sizeof (struct pcd_allowed_component_type_info));
+		}
+		else {
+			/* Single-source matching component_id: skip allocation and rely on
+			 * the accessor to return component_id directly. */
+			mgr->entries[i_component].component_type_count = 1;
+			mgr->entries[i_component].component_type_list = NULL;
+		}
 
 		status = device_manager_update_device_state (mgr, i_component, DEVICE_MANAGER_UNIDENTIFIED);
 		if (status != 0) {
@@ -518,7 +748,7 @@ int device_manager_get_device_capabilities (struct device_manager *mgr, int devi
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -544,7 +774,7 @@ int device_manager_update_device_capabilities (struct device_manager *mgr, int d
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -593,7 +823,7 @@ int device_manager_update_device_capabilities_request (struct device_manager *mg
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -621,7 +851,7 @@ size_t device_manager_get_max_message_len (struct device_manager *mgr, int devic
 		return MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
 	}
 
-	if (device_num < mgr->num_devices) {
+	if ((device_num >= 0) && (device_num < mgr->num_devices)) {
 		remote_len = mgr->entries[device_num].capabilities.request.max_message_size;
 	}
 	if (remote_len == 0) {
@@ -643,17 +873,21 @@ size_t device_manager_get_max_message_len (struct device_manager *mgr, int devic
  */
 size_t device_manager_get_max_message_len_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_MESSAGE_BODY;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		device_num = 0;	// Use the local device if the requested device is not known.
 	}
 
-	return device_manager_get_max_message_len (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_max_message_len (mgr, device_num);
 }
 
 /**
  * Get the maximum MCTP transmission unit supported by a device.  For any remote device, this will
  * be the negotiated maximum based on shared capabilities.  If the requested device is not known or
- * has invalid capabilites, the local device packet length is used.
+ * has not negotiated a different transmission unit size, the minimum length required by the MCTP
+ * specification is used.
  *
  * @param mgr Device manager to query.
  * @param device_num Entry in the device table to query.
@@ -665,14 +899,14 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
 	size_t remote_len = 0;
 
 	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+		return MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	}
 
-	if (device_num < mgr->num_devices) {
+	if ((device_num >= 0) && (device_num < mgr->num_devices)) {
 		remote_len = mgr->entries[device_num].capabilities.request.max_packet_size;
 	}
 	if (remote_len == 0) {
-		remote_len = MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+		remote_len = MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	}
 
 	return min (mgr->entries[0].capabilities.request.max_packet_size, remote_len);
@@ -681,7 +915,8 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
 /**
  * Get the maximum MCTP transmission unit supported by a device.  For any remote device, this will
  * be the negotiated maximum based on shared capabilities.  If the requested device is not known or
- * has invalid capabilites, the local device packet length is used.
+ * has not negotiated a different transmission unit size, the minimum length required by the MCTP
+ * specification is used.
  *
  * @param mgr Device manager to query.
  * @param eid EID of the device entry to query.
@@ -690,11 +925,14 @@ size_t device_manager_get_max_transmission_unit (struct device_manager *mgr, int
  */
 size_t device_manager_get_max_transmission_unit_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_TRANSMISSION_UNIT;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return MCTP_BASE_PROTOCOL_MIN_TRANSMISSION_UNIT;
 	}
 
-	return device_manager_get_max_transmission_unit (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_max_transmission_unit (mgr, device_num);
 }
 
 /**
@@ -712,7 +950,7 @@ uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int dev
 		return MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
 	}
 
-	if ((device_num >= mgr->num_devices) ||
+	if ((device_num < 0) || (device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].capabilities.max_timeout == 0)) {
 		return ((mgr->entries[0].capabilities.max_timeout * 10) +
 			mgr->mctp_bridge_additional_timeout_ms);
@@ -733,11 +971,14 @@ uint32_t device_manager_get_reponse_timeout (struct device_manager *mgr, int dev
  */
 uint32_t device_manager_get_reponse_timeout_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_RESPONSE_TIMEOUT_MS;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		device_num = 0;	// Use the local device if the requested device is not known.
 	}
 
-	return device_manager_get_reponse_timeout (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_reponse_timeout (mgr, device_num);
 }
 
 /**
@@ -756,7 +997,7 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
 		return MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
 	}
 
-	if ((device_num >= mgr->num_devices) ||
+	if ((device_num < 0) || (device_num >= mgr->num_devices) ||
 		(mgr->entries[device_num].capabilities.max_sig == 0)) {
 		return ((mgr->entries[0].capabilities.max_sig * 100) +
 			mgr->mctp_bridge_additional_timeout_ms);
@@ -778,11 +1019,14 @@ uint32_t device_manager_get_crypto_timeout (struct device_manager *mgr, int devi
  */
 uint32_t device_manager_get_crypto_timeout_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
-		return MCTP_BASE_PROTOCOL_MAX_CRYPTO_TIMEOUT_MS;
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		device_num = 0;	// Use the local device if the requested device is not known.
 	}
 
-	return device_manager_get_crypto_timeout (mgr, device_manager_get_device_num (mgr, eid));
+	return device_manager_get_crypto_timeout (mgr, device_num);
 }
 
 /**
@@ -1039,7 +1283,7 @@ int device_manager_get_device_state (struct device_manager *mgr, int device_num)
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if (((device_num < 0) || (device_num >= mgr->num_devices))) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -1056,11 +1300,65 @@ int device_manager_get_device_state (struct device_manager *mgr, int device_num)
  */
 int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t eid)
 {
-	if (mgr == NULL) {
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_get_device_state (mgr, device_num);
+}
+
+/**
+ * Update device manager device table entry state.
+ *
+ * This function does not hold any lock when reading or writing the device entry state.  This is
+ * safe because the attestation loop is single-threaded and MCTP control only modifies
+ * non-attestable entries (devices 0/1), so there is no concurrent writer for attestable device
+ * states.  If that assumption changes, device entry state access will need synchronization.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ * @param state Device state.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_device_state (struct device_manager *mgr, int device_num,
+	enum device_manager_device_state state)
+{
+	enum device_manager_device_state prev_state;
+	uint32_t timeout = 0;
+
+	if ((mgr == NULL) || (state >= MAX_DEVICE_MANAGER_STATES)) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	return device_manager_get_device_state (mgr, device_manager_get_device_num (mgr, eid));
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	prev_state = mgr->entries[device_num].state;
+
+	/* If the device is not attestable, state changes should not be allowed. */
+	if (prev_state == DEVICE_MANAGER_NOT_ATTESTABLE) {
+		return DEVICE_MGR_STATE_UPDATE_UNSUPPORTED;
+	}
+
+	mgr->entries[device_num].state = state;
+
+	/* Default behavior is to set timeout to 0 except for the state conditions below. */
+	if ((state == DEVICE_MANAGER_AUTHENTICATED) ||
+		(state == DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS)) {
+		timeout = mgr->authenticated_cadence_ms;
+	}
+	else if ((device_manager_is_device_unauthenticated (state)) &&
+		(device_manager_is_device_unauthenticated (prev_state) ||
+		(prev_state == DEVICE_MANAGER_NEVER_ATTESTED))) {
+		timeout = mgr->unauthenticated_cadence_ms;
+	}
+
+	return platform_init_timeout (timeout, &mgr->entries[device_num].attestation_timeout);
 }
 
 /*
@@ -1075,16 +1373,276 @@ int device_manager_get_device_state_by_eid (struct device_manager *mgr, uint8_t 
 int device_manager_update_device_state_by_eid (struct device_manager *mgr, uint8_t eid,
 	enum device_manager_device_state state)
 {
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_update_device_state (mgr, device_num, state);
+}
+
+/**
+ * Get previous device state for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param device_num The device table entry to utilize.
+ *
+ * @return The previous device state if found or an error code.
+ */
+int device_manager_get_attestation_summary_prev_state (struct device_manager *mgr, int device_num)
+{
 	if (mgr == NULL) {
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	return device_manager_update_device_state (mgr, device_manager_get_device_num (mgr, eid),
-		state);
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	return mgr->entries[device_num].summary.prev_state;
+}
+
+/**
+ * Get previous device state for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param eid EID of device to utilize.
+ *
+ * @return The previous device state if found or an error code.
+ */
+int device_manager_get_attestation_summary_prev_state_by_eid (struct device_manager *mgr,
+	uint8_t eid)
+{
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_get_attestation_summary_prev_state (mgr, device_num);
+}
+
+/**
+ * Update device manager device table entry previous state
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ * @param previous_state Previous state to set in the attestation summary.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_prev_state (struct device_manager *mgr,
+	int device_num, enum device_manager_device_state previous_state)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	mgr->entries[device_num].summary.prev_state = previous_state;
+
+	return 0;
+}
+
+/**
+ * Update device manager device table prev state
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to update.
+ * @param previous_state Previous state to set in the attestation summary.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_prev_state_by_eid (
+	struct device_manager *mgr, uint8_t eid, enum device_manager_device_state previous_state)
+{
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_update_attestation_summary_prev_state (mgr, device_num, previous_state);
+}
+
+/**
+ * Get attestation event counters for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param device_num The device table entry to utilize.
+ * @param event_counters Output buffer for the event counters.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_get_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num, struct device_manager_attestation_summary_event_counters *event_counters)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	memcpy (event_counters, &mgr->entries[device_num].summary.event_counters,
+		sizeof (struct device_manager_attestation_summary_event_counters));
+
+	return 0;
+}
+
+/**
+ * Get attestation event counters for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param eid EID of device to utilize.
+ * @param event_counters Output buffer for the event counters.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_get_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid, struct device_manager_attestation_summary_event_counters *event_counters)
+{
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_get_attestation_summary_event_counters (mgr, device_num, event_counters);
+}
+
+/**
+ * Update device manager device table entry attestation event counters
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_event_counters (struct device_manager *mgr,
+	int device_num)
+{
+	struct device_manager_attestation_summary_event_counters *event_counters;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	event_counters = &mgr->entries[device_num].summary.event_counters;
+
+	switch (mgr->entries[device_num].state) {
+		case DEVICE_MANAGER_AUTHENTICATED:
+		case DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS:
+			event_counters->status_success_count =
+				common_math_saturating_increment_u16 (event_counters->status_success_count);
+			break;
+
+		case DEVICE_MANAGER_AUTHENTICATED_WITH_TIMEOUT:
+		case DEVICE_MANAGER_AUTHENTICATED_WITHOUT_CERTS_WITH_TIMEOUT:
+		case DEVICE_MANAGER_AUTHENTICATED_WITH_SPDM_TRANSIENT:
+			event_counters->status_success_timeout_count =
+				common_math_saturating_increment_u16 (event_counters->status_success_timeout_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_INTERRUPTED:
+			event_counters->status_fail_timeout_count =
+				common_math_saturating_increment_u16 (event_counters->status_fail_timeout_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_FAILED:
+			event_counters->status_fail_internal_count =
+				common_math_saturating_increment_u16 (event_counters->status_fail_internal_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_INVALID_VERSION:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CAPS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_ALGORITHM:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_DIGESTS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CERTS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CHALLENGE:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_MEASUREMENT:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_RESPONSE:
+			event_counters->status_fail_invalid_response_count =
+				common_math_saturating_increment_u16 (
+				event_counters->status_fail_invalid_response_count);
+			break;
+
+		case DEVICE_MANAGER_ATTESTATION_MEASUREMENT_MISMATCH:
+		case DEVICE_MANAGER_ATTESTATION_UNTRUSTED_CERTS:
+		case DEVICE_MANAGER_ATTESTATION_INVALID_CFM:
+			event_counters->status_fail_invalid_config_count =
+				common_math_saturating_increment_u16 (
+				event_counters->status_fail_invalid_config_count);
+			break;
+
+		default:
+			break;
+	}
+
+	return 0;
+}
+
+/**
+ * Update device manager device table event counters
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device to update.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_update_attestation_summary_event_counters_by_eid (struct device_manager *mgr,
+	uint8_t eid)
+{
+	int device_num;
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_update_attestation_summary_event_counters (mgr, device_num);
 }
 
 /**
  * Find component ID for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param device_num The device number of the device table entry to utilize.
+ * @param component_id Component ID in PCD and CFM.
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int device_manager_get_component_id (struct device_manager *mgr, int device_num,
+	uint32_t *component_id)
+{
+	if ((mgr == NULL) || (component_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	*component_id = mgr->entries[device_num].component_id;
+
+	return 0;
+}
+
+/**
+ * Find component ID for a device in device manager table by EID.
  *
  * @param mgr The device manager to utilize.
  * @param eid The EID of the device table entry to utilize.
@@ -1092,7 +1650,7 @@ int device_manager_update_device_state_by_eid (struct device_manager *mgr, uint8
  *
  * @return Completion status, 0 if success or an error code.
  */
-int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
+int device_manager_get_component_id_by_eid (struct device_manager *mgr, uint8_t eid,
 	uint32_t *component_id)
 {
 	int device_num;
@@ -1106,22 +1664,46 @@ int device_manager_get_component_id (struct device_manager *mgr, uint8_t eid,
 		return device_num;
 	}
 
-	*component_id = mgr->entries[device_num].component_id;
-
-	return 0;
+	return device_manager_get_component_id (mgr, device_num, component_id);
 }
 
 /**
- * Get EID of first device that is ready for attestation. A device that is starting or has failed
- * attestation has a cadence of unauthenticated_cadence_ms, a device that has previously  passed
- * attestation has a cadence of authenticated_cadence_ms. The device manager keeps track of last
- * device authenticated, so checking starts after that device.
+ * Get EID of first device that is ready for attestation. A device that is starting or has
+ * failed attestation or is not present has a cadence of unauthenticated_cadence_ms, a device
+ * that has previously passed attestation has a cadence of authenticated_cadence_ms. The device
+ * manager keeps track of last device authenticated, so checking starts after that device.
  *
  * @param mgr Device manager instance to utilize.
  *
  * @return EID of device to attest or an error code.
  */
 int device_manager_get_eid_of_next_device_to_attest (struct device_manager *mgr)
+{
+	int i_device;
+
+	if ((mgr == NULL) || (mgr->num_devices == 0)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	i_device = device_manager_get_device_num_of_next_device_to_attest (mgr);
+	if (ROT_IS_ERROR (i_device)) {
+		return i_device;
+	}
+
+	return mgr->entries[i_device].eid;
+}
+
+/**
+ * Get device num of first device that is ready for attestation. A device that is starting or has
+ * failed attestation or is not present has a cadence of unauthenticated_cadence_ms, a device
+ * that has previously passed attestation has a cadence of authenticated_cadence_ms. The device
+ * manager keeps track of last device authenticated, so checking starts after that device.
+ *
+ * @param mgr Device manager instance to utilize.
+ *
+ * @return EID of device to attest or an error code.
+ */
+int device_manager_get_device_num_of_next_device_to_attest (struct device_manager *mgr)
 {
 	uint8_t num_checked = 0;
 	int starting_device;
@@ -1145,16 +1727,13 @@ int device_manager_get_eid_of_next_device_to_attest (struct device_manager *mgr)
 			return status;
 		}
 		if (status) {
-			goto found;
+			mgr->last_device_authenticated = i_device;
+
+			return i_device;
 		}
 	}
 
 	return DEVICE_MGR_NO_DEVICES_AVAILABLE;
-
-found:
-	mgr->last_device_authenticated = i_device;
-
-	return mgr->entries[i_device].eid;
 }
 
 /**
@@ -1208,7 +1787,7 @@ int device_manager_reset_discovered_devices (struct device_manager *mgr)
 			continue;
 		}
 
-		status = device_manager_update_device_state (mgr, i_device,	DEVICE_MANAGER_UNIDENTIFIED);
+		status = device_manager_update_device_state (mgr, i_device, DEVICE_MANAGER_UNIDENTIFIED);
 		if (status != 0) {
 			return status;
 		}
@@ -1218,7 +1797,29 @@ int device_manager_reset_discovered_devices (struct device_manager *mgr)
 }
 
 /**
- * Get device manager device table entry number by device IDs
+ * Get discovery object for a device in device manager table.
+ *
+ * @param mgr The device manager to utilize.
+ * @param device_num The device number of the device table entry to utilize.
+ *
+ * @return Pointer to discovery object of the device or NULL if not found.
+ */
+const struct attestation_discover* device_manager_get_discovery_object (struct device_manager *mgr,
+	int device_num)
+{
+	if ((mgr == NULL) || (device_num < 0)) {
+		return NULL;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return NULL;
+	}
+
+	return mgr->entries[device_num].discover;
+}
+
+/**
+ * Get device manager device table entry number by device IDs, searching only unidentified devices.
  *
  * @param mgr Device manager instance to utilize.
  * @param pci_vid The PCI vendor ID to utilize.
@@ -1228,8 +1829,8 @@ int device_manager_reset_discovered_devices (struct device_manager *mgr)
  *
  * @return Device number of entry if found or an error code.
  */
-int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uint16_t pci_vid,
-	uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id)
+int device_manager_get_unidentified_device_num_by_device_ids (struct device_manager *mgr,
+	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id)
 {
 	int i_device;
 
@@ -1252,6 +1853,149 @@ int device_manager_get_device_num_by_device_ids (struct device_manager *mgr, uin
 }
 
 /**
+ * Get device manager device table entry number by device and instance IDs
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param pci_vid The PCI vendor ID to utilize.
+ * @param pci_device_id The PCI device ID to utilize.
+ * @param pci_subsystem_vid The PCI subsystem vendor ID to utilize.
+ * @param pci_subsystem_id The PCI subsystem ID to utilize.
+ * @param instance_id The device instance id to utilize.
+ *
+ * @return Device number of entry if found or an error code.
+ */
+int device_manager_get_device_num_by_device_and_instance_ids (struct device_manager *mgr,
+	uint16_t pci_vid, uint16_t pci_device_id, uint16_t pci_subsystem_vid, uint16_t pci_subsystem_id,
+	uint8_t instance_id)
+{
+	int i_device;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
+		if ((mgr->entries[i_device].pci_vid == pci_vid) &&
+			(mgr->entries[i_device].pci_device_id == pci_device_id) &&
+			(mgr->entries[i_device].pci_subsystem_vid == pci_subsystem_vid) &&
+			(mgr->entries[i_device].pci_subsystem_id == pci_subsystem_id) &&
+			(mgr->entries[i_device].instance_id == instance_id)) {
+			return i_device;
+		}
+	}
+
+	return DEVICE_MGR_UNKNOWN_DEVICE;
+}
+
+/**
+ * Get device manager device table entry number by device and instance IDs
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to query.
+ * @param pci_vid The PCI vendor ID to utilize.
+ * @param pci_device_id The PCI device ID to utilize.
+ * @param pci_subsystem_vid The PCI subsystem vendor ID to utilize.
+ * @param pci_subsystem_id The PCI subsystem ID to utilize.
+ * @param instance_id The device instance id to utilize.
+ *
+ * @return Device number of entry if found or an error code.
+ */
+int device_manager_get_device_and_instance_ids_by_device_num (struct device_manager *mgr,
+	int device_num, uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
+	uint16_t *pci_subsystem_id, uint8_t *instance_id)
+{
+	if ((mgr == NULL) || (pci_vid == NULL) || (pci_device_id == NULL) ||
+		(pci_subsystem_vid == NULL) || (pci_subsystem_id == NULL) || (instance_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	*pci_vid = mgr->entries[device_num].pci_vid;
+	*pci_device_id = mgr->entries[device_num].pci_device_id;
+	*pci_subsystem_vid = mgr->entries[device_num].pci_subsystem_vid;
+	*pci_subsystem_id = mgr->entries[device_num].pci_subsystem_id;
+	*instance_id = mgr->entries[device_num].instance_id;
+
+	return 0;
+}
+
+/**
+ * Get device manager device table entry number by device and instance IDs
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param eid EID of device table entry to query.
+ * @param pci_vid The PCI vendor ID to utilize.
+ * @param pci_device_id The PCI device ID to utilize.
+ * @param pci_subsystem_vid The PCI subsystem vendor ID to utilize.
+ * @param pci_subsystem_id The PCI subsystem ID to utilize.
+ * @param instance_id The device instance id to utilize.
+ *
+ * @return Device number of entry if found or an error code.
+ */
+int device_manager_get_device_and_instance_ids_by_eid (struct device_manager *mgr, uint8_t eid,
+	uint16_t *pci_vid, uint16_t *pci_device_id, uint16_t *pci_subsystem_vid,
+	uint16_t *pci_subsystem_id, uint8_t *instance_id)
+{
+	int device_num;
+
+	if ((mgr == NULL) || (pci_vid == NULL) || (pci_device_id == NULL) ||
+		(pci_subsystem_vid == NULL) ||
+		(pci_subsystem_id == NULL) || (instance_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	device_num = device_manager_get_device_num (mgr, eid);
+	if (ROT_IS_ERROR (device_num)) {
+		return device_num;
+	}
+
+	return device_manager_get_device_and_instance_ids_by_device_num (mgr, device_num, pci_vid,
+		pci_device_id, pci_subsystem_vid, pci_subsystem_id, instance_id);
+}
+
+/**
+ * Get instance info for all instances of indicated component type
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param component_id Component ID to query.
+ * @param instance_info Output buffer for instance info, expects an array of `buf_size` bytes.
+ * @param buf_size Size of `instance_info` buffer in bytes, must be large enough to include all
+ * instance info entries.
+ *
+ * @return Number of instances in the instance info array or an error code.
+ */
+int device_manager_get_instance_info_by_component_id (struct device_manager *mgr,
+	uint32_t component_id, struct device_manager_instance_info *instance_info, size_t buf_size)
+{
+	int i_device;
+	int count = 0;
+	int max_count;
+
+	if ((mgr == NULL) || (instance_info == NULL) || (buf_size <
+		sizeof (struct device_manager_instance_info))) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	max_count = buf_size / sizeof (struct device_manager_instance_info);
+
+	for (i_device = 0; i_device < mgr->num_devices; ++i_device) {
+		if (mgr->entries[i_device].component_id == component_id) {
+			if (count >= max_count) {
+				return DEVICE_MGR_BUF_TOO_SMALL;
+			}
+			instance_info[count].instance_id = mgr->entries[i_device].instance_id;
+			instance_info[count].eid = mgr->entries[i_device].eid;
+			count++;
+		}
+	}
+
+	return count;
+}
+
+/**
  * Update device manager device table entry device IDs
  *
  * @param mgr Device manager instance to utilize.
@@ -1270,7 +2014,7 @@ int device_manager_update_device_ids (struct device_manager *mgr, int device_num
 		return DEVICE_MGR_INVALID_ARGUMENT;
 	}
 
-	if (device_num >= mgr->num_devices) {
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
 		return DEVICE_MGR_UNKNOWN_DEVICE;
 	}
 
@@ -1283,6 +2027,28 @@ int device_manager_update_device_ids (struct device_manager *mgr, int device_num
 }
 
 #ifdef ATTESTATION_SUPPORT_DEVICE_DISCOVERY
+/**
+ * Free unidentified devices circular list
+ *
+ * @param mgr Device manager instance to utilize
+ */
+void device_manager_clear_unidentified_devices (struct device_manager *mgr)
+{
+	struct device_manager_unidentified_entry *entry;
+
+	if ((mgr) && (mgr->unidentified != NULL)) {
+		while (mgr->unidentified->next != mgr->unidentified) {
+			entry = mgr->unidentified->next;
+			mgr->unidentified->next = entry->next;
+			platform_free (entry);
+		}
+
+		platform_free (mgr->unidentified);
+
+		mgr->unidentified = NULL;
+	}
+}
+
 /**
  * Add a node to device manager unidentified device linked list.
  *
@@ -1316,42 +2082,6 @@ int device_manager_add_unidentified_device (struct device_manager *mgr, uint8_t 
 	}
 
 	return platform_init_timeout (0, &new_entry->discovery_timeout);
-}
-
-/**
- * Find device entry with requested EID in unidentified device list.
- *
- * @param mgr Device manager instance to utilize.
- * @param eid EID of device to find.
- * @param entry Container to fill with pointer to requested device entry.
- * @param prev Container to fill with pointer to device right before requested device entry. Can be
- * 	set to NULL if not needed.
- *
- * @return 0 if completed successfully or an error code.
- */
-static int device_manager_find_unidentified_device (struct device_manager *mgr, uint8_t eid,
-	struct device_manager_unidentified_entry **entry,
-	struct device_manager_unidentified_entry **prev)
-{
-	struct device_manager_unidentified_entry *previous;
-
-	previous = mgr->unidentified;
-
-	while (previous->next->eid != eid) {
-		previous = previous->next;
-
-		if (previous == mgr->unidentified) {
-			return DEVICE_MGR_UNKNOWN_DEVICE;
-		}
-	}
-
-	*entry = previous->next;
-
-	if (prev != NULL) {
-		*prev = previous;
-	}
-
-	return 0;
 }
 
 /**
@@ -1423,6 +2153,28 @@ int device_manager_unidentified_device_timed_out (struct device_manager *mgr, ui
 }
 
 /**
+ * Determine if any of the managed devices are unidentified.  This is not a check against the list
+ * of device EIDs that can be used to identify device manager entries.  This is a check against
+ * device manager entries to see if any remain unidentified.
+ *
+ * @param mgr Device manager to check for unidentified devices.
+ *
+ * @return true if there are unidentified devices.
+ */
+static bool device_manager_has_unidentified_devices (const struct device_manager *mgr)
+{
+	size_t i;
+
+	for (i = 0; i < mgr->num_devices; i++) {
+		if (mgr->entries[i].state == DEVICE_MANAGER_UNIDENTIFIED) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
  * Get EID of next device to discover from device manager unidentified device linked list.
  *
  * @param mgr Device manager instance to utilize.
@@ -1439,6 +2191,14 @@ int device_manager_get_eid_of_next_device_to_discover (struct device_manager *mg
 	}
 
 	if (mgr->unidentified == NULL) {
+		return DEVICE_MGR_NO_DEVICES_AVAILABLE;
+	}
+
+	if (!device_manager_has_unidentified_devices (mgr)) {
+		/* There are no devices remaining to be identified.  Free the rest of the unidentified EIDs
+		 * and report that there are no more devices. */
+		device_manager_clear_unidentified_devices (mgr);
+
 		return DEVICE_MGR_NO_DEVICES_AVAILABLE;
 	}
 
@@ -1476,7 +2236,90 @@ found:
 
 	return runner->eid;
 }
-#endif
+
+/**
+ * Reset the device manager so that all attestable devices will be marked as unidentified.
+ *
+ * @param mgr The device manager for the attestable devices to rediscover.
+ *
+ * @return 0 if the device states were reset or an error code.
+ */
+int device_manager_restart_device_discovery (struct device_manager *mgr)
+{
+	size_t i;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	/* Reset device states to unidentified to ensure discovery gets executed again for them. */
+	for (i = 0; i < mgr->num_devices; i++) {
+		if (mgr->entries[i].state != DEVICE_MANAGER_NOT_ATTESTABLE) {
+			mgr->entries[i].state = DEVICE_MANAGER_UNIDENTIFIED;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Reset only the devices that use a specific discovery handler back to unidentified state.
+ * Devices using a different discovery handler are left unchanged.
+ *
+ * @param mgr The device manager instance to utilize.
+ * @param discover The discovery handler to match. Only devices with this handler will be reset.
+ *
+ * @return 0 if the device states were reset or an error code.
+ */
+int device_manager_restart_device_discovery_by_handler (struct device_manager *mgr,
+	const struct attestation_discover *discover)
+{
+	size_t i;
+
+	if ((mgr == NULL) || (discover == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	for (i = 0; i < mgr->num_devices; i++) {
+		if ((mgr->entries[i].state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+			(mgr->entries[i].discover == discover)) {
+			mgr->entries[i].state = DEVICE_MANAGER_UNIDENTIFIED;
+		}
+	}
+
+	return 0;
+}
+
+/**
+ * Reset devices that use a specific discovery handler back to unidentified state and clear their
+ * instance IDs. Devices using a different discovery handler or in NOT_ATTESTABLE state are left
+ * unchanged.
+ *
+ * @param mgr The device manager instance to utilize.
+ * @param discover The discovery handler to match. Only devices with this handler will be reset.
+ *
+ * @return 0 if the devices were reset or an error code.
+ */
+int device_manager_restart_device_discovery_and_instances_by_handler (struct device_manager *mgr,
+	const struct attestation_discover *discover)
+{
+	size_t i;
+
+	if ((mgr == NULL) || (discover == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	for (i = 0; i < mgr->num_devices; i++) {
+		if ((mgr->entries[i].state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+			(mgr->entries[i].discover == discover)) {
+			mgr->entries[i].state = DEVICE_MANAGER_UNIDENTIFIED;
+			mgr->entries[i].instance_id = 0;
+		}
+	}
+
+	return 0;
+}
+#endif	// ATTESTATION_SUPPORT_DEVICE_DISCOVERY
 
 /**
  * Check a timeout to see if it will expire before a specified duration.
@@ -1635,4 +2478,537 @@ bool device_manager_is_device_unattestable (struct device_manager *mgr, uint8_t 
 	}
 
 	return (mgr->entries[device_num].state == DEVICE_MANAGER_NOT_ATTESTABLE);
+}
+
+/**
+ * Check if there is a force action for the device manager.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param action_id Optional output for the current action ID. Can be NULL if not needed.
+ *
+ * @return The current action state or an error code.
+ */
+int device_manager_get_force_action_state (
+	struct device_manager *mgr, uint32_t *action_id)
+{
+	int state;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	state = mgr->force_action.state;
+
+	if (action_id != NULL) {
+		*action_id = mgr->force_action.action_id;
+	}
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return state;
+}
+
+/**
+ * Update the force action state in the device manager with transition validation.
+ *
+ * This function validates the requested state transition and updates the force action state
+ * if the transition is allowed.  It must be called with the action_mutex held.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param state The new state to set for the force action.
+ *
+ * @return 0 if the state was updated successfully or an error code.
+ */
+static int device_manager_update_force_action_state_internal (struct device_manager *mgr,
+	enum device_manager_force_action_state state)
+{
+	if (state > DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS) {
+		return DEVICE_MGR_FORCE_ACTION_INVALID_STATE;
+	}
+
+	switch (mgr->force_action.state) {
+		case DEVICE_MANAGER_FORCE_ACTION_IDLE:
+			if (state == DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS) {
+				return DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE;
+			}
+			break;
+
+		case DEVICE_MANAGER_FORCE_ACTION_PENDING:
+			if ((state == DEVICE_MANAGER_FORCE_ACTION_IDLE) ||
+				(state == DEVICE_MANAGER_FORCE_ACTION_PENDING)) {
+				return DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE;
+			}
+			break;
+
+		case DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS:
+			if ((state == DEVICE_MANAGER_FORCE_ACTION_PENDING) ||
+				(state == DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS)) {
+				return DEVICE_MGR_FORCE_ACTION_INVALID_STATE_CHANGE;
+			}
+			break;
+
+		default:
+			break;
+	}
+
+	mgr->force_action.state = state;
+
+	return 0;
+}
+
+/**
+ * Set a force action for the device manager to process.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param action Pointer to the force action structure to set.
+ *
+ * @return 0 if the action was set successfully or an error code.
+ */
+int device_manager_set_force_action (struct device_manager *mgr,
+	const struct device_manager_force_action_data *action_data, size_t data_size,
+	enum device_manager_force_action_type action_type)
+{
+	int device_num;
+	int status = 0;
+
+	if ((mgr == NULL) || (action_data == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	switch (mgr->force_action.state) {
+		case DEVICE_MANAGER_FORCE_ACTION_IDLE:
+			break;
+
+		case DEVICE_MANAGER_FORCE_ACTION_PENDING:
+			status = DEVICE_MGR_FORCE_ACTION_PENDING;
+			goto unlock_and_exit;
+
+		case DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS:
+			status = DEVICE_MGR_FORCE_ACTION_IN_PROGRESS;
+			goto unlock_and_exit;
+
+		default:
+			status = DEVICE_MGR_FORCE_ACTION_INVALID_STATE;
+			goto unlock_and_exit;
+	}
+
+	switch (action_type) {
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION:
+			switch (action_data->mode) {
+				case DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS:
+					if (data_size != (sizeof (uint8_t) +
+						sizeof (struct device_manager_device_ids_target))) {
+						status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
+					}
+					else {
+						device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
+							buffer_unaligned_read16 (&action_data->target.device_ids.pci_vid),
+							buffer_unaligned_read16 (&action_data->target.device_ids.pci_device_id),
+							buffer_unaligned_read16 (
+							&action_data->target.device_ids.pci_subsystem_vid),
+							buffer_unaligned_read16 (
+							&action_data->target.device_ids.pci_subsystem_id),
+							action_data->target.device_ids.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
+						}
+					}
+					break;
+
+				case DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID:
+					if (data_size != (sizeof (uint8_t) +
+						sizeof (struct device_manager_component_target))) {
+						status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
+					}
+					else {
+						device_num = device_manager_get_device_num_by_component (mgr,
+							buffer_unaligned_read32 (&action_data->target.component.component_id),
+							action_data->target.component.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
+						}
+					}
+					break;
+
+				case DEVICE_MANAGER_FORCE_ATTESTATION_FAILED:
+				case DEVICE_MANAGER_FORCE_ATTESTATION_PASSED:
+				case DEVICE_MANAGER_FORCE_ATTESTATION_ALL:
+					if (data_size != sizeof (uint8_t)) {
+						status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
+					}
+					break;
+
+				default:
+					status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+					break;
+			}
+			break;
+
+		/* TODO: Implement Force Device discovery action */
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_DISCOVERY:
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+			break;
+
+		default:
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+			break;
+	}
+
+	if (status != 0) {
+		goto unlock_and_exit;
+	}
+
+	status = device_manager_update_force_action_state_internal (mgr,
+		DEVICE_MANAGER_FORCE_ACTION_PENDING);
+	if (status != 0) {
+		goto unlock_and_exit;
+	}
+
+	mgr->force_action.type = action_type;
+	memset (&mgr->force_action.action_data, 0, sizeof (mgr->force_action.action_data));
+	memcpy (&mgr->force_action.action_data, action_data, data_size);
+	mgr->force_action.data_size = data_size;
+	mgr->force_action.action_id++;
+
+unlock_and_exit:
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return status;
+}
+
+/**
+ * Update the force action state in the device manager with transition validation.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param state The new state to set for the force action.
+ *
+ * @return 0 if the state was updated successfully or an error code.
+ */
+int device_manager_update_force_action_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state)
+{
+	int status;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	status = device_manager_update_force_action_state_internal (mgr, state);
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return status;
+}
+
+/**
+ * Clear the force action data and update the state in the device manager.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param state The new state to set for the force action.
+ *
+ * @return 0 if the force action was updated successfully or an error code.
+ */
+int device_manager_clear_force_action_set_state (struct device_manager *mgr,
+	enum device_manager_force_action_state state)
+{
+	int status;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	status = device_manager_update_force_action_state_internal (mgr, state);
+	if (status == 0) {
+		memset (&mgr->force_action.action_data, 0, sizeof (mgr->force_action.action_data));
+		mgr->force_action.data_size = 0;
+	}
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	return status;
+}
+
+/**
+ * Process the current force action based on its type.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param num_actions Optional output for the number of actions successfully applied. Can be NULL.
+ *
+ * @return 0 if the force action was processed successfully or an error code.
+ */
+int device_manager_process_force_action (struct device_manager *mgr, int *num_actions)
+{
+	int status = 0;
+	struct device_manager_force_action_data *att_data = NULL;
+	int device_num = 0;
+	int device_state = 0;
+
+	if ((mgr == NULL) || (num_actions == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	*num_actions = 0;
+
+	platform_mutex_lock (&mgr->action_mutex);
+
+	if (mgr->force_action.state != DEVICE_MANAGER_FORCE_ACTION_PENDING) {
+		platform_mutex_unlock (&mgr->action_mutex);
+
+		return 0;
+	}
+
+	switch (mgr->force_action.type) {
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION:
+			if (mgr->force_action.data_size > 0) {
+				att_data = &mgr->force_action.action_data;
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,
+					buffer_unaligned_read32 (&mgr->force_action.action_id), att_data->mode);
+
+				switch (att_data->mode) {
+					case DEVICE_MANAGER_FORCE_ATTESTATION_FAILED:
+					case DEVICE_MANAGER_FORCE_ATTESTATION_PASSED:
+					case DEVICE_MANAGER_FORCE_ATTESTATION_ALL:
+						for (device_num = 0; device_num < mgr->num_devices; ++device_num) {
+							device_state = device_manager_get_device_state (mgr, device_num);
+							if (ROT_IS_ERROR (device_state)) {
+								status = device_state;
+								break;
+							}
+
+							if ((device_state == DEVICE_MANAGER_NOT_ATTESTABLE) ||
+								(device_state == DEVICE_MANAGER_UNIDENTIFIED)) {
+								continue;
+							}
+
+							if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_FAILED) {
+								if (DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
+									continue;
+								}
+							}
+							else if (att_data->mode == DEVICE_MANAGER_FORCE_ATTESTATION_PASSED) {
+								if (!DEVICE_MANAGER_IS_AUTHENTICATED (device_state)) {
+									continue;
+								}
+							}
+
+							status = device_manager_update_device_state (mgr, device_num,
+								DEVICE_MANAGER_FORCE_ATTESTATION);
+							if (ROT_IS_ERROR (status)) {
+								break;
+							}
+							(*num_actions)++;
+
+							debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO,
+								DEBUG_LOG_COMPONENT_ATTESTATION,
+								ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+								(mgr->entries[device_num].eid |
+											(mgr->entries[device_num].instance_id <<
+											8)), mgr->entries[device_num].component_id);
+						}
+						break;
+
+					case DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID:
+						device_num = device_manager_get_device_num_by_component (mgr,
+							buffer_unaligned_read32 (&att_data->target.component.component_id),
+							att_data->target.component.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
+							break;
+						}
+
+						device_state = device_manager_get_device_state (mgr, device_num);
+						if (ROT_IS_ERROR (device_state)) {
+							status = device_state;
+							break;
+						}
+						if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+							(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
+							status = device_manager_update_device_state (mgr, device_num,
+								DEVICE_MANAGER_FORCE_ATTESTATION);
+							if (!ROT_IS_ERROR (status)) {
+								(*num_actions)++;
+								debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO,
+									DEBUG_LOG_COMPONENT_ATTESTATION,
+									ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+									(mgr->entries[device_num].eid |
+												(mgr->entries[device_num].instance_id << 8)),
+									mgr->entries[device_num].component_id);
+							}
+						}
+						break;
+
+					case DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS:
+						device_num = device_manager_get_device_num_by_device_and_instance_ids (mgr,
+							buffer_unaligned_read16 (&att_data->target.device_ids.pci_vid),
+							buffer_unaligned_read16 (&att_data->target.device_ids.pci_device_id),
+							buffer_unaligned_read16 (
+							&att_data->target.device_ids.pci_subsystem_vid),
+							buffer_unaligned_read16 (&att_data->target.device_ids.pci_subsystem_id),
+							att_data->target.device_ids.instance_id);
+						if (ROT_IS_ERROR (device_num)) {
+							status = device_num;
+							break;
+						}
+
+						device_state = device_manager_get_device_state (mgr, device_num);
+						if (ROT_IS_ERROR (device_state)) {
+							status = device_state;
+							break;
+						}
+						if ((device_state != DEVICE_MANAGER_NOT_ATTESTABLE) &&
+							(device_state != DEVICE_MANAGER_UNIDENTIFIED)) {
+							status = device_manager_update_device_state (mgr, device_num,
+								DEVICE_MANAGER_FORCE_ATTESTATION);
+							if (!ROT_IS_ERROR (status)) {
+								(*num_actions)++;
+								debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO,
+									DEBUG_LOG_COMPONENT_ATTESTATION,
+									ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,
+									(mgr->entries[device_num].eid |
+												(mgr->entries[device_num].instance_id << 8)),
+									mgr->entries[device_num].component_id);
+							}
+						}
+						break;
+
+					default:
+						status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+						break;
+				}
+
+				debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_ATTESTATION,
+					ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,
+					mgr->force_action.action_id, status);
+			}
+			else {
+				status = DEVICE_MGR_FORCE_ACTION_INVALID_DATA;
+			}
+			break;
+
+		/* TODO: Implement Force Device discovery action */
+		case DEVICE_MANAGER_FORCE_ACTION_FORCE_DISCOVERY:
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+			break;
+
+		default:
+			status = DEVICE_MGR_FORCE_ACTION_UNSUPPORTED;
+			break;
+	}
+
+	platform_mutex_unlock (&mgr->action_mutex);
+
+	if (ROT_IS_ERROR (status)) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_ATTESTATION,
+			ATTESTATION_LOGGING_PROCESS_FORCE_ACTION_ERROR, status, 0);
+	}
+
+	device_manager_clear_force_action_set_state (mgr, DEVICE_MANAGER_FORCE_ACTION_IN_PROGRESS);
+
+	return status;
+}
+
+/**
+ * Get the component type count for a device entry.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to query.
+ *
+ * @return The component type count or an error code.
+ */
+int device_manager_get_num_component_types (struct device_manager *mgr, int device_num)
+{
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	return mgr->entries[device_num].component_type_count;
+}
+
+/**
+ * Get the component type at a given index for a device entry.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to query.
+ * @param index Index into the component type list.
+ * @param component_id Output buffer for the component type ID.
+ *
+ * @return 0 if success or an error code.
+ */
+int device_manager_get_component_type (struct device_manager *mgr, int device_num, int index,
+	uint32_t *component_id)
+{
+	if ((mgr == NULL) || (component_id == NULL)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	if ((index < 0) || (index >= mgr->entries[device_num].component_type_count)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if (mgr->entries[device_num].component_type_list == NULL) {
+		/* Single-source with no heap list: type is the entry's component_id. */
+		*component_id = mgr->entries[device_num].component_id;
+	}
+	else {
+		*component_id = mgr->entries[device_num].component_type_list[index].cfm_component_id;
+	}
+
+	return 0;
+}
+
+/**
+ * Promote a matched component type to the front of the list for faster matching in subsequent
+ * attestation cycles. This is a no-op if the count is 1 or the index is already 0.
+ *
+ * @param mgr Device manager instance to utilize.
+ * @param device_num Device table entry to update.
+ * @param index Index of the matched component type to promote.
+ *
+ * @return 0 if success or an error code.
+ */
+int device_manager_promote_matched_component_type (struct device_manager *mgr, int device_num,
+	int index)
+{
+	struct pcd_allowed_component_type_info temp;
+
+	if (mgr == NULL) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((device_num < 0) || (device_num >= mgr->num_devices)) {
+		return DEVICE_MGR_UNKNOWN_DEVICE;
+	}
+
+	if ((index < 0) || (index >= mgr->entries[device_num].component_type_count)) {
+		return DEVICE_MGR_INVALID_ARGUMENT;
+	}
+
+	if ((index == 0) || (mgr->entries[device_num].component_type_count <= 1)) {
+		return 0;
+	}
+
+	temp = mgr->entries[device_num].component_type_list[0];
+	mgr->entries[device_num].component_type_list[0] =
+		mgr->entries[device_num].component_type_list[index];
+	mgr->entries[device_num].component_type_list[index] = temp;
+
+	return 0;
 }

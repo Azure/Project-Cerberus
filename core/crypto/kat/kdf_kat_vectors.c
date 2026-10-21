@@ -199,7 +199,31 @@ _Static_assert ((KDF_KAT_VECTORS_NIST800_108_CTR_SHA512_KO_LEN ==
 
 
 /**
- * Input Info data for HKDF-Expand KAT.
+ * Input keying material for HKDF self-tests.  Taken from RFC 5869 test vectors.
+ */
+const uint8_t KDF_KAT_VECTORS_HKDF_EXTRACT_IKM[] = {
+	0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,
+	0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b
+};
+
+const size_t KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_LEN = sizeof (KDF_KAT_VECTORS_HKDF_EXTRACT_IKM);
+
+/**
+ * Length of the IKM to use for SHA-1 tests.  Taken from RFC 5869 test vectors.
+ */
+const size_t KDF_KAT_VECTORS_HKDF_EXTRACT_IKM_SHA1_LEN = 11;
+
+/**
+ * Salt to use for HKDF self-tests.  Taken from RFC 5869 test vectors.
+ */
+const uint8_t KDF_KAT_VECTORS_HKDF_EXTRACT_SALT[] = {
+	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c
+};
+
+const size_t KDF_KAT_VECTORS_HKDF_EXTRACT_SALT_LEN = sizeof (KDF_KAT_VECTORS_HKDF_EXTRACT_SALT);
+
+/**
+ * Input Info data for HKDF-Expand KAT.  Taken from RFC 5869 test vectors.
  */
 const uint8_t KDF_KAT_VECTORS_HKDF_EXPAND_INFO[] = {
 	0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9
@@ -207,9 +231,8 @@ const uint8_t KDF_KAT_VECTORS_HKDF_EXPAND_INFO[] = {
 
 const size_t KDF_KAT_VECTORS_HKDF_EXPAND_INFO_LEN = sizeof (KDF_KAT_VECTORS_HKDF_EXPAND_INFO);
 
-
 /**
- * Input psuedorandom key for HKDF-Expand KAT using SHA-1.
+ * Input psuedorandom key for HKDF-Expand KAT using SHA-1.  Taken from RFC 5869 test vectors.
  */
 const uint8_t KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_PRK[] = {
 	0x9b, 0x6c, 0x18, 0xc4, 0x32, 0xa7, 0xbf, 0x8f, 0x0e, 0x71, 0xc8, 0xeb, 0x88, 0xf4, 0xb3, 0x0b,
@@ -220,7 +243,7 @@ const size_t KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_PRK_LEN =
 	sizeof (KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_PRK);
 
 /**
- * Output key data for the HKDF-Expand KAT using SHA-1.
+ * Output key data for the HKDF-Expand KAT using SHA-1.  Taken from RFC 5869 test vectors.
  */
 const uint8_t KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_OKM[] = {
 	0x08, 0x5a, 0x01, 0xea, 0x1b, 0x10, 0xf3, 0x69, 0x33, 0x06, 0x8b, 0x56, 0xef, 0xa5, 0xad, 0x81,
@@ -235,7 +258,7 @@ _Static_assert ((KDF_KAT_VECTORS_HKDF_EXPAND_SHA1_OKM_LEN ==
 
 
 /**
- * Input psuedorandom key for HKDF-Expand KAT using SHA-256.
+ * Input psuedorandom key for HKDF-Expand KAT using SHA-256.  Taken from RFC 5869 test vectors.
  */
 const uint8_t KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_PRK[] = {
 	0x07, 0x77, 0x09, 0x36, 0x2c, 0x2e, 0x32, 0xdf, 0x0d, 0xdc, 0x3f, 0x0d, 0xc4, 0x7b, 0xba, 0x63,
@@ -246,7 +269,7 @@ const size_t KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_PRK_LEN =
 	sizeof (KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_PRK);
 
 /**
- * Output key data for the HKDF-Expand KAT using SHA-256.
+ * Output key data for the HKDF-Expand KAT using SHA-256.  Taken from RFC 5869 test vectors.
  */
 const uint8_t KDF_KAT_VECTORS_HKDF_EXPAND_SHA256_OKM[] = {
 	0x3c, 0xb2, 0x5f, 0x25, 0xfa, 0xac, 0xd5, 0x7a, 0x90, 0x43, 0x4f, 0x64, 0xd0, 0x36, 0x2f, 0x2a,

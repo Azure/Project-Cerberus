@@ -17,6 +17,15 @@ from enum import Enum
 TCG_EFI_NO_ACTION_EVENT_TYPE = 0x03
 TCG_SERVER_PLATFORM_CLASS = 0x01
 TCG_SHA256_ALG_ID = 0x0B
+TCG_SHA384_ALG_ID =	0x0C
+TCG_SHA512_ALG_ID = 0x0D
+
+SUPPORTED_HASH_ALGOS = {
+    TCG_SHA256_ALG_ID: hashlib.sha256,
+    TCG_SHA384_ALG_ID: hashlib.sha384,
+    TCG_SHA512_ALG_ID: hashlib.sha512
+}
+
 TCG_UINT_SIZE_32 = 0x01
 TCG_LOG_SIGNATURE =	"Spec ID Event03"
 
@@ -189,15 +198,15 @@ def process_tcg_event2 (max_len, event, algorithms, pcr_banks, entries_with_even
 		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			UNSUPPORTED_HASHING_ALGO_ERROR_STR.format (curr_event.contents.digest_algorithm_id))
 
-	# Currently on SHA256 is supported by this test tool
-	if curr_event.contents.digest_algorithm_id != TCG_SHA256_ALG_ID:
+	# Currently SHA256 SHA384 SHA512 are supported by this test tool
+	if curr_event.contents.digest_algorithm_id not in SUPPORTED_HASH_ALGOS:
 		print_error (Error_Types.UNSUPPORTED_FORMAT_ERROR_TYPE_STR,
 			UNSUPPORTED_HASHING_ALGO_ERROR_STR.format (curr_event.contents.digest_algorithm_id))
 
 	hash_len = algorithms[curr_event.contents.digest_algorithm_id]
 	digest = (ctypes.c_uint8 * hash_len).from_address(event + ctypes.sizeof (tcg_event2))
 
-	hash_1 = hashlib.sha256 ()
+	hash_1 = SUPPORTED_HASH_ALGOS[curr_event.contents.digest_algorithm_id]()
 
 	if curr_event.contents.pcr_bank not in pcr_banks:
 		hash_1.update (bytes ([0 for _ in range (hash_len)]))
@@ -222,7 +231,7 @@ def process_tcg_event2 (max_len, event, algorithms, pcr_banks, entries_with_even
 	# If event is not the same as digest, then event hash should be same as digest
 	if bytes (digest) != bytes (event):
 		entries_with_events_list.append (curr_event.contents.event_type)
-		hash_2 = hashlib.sha256 ()
+		hash_2 = SUPPORTED_HASH_ALGOS[curr_event.contents.digest_algorithm_id]()
 		hash_2.update (event)
 		computed_hash = hash_2.digest ()
 

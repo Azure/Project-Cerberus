@@ -54,6 +54,19 @@ static int cmd_device_mock_get_heap_stats (const struct cmd_device *device,
 	MOCK_RETURN (&mock->mock, cmd_device_mock_get_heap_stats, device, MOCK_ARG_PTR_CALL (heap));
 }
 
+static int cmd_device_mock_get_stack_stats (const struct cmd_device *device, size_t offset,
+	struct cmd_device_stack_stats *stack, size_t length)
+{
+	struct cmd_device_mock *mock = (struct cmd_device_mock*) device;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, cmd_device_mock_get_stack_stats, device, MOCK_ARG_CALL (offset),
+		MOCK_ARG_PTR_CALL (stack), MOCK_ARG_CALL (length));
+}
+
 static int cmd_device_mock_func_arg_count (void *func)
 {
 	if (func == cmd_device_mock_get_reset_counter) {
@@ -64,6 +77,9 @@ static int cmd_device_mock_func_arg_count (void *func)
 	}
 	else if (func == cmd_device_mock_get_heap_stats) {
 		return 1;
+	}
+	else if (func == cmd_device_mock_get_stack_stats) {
+		return 3;
 	}
 	else {
 		return 0;
@@ -83,6 +99,9 @@ static const char* cmd_device_mock_func_name_map (void *func)
 	}
 	else if (func == cmd_device_mock_get_heap_stats) {
 		return "get_heap_stats";
+	}
+	else if (func == cmd_device_mock_get_stack_stats) {
+		return "get_stack_stats";
 	}
 	else {
 		return "unknown";
@@ -118,6 +137,18 @@ static const char* cmd_device_mock_arg_name_map (void *func, int arg)
 				return "heap";
 		}
 	}
+	else if (func == cmd_device_mock_get_stack_stats) {
+		switch (arg) {
+			case 0:
+				return "offset";
+
+			case 1:
+				return "stack";
+
+			case 2:
+				return "length";
+		}
+	}
 
 	return "unknown";
 }
@@ -150,6 +181,7 @@ int cmd_device_mock_init (struct cmd_device_mock *mock)
 	mock->base.reset = cmd_device_mock_reset;
 	mock->base.get_reset_counter = cmd_device_mock_get_reset_counter;
 	mock->base.get_heap_stats = cmd_device_mock_get_heap_stats;
+	mock->base.get_stack_stats = cmd_device_mock_get_stack_stats;
 
 	mock->mock.func_arg_count = cmd_device_mock_func_arg_count;
 	mock->mock.func_name_map = cmd_device_mock_func_name_map;

@@ -11,6 +11,7 @@
 #include "cmd_logging.h"
 #include "device_manager.h"
 #include "session_manager.h"
+#include "asn1/asn1_util.h"
 #include "attestation/attestation_responder.h"
 #include "common/buffer_util.h"
 #include "common/certificate.h"
@@ -57,7 +58,7 @@ void cerberus_protocol_build_error_response (struct cmd_interface_msg *message, 
 	if (error_code != CERBERUS_PROTOCOL_NO_ERROR) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_CMD_INTERFACE,
 			CMD_LOGGING_CERBERUS_REQUEST_FAIL,
-			((error_code << 24) | (command_code << 16) | (message->source_eid << 8) |
+			(((uint32_t) error_code << 24) | (command_code << 16) | (message->source_eid << 8) |
 					message->channel_id), error_data);
 	}
 }
@@ -92,6 +93,7 @@ int cerberus_protocol_get_fw_version (const struct cmd_interface_fw_version *fw_
 
 	if (fw_version->id[area] != NULL) {
 		strncpy (rsp->version, fw_version->id[area], sizeof (rsp->version));
+		rsp->version[sizeof (rsp->version) - 1] = '\0';
 	}
 
 	request->length = sizeof (struct cerberus_protocol_get_fw_version_response);
@@ -282,41 +284,36 @@ int cerberus_protocol_get_challenge_response (struct attestation_responder *atte
  *
  * @return 0 if processing completed successfully or an error code.
  */
-int cerberus_protocol_export_csr (struct riot_key_manager *riot, struct cmd_interface_msg *request)
+int cerberus_protocol_export_csr (const struct riot_key_manager *riot,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_export_csr *rq = (struct cerberus_protocol_export_csr*) request->data;
 	struct cerberus_protocol_export_csr_response *rsp =
 		(struct cerberus_protocol_export_csr_response*) request->data;
-	const struct riot_keys *keys;
-	int status = 0;
+	struct der_cert csr;
+	int status;
 
 	if (request->length != sizeof (struct cerberus_protocol_export_csr)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if (rq->index != 0) {
+	status = riot_key_manager_get_csr (riot, rq->index, &csr);
+	if (status == RIOT_KEY_MANAGER_UNKNOWN_CSR) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
-
-	keys = riot_key_manager_get_riot_keys (riot);
-	if (keys == NULL) {
-		return CMD_HANDLER_PROCESS_FAILED;
+	else if (status != 0) {
+		return status;
 	}
 
-	if (keys->devid_csr_length > CERBERUS_PROTOCOL_LOCAL_MAX_CSR_DATA) {
-		status = CMD_HANDLER_BUF_TOO_SMALL;
-		goto exit;
+	if (csr.length > CERBERUS_PROTOCOL_LOCAL_MAX_CSR_DATA) {
+		return CMD_HANDLER_BUF_TOO_SMALL;
 	}
-	else if (keys->devid_csr_length > CERBERUS_PROTOCOL_MAX_CSR_DATA (request)) {
-		status = CMD_HANDLER_RESPONSE_TOO_SMALL;
-		goto exit;
+	else if (csr.length > CERBERUS_PROTOCOL_MAX_CSR_DATA (request)) {
+		return CMD_HANDLER_RESPONSE_TOO_SMALL;
 	}
 
-	memcpy (&rsp->csr, keys->devid_csr, keys->devid_csr_length);
-	request->length = cerberus_protocol_export_csr_response_length (keys->devid_csr_length);
-
-exit:
-	riot_key_manager_release_riot_keys (riot, keys);
+	memcpy (&rsp->csr, csr.cert, csr.length);
+	request->length = cerberus_protocol_export_csr_response_length (csr.length);
 
 	return status;
 }
@@ -330,7 +327,7 @@ exit:
  *
  * @return 0 if processing completed successfully or an error code.
  */
-int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
+int cerberus_protocol_import_ca_signed_cert (const struct riot_key_manager *riot,
 	const struct cmd_background *background, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_import_certificate *rq =
@@ -338,6 +335,7 @@ int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
 	int min_length =
 		sizeof (struct cerberus_protocol_import_certificate) - sizeof (rq->certificate);
 	int status;
+	size_t cert_length;
 
 	request->crypto_timeout = true;
 
@@ -346,6 +344,12 @@ int cerberus_protocol_import_ca_signed_cert (struct riot_key_manager *riot,
 	}
 
 	if ((rq->cert_length == 0) || ((int) request->length != (min_length + rq->cert_length))) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	/* Check certificate header length against incoming buffer */
+	cert_length = asn1_get_der_item_len (&rq->certificate, rq->cert_length);
+	if (cert_length != rq->cert_length) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 

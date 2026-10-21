@@ -8,8 +8,8 @@
 #include "cerberus_protocol_optional_commands.h"
 #include "session_manager.h"
 #include "session_manager_ecc.h"
-#include "crypto/aes.h"
 #include "crypto/ecc.h"
+#include "crypto/ecdsa.h"
 #include "crypto/hash.h"
 #include "crypto/kdf.h"
 #include "riot/riot_key_manager.h"
@@ -24,12 +24,11 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 	struct session_manager_entry *curr_session;
 	struct ecc_private_key session_priv_key;
 	struct ecc_public_key session_pub_key;
-	struct ecc_private_key alias_priv_key;
 	struct ecc_public_key device_pub_key;
 	const struct riot_keys *keys;
-	uint8_t hash[SHA256_HASH_LENGTH];
-	uint8_t *session_pub_key_der;
-	uint8_t *shared_secret;
+	uint8_t *session_pub_key_der = NULL;
+	uint8_t *shared_secret = NULL;
+	size_t shared_secret_alloc;
 	uint16_t hash_len;
 	size_t session_pub_key_der_len;
 	int shared_secret_len;
@@ -92,7 +91,7 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 	status = session_manager_generate_keys_digest (&session_mgr->base,
 		cerberus_protocol_key_exchange_type_0_key_data (rq),
 		cerberus_protocol_key_exchange_type_0_key_len (request), session_pub_key_der,
-		session_pub_key_der_len, hash, sizeof (hash));
+		session_pub_key_der_len);
 	if (status != 0) {
 		goto free_session_pub_der;
 	}
@@ -116,38 +115,31 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 		goto free_session_pub_der;
 	}
 
-	status = session_mgr->ecc->init_key_pair (session_mgr->ecc, keys->alias_key,
-		keys->alias_key_length, &alias_priv_key, NULL);
-	if (status != 0) {
-		goto release_riot_keys;
-	}
-
-	status = session_mgr->ecc->get_signature_max_length (session_mgr->ecc, &alias_priv_key);
-	if (ROT_IS_ERROR (status)) {
-		goto free_alias_key;
-	}
-
-	sig_len = session_mgr->ecc->sign (session_mgr->ecc, &alias_priv_key, hash, sizeof (hash),
+	sig_len = ecdsa_sign_hash_and_finish (session_mgr->ecc, session_mgr->base.hash, NULL,
+		keys->alias_key, keys->alias_key_length,
 		cerberus_protocol_key_exchange_type_0_response_sig_data (rsp),
 		CERBERUS_PROTOCOL_KEY_EXCHANGE_TYPE_0_RESPONSE_MAX_SIG_DATA (request));
+
+	riot_key_manager_release_riot_keys (session_mgr->base.riot, keys);
 	if (ROT_IS_ERROR (sig_len)) {
 		status = sig_len;
-		goto free_alias_key;
+		goto free_session_pub_der;
 	}
 
 	cerberus_protocol_key_exchange_type_0_response_sig_len (rsp) = (uint16_t) sig_len;
 
 	status = session_mgr->ecc->get_shared_secret_max_length (session_mgr->ecc, &session_priv_key);
 	if (ROT_IS_ERROR (status)) {
-		goto free_alias_key;
+		goto free_session_pub_der;
 	}
 
 	shared_secret = platform_malloc (status);
 	if (shared_secret == NULL) {
 		status = SESSION_MANAGER_NO_MEMORY;
-		goto free_alias_key;
+		goto free_session_pub_der;
 	}
 
+	shared_secret_alloc = (size_t) status;
 	shared_secret_len = session_mgr->ecc->compute_shared_secret (session_mgr->ecc,
 		&session_priv_key, &device_pub_key, shared_secret, status);
 	if (ROT_IS_ERROR (shared_secret_len)) {
@@ -190,15 +182,11 @@ static int session_manager_ecc_establish_session (struct session_manager *sessio
 	request->crypto_timeout = true;
 
 free_shared_secret:
+	buffer_zeroize (shared_secret, shared_secret_alloc);
 	platform_free (shared_secret);
 
-free_alias_key:
-	session_mgr->ecc->release_key_pair (session_mgr->ecc, &alias_priv_key, NULL);
-
-release_riot_keys:
-	riot_key_manager_release_riot_keys (session_mgr->base.riot, keys);
-
 free_session_pub_der:
+	buffer_zeroize (session_pub_key_der, session_pub_key_der_len);
 	platform_free (session_pub_key_der);
 
 free_session_keys:
@@ -227,10 +215,11 @@ free_device_key:
  *
  * @return Initialization status, 0 if success or an error code.
  */
-int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_engine *aes,
-	struct ecc_engine *ecc, struct hash_engine *hash, struct riot_key_manager *riot,
-	struct session_manager_entry *sessions_table, size_t num_sessions, const uint8_t *pairing_eids,
-	size_t num_pairing_eids, const struct keystore *store)
+int session_manager_ecc_init (struct session_manager_ecc *session, const struct aes_gcm_engine *aes,
+	const struct ecc_engine *ecc, const struct hash_engine *hash,
+	const struct riot_key_manager *riot, struct session_manager_entry *sessions_table,
+	size_t num_sessions, const uint8_t *pairing_eids, size_t num_pairing_eids,
+	const struct keystore *store)
 {
 	int status;
 
@@ -238,7 +227,7 @@ int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_en
 		return SESSION_MANAGER_INVALID_ARGUMENT;
 	}
 
-	status = session_manager_init (&session->base, aes, hash, riot, sessions_table,	num_sessions,
+	status = session_manager_init (&session->base, aes, hash, riot, sessions_table, num_sessions,
 		pairing_eids, num_pairing_eids, store);
 	if (status == 0) {
 		session->base.add_session = session_manager_add_session;
@@ -263,5 +252,7 @@ int session_manager_ecc_init (struct session_manager_ecc *session, struct aes_en
  */
 void session_manager_ecc_release (struct session_manager_ecc *session)
 {
-	session_manager_release (&session->base);
+	if (session != NULL) {
+		session_manager_release (&session->base);
+	}
 }

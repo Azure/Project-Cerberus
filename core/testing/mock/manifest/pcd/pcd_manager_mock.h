@@ -6,14 +6,17 @@
 
 #include "mock.h"
 #include "manifest/pcd/pcd_manager.h"
+#include "testing/engines/hash_testing_engine.h"
 
 
 /**
  * A mock for the PCD management API.
  */
 struct pcd_manager_mock {
-	struct pcd_manager base;	/**< The base manager instance. */
-	struct mock mock;			/**< The base mock interface. */
+	struct pcd_manager base;		/**< The base manager instance. */
+	struct mock mock;				/**< The base mock interface. */
+	struct pcd_manager_state state;	/**< Manager state instance. */
+	HASH_TESTING_ENGINE (hash);		/**< Manager hash instance. */
 };
 
 

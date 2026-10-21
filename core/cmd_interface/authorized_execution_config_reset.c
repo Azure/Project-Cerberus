@@ -9,11 +9,15 @@
 
 
 int authorized_execution_config_reset_execute (const struct authorized_execution *execution,
-	bool *reset_req)
+	const uint8_t *data, size_t length, bool *reset_req)
 {
 	const struct authorized_execution_config_reset *config =
 		(const struct authorized_execution_config_reset*) execution;
 	int status;
+
+	/* No data is needed for execution. */
+	UNUSED (data);
+	UNUSED (length);
 
 	if (config == NULL) {
 		return AUTHORIZED_EXECUTION_INVALID_ARGUMENT;
@@ -63,7 +67,7 @@ void authorized_execution_config_reset_get_status_identifiers (
  * Initialize an authorized execution context for any configuration reset execution.
  *
  * @param execution The execution context to initialize.
- * @param reset The configuration reset manager that will be used to execute the execution.
+ * @param reset The configuration reset manager that will be used to execute the reset operation.
  * @param log_success Log message ID for a successful execution.
  * @param log_fail Log message ID for a failed execution.
  * @param op_start Status ID to report when the execution is starting.
@@ -86,6 +90,7 @@ static int authorized_execution_config_reset_init (
 	memset (execution, 0, sizeof (*execution));
 
 	execution->base.execute = authorized_execution_config_reset_execute;
+	execution->base.validate_data = authorized_execution_validate_data;
 	execution->base.get_status_identifiers =
 		authorized_execution_config_reset_get_status_identifiers;
 
@@ -105,7 +110,7 @@ static int authorized_execution_config_reset_init (
  * manager.
  *
  * @param execution The execution context to initialize.
- * @param reset The configuration reset manager that will be used to execute the execution.
+ * @param reset The configuration reset manager that will be used to execute the reset operation.
  *
  * @return 0 if initialization was successful or an error code.
  */
@@ -122,7 +127,7 @@ int authorized_execution_config_reset_init_restore_bypass (
  * configuration reset manager.
  *
  * @param execution The execution context to initialize.
- * @param reset The configuration reset manager that will be used to execute the execution.
+ * @param reset The configuration reset manager that will be used to execute the reset operation.
  *
  * @return 0 if initialization was successful or an error code.
  */
@@ -139,7 +144,7 @@ int authorized_execution_config_reset_init_restore_defaults (
  * configuration reset manager.
  *
  * @param execution The execution context to initialize.
- * @param reset The configuration reset manager that will be used to execute the execution.
+ * @param reset The configuration reset manager that will be used to execute the reset operation.
  *
  * @return 0 if initialization was successful or an error code.
  */
@@ -157,7 +162,7 @@ int authorized_execution_config_reset_init_restore_platform_config (
  * configuration reset manager.
  *
  * @param execution The execution context to initialize.
- * @param reset The configuration reset manager that will be used to execute the execution.
+ * @param reset The configuration reset manager that will be used to execute the reset operation.
  *
  * @return 0 if initialization was successful or an error code.
  */
@@ -168,6 +173,24 @@ int authorized_execution_config_reset_init_clear_component_manifests (
 		CMD_LOGGING_CLEAR_CFM_FAIL, CONFIG_RESET_STATUS_CLEAR_COMPONENT_MANIFESTS,
 		CONFIG_RESET_STATUS_COMPONENT_MANIFESTS_FAILED, false,
 		config_reset_clear_component_manifests);
+}
+
+/**
+ * Initialize an authorized execution context to remove any provisioned certificates using a
+ * configuration reset manager.
+ *
+ * @param execution The execution context to initialize.
+ * @param reset The configuration reset manager that will be used to execute the reset operation.
+ *
+ * @return 0 if initialization was successful or an error code.
+ */
+int authorized_execution_config_reset_init_clear_provisioned_certificates (
+	struct authorized_execution_config_reset *execution, const struct config_reset *reset)
+{
+	return authorized_execution_config_reset_init (execution, reset, CMD_LOGGING_CLEAR_CERTIFICATES,
+		CMD_LOGGING_CLEAR_CERTIFICATES_FAIL, CONFIG_RESET_STATUS_AUTHORIZED_OPERATION,
+		CONFIG_RESET_STATUS_AUTHORIZED_OP_FAILED, false,
+		config_reset_clear_provisioned_certificates);
 }
 
 /**

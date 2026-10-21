@@ -56,9 +56,9 @@ enum {
  * The possible version numbers for X.509 certificates.
  */
 enum {
-	X509_VERSION_1 = 1,	/**< A version 1 certificate. */
-	X509_VERSION_2 = 2,	/**< A version 2 certificate. */
-	X509_VERSION_3 = 3,	/**< A version 3 certificate. */
+	X509_CERT_VERSION_1 = 1,	/**< A version 1 certificate. */
+	X509_CERT_VERSION_2 = 2,	/**< A version 2 certificate. */
+	X509_CERT_VERSION_3 = 3,	/**< A version 3 certificate. */
 };
 
 
@@ -80,22 +80,14 @@ struct x509_ca_certs {
 };
 
 /**
- * A platform-independent API for handling certificates.  X509 engine instances are not guaranteed
+ * A platform-independent API for handling certificates.  X.509 engine instances are not guaranteed
  * to be thread-safe.
  */
 struct x509_engine {
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 	/**
-	 * Generate a Certificate Signing Request for the public key of an asymmetric encryption
-	 * key pair.
-	 *
-	 * Note:  There is currently no need to support EKU OIDs for end entity CSRs.  This situation is
-	 * complicated by the fact that per RFC5280 there can be only one instance of each extension
-	 * type in a certificate.  End entity certificates already have an EKU for client authentication
-	 * that is marked critical.  This OID would need to be added to the list of EKUs, but it really
-	 * should make the EKU not be critical, since the data would generally not be understood.  To
-	 * avoid the complexity around creating these types of certificates and the implications of the
-	 * non-standard OID, this type of CSR cannot be created.
+	 * Generate a Certificate Signing Request for the public key of an asymmetric encryption key
+	 * pair.
 	 *
 	 * @param engine The X.509 engine to use to generate the CSR.
 	 * @param priv_key The DER formatted private key to generate a CSR for.
@@ -103,9 +95,11 @@ struct x509_engine {
 	 * @param sig_hash The hash algorithm to use when generating the signature for the CSR.
 	 * @param name The subject common name to apply to the CSR.
 	 * @param type The type of certificate being requested for signing.
-	 * @param eku An optional Extended Key Usage OID that will be added to the CSR.  Set to null if
-	 * no EKU OID is necessary.  If provided, this must be the encoded value for the OID.
-	 * @param eku_length Length of the EKU OID.
+	 * @param eku Deprecated.  Provide any desired EKUs through the extra_extensions list instead.
+	 * An optional Extended Key Usage OID that will be added to the CSR.  Set to null if no EKU OID
+	 * is necessary.  If provided, this must be the encoded value for the OID.
+	 * @param eku_length Deprecated.
+	 * Length of the EKU OID.
 	 * @param extra_extensions Optional list of additional extensions to add to the CSR.  Each entry
 	 * in the list is a pointer to a builder for the extension that should be added.  Set to null if
 	 * no additional extensions should be added.
@@ -118,7 +112,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the CSR was successfully generated or an error code.
 	 */
-	int (*create_csr) (struct x509_engine *engine, const uint8_t *priv_key, size_t key_length,
+	int (*create_csr) (const struct x509_engine *engine, const uint8_t *priv_key, size_t key_length,
 		enum hash_type sig_hash, const char *name, int type, const uint8_t *eku, size_t eku_length,
 		const struct x509_extension_builder *const *extra_extensions, size_t ext_count,
 		uint8_t **csr, size_t *csr_length);
@@ -143,7 +137,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate was successfully generated or an error code.
 	 */
-	int (*create_self_signed_certificate) (struct x509_engine *engine,
+	int (*create_self_signed_certificate) (const struct x509_engine *engine,
 		struct x509_certificate *cert, const uint8_t *priv_key, size_t key_length,
 		enum hash_type sig_hash, const uint8_t *serial_num, size_t serial_length, const char *name,
 		int type, const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
@@ -174,10 +168,11 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate was successfully generated or an error code.
 	 */
-	int (*create_ca_signed_certificate) (struct x509_engine *engine, struct x509_certificate *cert,
-		const uint8_t *key, size_t key_length, const uint8_t *serial_num, size_t serial_length,
-		const char *name, int type, const uint8_t *ca_priv_key, size_t ca_key_length,
-		enum hash_type sig_hash, const struct x509_certificate *ca_cert,
+	int (*create_ca_signed_certificate) (const struct x509_engine *engine,
+		struct x509_certificate *cert, const uint8_t *key, size_t key_length,
+		const uint8_t *serial_num, size_t serial_length, const char *name, int type,
+		const uint8_t *ca_priv_key, size_t ca_key_length, enum hash_type sig_hash,
+		const struct x509_certificate *ca_cert,
 		const struct x509_extension_builder *const *extra_extensions, size_t ext_count);
 #endif
 
@@ -191,7 +186,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate was loaded successfully or an error code.
 	 */
-	int (*load_certificate) (struct x509_engine *engine, struct x509_certificate *cert,
+	int (*load_certificate) (const struct x509_engine *engine, struct x509_certificate *cert,
 		const uint8_t *der, size_t length);
 
 	/**
@@ -200,7 +195,7 @@ struct x509_engine {
 	 * @param engine The engine used to initialize the certificate.
 	 * @param cert The certificate instance to release.
 	 */
-	void (*release_certificate) (struct x509_engine *engine, struct x509_certificate *cert);
+	void (*release_certificate) (const struct x509_engine *engine, struct x509_certificate *cert);
 
 #ifdef X509_ENABLE_CREATE_CERTIFICATES
 	/**
@@ -215,8 +210,8 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate was successfully encoded or an error code.
 	 */
-	int (*get_certificate_der) (struct x509_engine *engine, const struct x509_certificate *cert,
-		uint8_t **der, size_t *length);
+	int (*get_certificate_der) (const struct x509_engine *engine,
+		const struct x509_certificate *cert, uint8_t **der, size_t *length);
 #endif
 
 #ifdef X509_ENABLE_AUTHENTICATION
@@ -229,7 +224,7 @@ struct x509_engine {
 	 * @return The certificate version or an error code.  Use ROT_IS_ERROR to check the return
 	 * value.
 	 */
-	int (*get_certificate_version) (struct x509_engine *engine,
+	int (*get_certificate_version) (const struct x509_engine *engine,
 		const struct x509_certificate *cert);
 
 	/**
@@ -244,7 +239,7 @@ struct x509_engine {
 	 * @return The length of the serial number in the buffer or an error code.  Use ROT_IS_ERROR to
 	 * check the return value.
 	 */
-	int (*get_serial_number) (struct x509_engine *engine, const struct x509_certificate *cert,
+	int (*get_serial_number) (const struct x509_engine *engine, const struct x509_certificate *cert,
 		uint8_t *serial_num, size_t length);
 
 	/**
@@ -255,7 +250,8 @@ struct x509_engine {
 	 *
 	 * @return The public key type or an error code.  Use ROT_IS_ERROR to check the return value.
 	 */
-	int (*get_public_key_type) (struct x509_engine *engine, const struct x509_certificate *cert);
+	int (*get_public_key_type) (const struct x509_engine *engine,
+		const struct x509_certificate *cert);
 
 	/**
 	 * Get the bit length of the public key contained in the certificate.  This represents the key
@@ -268,7 +264,8 @@ struct x509_engine {
 	 * @return The bit length of the public key or an error code.  Use ROT_IS_ERROR to check the
 	 * return value.
 	 */
-	int (*get_public_key_length) (struct x509_engine *engine, const struct x509_certificate *cert);
+	int (*get_public_key_length) (const struct x509_engine *engine,
+		const struct x509_certificate *cert);
 
 	/**
 	 * Extract the public key from a certificate.
@@ -282,7 +279,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the public key was successfully retrieved or an error code.
 	 */
-	int (*get_public_key) (struct x509_engine *engine, const struct x509_certificate *cert,
+	int (*get_public_key) (const struct x509_engine *engine, const struct x509_certificate *cert,
 		uint8_t **key, size_t *key_length);
 
 	/**
@@ -293,7 +290,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate store was successfully initialized or an error code.
 	 */
-	int (*init_ca_cert_store) (struct x509_engine *engine, struct x509_ca_certs *store);
+	int (*init_ca_cert_store) (const struct x509_engine *engine, struct x509_ca_certs *store);
 
 	/**
 	 * Release a store for CA certificates.
@@ -301,7 +298,7 @@ struct x509_engine {
 	 * @param engine The X.509 engine that initialized the certificate store.
 	 * @param store The CA certificate store to release.
 	 */
-	void (*release_ca_cert_store) (struct x509_engine *engine, struct x509_ca_certs *store);
+	void (*release_ca_cert_store) (const struct x509_engine *engine, struct x509_ca_certs *store);
 
 	/**
 	 * Add the certificate for a certificate authority that should be implicitly trusted when
@@ -315,8 +312,8 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate was successfully added or an error code.
 	 */
-	int (*add_root_ca) (struct x509_engine *engine, struct x509_ca_certs *store, const uint8_t *der,
-		size_t length);
+	int (*add_root_ca) (const struct x509_engine *engine, struct x509_ca_certs *store,
+		const uint8_t *der, size_t length);
 
 	/**
 	 * Add the certificate for a certificate authority that should be implicitly trusted when
@@ -332,7 +329,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate was successfully added to the store or an error code.
 	 */
-	int (*add_trusted_ca) (struct x509_engine *engine, struct x509_ca_certs *store,
+	int (*add_trusted_ca) (const struct x509_engine *engine, struct x509_ca_certs *store,
 		const uint8_t *der, size_t length);
 
 	/**
@@ -350,7 +347,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate was successfully added to the store or an error code.
 	 */
-	int (*add_intermediate_ca) (struct x509_engine *engine, struct x509_ca_certs *store,
+	int (*add_intermediate_ca) (const struct x509_engine *engine, struct x509_ca_certs *store,
 		const uint8_t *der, size_t length);
 
 	/**
@@ -364,7 +361,7 @@ struct x509_engine {
 	 *
 	 * @return 0 if the certificate is trusted or an error code.
 	 */
-	int (*authenticate) (struct x509_engine *engine, const struct x509_certificate *cert,
+	int (*authenticate) (const struct x509_engine *engine, const struct x509_certificate *cert,
 		const struct x509_ca_certs *store);
 #endif
 };

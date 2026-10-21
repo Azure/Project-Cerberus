@@ -10,12 +10,15 @@
 
 
 int authorized_execution_reset_intrusion_execute (const struct authorized_execution *execution,
-	bool *reset_req)
+	const uint8_t *data, size_t length, bool *reset_req)
 {
 	const struct authorized_execution_reset_intrusion *reset =
 		(const struct authorized_execution_reset_intrusion*) execution;
 	int status;
 
+	/* No data is needed for execution. */
+	UNUSED (data);
+	UNUSED (length);
 	UNUSED (reset_req);
 
 	if (reset == NULL) {
@@ -67,6 +70,7 @@ int authorized_execution_reset_intrusion_init (
 	memset (execution, 0, sizeof (*execution));
 
 	execution->base.execute = authorized_execution_reset_intrusion_execute;
+	execution->base.validate_data = authorized_execution_validate_data;
 	execution->base.get_status_identifiers =
 		authorized_execution_reset_intrusion_get_status_identifiers;
 

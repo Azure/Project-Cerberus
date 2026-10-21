@@ -22,6 +22,19 @@ static int signature_verification_mock_verify_signature (
 		MOCK_ARG_CALL (sig_length));
 }
 
+static int signature_verification_mock_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length)
+{
+	struct signature_verification_mock *mock = (struct signature_verification_mock*) verification;
+
+	if (mock == NULL) {
+		return MOCK_INVALID_ARGUMENT;
+	}
+
+	MOCK_RETURN (&mock->mock, signature_verification_mock_get_max_signature_length, verification,
+		MOCK_ARG_PTR_CALL (max_length));
+}
+
 static int signature_verification_mock_set_verification_key (
 	const struct signature_verification *verification, const uint8_t *key, size_t length)
 {
@@ -57,6 +70,9 @@ static int signature_verification_mock_func_arg_count (void *func)
 		(func == signature_verification_mock_is_key_valid)) {
 		return 2;
 	}
+	else if (func == signature_verification_mock_get_max_signature_length) {
+		return 1;
+	}
 	else {
 		return 0;
 	}
@@ -66,6 +82,9 @@ static const char* signature_verification_mock_func_name_map (void *func)
 {
 	if (func == signature_verification_mock_verify_signature) {
 		return "verify_signature";
+	}
+	else if (func == signature_verification_mock_get_max_signature_length) {
+		return "get_max_signature_length";
 	}
 	else if (func == signature_verification_mock_set_verification_key) {
 		return "set_verification_key";
@@ -93,6 +112,12 @@ static const char* signature_verification_mock_arg_name_map (void *func, int arg
 
 			case 3:
 				return "sig_length";
+		}
+	}
+	else if (func == signature_verification_mock_get_max_signature_length) {
+		switch (arg) {
+			case 0:
+				return "max_length";
 		}
 	}
 	else if (func == signature_verification_mock_set_verification_key) {
@@ -142,6 +167,7 @@ int signature_verification_mock_init (struct signature_verification_mock *mock)
 	mock_set_name (&mock->mock, "signature_verification");
 
 	mock->base.verify_signature = signature_verification_mock_verify_signature;
+	mock->base.get_max_signature_length = signature_verification_mock_get_max_signature_length;
 	mock->base.set_verification_key = signature_verification_mock_set_verification_key;
 	mock->base.is_key_valid = signature_verification_mock_is_key_valid;
 

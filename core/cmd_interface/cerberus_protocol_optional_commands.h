@@ -12,12 +12,13 @@
 #include "cmd_interface/cmd_authorization.h"
 #include "cmd_interface/cmd_background.h"
 #include "cmd_interface/cmd_interface.h"
+#include "cmd_interface/device_manager.h"
 #include "cmd_interface/session_manager.h"
 #include "common/buffer_util.h"
 #include "crypto/hash.h"
 #include "firmware/firmware_update_control.h"
+#include "host_fw/host_cmd_interface.h"
 #include "host_fw/host_control.h"
-#include "host_fw/host_processor.h"
 #include "manifest/manifest_cmd_interface.h"
 #include "manifest/pfm/pfm_manager.h"
 #include "mctp/mctp_base_protocol.h"
@@ -33,6 +34,7 @@ enum {
 	CERBERUS_PROTOCOL_ATTESTATION_LOG,	/**< Attestation log type. */
 	CERBERUS_PROTOCOL_TAMPER_LOG,		/**< Tamper log type. */
 	CERBERUS_PROTOCOL_TCG_LOG,			/**< TCG formatted log type. */
+	CERBERUS_PROTOCOL_VENDOR_DEBUG_LOG,	/**< Vendor debug log type. */
 };
 
 /**
@@ -66,11 +68,17 @@ enum {
  * Identifier for the type of configuration reset to execute.
  */
 enum {
-	CERBERUS_PROTOCOL_REVERT_BYPASS = 0,	/**< Reset device to the unprotected state */
-	CERBERUS_PROTOCOL_FACTORY_RESET,		/**< Restore factory default configuration */
-	CERBERUS_PROTOCOL_CLEAR_PCD,			/**< Remove any PCD used by the device. */
-	CERBERUS_PROTOCOL_CLEAR_CFM,			/**< Remove any CFM used for component attestation. */
-	CERBERUS_PROTOCOL_RESET_INTRUSION,		/**< Clear the device intrusion state. */
+	CERBERUS_PROTOCOL_REVERT_BYPASS = 0,	/**< Reset device to the unprotected state. */
+	CERBERUS_PROTOCOL_FACTORY_RESET = 1,	/**< Restore factory default configuration. */
+	CERBERUS_PROTOCOL_CLEAR_PCD = 2,		/**< Remove any PCD used by the device. */
+	CERBERUS_PROTOCOL_CLEAR_CFM = 3,		/**< Remove any CFM used for component attestation. */
+	CERBERUS_PROTOCOL_RESET_INTRUSION = 4,	/**< Clear the device intrusion state. */
+	CERBERUS_PROTOCOL_ALLOW_IMPACTFUL = 5,	/**< Allow an impactful firmware update to be accepted. */
+	CERBERUS_PROTOCOL_FIRMWARE_UPDATE = 6,	/**< Provide authorization to execute a firmware update. */
+	CERBERUS_PROTOCOL_RMA = 7,				/**< Transition the device to the RMA state. */
+	CERBERUS_PROTOCOL_CLEAR_CERTS = 8,		/**< Erase device identity certificates stored in flash. */
+	CERBERUS_PROTOCOL_REVOKE_DICE = 9,		/**< Revoke the current DICE identity key. */
+	CERBERUS_PROTOCOL_REVOKE_DME = 10,		/**< Revoke the current DME key. */
 };
 
 /**
@@ -192,7 +200,8 @@ struct cerberus_protocol_get_pfm_id_platform_response {
  * @param req The command request structure containing the message.
  */
 #define	CERBERUS_PROTOCOL_MAX_PFM_ID_PLATFORM(req)  \
-	((req->max_response - sizeof (struct cerberus_protocol_get_pfm_id_platform_response)) + sizeof (uint8_t))
+	((req->max_response - sizeof (struct cerberus_protocol_get_pfm_id_platform_response)) + \
+		sizeof (uint8_t))
 
 /**
  * Cerberus protocol get platform firmware manifest supported FW request format.  This is the
@@ -712,6 +721,23 @@ struct cerberus_protocol_get_attestation_data_response {
 	(req->max_response - sizeof (struct cerberus_protocol_get_attestation_data_response))
 
 /**
+ * Cerberus protocol get attestation summary request format
+ */
+struct cerberus_protocol_get_attestation_summary {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint32_t component_id;					/**< Component ID for the requested data */
+	uint8_t component_instance;				/**< Component instance for the requested data */
+};
+
+/**
+ * Cerberus protocol get attestation summary response format
+ */
+struct cerberus_protocol_get_attestation_summary_response {
+	struct cerberus_protocol_header header;				/**< Message header */
+	struct device_manager_attestation_summary summary;	/**< Attestation summary data */
+};
+
+/**
  * Cerberus protocol prepare firmware update request format
  */
 struct cerberus_protocol_prepare_fw_update {
@@ -741,7 +767,16 @@ struct cerberus_protocol_fw_update {
  */
 struct cerberus_protocol_complete_fw_update {
 	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t execute_update;					/**< Optional flag to automatically execute the updated firmware. */
 };
+
+
+/**
+ * Minimum required length of the activate firmware update request.  This length excludes optional
+ * payload bytes.
+ */
+#define	CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE_MIN_LENGTH     \
+	(sizeof (struct cerberus_protocol_complete_fw_update) - sizeof (uint8_t))
 
 /**
  * Cerberus protocol reset configuration request format
@@ -809,7 +844,23 @@ struct cerberus_protocol_message_unseal {
 		uint8_t raw;						/**< Raw seed parameter value */
 	} seed_params;							/**< Additional parameters for the seed */
 	uint16_t seed_length;					/**< Length of the unsealing seed */
-	uint8_t seed;							/**< First byte of the unsealing seed */
+	uint8_t seed[1];						/**< First byte of the unsealing seed */
+};
+
+/**
+ * Ciphertext used for unsealing message
+ */
+struct cerberus_protocol_unseal_ciphertext {
+	uint16_t ciphertext_length;	/**< Length of the unsealing ciphertext */
+	uint8_t ciphertext[1];		/**< First byte of the unsealing ciphertext */
+};
+
+/**
+ * HMAC used for unsealing message
+ */
+struct cerberus_protocol_unseal_hmac {
+	uint16_t hmac_length;	/**< Length of the unsealing HMAC */
+	uint8_t hmac[1];		/**< First byte of the unsealing HMAC */
 };
 
 /**
@@ -821,41 +872,42 @@ struct cerberus_protocol_unseal_pmrs {
 
 
 /**
- * Get the pointer to the ciphertext length entry
+ * Get the pointer to the ciphertext entry
  */
-#define	cerberus_protocol_unseal_ciphertext_length_ptr(req) \
-	(((uint8_t*) req) + sizeof (*req) + buffer_unaligned_read16 (&req->seed_length) - \
-		sizeof (req->seed))
+#define	cerberus_protocol_unseal_ciphertext_ptr(req) \
+	((struct cerberus_protocol_unseal_ciphertext*) (((uint8_t*) req) + \
+		sizeof (*req) + req->seed_length - sizeof (req->seed)))
 
 /**
  * Get the ciphertext length in an unseal request message
  */
 #define	cerberus_protocol_unseal_ciphertext_length(req) \
-	*((uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (req))
+	(cerberus_protocol_unseal_ciphertext_ptr (req)->ciphertext_length)
 
 /**
  * Get the buffer containing the ciphertext from an unseal request message
  */
 #define	cerberus_protocol_unseal_ciphertext(req) \
-	(cerberus_protocol_unseal_ciphertext_length_ptr (req) + sizeof (uint16_t))
+	(cerberus_protocol_unseal_ciphertext_ptr (req)->ciphertext)
 
 /**
- * Get the pointer to the HMAC length entry
+ * Get the pointer to the HMAC entry
  */
-#define	cerberus_protocol_unseal_hmac_length_ptr(req) (cerberus_protocol_unseal_ciphertext (req) + \
-	buffer_unaligned_read16 ((uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (req)))
+#define	cerberus_protocol_unseal_hmac_ptr(req) \
+	((struct cerberus_protocol_unseal_hmac*) (cerberus_protocol_unseal_ciphertext (req) + \
+		cerberus_protocol_unseal_ciphertext_length (req)))
 
 /**
  * Get the HMAC length in an unseal request message
  */
 #define	cerberus_protocol_unseal_hmac_length(req)   \
-	*((uint16_t*) cerberus_protocol_unseal_hmac_length_ptr (req))
+	(cerberus_protocol_unseal_hmac_ptr (req)->hmac_length)
 
 /**
  * Get the buffer containing the HMAC from an unseal request message
  */
 #define	cerberus_protocol_unseal_hmac(req) \
-	(cerberus_protocol_unseal_hmac_length_ptr (req) + sizeof (uint16_t))
+	(cerberus_protocol_unseal_hmac_ptr (req)->hmac)
 
 /**
  * Get the list of PMRs to use for unsealing.  This will returned as a pointer to
@@ -947,6 +999,37 @@ struct cerberus_protocol_session_sync_response {
  */
 #define	CERBERUS_PROTOCOL_MAX_SESSION_SYNC_HMAC_LEN(req)    \
 	((req->max_response - sizeof (struct cerberus_protocol_session_sync_response)))
+
+/**
+ * Cerberus protocol get host flash configuration request format
+ */
+struct cerberus_protocol_get_host_flash_configuration {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t port_id;						/**< Host port ID */
+};
+
+/**
+ * Cerberus protocol get host flash configuration response format
+ */
+struct cerberus_protocol_get_host_flash_configuration_response {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t filter_mode;					/**< Current configured mode of any SPI filter. */
+	uint8_t current_flash;					/**< Flash CS currently being used for read-only data. */
+	uint8_t next_flash;						/**< Flash CS that will next be used for read-only data. */
+	uint8_t apply_next_flash;				/**< Host events that will change to the next flash CS. */
+};
+
+/**
+ * Cerberus protocol set host flash configuration request format
+ */
+struct cerberus_protocol_set_host_flash_configuration {
+	struct cerberus_protocol_header header;	/**< Message header */
+	uint8_t port_id;						/**< Host port ID */
+	uint8_t current_flash;					/**< Flash CS to use for read-only data. */
+	uint8_t next_flash;						/**< Flash CS to use next for read-only data. */
+	uint8_t apply_next_flash;				/**< Host events that will change to the next flash CS. */
+};
+
 #pragma pack(pop)
 
 
@@ -958,21 +1041,21 @@ int cerberus_protocol_fw_update_start (const struct firmware_update_control *con
 	struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_log_info (struct pcr_store *pcr_store, struct cmd_interface_msg *request);
-int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine *hash,
+int cerberus_protocol_log_read (struct pcr_store *pcr_store, const struct hash_engine *hash,
 	struct cmd_interface_msg *request);
 int cerberus_protocol_log_clear (const struct cmd_background *background,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_get_pfm_id (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_id (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
-int cerberus_protocol_get_pfm_fw (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_fw (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request);
 
-int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
-	struct cmd_interface_msg *request);
-int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *const pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
+int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request);
 
 int cerberus_protocol_get_host_reset_status (const struct host_control *host_0_ctrl,
@@ -1006,11 +1089,18 @@ int cerberus_protocol_get_recovery_image_id (struct recovery_image_manager *mana
 
 int cerberus_protocol_get_attestation_data (struct pcr_store *store,
 	struct cmd_interface_msg *request);
+int cerberus_protocol_get_attestation_summary (struct device_manager *device_mgr,
+	struct cmd_interface_msg *request);
 
 int cerberus_protocol_key_exchange (struct session_manager *session,
 	struct cmd_interface_msg *request, uint8_t encrypted);
 int cerberus_protocol_session_sync (struct session_manager *session,
 	struct cmd_interface_msg *request, uint8_t encrypted);
+
+int cerberus_protocol_get_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
+int cerberus_protocol_set_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request);
 
 
 #endif	/* CERBERUS_PROTOCOL_OPTIONAL_COMMANDS_H_ */

@@ -68,6 +68,10 @@ int manifest_cmd_handler_pcd_init (struct manifest_cmd_handler_pcd *handler,
  */
 int manifest_cmd_handler_pcd_init_state (const struct manifest_cmd_handler_pcd *handler)
 {
+	if (handler == NULL) {
+		return MANIFEST_MANAGER_INVALID_ARGUMENT;
+	}
+
 	return manifest_cmd_handler_init_state (&handler->base);
 }
 

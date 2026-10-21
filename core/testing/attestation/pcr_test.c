@@ -731,7 +731,7 @@ const uint8_t PCR_TESTING_SHA512_PCR_NONE_VALID_MEASUREMENT1[] = {
  * Dependencies for testing measurements and PCRs.
  */
 struct pcr_testing {
-	HASH_TESTING_ENGINE hash;				/**< Hash engine for testing measurements. */
+	HASH_TESTING_ENGINE (hash);				/**< Hash engine for testing measurements. */
 	struct hash_engine_mock hash_mock;		/**< Mock for hash operations. */
 	struct flash_mock flash;				/**< Mock for flash operations. */
 	struct pcr_bank test;					/**< PCR under test. */
@@ -853,7 +853,7 @@ static int pcr_testing_measurement_data_callback (void *context, size_t offset, 
  *
  * @return 0 if the hash was successful or an error code.
  */
-static int pcr_testing_measurement_hash_callback (void *context, struct hash_engine *hash)
+static int pcr_testing_measurement_hash_callback (void *context, const struct hash_engine *hash)
 {
 	if (context == NULL) {
 		return PCR_NO_MEMORY;

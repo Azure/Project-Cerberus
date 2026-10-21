@@ -191,7 +191,7 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 	const struct riot_core_common *core = (const struct riot_core_common*) riot;
 	uint8_t fwid_hmac[HASH_MAX_HASH_LEN];
 	uint8_t alias_kdf[ECC_MAX_KEY_LENGTH];
-	char common_name[BASE64_LENGTH (SHA512_HASH_LENGTH)];
+	char common_name[BASE64_LENGTH (HASH_MAX_HASH_LEN)];
 	int status;
 
 	if ((riot == NULL) || (fwid == NULL) || (length == 0)) {
@@ -247,9 +247,11 @@ int riot_core_common_generate_alias_key (const struct riot_core *riot, const uin
 		return status;
 	}
 
+#if (BASE64_LENGTH (HASH_MAX_HASH_LEN) > X509_MAX_COMMON_NAME)
 	if (strlen (common_name) > X509_MAX_COMMON_NAME) {
 		common_name[X509_MAX_COMMON_NAME] = '\0';
 	}
+#endif
 
 	status = core->x509->create_ca_signed_certificate (core->x509, &core->state->alias_cert,
 		core->state->alias_der, core->state->alias_length, alias_kdf, 8, common_name,
@@ -326,8 +328,8 @@ int riot_core_common_get_alias_key_cert (const struct riot_core *riot, uint8_t *
  * @return 0 if RIoT Core was been initialize successfully or an error code.
  */
 int riot_core_common_init (struct riot_core_common *riot, struct riot_core_common_state *state,
-	struct hash_engine *hash, struct ecc_engine *ecc, struct x509_engine *x509,
-	struct base64_engine *base64, size_t key_length,
+	const struct hash_engine *hash, const struct ecc_engine *ecc, const struct x509_engine *x509,
+	const struct base64_engine *base64, size_t key_length,
 	const struct x509_extension_builder *const *device_id_ext, size_t device_id_ext_count,
 	const struct x509_extension_builder *const *alias_ext, size_t alias_ext_count)
 {

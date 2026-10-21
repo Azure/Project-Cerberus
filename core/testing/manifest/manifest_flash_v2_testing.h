@@ -19,13 +19,14 @@
  * Dependencies for testing v2 manifests.
  */
 struct manifest_flash_v2_testing {
-	HASH_TESTING_ENGINE hash;							/**< Hashing engine for validation. */
+	HASH_TESTING_ENGINE (hash);							/**< Hashing engine for validation. */
 	struct hash_engine_mock hash_mock;					/**< Mock hashing engine for error testing. */
 	struct signature_verification_mock verification;	/**< PFM signature verification. */
 	struct flash_mock flash;							/**< Flash where the PFM is stored. */
 	uint32_t addr;										/**< Base address of the PFM. */
 	uint8_t signature[512];								/**< Buffer for the manifest signature. */
 	uint8_t platform_id[256];							/**< Cache for the platform ID. */
+	struct manifest_flash_state state;					/**< Common manifest state for testing. */
 	struct manifest_flash test;							/**< Manifest instance for common testing. */
 };
 
@@ -56,11 +57,13 @@ void manifest_flash_v2_testing_read_element_mocked_hash (CuTest *test,
 void manifest_flash_v2_testing_read_element_bad_entry (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-	uint32_t read_offset, struct manifest_toc_entry *element_entry, uint8_t *element_data);
+	uint32_t read_offset, const struct manifest_toc_entry *element_entry,
+	const uint8_t *element_data);
 void manifest_flash_v2_testing_read_element_mocked_hash_bad_entry (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,
 	int entry, int start, int hash_id, uint32_t offset, size_t length, size_t read_len,
-	uint32_t read_offset, struct manifest_toc_entry *element_entry, uint8_t *element_data);
+	uint32_t read_offset, const struct manifest_toc_entry *element_entry,
+	const uint8_t *element_data);
 
 void manifest_flash_v2_testing_iterate_manifest_toc (CuTest *test,
 	struct manifest_flash_v2_testing *manifest, const struct manifest_v2_testing_data *data,

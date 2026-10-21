@@ -39,6 +39,9 @@ enum hash_type {
 	HASH_TYPE_SHA256,	/**< SHA2-256 hash */
 	HASH_TYPE_SHA384,	/**< SHA2-384 hash */
 	HASH_TYPE_SHA512,	/**< SHA2-512 hash */
+	HASH_TYPE_SHA3_256,	/**< SHA3-256 hash */
+	HASH_TYPE_SHA3_384,	/**< SHA3-384 hash */
+	HASH_TYPE_SHA3_512,	/**< SHA3-512 hash */
 	HASH_TYPE_INVALID,	/**< Invalid hash type. */
 };
 
@@ -72,7 +75,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash calculated successfully or an error code.
 	 */
-	int (*calculate_sha1) (struct hash_engine *engine, const uint8_t *data, size_t length,
+	int (*calculate_sha1) (const struct hash_engine *engine, const uint8_t *data, size_t length,
 		uint8_t *hash, size_t hash_length);
 
 	/**
@@ -85,7 +88,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash engine was configured successfully or an error code.
 	 */
-	int (*start_sha1) (struct hash_engine *engine);
+	int (*start_sha1) (const struct hash_engine *engine);
 #endif
 
 	/**
@@ -100,7 +103,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash calculated successfully or an error code.
 	 */
-	int (*calculate_sha256) (struct hash_engine *engine, const uint8_t *data, size_t length,
+	int (*calculate_sha256) (const struct hash_engine *engine, const uint8_t *data, size_t length,
 		uint8_t *hash, size_t hash_length);
 
 	/**
@@ -113,7 +116,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash engine was configured successfully or an error code.
 	 */
-	int (*start_sha256) (struct hash_engine *engine);
+	int (*start_sha256) (const struct hash_engine *engine);
 
 #ifdef HASH_ENABLE_SHA384
 	/**
@@ -128,7 +131,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash calculated successfully or an error code.
 	 */
-	int (*calculate_sha384) (struct hash_engine *engine, const uint8_t *data, size_t length,
+	int (*calculate_sha384) (const struct hash_engine *engine, const uint8_t *data, size_t length,
 		uint8_t *hash, size_t hash_length);
 
 	/**
@@ -141,7 +144,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash engine was configured successfully or an error code.
 	 */
-	int (*start_sha384) (struct hash_engine *engine);
+	int (*start_sha384) (const struct hash_engine *engine);
 #endif
 
 #ifdef HASH_ENABLE_SHA512
@@ -157,7 +160,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash calculated successfully or an error code.
 	 */
-	int (*calculate_sha512) (struct hash_engine *engine, const uint8_t *data, size_t length,
+	int (*calculate_sha512) (const struct hash_engine *engine, const uint8_t *data, size_t length,
 		uint8_t *hash, size_t hash_length);
 
 	/**
@@ -170,8 +173,17 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash engine was configured successfully or an error code.
 	 */
-	int (*start_sha512) (struct hash_engine *engine);
+	int (*start_sha512) (const struct hash_engine *engine);
 #endif
+
+	/**
+	 * Determine the algorithm currently being used for hash calculation.
+	 *
+	 * @param engine The hash engine to query.
+	 *
+	 * @return The active hash algorithm or HASH_TYPE_INVALID if there no hash currently active.
+	 */
+	enum hash_type (*get_active_algorithm) (const struct hash_engine *engine);
 
 	/**
 	 * Update the current hash operation with a block of data.
@@ -182,7 +194,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash operation was updated successfully or an error code.
 	 */
-	int (*update) (struct hash_engine *engine, const uint8_t *data, size_t length);
+	int (*update) (const struct hash_engine *engine, const uint8_t *data, size_t length);
 
 	/**
 	 * Get the current hash.
@@ -196,7 +208,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash was retrieved successfully or an error code.
 	 */
-	int (*get_hash) (struct hash_engine *engine, uint8_t *hash, size_t hash_length);
+	int (*get_hash) (const struct hash_engine *engine, uint8_t *hash, size_t hash_length);
 
 	/**
 	 * Complete the current hash operation and get the calculated digest.
@@ -210,7 +222,7 @@ struct hash_engine {
 	 *
 	 * @return 0 if the hash was completed successfully or an error code.
 	 */
-	int (*finish) (struct hash_engine *engine, uint8_t *hash, size_t hash_length);
+	int (*finish) (const struct hash_engine *engine, uint8_t *hash, size_t hash_length);
 
 	/**
 	 * Cancel an in-progress hash operation without getting the hash values.  After canceling, any
@@ -218,19 +230,25 @@ struct hash_engine {
 	 *
 	 * @param engine The hash engine to cancel.
 	 */
-	void (*cancel) (struct hash_engine *engine);
+	void (*cancel) (const struct hash_engine *engine);
 };
 
 
-int hash_start_new_hash (struct hash_engine *engine, enum hash_type type);
+int hash_start_new_hash (const struct hash_engine *engine, enum hash_type type);
 
-int hash_calculate (struct hash_engine *engine, enum hash_type type, const uint8_t *data,
+int hash_calculate (const struct hash_engine *engine, enum hash_type type, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length);
 
+enum hash_type hash_get_type_from_length (size_t hash_length);
+enum hash_type hash_get_type_from_active (uint8_t active);
+
+
 int hash_get_hash_length (enum hash_type hash_type);
+size_t hash_get_active_hash_length (const struct hash_engine *hash);
 int hash_get_block_size (enum hash_type hash_type);
 
 bool hash_is_alg_supported (enum hash_type type);
+int hash_check_algorithm_is_supported (enum hash_type type);
 
 
 /* HMAC functions */
@@ -250,7 +268,7 @@ enum hmac_hash {
  * A context for generating an HMAC using partial sets of data.
  */
 struct hmac_engine {
-	struct hash_engine *hash;		/**< The hash engine to use when generating the HMAC. */
+	const struct hash_engine *hash;	/**< The hash engine to use when generating the HMAC. */
 	enum hmac_hash type;			/**< The type of hash being used for the HMAC. */
 	uint8_t key[SHA512_BLOCK_SIZE];	/**< The key for the HMAC operation. */
 	size_t block_size;				/**< The block size for the hash algorithm. */
@@ -258,11 +276,11 @@ struct hmac_engine {
 };
 
 
-int hash_generate_hmac (struct hash_engine *engine, const uint8_t *key, size_t key_length,
+int hash_generate_hmac (const struct hash_engine *engine, const uint8_t *key, size_t key_length,
 	const uint8_t *data, size_t length, enum hmac_hash hash, uint8_t *hmac, size_t hmac_length);
 
-int hash_hmac_init (struct hmac_engine *engine, struct hash_engine *hash, enum hmac_hash hash_type,
-	const uint8_t *key, size_t key_length);
+int hash_hmac_init (struct hmac_engine *engine, const struct hash_engine *hash,
+	enum hmac_hash hash_type, const uint8_t *key, size_t key_length);
 int hash_hmac_update (struct hmac_engine *engine, const uint8_t *data, size_t length);
 int hash_hmac_finish (struct hmac_engine *engine, uint8_t *hmac, size_t hmac_length);
 void hash_hmac_cancel (struct hmac_engine *engine);

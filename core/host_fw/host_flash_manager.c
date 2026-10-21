@@ -24,7 +24,7 @@
  *
  * @return 0 if the entry information was successfully queried or an error code.
  */
-int host_flash_manager_get_image_entry (struct pfm *pfm, const struct spi_flash *flash,
+int host_flash_manager_get_image_entry (const struct pfm *pfm, const struct spi_flash *flash,
 	uint32_t offset, const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version, struct pfm_image_list *fw_images,
 	struct pfm_read_write_regions *writable)
@@ -36,7 +36,7 @@ int host_flash_manager_get_image_entry (struct pfm *pfm, const struct spi_flash 
 		return status;
 	}
 
-	status = host_fw_determine_offset_version (flash, offset, versions, version);
+	status = host_fw_determine_offset_version (&flash->base, offset, versions, version);
 	if (status != 0) {
 		goto free_versions;
 	}
@@ -73,7 +73,7 @@ free_versions:
  *
  * @return 0 if the operation was successful or an error code.
  */
-int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware *host_fw,
+int host_flash_manager_get_firmware_types (const struct pfm *pfm, struct pfm_firmware *host_fw,
 	struct host_flash_manager_images *host_img, struct host_flash_manager_rw_regions *host_rw)
 {
 	int status;
@@ -105,14 +105,17 @@ int host_flash_manager_get_firmware_types (struct pfm *pfm, struct pfm_firmware 
 	return 0;
 
 free_img:
-	platform_free (host_img->fw_images);
+	if (host_img) {
+		platform_free (host_img->fw_images);
+	}
+
 free_firmware:
 	pfm->free_firmware (pfm, host_fw);
 
 	return HOST_FLASH_MGR_NO_MEMORY;
 }
 
-void host_flash_manager_free_read_write_regions (struct host_flash_manager *manager,
+void host_flash_manager_free_read_write_regions (const struct host_flash_manager *manager,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	size_t i;
@@ -163,8 +166,8 @@ void host_flash_manager_free_images (struct host_flash_manager_images *host_img)
  *
  * @return 0 if the validation was successful or an error code.
  */
-int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
+int host_flash_manager_validate_flash (const struct pfm *pfm, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	return host_flash_manager_validate_offset_flash (pfm, hash, rsa, full_validation, flash, 0,
@@ -186,9 +189,9 @@ int host_flash_manager_validate_flash (struct pfm *pfm, struct hash_engine *hash
  *
  * @return 0 if the validation was successful or an error code.
  */
-int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engine *hash,
-	struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash, uint32_t offset,
-	struct host_flash_manager_rw_regions *host_rw)
+int host_flash_manager_validate_offset_flash (const struct pfm *pfm, const struct hash_engine *hash,
+	const struct rsa_engine *rsa, bool full_validation, const struct spi_flash *flash,
+	uint32_t offset, struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
 	struct pfm_firmware_versions versions;
@@ -218,11 +221,11 @@ int host_flash_manager_validate_offset_flash (struct pfm *pfm, struct hash_engin
 	}
 
 	if (full_validation) {
-		status = host_fw_full_flash_verification_multiple_fw (flash, host_img.fw_images,
+		status = host_fw_full_flash_verification_multiple_fw (&flash->base, host_img.fw_images,
 			host_rw->writable, host_fw.count, version->blank_byte, hash, rsa);
 	}
 	else {
-		status = host_fw_verify_offset_images_multiple_fw (flash, host_img.fw_images,
+		status = host_fw_verify_offset_images_multiple_fw (&flash->base, host_img.fw_images,
 			host_img.count, offset, hash, rsa);
 	}
 
@@ -251,8 +254,8 @@ free_host:
  *
  * @return 0 if the validation was successful or an error code.
  */
-int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
-	struct hash_engine *hash, struct rsa_engine *rsa, const struct spi_flash *flash,
+int host_flash_manager_validate_pfm (const struct pfm *pfm, const struct pfm *good_pfm,
+	const struct hash_engine *hash, const struct rsa_engine *rsa, const struct spi_flash *flash,
 	struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
@@ -296,8 +299,8 @@ int host_flash_manager_validate_pfm (struct pfm *pfm, struct pfm *good_pfm,
 	}
 
 	if (match_status != 0) {
-		status = host_fw_verify_images_multiple_fw (flash, host_img.fw_images, host_img.count, hash,
-			rsa);
+		status = host_fw_verify_images_multiple_fw (&flash->base, host_img.fw_images,
+			host_img.count, hash, rsa);
 	}
 
 free_host:
@@ -322,8 +325,8 @@ free_host:
  *
  * @return 0 if a match was found in the PFM or an error code.
  */
-static int host_flash_manager_find_flash_version (const struct spi_flash *flash, struct pfm *pfm,
-	const char *fw_id, struct pfm_firmware_versions *versions,
+static int host_flash_manager_find_flash_version (const struct spi_flash *flash,
+	const struct pfm *pfm, const char *fw_id, struct pfm_firmware_versions *versions,
 	const struct pfm_firmware_version **version)
 {
 	int status;
@@ -333,7 +336,7 @@ static int host_flash_manager_find_flash_version (const struct spi_flash *flash,
 		return status;
 	}
 
-	status = host_fw_determine_version (flash, versions, version);
+	status = host_fw_determine_version (&flash->base, versions, version);
 	if (status != 0) {
 		pfm->free_fw_versions (pfm, versions);
 	}
@@ -350,8 +353,8 @@ static int host_flash_manager_find_flash_version (const struct spi_flash *flash,
  *
  * @return 0 if the regions were successfully determined or an error code.
  */
-int host_flash_manager_get_flash_read_write_regions (const struct spi_flash *flash, struct pfm *pfm,
-	struct host_flash_manager_rw_regions *host_rw)
+int host_flash_manager_get_flash_read_write_regions (const struct spi_flash *flash,
+	const struct pfm *pfm, struct host_flash_manager_rw_regions *host_rw)
 {
 	struct pfm_firmware host_fw;
 	struct pfm_firmware_versions versions;
@@ -643,7 +646,7 @@ int host_flash_manager_configure_flash_for_rot_access (const struct spi_flash *f
  */
 int host_flash_manager_set_flash_for_rot_access (const struct host_control *control,
 	const struct spi_filter_interface *filter, const struct spi_flash *cs0,
-	const struct spi_flash *cs1, struct host_flash_initialization *flash_init)
+	const struct spi_flash *cs1, const struct host_flash_initialization *flash_init)
 {
 	const struct spi_flash *flash;
 	int i;
@@ -731,4 +734,28 @@ int host_flash_manager_host_has_flash_access (const struct host_control *control
 	}
 
 	return 1;
+}
+
+/**
+ * Reset the host flash devices.
+ *
+ * @param cs0 Flash device connected to CS0.
+ * @param cs1 Flash device connected to CS1.  Null if there is only a single flash device.
+ *
+ * @return 0 if both devices were reset successfully or an error code.
+ */
+int host_flash_manager_reset_flash (const struct spi_flash *cs0, const struct spi_flash *cs1)
+{
+	int status;
+
+	status = spi_flash_reset_device (cs0);
+	if (status != 0) {
+		return status;
+	}
+
+	if (cs1 != NULL) {
+		status = spi_flash_reset_device (cs1);
+	}
+
+	return status;
 }

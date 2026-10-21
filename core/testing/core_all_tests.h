@@ -6,11 +6,13 @@
 
 #include "testing.h"
 #include "platform_all_tests.h"
+#include "acvp/acvp_all_tests.h"
 #include "asn1/asn1_all_tests.h"
 #include "attestation/attestation_all_tests.h"
 #include "cmd_interface/cmd_interface_all_tests.h"
 #include "common/common_all_tests.h"
 #include "crypto/crypto_all_tests.h"
+#include "fips/fips_all_tests.h"
 #include "firmware/firmware_all_tests.h"
 #include "flash/flash_all_tests.h"
 #include "host_fw/host_fw_all_tests.h"
@@ -20,6 +22,7 @@
 #include "manifest/manifest_all_tests.h"
 #include "mctp/mctp_all_tests.h"
 #include "memory_mgmt/memory_mgmt_all_tests.h"
+#include "mmio/mmio_all_tests.h"
 #include "pcisig/pcisig_all_tests.h"
 #include "recovery/recovery_all_tests.h"
 #include "riot/riot_all_tests.h"
@@ -40,11 +43,13 @@
  */
 void add_all_core_tests (CuSuite *suite)
 {
+	add_all_acvp_tests (suite);
 	add_all_asn1_tests (suite);
 	add_all_attestation_tests (suite);
 	add_all_cmd_interface_tests (suite);
 	add_all_common_tests (suite);
 	add_all_crypto_tests (suite);
+	add_all_fips_tests (suite);
 	add_all_firmware_tests (suite);
 	add_all_flash_tests (suite);
 	add_all_host_fw_tests (suite);
@@ -54,6 +59,7 @@ void add_all_core_tests (CuSuite *suite)
 	add_all_manifest_tests (suite);
 	add_all_mctp_tests (suite);
 	add_all_memory_mgmt_tests (suite);
+	add_all_mmio_tests (suite);
 	add_all_pcisig_tests (suite);
 	add_all_recovery_tests (suite);
 	add_all_riot_tests (suite);

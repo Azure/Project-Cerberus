@@ -16,6 +16,11 @@
 
 TEST_SUITE_LABEL ("cmd_interface_rma");
 
+static const uint16_t cmd_interface_rma_testing_vendor_id = 0x1234;
+static const uint16_t cmd_interface_rma_testing_device_id = 0x5678;
+static const uint16_t cmd_interface_rma_testing_subsystem_vid = 0x9abc;
+static const uint16_t cmd_interface_rma_testing_subsystem_id = 0xdef0;
+
 
 /**
  * Dependencies for testing the slave command interface.
@@ -74,7 +79,9 @@ static void cmd_interface_rma_testing_init (CuTest *test, struct cmd_interface_r
 
 	cmd_interface_rma_testing_init_dependencies (test, cmd);
 
-	status = cmd_interface_rma_init (&cmd->handler, &cmd->device_manager);
+	status = cmd_interface_rma_init (&cmd->handler, &cmd->device_manager,
+		cmd_interface_rma_testing_vendor_id, cmd_interface_rma_testing_device_id,
+		cmd_interface_rma_testing_subsystem_vid, cmd_interface_rma_testing_subsystem_id);
 	CuAssertIntEquals (test, 0, status);
 }
 
@@ -104,11 +111,12 @@ static void cmd_interface_rma_test_init (CuTest *test)
 
 	cmd_interface_rma_testing_init_dependencies (test, &cmd);
 
-	status = cmd_interface_rma_init (&cmd.handler, &cmd.device_manager);
+	status = cmd_interface_rma_init (&cmd.handler, &cmd.device_manager,
+		cmd_interface_rma_testing_vendor_id, cmd_interface_rma_testing_device_id,
+		cmd_interface_rma_testing_subsystem_vid, cmd_interface_rma_testing_subsystem_id);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
-	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
 
 	cmd_interface_rma_testing_release (test, &cmd);
 }
@@ -122,10 +130,14 @@ static void cmd_interface_rma_test_init_null (CuTest *test)
 
 	cmd_interface_rma_testing_init_dependencies (test, &cmd);
 
-	status = cmd_interface_rma_init (NULL, &cmd.device_manager);
+	status = cmd_interface_rma_init (NULL, &cmd.device_manager, cmd_interface_rma_testing_vendor_id,
+		cmd_interface_rma_testing_device_id, cmd_interface_rma_testing_subsystem_vid,
+		cmd_interface_rma_testing_subsystem_id);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
-	status = cmd_interface_rma_init (&cmd.handler, NULL);
+	status = cmd_interface_rma_init (&cmd.handler, NULL, cmd_interface_rma_testing_vendor_id,
+		cmd_interface_rma_testing_device_id, cmd_interface_rma_testing_subsystem_vid,
+		cmd_interface_rma_testing_subsystem_id);
 	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
 
 	cmd_interface_rma_testing_release_dependencies (test, &cmd);
@@ -134,13 +146,14 @@ static void cmd_interface_rma_test_init_null (CuTest *test)
 static void cmd_interface_rma_test_static_init (CuTest *test)
 {
 	struct cmd_interface_rma_testing cmd = {
-		.handler = cmd_interface_rma_static_init (&cmd.device_manager)
+		.handler = cmd_interface_rma_static_init (&cmd.device_manager,
+			cmd_interface_rma_testing_vendor_id, cmd_interface_rma_testing_device_id,
+			cmd_interface_rma_testing_subsystem_vid, cmd_interface_rma_testing_subsystem_id)
 	};
 
 	TEST_START;
 
 	CuAssertPtrNotNull (test, cmd.handler.base.process_request);
-	CuAssertPtrNotNull (test, cmd.handler.base.process_response);
 
 	cmd_interface_rma_testing_init_dependencies (test, &cmd);
 
@@ -171,7 +184,9 @@ static void cmd_interface_rma_test_process_get_capabilities (CuTest *test)
 static void cmd_interface_rma_test_process_get_capabilities_static_init (CuTest *test)
 {
 	struct cmd_interface_rma_testing cmd = {
-		.handler = cmd_interface_rma_static_init (&cmd.device_manager)
+		.handler = cmd_interface_rma_static_init (&cmd.device_manager,
+			cmd_interface_rma_testing_vendor_id, cmd_interface_rma_testing_device_id,
+			cmd_interface_rma_testing_subsystem_vid, cmd_interface_rma_testing_subsystem_id)
 	};
 
 	TEST_START;
@@ -193,6 +208,54 @@ static void cmd_interface_rma_test_process_get_capabilities_error (CuTest *test)
 	cmd_interface_rma_testing_init (test, &cmd);
 
 	cerberus_protocol_required_commands_testing_process_get_capabilities_invalid_len (test,
+		&cmd.handler.base);
+
+	cmd_interface_rma_testing_release (test, &cmd);
+}
+
+static void cmd_interface_rma_test_process_get_device_id (CuTest *test)
+{
+	struct cmd_interface_rma_testing cmd;
+
+	TEST_START;
+
+	cmd_interface_rma_testing_init (test, &cmd);
+
+	cerberus_protocol_required_commands_testing_process_get_device_id (test, &cmd.handler.base,
+		cmd_interface_rma_testing_vendor_id, cmd_interface_rma_testing_device_id,
+		cmd_interface_rma_testing_subsystem_vid, cmd_interface_rma_testing_subsystem_id);
+
+	cmd_interface_rma_testing_release (test, &cmd);
+}
+
+static void cmd_interface_rma_test_process_get_device_id_static_init (CuTest *test)
+{
+	struct cmd_interface_rma_testing cmd = {
+		.handler = cmd_interface_rma_static_init (&cmd.device_manager,
+			cmd_interface_rma_testing_vendor_id, cmd_interface_rma_testing_device_id,
+			cmd_interface_rma_testing_subsystem_vid, cmd_interface_rma_testing_subsystem_id)
+	};
+
+	TEST_START;
+
+	cmd_interface_rma_testing_init_dependencies (test, &cmd);
+
+	cerberus_protocol_required_commands_testing_process_get_device_id (test, &cmd.handler.base,
+		cmd_interface_rma_testing_vendor_id, cmd_interface_rma_testing_device_id,
+		cmd_interface_rma_testing_subsystem_vid, cmd_interface_rma_testing_subsystem_id);
+
+	cmd_interface_rma_testing_release (test, &cmd);
+}
+
+static void cmd_interface_rma_test_process_get_device_id_error (CuTest *test)
+{
+	struct cmd_interface_rma_testing cmd;
+
+	TEST_START;
+
+	cmd_interface_rma_testing_init (test, &cmd);
+
+	cerberus_protocol_required_commands_testing_process_get_device_id_invalid_len (test,
 		&cmd.handler.base);
 
 	cmd_interface_rma_testing_release (test, &cmd);
@@ -363,59 +426,6 @@ static void cmd_interface_rma_test_process_unknown_command (CuTest *test)
 	cmd_interface_rma_testing_release (test, &cmd);
 }
 
-static void cmd_interface_rma_test_process_response (CuTest *test)
-{
-	struct cmd_interface_rma_testing cmd;
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	cmd_interface_rma_testing_init (test, &cmd);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_rma_testing_release (test, &cmd);
-}
-
-static void cmd_interface_rma_test_process_response_static_init (CuTest *test)
-{
-	struct cmd_interface_rma_testing cmd = {
-		.handler = cmd_interface_rma_static_init (&cmd.device_manager)
-	};
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	cmd_interface_rma_testing_init_dependencies (test, &cmd);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_UNSUPPORTED_OPERATION, status);
-
-	cmd_interface_rma_testing_release (test, &cmd);
-}
-
-static void cmd_interface_rma_test_process_response_null (CuTest *test)
-{
-	struct cmd_interface_rma_testing cmd;
-	struct cmd_interface_msg response;
-	int status;
-
-	TEST_START;
-
-	cmd_interface_rma_testing_init (test, &cmd);
-
-	status = cmd.handler.base.process_response (NULL, &response);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	status = cmd.handler.base.process_response (&cmd.handler.base, NULL);
-	CuAssertIntEquals (test, CMD_HANDLER_INVALID_ARGUMENT, status);
-
-	cmd_interface_rma_testing_release (test, &cmd);
-}
-
 
 // *INDENT-OFF*
 TEST_SUITE_START (cmd_interface_rma);
@@ -427,14 +437,14 @@ TEST (cmd_interface_rma_test_release_null);
 TEST (cmd_interface_rma_test_process_get_capabilities);
 TEST (cmd_interface_rma_test_process_get_capabilities_static_init);
 TEST (cmd_interface_rma_test_process_get_capabilities_error);
+TEST (cmd_interface_rma_test_process_get_device_id);
+TEST (cmd_interface_rma_test_process_get_device_id_static_init);
+TEST (cmd_interface_rma_test_process_get_device_id_error);
 TEST (cmd_interface_rma_test_process_null);
 TEST (cmd_interface_rma_test_process_payload_too_short);
 TEST (cmd_interface_rma_test_process_unsupported_message);
 TEST (cmd_interface_rma_test_process_reserved_fields_not_zero);
 TEST (cmd_interface_rma_test_process_unknown_command);
-TEST (cmd_interface_rma_test_process_response);
-TEST (cmd_interface_rma_test_process_response_static_init);
-TEST (cmd_interface_rma_test_process_response_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

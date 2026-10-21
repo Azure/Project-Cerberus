@@ -8,18 +8,20 @@
 #include "cerberus_protocol.h"
 #include "cerberus_protocol_required_commands.h"
 #include "cmd_interface_ac_rot.h"
+#include "common/type_cast.h"
 #include "common/unused.h"
 
 
 int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 	struct cmd_interface_msg *request)
 {
-	const struct cmd_interface_ac_rot *ac_rot = (const struct cmd_interface_ac_rot*) intf;
+	const struct cmd_interface_ac_rot *ac_rot =
+		TO_DERIVED_TYPE (intf, struct cmd_interface_ac_rot, base);
 	uint8_t command_id;
 	uint8_t command_set;
 	int status;
 
-	status = cmd_interface_process_cerberus_protocol_message (&ac_rot->base, request, &command_id,
+	status = cmd_interface_process_cerberus_protocol_message (intf, request, &command_id,
 		&command_set, true, true);
 	if (status != 0) {
 		return status;
@@ -96,14 +98,6 @@ int cmd_interface_ac_rot_process_request (const struct cmd_interface *intf,
 	return status;
 }
 
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
-	struct cmd_interface_msg *response)
-{
-	return CMD_HANDLER_UNSUPPORTED_OPERATION;
-}
-#endif
-
 /**
  * Initialize a minimal AC-RoT command handler.
  *
@@ -125,7 +119,7 @@ int cmd_interface_ac_rot_process_response (const struct cmd_interface *intf,
 int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	struct attestation_responder *attestation, struct device_manager *device_manager,
 	const struct cmd_background *background, const struct cmd_interface_fw_version *fw_version,
-	struct riot_key_manager *riot, const struct cmd_device *cmd_device, uint16_t vendor_id,
+	const struct riot_key_manager *riot, const struct cmd_device *cmd_device, uint16_t vendor_id,
 	uint16_t device_id, uint16_t subsystem_vid, uint16_t subsystem_id,
 	struct session_manager *session)
 {
@@ -149,12 +143,11 @@ int cmd_interface_ac_rot_init (struct cmd_interface_ac_rot *intf,
 	intf->device_id.subsystem_id = subsystem_id;
 
 	intf->base.process_request = cmd_interface_ac_rot_process_request;
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	intf->base.process_response = cmd_interface_ac_rot_process_response;
-#endif
 
 #ifdef CMD_SUPPORT_ENCRYPTED_SESSIONS
 	intf->base.session = session;
+#else
+	UNUSED (session);
 #endif
 
 	return 0;

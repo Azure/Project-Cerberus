@@ -34,9 +34,10 @@ int config_reset_init (struct config_reset *reset,
 	const struct manifest_manager *const *bypass_config, size_t bypass_count,
 	const struct manifest_manager *const *platform_config, size_t platform_count,
 	const struct manifest_manager *const *component_manifests, size_t component_manifests_count,
-	struct state_manager *const *state, size_t state_count, struct riot_key_manager *riot,
-	struct aux_attestation *aux, struct recovery_image_manager *recovery,
-	const struct keystore *const *keystores, size_t keystore_count)
+	const struct state_manager *const *state, size_t state_count,
+	const struct riot_key_manager *riot, struct aux_attestation *aux,
+	struct recovery_image_manager *recovery, const struct keystore *const *keystores,
+	size_t keystore_count)
 {
 	if ((reset == NULL) || (bypass_count && (bypass_config == NULL)) ||
 		(platform_count && (platform_config == NULL)) || (state_count && (state == NULL)) ||
@@ -184,9 +185,9 @@ int config_reset_restore_defaults (const struct config_reset *reset)
 /**
  * Erase all managed configuration for platform-specific properties.
  *
- * @param reset The configuration that should be reset.
+ * @param reset The configuration that should be erased.
  *
- * @return 0 if defaults were restored or an error code.
+ * @return 0 if the configuration was erased or an error code.
  */
 int config_reset_restore_platform_config (const struct config_reset *reset)
 {
@@ -214,9 +215,9 @@ int config_reset_restore_platform_config (const struct config_reset *reset)
 /**
  * Erase all component manifests.
  *
- * @param reset The configuration that should be reset.
+ * @param reset The configuration that should be erased.
  *
- * @return 0 if defaults were restored or an error code.
+ * @return 0 if the configuration was erased or an error code.
  */
 int config_reset_clear_component_manifests (const struct config_reset *reset)
 {
@@ -240,4 +241,24 @@ int config_reset_clear_component_manifests (const struct config_reset *reset)
 	}
 
 	return 0;
+}
+
+/**
+ * Erase any provisioned DICE identity certificates.
+ *
+ * @param reset The configuration that should be erased.
+ *
+ * @return 0 if the certificates were erased or an error code.
+ */
+int config_reset_clear_provisioned_certificates (const struct config_reset *reset)
+{
+	if (reset == NULL) {
+		return CONFIG_RESET_INVALID_ARGUMENT;
+	}
+
+	if (!reset->riot) {
+		return CONFIG_RESET_NO_CERTS;
+	}
+
+	return riot_key_manager_erase_all_certificates (reset->riot);
 }

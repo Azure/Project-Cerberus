@@ -1309,7 +1309,7 @@ static void logging_memory_test_create_entry_append_existing_full_log_start_in_m
 	}
 
 	/* Put the first entry as the 5th entry, and wrap the last four entries to the beginning. */
-	memcpy (&buffer[entry_len * 5], entry_data, entry_full - (entry_len * 4));
+	memcpy (&buffer[entry_len * 5], entry_data, entry_len * (entry_count - 5));
 	memcpy (buffer, &entry_data[entry_len * (entry_count - 5)], entry_len * 4);
 
 	/* Beginning of the buffer has the last entry. */
@@ -1389,8 +1389,8 @@ static void logging_memory_test_create_entry_append_existing_full_log_start_in_m
 		}
 	}
 
-	/* Put the first entry as the 5th entry, and wrap the last four entries to the beginning. */
-	memcpy (&buffer[entry_len * 11], entry_data, entry_full - (entry_len * 10));
+	/* Put the first entry as the 11th entry, and wrap the last 10 entries to the beginning. */
+	memcpy (&buffer[entry_len * 11], entry_data, entry_len * (entry_count - 11));
 	memcpy (buffer, &entry_data[entry_len * (entry_count - 11)], entry_len * 10);
 
 	/* Beginning of the buffer has the last entry. */

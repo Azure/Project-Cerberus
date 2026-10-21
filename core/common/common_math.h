@@ -16,16 +16,18 @@
 #define	min(a, b)	(((a) < (b)) ? (a) : (b))
 
 /**
- * Reverse the byte order for a 32-bit integer.
+ * @deprecated Reverse the byte order for a 16-bit integer.
  */
-#define	SWAP_BYTES_UINT32(x)    \
-	((((x) >> 24) & 0xff) | (((x) >> 8) & 0xff00) | (((x) & 0xff00) << 8) | (((x) & 0xff) << 24))
+#define	SWAP_BYTES_UINT16(x)	common_math_swap_bytes_uint16 (x)
 
 /**
- * Reverse the byte order for a 16-bit integer.
+ * @deprecated Reverse the byte order for a 32-bit integer.
  */
-#define	SWAP_BYTES_UINT16(x)	((((x) >> 8) & 0xff) | (((x) & 0xff) << 8))
+#define	SWAP_BYTES_UINT32(x)    common_math_swap_bytes_uint32 (x)
 
+uint16_t common_math_swap_bytes_uint16 (uint16_t data);
+uint32_t common_math_swap_bytes_uint32 (uint32_t data);
+uint64_t common_math_swap_bytes_uint64 (uint64_t data);
 
 int common_math_get_num_bits_set (uint8_t byte);
 int common_math_get_num_bits_set_before_index (uint8_t byte, uint8_t index);
@@ -34,7 +36,11 @@ int common_math_get_num_bits_set_in_array (const uint8_t *bytes, size_t length);
 int common_math_get_num_contiguous_bits_set (uint8_t byte);
 int common_math_get_num_contiguous_bits_set_in_array (const uint8_t *bytes, size_t length);
 
-int common_math_increment_byte_array (uint8_t *buf, size_t length, bool allow_rollover);
+int common_math_increment_byte_array (uint8_t *bytes, size_t length, bool allow_rollover);
+int common_math_decrement_byte_array (uint8_t *bytes, size_t length, bool allow_rollover);
+
+int common_math_compare_array (const uint8_t *bytes1, size_t length1, const uint8_t *bytes2,
+	size_t length2);
 bool common_math_is_array_zero (const uint8_t *bytes, size_t length);
 
 int common_math_is_bit_set_in_array (const uint8_t *bytes, size_t length, size_t bit);
@@ -44,6 +50,13 @@ int common_math_clear_bit_in_array (uint8_t *bytes, size_t length, size_t bit);
 int common_math_set_next_bit_in_array (uint8_t *bytes, size_t length);
 int common_math_set_next_bit_in_array_even_count (uint8_t *bytes, size_t length);
 int common_math_set_next_bit_in_array_odd_count (uint8_t *bytes, size_t length);
+
+void common_math_right_shift_array (uint8_t *bytes, size_t length, size_t shift_bits);
+void common_math_left_shift_array (uint8_t *bytes, size_t length, size_t shift_bits);
+
+uint8_t common_math_saturating_increment_u8 (uint8_t value);
+uint16_t common_math_saturating_increment_u16 (uint16_t value);
+uint32_t common_math_saturating_increment_u32 (uint32_t value);
 
 
 #define	COMMON_MATH_ERROR(code)				ROT_ERROR (ROT_MODULE_COMMON_MATH, code)

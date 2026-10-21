@@ -25,15 +25,15 @@ struct signature_verification_ecc_state {
 struct signature_verification_ecc {
 	struct signature_verification base;				/**< Base verification instance. */
 	struct signature_verification_ecc_state *state;	/**< Variable context for verification. */
-	struct ecc_engine *ecc;							/**< ECC engine to use for verification. */
+	const struct ecc_engine *ecc;					/**< ECC engine to use for verification. */
 };
 
 
 int signature_verification_ecc_init (struct signature_verification_ecc *verification,
-	struct signature_verification_ecc_state *state, struct ecc_engine *ecc, const uint8_t *key,
-	size_t length);
+	struct signature_verification_ecc_state *state, const struct ecc_engine *ecc,
+	const uint8_t *key,	size_t length);
 int signature_verification_ecc_init_api (struct signature_verification_ecc *verification,
-	struct signature_verification_ecc_state *state, struct ecc_engine *ecc);
+	struct signature_verification_ecc_state *state, const struct ecc_engine *ecc);
 int signature_verification_ecc_init_state (const struct signature_verification_ecc *verification,
 	const uint8_t *key, size_t length);
 void signature_verification_ecc_release (const struct signature_verification_ecc *verification);

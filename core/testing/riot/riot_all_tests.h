@@ -21,18 +21,6 @@ static void add_all_riot_tests (CuSuite *suite)
 	/* This is unused when no tests will be executed. */
 	UNUSED (suite);
 
-#if (defined TESTING_RUN_ECC_RIOT_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_ECC_RIOT_SUITE
-	TESTING_RUN_SUITE (ecc_riot);
-#endif
-#if (defined TESTING_RUN_HASH_RIOT_SUITE || \
-		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
-		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
-	!defined TESTING_SKIP_HASH_RIOT_SUITE
-	TESTING_RUN_SUITE (hash_riot);
-#endif
 #if (defined TESTING_RUN_RIOT_CORE_COMMON_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \

@@ -18,6 +18,7 @@ enum {
 	I2C_SLAVE_INVALID_ARGUMENT = I2C_SLAVE_ERROR (0x00),	/**< Input parameter is null or not valid. */
 	I2C_SLAVE_NO_MEMORY = I2C_SLAVE_ERROR (0x01),			/**< Memory allocation failed. */
 	I2C_SLAVE_HW_ERROR = I2C_SLAVE_ERROR (0x02),			/**< A generic HW error occurred. */
+	I2C_SLAVE_RX_QUEUE_FULL = I2C_SLAVE_ERROR (0x03),		/**< I2C slave RX queue is full. */
 };
 
 

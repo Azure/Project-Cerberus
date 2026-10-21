@@ -40,9 +40,10 @@ int image_header_load_data (struct image_header *header, const struct flash *fla
 int image_header_get_length (const struct image_header *header);
 int image_header_get_format (const struct image_header *header);
 
-int image_header_hash_header (const struct image_header *header, struct hash_engine *hash,
+int image_header_hash_header (const struct image_header *header, const struct hash_engine *hash,
 	enum hash_type type, uint8_t *digest, size_t length);
-int image_header_hash_update_header (const struct image_header *header, struct hash_engine *hash);
+int image_header_hash_update_header (const struct image_header *header,
+	const struct hash_engine *hash);
 
 
 #define	IMAGE_HEADER_ERROR(code)		ROT_ERROR (ROT_MODULE_IMAGE_HEADER, code)

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "manifest_logging.h"
 #include "manifest_verification.h"
+#include "common/buffer_util.h"
 #include "common/type_cast.h"
 #include "common/unused.h"
 
@@ -52,9 +53,33 @@ int manifest_verification_verify_signature (const struct signature_verification 
 	}
 
 exit:
+	manifest->manifest_verify->set_verification_key (manifest->manifest_verify, NULL, 0);
 	platform_mutex_unlock (&manifest->state->lock);
 
 	return status;
+}
+
+int manifest_verification_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length)
+{
+	const struct manifest_verification *manifest =
+		(const struct manifest_verification*) verification;
+	int status;
+
+	if ((verification == NULL) || (max_length == NULL)) {
+		return MANIFEST_VERIFICATION_INVALID_ARGUMENT;
+	}
+
+	/* Make sure there is no active key to ensure the maximum signature length is returned.  Keys
+	 * are set during verification, so no assumption is made about the presence of a key in the
+	 * verification context. */
+	status = manifest->manifest_verify->set_verification_key (manifest->manifest_verify, NULL, 0);
+	if (status != 0) {
+		return status;
+	}
+
+	return manifest->manifest_verify->get_max_signature_length (manifest->manifest_verify,
+		max_length);
 }
 
 int manifest_verification_set_verification_key (const struct signature_verification *verification,
@@ -78,15 +103,15 @@ int manifest_verification_is_key_valid (const struct signature_verification *ver
 }
 
 void manifest_verification_on_manifest_activated (const struct pfm_observer *observer,
-	struct manifest *active)
+	const struct manifest *active)
 {
 	const struct manifest_verification *manifest =
 		TO_DERIVED_TYPE (observer, const struct manifest_verification, base_observer);
-	uint8_t digest[SHA512_HASH_LENGTH];
+	uint8_t digest[HASH_MAX_HASH_LEN] = {0};
 	int digest_length;
-	uint8_t signature[RSA_MAX_KEY_LENGTH];	// Using RSA should support all known signature lengths.
+	uint8_t signature[RSA_MAX_KEY_LENGTH] = {0};	// Using RSA should support all known signature lengths.
 	int sig_length;
-	int status;
+	int status = 0;
 
 	/* Whenever a new manifest is activated, check to see if the stored key should be revoked in
 	 * favor of the default manifest key.  Execute the revocation, if appropriate.
@@ -99,23 +124,24 @@ void manifest_verification_on_manifest_activated (const struct pfm_observer *obs
 		digest_length = active->get_hash (active, manifest->hash, digest, sizeof (digest));
 		if (ROT_IS_ERROR (digest_length)) {
 			status = digest_length;
-			goto error;
+			goto exit;
 		}
 
 		sig_length = active->get_signature (active, signature, sizeof (signature));
 		if (ROT_IS_ERROR (sig_length)) {
 			status = sig_length;
-			goto error;
+			goto exit;
 		}
 
 		status = manifest->manifest_verify->set_verification_key (manifest->manifest_verify,
 			&manifest->default_key->key->pub_key, manifest->default_key->pub_key_length);
 		if (status != 0) {
-			goto error;
+			goto exit;
 		}
 
 		status = manifest->manifest_verify->verify_signature (manifest->manifest_verify, digest,
 			digest_length, signature, sig_length);
+		manifest->manifest_verify->set_verification_key (manifest->manifest_verify, NULL, 0);
 		if (status == 0) {
 			status = manifest->keystore->save_key (manifest->keystore, manifest->key_id,
 				manifest->default_key->key_data, manifest->default_key->key_data_length);
@@ -125,10 +151,10 @@ void manifest_verification_on_manifest_activated (const struct pfm_observer *obs
 			manifest->state->save_failed = (status != 0);
 		}
 
-		if ((status != 0) && (status != SIG_VERIFICATION_BAD_SIGNATURE)) {
+		if (status == SIG_VERIFICATION_BAD_SIGNATURE) {
 			/* If the verification or key revocation could not be completed, fail and log the
-			 * error. */
-			goto error;
+			 * error.  A bad signature does not represent an error case. */
+			status = 0;
 		}
 	}
 	else if (manifest->state->save_failed) {
@@ -137,19 +163,17 @@ void manifest_verification_on_manifest_activated (const struct pfm_observer *obs
 		if (status == 0) {
 			manifest->state->save_failed = false;
 		}
-		else {
-			goto error;
-		}
 	}
 
+exit:
+	buffer_zeroize (digest, sizeof (digest));
+	buffer_zeroize (signature, sizeof (signature));
 	platform_mutex_unlock (&manifest->state->lock);
 
-	return;
-
-error:
-	platform_mutex_unlock (&manifest->state->lock);
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
-		MANIFEST_LOGGING_KEY_REVOCATION_FAIL, manifest->key_id, status);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_ERROR, DEBUG_LOG_COMPONENT_MANIFEST,
+			MANIFEST_LOGGING_KEY_REVOCATION_FAIL, manifest->key_id, status);
+	}
 }
 
 void manifest_verification_on_update_start (const struct firmware_update_observer *observer,
@@ -184,24 +208,20 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
  *
  * @param verification The instance to use for key verification.
  * @param key The key to check.
+ * @param root_key The root key used to verify the manifest verification keys.
+ * @param root_key_length Length of the root verification key.
  *
  * @return 0 if the key is valid or an error code.
  */
 static int manifest_verification_verify_key (const struct manifest_verification *verification,
-	const struct manifest_verification_key *key)
+	const struct manifest_verification_key *key, const uint8_t *root_key, size_t root_key_length)
 {
-	uint8_t key_hash[SHA512_HASH_LENGTH];
 	int status;
 
 	/* Check that the key is endorsed by the root key. */
-	status = hash_calculate (verification->hash, key->sig_hash, key->key_data,
-		key->key_data_length - key->sig_length, key_hash, sizeof (key_hash));
-	if (ROT_IS_ERROR (status)) {
-		return status;
-	}
-
-	status = verification->manifest_verify->verify_signature (verification->manifest_verify,
-		key_hash, status, key->signature, key->sig_length);
+	status = signature_verification_verify_message (verification->manifest_verify,
+		verification->hash, key->sig_hash, key->key_data, key->key_data_length - key->sig_length,
+		root_key, root_key_length, key->signature, key->sig_length);
 	if (status != 0) {
 		return status;
 	}
@@ -228,7 +248,7 @@ static int manifest_verification_verify_key (const struct manifest_verification 
  * @return 0 if manifest verification was successfully initialized or an error code.
  */
 int manifest_verification_init (struct manifest_verification *verification,
-	struct manifest_verification_state *state, struct hash_engine *hash,
+	struct manifest_verification_state *state, const struct hash_engine *hash,
 	const struct signature_verification *sig_verify, const uint8_t *root_key,
 	size_t root_key_length, const struct manifest_verification_key *manifest_key,
 	const struct keystore *manifest_keystore, int key_id)
@@ -240,14 +260,16 @@ int manifest_verification_init (struct manifest_verification *verification,
 	memset (verification, 0, sizeof (struct manifest_verification));
 
 	verification->base_verify.verify_signature = manifest_verification_verify_signature;
+	verification->base_verify.get_max_signature_length =
+		manifest_verification_get_max_signature_length;
 	verification->base_verify.set_verification_key = manifest_verification_set_verification_key;
 	verification->base_verify.is_key_valid = manifest_verification_is_key_valid;
 
 	/* PFM, CFM, and PCD observers have the same structure and this module only depends on common
 	 * manifest APIs, so save memory by using the same observer instance and handler function. */
 	verification->base_observer.on_pfm_activated =
-		(void (*) (const struct pfm_observer*,
-		struct pfm*)) manifest_verification_on_manifest_activated;
+		(void (*) (const struct pfm_observer*, const struct pfm*))
+		manifest_verification_on_manifest_activated;
 
 	verification->base_update.on_update_start = manifest_verification_on_update_start;
 
@@ -287,13 +309,8 @@ int manifest_verification_init_state (const struct manifest_verification *verifi
 
 	memset (verification->state, 0, sizeof (struct manifest_verification_state));
 
-	status = verification->manifest_verify->set_verification_key (verification->manifest_verify,
-		root_key, root_key_length);
-	if (status != 0) {
-		return status;
-	}
-
-	status = manifest_verification_verify_key (verification, verification->default_key);
+	status = manifest_verification_verify_key (verification, verification->default_key, root_key,
+		root_key_length);
 	if (status != 0) {
 		return status;
 	}
@@ -321,7 +338,7 @@ int manifest_verification_init_state (const struct manifest_verification *verifi
 		if (verification->state->stored_key.key_data_length ==
 			verification->default_key->key_data_length) {
 			status = manifest_verification_verify_key (verification,
-				&verification->state->stored_key);
+				&verification->state->stored_key, root_key, root_key_length);
 		}
 		else {
 			status = MANIFEST_VERIFICATION_INVALID_STORED_KEY;
@@ -410,7 +427,7 @@ const struct cfm_observer* manifest_verification_get_cfm_observer (
 	const struct manifest_verification *verification)
 {
 	if (verification) {
-		return (struct cfm_observer*) &verification->base_observer;
+		return (const struct cfm_observer*) &verification->base_observer;
 	}
 	else {
 		return NULL;
@@ -428,7 +445,7 @@ const struct pcd_observer* manifest_verification_get_pcd_observer (
 	const struct manifest_verification *verification)
 {
 	if (verification) {
-		return (struct pcd_observer*) &verification->base_observer;
+		return (const struct pcd_observer*) &verification->base_observer;
 	}
 	else {
 		return NULL;

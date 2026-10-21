@@ -58,7 +58,7 @@ struct cmd_interface_msg {
 	 * Length of the message payload.
 	 *
 	 * This does not indicate the maximum length of the payload buffer for building responses.  This
-	 * value can be determined with {@link cmd_interface_msg_get_max_payload}.
+	 * value can be determined with {@link cmd_interface_msg_get_max_response}.
 	 */
 	size_t payload_length;
 
@@ -100,8 +100,8 @@ struct cmd_interface_msg {
  * A list of firmware versions.
  */
 struct cmd_interface_fw_version {
-	size_t count;		/**< The number of firmware identifiers. */
-	const char **id;	/**< The list of firmware identifiers. */
+	size_t count;			/**< The number of firmware identifiers. */
+	const char *const *id;	/**< The list of firmware identifiers. */
 };
 
 /**
@@ -129,22 +129,6 @@ struct cmd_interface {
 	 * @return 0 if the request was successfully processed or an error code.
 	 */
 	int (*process_request) (const struct cmd_interface *intf, struct cmd_interface_msg *request);
-
-#ifdef CMD_ENABLE_ISSUE_REQUEST
-	/**
-	 * Process a received response.
-	 *
-	 * TODO:  Likely remove this function from this interface.  The request issuing flow using
-	 * msg_transport does not rely on this type of response handling.  Removing this would make this
-	 * interface cleaner (i.e. remove the need for the #ifdef).
-	 *
-	 * @param intf The command interface that will process the response.
-	 * @param response The response data to process.
-	 *
-	 * @return 0 if the response was successfully processed or an error code.
-	 */
-	int (*process_response) (const struct cmd_interface *intf, struct cmd_interface_msg *response);
-#endif
 
 	/* TODO:  Now that the cmd_interface is used for more than Cerberus messages, this should get
 	 * refactored out of the base interface and into some Cerberus specific handling, like the

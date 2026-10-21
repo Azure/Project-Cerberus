@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <string.h>
 #include "ide_driver_mock.h"
-#include "platform_io.h"
 #include "pcisig/ide/ide_driver.h"
 #include "status/rot_status.h"
 

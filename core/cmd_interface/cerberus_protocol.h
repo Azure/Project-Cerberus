@@ -47,10 +47,13 @@ enum {
 	CERBERUS_PROTOCOL_IMPORT_CA_SIGNED_CERT,					/**< Import CA signed certificate */
 	CERBERUS_PROTOCOL_GET_SIGNED_CERT_STATE,					/**< Get state of the signed certificates */
 	CERBERUS_PROTOCOL_GET_HOST_STATE = 0x40,					/**< Get Host reset state */
+	CERBERUS_PROTOCOL_GET_HOST_FLASH_CONFIGURATION,				/**< Get the configuration of host flash */
+	CERBERUS_PROTOCOL_SET_HOST_FLASH_CONFIGURATION,				/**< Set the configuration of host flash */
 	CERBERUS_PROTOCOL_GET_LOG_INFO = 0x4F,						/**< Get log info */
 	CERBERUS_PROTOCOL_READ_LOG,									/**< Read back log */
 	CERBERUS_PROTOCOL_CLEAR_LOG,								/**< Clear log */
 	CERBERUS_PROTOCOL_GET_ATTESTATION_DATA,						/**< Retrieve raw data for log measurements */
+	CERBERUS_PROTOCOL_GET_ATTESTATION_SUMMARY,					/**< Get component attestation summary */
 	CERBERUS_PROTOCOL_GET_PFM_ID = 0x59,						/**< Get PFM ID */
 	CERBERUS_PROTOCOL_GET_PFM_SUPPORTED_FW,						/**< Get PFM supported FW versions */
 	CERBERUS_PROTOCOL_INIT_PFM_UPDATE,							/**< Initialize PFM update process */
@@ -89,9 +92,15 @@ enum {
 	CERBERUS_PROTOCOL_GET_PCD_SUPPORTED_COMPONENT_IDS = 0x8C,	/**< Get PCD supported component IDs */
 	CERBERUS_PROTOCOL_GET_CFM_SUPPORTED_COMPONENT_IDS,			/**< Get CFM supported component IDs */
 	CERBERUS_PROTOCOL_GET_EXT_UPDATE_STATUS,					/**< Get extended update status */
+	CERBERUS_PROTOCOL_GET_PCD_COMPONENT_INSTANCE_INFO,			/**< Get PCD supported component Instance info */
+	CERBERUS_PROTOCOL_FORCE_ATTESTATION,						/**< Force attestation of devices */
+	CERBERUS_PROTOCOL_FORCE_ATTESTATION_INFO,					/**< Get force attestation information */
+	CERBERUS_PROTOCOL_GET_MANIFEST_SIZE,						/**< Get manifest size */
+	CERBERUS_PROTOCOL_EXPORT_MANIFEST,							/**< Export manifest */
 
 	/* Special diagnostic commands to query for device health or other debug information. */
 	CERBERUS_PROTOCOL_DIAG_HEAP_USAGE = 0xD0,					/**< Diagnostic command to get heap usage */
+	CERBERUS_PROTOCOL_DIAG_STACK_USAGE,							/**< Diagnostic command to get stack usage */
 
 	/* Utilize the reserved command space for debugging.  Must be disabled in production. */
 	CERBERUS_PROTOCOL_DEBUG_START_ATTESTATION = 0xF0,			/**< Debug command to start attestation */

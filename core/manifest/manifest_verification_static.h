@@ -10,13 +10,15 @@
 /* Internal functions declared to allow for static initialization. */
 int manifest_verification_verify_signature (const struct signature_verification *verification,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length);
+int manifest_verification_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length);
 int manifest_verification_set_verification_key (
 	const struct signature_verification *verification, const uint8_t *key, size_t length);
 int manifest_verification_is_key_valid (const struct signature_verification *verification,
 	const uint8_t *key, size_t length);
 
 void manifest_verification_on_manifest_activated (const struct pfm_observer *observer,
-	struct manifest *active);
+	const struct manifest *active);
 
 void manifest_verification_on_update_start (const struct firmware_update_observer *observer,
 	int *update_allowed);
@@ -27,6 +29,7 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
  */
 #define	MANIFEST_VERIFICATION_SIGNATURE_VERIFICATION_API_INIT  { \
 		.verify_signature = manifest_verification_verify_signature, \
+		.get_max_signature_length = manifest_verification_get_max_signature_length, \
 		.set_verification_key = manifest_verification_set_verification_key, \
 		.is_key_valid = manifest_verification_is_key_valid \
 	}
@@ -36,8 +39,8 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
  */
 #define	MANIFEST_VERIFICATION_PFM_OBSERVER_API_INIT  { \
 		.on_pfm_verified = NULL, \
-		.on_pfm_activated = \
-			(void (*) (const struct pfm_observer*, struct pfm*)) manifest_verification_on_manifest_activated, \
+		.on_pfm_activated = (void (*) (const struct pfm_observer*, const struct pfm*)) \
+			manifest_verification_on_manifest_activated, \
 		.on_clear_active = NULL, \
 		.on_pfm_activation_request = NULL \
 	}
@@ -46,12 +49,15 @@ void manifest_verification_on_update_start (const struct firmware_update_observe
  * Constant initializer for the firmware update event handlers.
  */
 #define	MANIFEST_VERIFICATION_FIRMWARE_UPDATE_OBSERVER_API_INIT  { \
-		.on_update_start = manifest_verification_on_update_start \
+		.on_update_start = manifest_verification_on_update_start, \
+		.on_prepare_update = NULL, \
+		.on_update_applied = NULL, \
 	}
 
 
 /**
- * Initialize a static instance for ECDSA signature verification.  This can be a constant instance.
+ * Initialize a static instance for manifest signature verification.  This can be a constant
+ * instance.
  *
  * There is no validation done on the arguments.
  *

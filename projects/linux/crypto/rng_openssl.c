@@ -4,19 +4,21 @@
 #include <stdint.h>
 #include <openssl/rand.h>
 #include <openssl/err.h>
+#include "common/unused.h"
 #include "crypto/rng.h"
 #include "rng_openssl.h"
 
-static int rng_openssl_generate_random_buffer (struct rng_engine *engine, size_t rand_len,
+
+int rng_openssl_generate_random_buffer (const struct rng_engine *engine, size_t rand_len,
 	uint8_t *buf)
 {
-	struct rng_engine_openssl *openssl_engine = (struct rng_engine_openssl*) engine;
+	const struct rng_engine_openssl *openssl_engine = (const struct rng_engine_openssl*) engine;
 
 	if ((openssl_engine == NULL) || (buf == NULL)) {
 		return RNG_ENGINE_INVALID_ARGUMENT;
 	}
 
-    if (!RAND_bytes(buf, rand_len)) {
+    if (!RAND_bytes (buf, rand_len)) {
 		return ERR_get_error ();
 	}
 
@@ -46,7 +48,7 @@ int rng_openssl_init (struct rng_engine_openssl *engine)
  *
  * @param engine The RNG engine to release.
  */
-void rng_openssl_release (struct rng_engine_openssl *engine)
+void rng_openssl_release (const struct rng_engine_openssl *engine)
 {
-
+	UNUSED (engine);
 }

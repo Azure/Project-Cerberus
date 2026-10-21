@@ -20,7 +20,8 @@ static int firmware_image_mock_load (const struct firmware_image *fw, const stru
 		MOCK_ARG_CALL (base_addr));
 }
 
-static int firmware_image_mock_verify (const struct firmware_image *fw, struct hash_engine *hash)
+static int firmware_image_mock_verify (const struct firmware_image *fw,
+	const struct hash_engine *hash)
 {
 	struct firmware_image_mock *mock = (struct firmware_image_mock*) fw;
 

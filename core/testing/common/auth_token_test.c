@@ -30,15 +30,16 @@ TEST_SUITE_LABEL ("auth_token");
  * Dependencies for testing authorization token management.
  */
 struct auth_token_testing {
-	X509_TESTING_ENGINE x509;						/**< X.509 handler for the key manager. */
+	X509_TESTING_ENGINE (x509);						/**< X.509 handler for the key manager. */
 	struct keystore_mock keystore;					/**< Mock for the device keystore. */
 	struct riot_keys keys;							/**< Device keys for the key manager. */
+	struct riot_key_manager_state key_state;		/**< Context for device key manager. */
 	struct riot_key_manager device_keys;			/**< Device key manager for testing. */
-	RNG_TESTING_ENGINE rng;							/**< RNG for testing. */
+	RNG_TESTING_ENGINE (rng);						/**< RNG for testing. */
 	struct rng_engine_mock rng_mock;				/**< Mock for the RNG. */
-	HASH_TESTING_ENGINE hash;						/**< Hash engine for testing. */
+	HASH_TESTING_ENGINE (hash);						/**< Hash engine for testing. */
 	struct hash_engine_mock hash_mock;				/**< Mock for the hash engine. */
-	ECC_TESTING_ENGINE ecc;							/**< ECC engine for testing. */
+	ECC_TESTING_ENGINE (ecc);						/**< ECC engine for testing. */
 	struct ecc_engine_mock ecc_mock;				/**< Mock for the ECC engine. */
 	struct ecc_public_key token_key;				/**< Public key for token signing. */
 	struct signature_verification_mock authority;	/**< Mock for authority signature verification. */
@@ -127,8 +128,8 @@ static void auth_token_testing_init_dependencies (CuTest *test, struct auth_toke
 
 	CuAssertIntEquals (test, 0, status);
 
-	status = riot_key_manager_init_static (&auth->device_keys, &auth->keystore.base, &auth->keys,
-		&auth->x509.base);
+	status = riot_key_manager_init_static_keys (&auth->device_keys, &auth->key_state,
+		&auth->keystore.base, &auth->keys, &auth->x509.base, NULL, 0);
 	CuAssertIntEquals (test, 0, status);
 
 	/* Initialize the rest of the dependencies. */
@@ -337,7 +338,7 @@ static void auth_token_test_init_null (CuTest *test)
 		auth.data_length, auth.nonce_length, HASH_TYPE_SHA256, 0);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
 
-	status = auth_token_init (&auth.test, &auth.state, &auth.rng.base, &auth.hash.base,	NULL,
+	status = auth_token_init (&auth.test, &auth.state, &auth.rng.base, &auth.hash.base, NULL,
 		&auth.device_keys, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN, &auth.authority.base,
 		auth.data_length, auth.nonce_length, HASH_TYPE_SHA256, 0);
 	CuAssertIntEquals (test, AUTH_TOKEN_INVALID_ARGUMENT, status);
@@ -2078,13 +2079,13 @@ static void auth_token_test_new_token_hash_error (CuTest *test)
 		auth.data_length, auth.nonce_length, HASH_TYPE_SHA256, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.calculate_sha256,
-		&auth.hash_mock, HASH_ENGINE_SHA256_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length),
+	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.start_sha256, &auth.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
 }
@@ -2172,7 +2173,7 @@ static void auth_token_test_new_token_sign_error (CuTest *test)
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,
@@ -2227,6 +2228,9 @@ static void auth_token_test_verify_data (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
 
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
@@ -2277,6 +2281,9 @@ static void auth_token_test_verify_data_sha384 (CuTest *test)
 		MOCK_ARG (SHA384_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC384_SIGNATURE_TEST2, ECC384_SIG_TEST2_LEN),
 		MOCK_ARG (ECC384_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2330,6 +2337,9 @@ static void auth_token_test_verify_data_sha512 (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC521_SIGNATURE_TEST2, ECC521_SIG_TEST2_LEN),
 		MOCK_ARG (ECC521_SIG_TEST2_LEN));
 
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC521_SIG_TEST2_LEN,
@@ -2381,6 +2391,9 @@ static void auth_token_test_verify_data_longer_nonce (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
 
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
@@ -2431,6 +2444,9 @@ static void auth_token_test_verify_data_context_data (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2485,6 +2501,9 @@ static void auth_token_test_verify_data_additional_authenticated_data (CuTest *t
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
 
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
@@ -2536,6 +2555,9 @@ static void auth_token_test_verify_data_token_offset (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2592,6 +2614,9 @@ static void auth_token_test_verify_data_context_data_aad_and_token_offset (CuTes
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
 
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
@@ -2641,6 +2666,9 @@ static void auth_token_test_verify_data_not_expired (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2694,6 +2722,9 @@ static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
 
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
@@ -2710,6 +2741,9 @@ static void auth_token_test_verify_data_same_token_twice (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2760,6 +2794,9 @@ static void auth_token_test_verify_data_with_buffer (CuTest *test)
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -2820,6 +2857,9 @@ static void auth_token_test_verify_data_static_init (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
 
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
+
 	CuAssertIntEquals (test, 0, status);
 
 	status = test_static.verify_data (&test_static, token_signed, length + ECC_SIG_TEST2_LEN,
@@ -2877,6 +2917,9 @@ static void auth_token_test_verify_data_dynamic_buffer_static_init (CuTest *test
 		MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3185,6 +3228,9 @@ static void auth_token_test_verify_data_bad_signature (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (digest, SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3503,10 +3549,18 @@ static void auth_token_test_verify_data_after_new_token_hash_error (CuTest *test
 	CuAssertIntEquals (test, 0, status);
 
 	/* Generate the first token. */
-	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.calculate_sha256,
-		&auth.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&auth.hash_mock.mock, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH, 3);
+	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.start_sha256, &auth.hash_mock,
+		0);
+
+	status |= mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.update, &auth.hash_mock, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length));
+
+	status |= mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.get_active_algorithm,
+		&auth.hash_mock, HASH_TYPE_SHA256);
+
+	status |= mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.finish, &auth.hash_mock, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&auth.hash_mock.mock, 0, SHA256_TEST_HASH, SHA256_HASH_LENGTH, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3519,13 +3573,13 @@ static void auth_token_test_verify_data_after_new_token_hash_error (CuTest *test
 	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
 
 	/* Get a new token.*/
-	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.calculate_sha256,
-		&auth.hash_mock, HASH_ENGINE_SHA256_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length),
+	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.start_sha256, &auth.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length),
 		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.new_token (&auth.test, NULL, 0, &token, &length);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	/* Verify with the old token. */
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
@@ -3582,7 +3636,7 @@ static void auth_token_test_verify_data_after_new_token_key_error (CuTest *test)
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 	status |= mock_expect_output (&auth.ecc_mock.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, 4);
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,
@@ -3666,7 +3720,7 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_SIG_TEST_LEN, MOCK_ARG_SAVED_ARG (1), MOCK_ARG_NOT_NULL, MOCK_ARG (SHA256_HASH_LENGTH),
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
+		MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 	status |= mock_expect_output (&auth.ecc_mock.mock, 3, ECC_SIGNATURE_TEST, ECC_SIG_TEST_LEN, 4);
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,
@@ -3693,7 +3747,7 @@ static void auth_token_test_verify_data_after_new_token_sign_error (CuTest *test
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.sign, &auth.ecc_mock,
 		ECC_ENGINE_SIGN_FAILED, MOCK_ARG_SAVED_ARG (2), MOCK_ARG_NOT_NULL,
-		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_NOT_NULL,
+		MOCK_ARG (SHA256_HASH_LENGTH), MOCK_ARG_PTR (NULL), MOCK_ARG_NOT_NULL,
 		MOCK_ARG_AT_LEAST (ECC_DER_P256_ECDSA_MAX_LENGTH));
 
 	status |= mock_expect (&auth.ecc_mock.mock, auth.ecc_mock.base.release_key_pair, &auth.ecc_mock,
@@ -3735,10 +3789,18 @@ static void auth_token_test_verify_data_hash_error (CuTest *test)
 		auth.data_length, auth.nonce_length, HASH_TYPE_SHA256, 0);
 	CuAssertIntEquals (test, 0, status);
 
-	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.calculate_sha256,
-		&auth.hash_mock, 0, MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length), MOCK_ARG_NOT_NULL,
-		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
-	status |= mock_expect_output (&auth.hash_mock.mock, 2, SHA256_TEST_HASH, SHA256_HASH_LENGTH, 3);
+	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.start_sha256, &auth.hash_mock,
+		0);
+
+	status |= mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.update, &auth.hash_mock, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG (auth.nonce_length));
+
+	status |= mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.get_active_algorithm,
+		&auth.hash_mock, HASH_TYPE_SHA256);
+
+	status |= mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.finish, &auth.hash_mock, 0,
+		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status |= mock_expect_output (&auth.hash_mock.mock, 0, SHA256_TEST_HASH, SHA256_HASH_LENGTH, 1);
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -3750,14 +3812,14 @@ static void auth_token_test_verify_data_hash_error (CuTest *test)
 	memcpy (token_signed, token, length);
 	memcpy (&token_signed[length], ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN);
 
-	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.calculate_sha256,
-		&auth.hash_mock, HASH_ENGINE_SHA256_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY,
-		MOCK_ARG_NOT_NULL, MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
+	status = mock_expect (&auth.hash_mock.mock, auth.hash_mock.base.start_sha256, &auth.hash_mock,
+		HASH_ENGINE_START_SHA256_FAILED, MOCK_ARG_NOT_NULL, MOCK_ARG_ANY, MOCK_ARG_NOT_NULL,
+		MOCK_ARG_AT_LEAST (SHA256_HASH_LENGTH));
 	CuAssertIntEquals (test, 0, status);
 
 	status = auth.test.verify_data (&auth.test, token_signed, length + ECC_SIG_TEST2_LEN,
 		token_offset, aad_length, HASH_TYPE_SHA256);
-	CuAssertIntEquals (test, HASH_ENGINE_SHA256_FAILED, status);
+	CuAssertIntEquals (test, HASH_ENGINE_START_SHA256_FAILED, status);
 
 	auth_token_testing_release (test, &auth, &auth.test);
 }
@@ -3841,6 +3903,9 @@ static void auth_token_test_verify_data_verify_error (CuTest *test)
 		MOCK_ARG_PTR_CONTAINS (digest, SHA256_HASH_LENGTH), MOCK_ARG (SHA256_HASH_LENGTH),
 		MOCK_ARG_PTR_CONTAINS (ECC_SIGNATURE_TEST2, ECC_SIG_TEST2_LEN),
 		MOCK_ARG (ECC_SIG_TEST2_LEN));
+
+	status |= mock_expect (&auth.authority.mock, auth.authority.base.set_verification_key,
+		&auth.authority, 0, MOCK_ARG_PTR (NULL), MOCK_ARG (0));
 
 	CuAssertIntEquals (test, 0, status);
 

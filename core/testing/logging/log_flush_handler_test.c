@@ -421,6 +421,78 @@ static void log_flush_handler_test_execute_static_init (CuTest *test)
 	log_flush_handler_release (&test_static);
 }
 
+static void log_flush_handler_test_immediate_flush (CuTest *test)
+{
+	struct log_flush_handler_testing handler;
+	const struct logging *log_list[] = {&handler.log1.base};
+	const size_t log_count = sizeof (log_list) / sizeof (log_list[0]);
+	int status;
+
+	TEST_START;
+
+	log_flush_handler_testing_init (test, &handler, log_list, log_count, 1000);
+
+	status = mock_expect (&handler.log1.mock, handler.log1.base.flush, &handler.log1, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	log_flush_handler_immediate_flush (&handler.test);
+
+	log_flush_handler_testing_validate_and_release (test, &handler);
+}
+
+static void log_flush_handler_test_immediate_flush_multiple_logs (CuTest *test)
+{
+	struct log_flush_handler_testing handler;
+	const struct logging *log_list[] = {&handler.log1.base, &handler.log2.base, &handler.log3.base};
+	const size_t log_count = sizeof (log_list) / sizeof (log_list[0]);
+	int status;
+
+	TEST_START;
+
+	log_flush_handler_testing_init (test, &handler, log_list, log_count, 1000);
+
+	status = mock_expect (&handler.log1.mock, handler.log1.base.flush, &handler.log1, 0);
+	status |= mock_expect (&handler.log2.mock, handler.log2.base.flush, &handler.log2, 0);
+	status |= mock_expect (&handler.log3.mock, handler.log3.base.flush, &handler.log3, 0);
+
+	CuAssertIntEquals (test, 0, status);
+
+	log_flush_handler_immediate_flush (&handler.test);
+
+	log_flush_handler_testing_validate_and_release (test, &handler);
+}
+
+static void log_flush_handler_test_immediate_flush_static_init (CuTest *test)
+{
+	struct log_flush_handler_testing handler;
+	const struct logging *log_list[] = {&handler.log1.base};
+	const size_t log_count = sizeof (log_list) / sizeof (log_list[0]);
+	struct log_flush_handler test_static = log_flush_handler_static_init (&handler.state, log_list,
+		log_count, 5000);
+	int status;
+
+	TEST_START;
+
+	log_flush_handler_testing_init_static (test, &handler, &test_static);
+
+	status = mock_expect (&handler.log1.mock, handler.log1.base.flush, &handler.log1, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	log_flush_handler_immediate_flush (&test_static);
+
+	log_flush_handler_testing_release_dependencies (test, &handler);
+	log_flush_handler_release (&test_static);
+}
+
+static void log_flush_handler_test_immediate_flush_null (CuTest *test)
+{
+	int status;
+
+	TEST_START;
+
+	status = log_flush_handler_immediate_flush (NULL);
+	CuAssertIntEquals (test, LOGGING_INVALID_ARGUMENT, status);
+}
 
 // *INDENT-OFF*
 TEST_SUITE_START (log_flush_handler);
@@ -436,6 +508,10 @@ TEST (log_flush_handler_test_get_next_execution_static_init);
 TEST (log_flush_handler_test_execute);
 TEST (log_flush_handler_test_execute_multiple_logs);
 TEST (log_flush_handler_test_execute_static_init);
+TEST (log_flush_handler_test_immediate_flush);
+TEST (log_flush_handler_test_immediate_flush_multiple_logs);
+TEST (log_flush_handler_test_immediate_flush_static_init);
+TEST (log_flush_handler_test_immediate_flush_null);
 
 TEST_SUITE_END;
 // *INDENT-ON*

@@ -59,6 +59,10 @@ int firmware_header_init (struct firmware_header *header, const struct flash *fl
 	size_t length;
 	int status;
 
+	if ((header == NULL) || (flash == NULL)) {
+		return FIRMWARE_HEADER_INVALID_ARGUMENT;
+	}
+
 	status = image_header_init (&header->base, flash, addr, FIRMWARE_HEADER_MARKER,
 		FIRMWARE_HEADER_MAX_LENGTH);
 	if (status != 0) {
@@ -110,7 +114,9 @@ int firmware_header_init (struct firmware_header *header, const struct flash *fl
  */
 void firmware_header_release (struct firmware_header *header)
 {
-	image_header_release (&header->base);
+	if (header != NULL) {
+		image_header_release (&header->base);
+	}
 }
 
 /**

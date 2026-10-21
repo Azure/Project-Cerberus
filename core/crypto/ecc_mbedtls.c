@@ -8,9 +8,12 @@
 #include "ecc_mbedtls.h"
 #include "platform_api.h"
 #include "asn1/ecc_der_util.h"
+#include "common/buffer_util.h"
 #include "common/unused.h"
 #include "crypto/crypto_logging.h"
 #include "crypto/hash.h"
+#include "crypto/mbedtls_compat.h"
+#include "crypto/rng_mbedtls.h"
 #include "mbedtls/bignum.h"
 #include "mbedtls/ecdh.h"
 #include "mbedtls/ecdsa.h"
@@ -65,69 +68,47 @@ static void ecc_mbedtls_free_key_context (void *context)
 static mbedtls_pk_context* ecc_mbedtls_convert_private_to_public (mbedtls_pk_context *key, bool dup,
 	int *error)
 {
-	mbedtls_pk_context *pub = key;
-	mbedtls_ecp_keypair *priv_ec;
-	mbedtls_ecp_keypair *pub_ec;
-	uint8_t msg_code;
+	mbedtls_pk_context *pub = NULL;
+	uint8_t tmp_der[ECC_DER_MAX_PUBLIC_LENGTH] = {0};
+	int der_length;
 	int status;
 
-	if (dup) {
-		pub = ecc_mbedtls_alloc_key_context ();
-		if (pub == NULL) {
-			status = ECC_ENGINE_NO_MEMORY;
-			goto error_alloc;
-		}
-
-		status = mbedtls_pk_setup (pub, mbedtls_pk_info_from_type (MBEDTLS_PK_ECKEY));
-		if (status != 0) {
-			msg_code = CRYPTO_LOG_MSG_MBEDTLS_PK_INIT_EC;
-			goto error_exit;
-		}
-
-		priv_ec = mbedtls_pk_ec (*key);
-		pub_ec = mbedtls_pk_ec (*pub);
-
-		status = mbedtls_ecp_group_copy (&pub_ec->grp, &priv_ec->grp);
-		if (status != 0) {
-			msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_GROUP_COPY_EC;
-			goto error_exit;
-		}
-
-		status = mbedtls_ecp_copy (&pub_ec->Q, &priv_ec->Q);
-		if (status != 0) {
-			msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_COPY_EC;
-			goto error_exit;
-		}
-
-		status = mbedtls_ecp_check_pub_priv (pub_ec, priv_ec);
-		if (status != 0) {
-			msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_CHECK_PUB_PRV_EC;
-			goto error_exit;
-		}
-	}
-	else {
-		pub_ec = mbedtls_pk_ec (*pub);
-		mbedtls_mpi_free (&pub_ec->d);
+	/* Export the public key to DER, then parse it into a new structure. */
+	der_length = mbedtls_pk_write_pubkey_der (key, tmp_der, sizeof (tmp_der));
+	if (der_length < 0) {
+		*error = der_length;
+		goto exit;
 	}
 
-	*error = 0;
+	if (!dup) {
+		ecc_mbedtls_free_key_context (key);
+	}
+
+	pub = ecc_mbedtls_alloc_key_context ();
+	if (pub == NULL) {
+		*error = ECC_ENGINE_NO_MEMORY;
+		goto exit;
+	}
+
+	status = mbedtls_pk_parse_public_key (pub, &tmp_der[sizeof (tmp_der) - der_length], der_length);
+	if (status != 0) {
+		ecc_mbedtls_free_key_context (pub);
+		pub = NULL;
+
+		*error = status;
+		goto exit;
+	}
+
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
 
 	return pub;
-
-error_exit:
-	ecc_mbedtls_free_key_context (pub);
-	*error = status;
-
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
-		0);
-error_alloc:
-
-	return NULL;
 }
 
-static int ecc_mbedtls_init_key_pair (struct ecc_engine *engine, const uint8_t *key,
+int ecc_mbedtls_init_key_pair (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
+	const struct ecc_engine_mbedtls *mbedtls = (const struct ecc_engine_mbedtls*) engine;
 	mbedtls_pk_context *key_ctx;
 	int status;
 
@@ -151,8 +132,14 @@ static int ecc_mbedtls_init_key_pair (struct ecc_engine *engine, const uint8_t *
 		return ECC_ENGINE_NO_MEMORY;
 	}
 
+#if MBEDTLS_IS_VERSION_3
+	status = mbedtls_pk_parse_key (key_ctx, key, ecc_der_get_private_key_length (key, key_length),
+		NULL, 0, mbedtls->f_rng, mbedtls->rng);
+#else
+	UNUSED (mbedtls);
 	status = mbedtls_pk_parse_key (key_ctx, key, ecc_der_get_private_key_length (key, key_length),
 		NULL, 0);
+#endif
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_EC, status, 0);
@@ -184,7 +171,7 @@ error:
 	return status;
 }
 
-static int ecc_mbedtls_init_public_key (struct ecc_engine *engine, const uint8_t *key,
+int ecc_mbedtls_init_public_key (const struct ecc_engine *engine, const uint8_t *key,
 	size_t key_length, struct ecc_public_key *pub_key)
 {
 	mbedtls_pk_context *key_ctx;
@@ -207,6 +194,10 @@ static int ecc_mbedtls_init_public_key (struct ecc_engine *engine, const uint8_t
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_PARSE_PUB_EC, status, 0);
 
+		if (status == MBEDTLS_ERR_ECP_INVALID_KEY) {
+			status = ECC_ENGINE_INVALID_PUBLIC_KEY;
+		}
+
 		goto error;
 	}
 
@@ -226,14 +217,12 @@ error:
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
-static int ecc_mbedtls_generate_derived_key_pair (struct ecc_engine *engine, const uint8_t *priv,
+int ecc_mbedtls_generate_derived_key_pair (const struct ecc_engine *engine,	const uint8_t *priv,
 	size_t key_length, struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
-	struct ecc_engine_mbedtls *mbedtls = (struct ecc_engine_mbedtls*) engine;
-	mbedtls_pk_context *key_ctx;
-	mbedtls_ecp_keypair *ec;
-	mbedtls_ecp_group_id curve;
-	uint8_t msg_code;
+	const struct ecc_engine_mbedtls *mbedtls = (const struct ecc_engine_mbedtls*) engine;
+	uint8_t tmp_der[ECC_DER_MAX_PRIVATE_NO_PUB_LENGTH] = {0};
+	int der_length;
 	int status;
 
 	if ((mbedtls == NULL) || (priv == NULL) || (key_length == 0)) {
@@ -244,99 +233,26 @@ static int ecc_mbedtls_generate_derived_key_pair (struct ecc_engine *engine, con
 		return 0;
 	}
 
-	switch (key_length) {
-		case ECC_KEY_LENGTH_256:
-			curve = MBEDTLS_ECP_DP_SECP256R1;
-			break;
-
-#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
-		case ECC_KEY_LENGTH_384:
-			curve = MBEDTLS_ECP_DP_SECP384R1;
-			break;
-
-#if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
-		case ECC_KEY_LENGTH_521:
-			curve = MBEDTLS_ECP_DP_SECP521R1;
-			break;
-#endif
-#endif
-
-		default:
-			return ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+	/* DER encode the private key and have mbedTLS initialize the key pair based on it. */
+	der_length = ecc_der_encode_private_key (priv, NULL, NULL, key_length, tmp_der,
+		sizeof (tmp_der));
+	if (ROT_IS_ERROR (der_length)) {
+		status = ECC_ENGINE_UNSUPPORTED_KEY_LENGTH;
+		goto exit;
 	}
 
-	if (priv_key) {
-		memset (priv_key, 0, sizeof (struct ecc_private_key));
-	}
-	if (pub_key) {
-		memset (pub_key, 0, sizeof (struct ecc_public_key));
-	}
+	status = ecc_mbedtls_init_key_pair (&mbedtls->base, tmp_der, der_length, priv_key, pub_key);
 
-	key_ctx = ecc_mbedtls_alloc_key_context ();
-	if (key_ctx == NULL) {
-		return ECC_ENGINE_NO_MEMORY;
-	}
-
-	status = mbedtls_pk_setup (key_ctx, mbedtls_pk_info_from_type (MBEDTLS_PK_ECKEY));
-	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_PK_INIT_EC;
-		goto error_log;
-	}
-
-	ec = mbedtls_pk_ec (*key_ctx);
-
-	status = mbedtls_ecp_group_load (&ec->grp, curve);
-	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_GROUP_LOAD_EC;
-		goto error_log;
-	}
-
-	status = mbedtls_mpi_read_binary (&ec->d, priv, key_length);
-	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_MPI_READ_BIN_EC;
-		goto error_log;
-	}
-
-	status = mbedtls_ecp_mul (&ec->grp, &ec->Q, &ec->d, &ec->grp.G, mbedtls_ctr_drbg_random,
-		&mbedtls->ctr_drbg);
-	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_MUL_EC;
-		goto error_log;
-	}
-
-	status = mbedtls_ecp_check_privkey (&ec->grp, &ec->d);
-	if (status != 0) {
-		msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_CHECK_PUB_PRV_EC;
-		goto error_log;
-	}
-
-	if (pub_key) {
-		pub_key->context = ecc_mbedtls_convert_private_to_public (key_ctx, (priv_key), &status);
-		if (pub_key->context == NULL) {
-			goto error;
-		}
-	}
-
-	if (priv_key) {
-		priv_key->context = key_ctx;
-	}
-
-	return 0;
-
-error_log:
-	debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO, msg_code, status,
-		0);
-
-error:
-	ecc_mbedtls_free_key_context (key_ctx);
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
 
 	return status;
 }
 
-static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine, size_t key_length,
+int ecc_mbedtls_generate_key_pair (const struct ecc_engine *engine, size_t key_length,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
-	struct ecc_engine_mbedtls *mbedtls = (struct ecc_engine_mbedtls*) engine;
+	const struct ecc_engine_mbedtls *mbedtls = (const struct ecc_engine_mbedtls*) engine;
 	mbedtls_pk_context *key_ctx;
 	mbedtls_ecp_keypair *ec;
 	mbedtls_ecp_group_id curve;
@@ -391,7 +307,7 @@ static int ecc_mbedtls_generate_key_pair (struct ecc_engine *engine, size_t key_
 	}
 
 	ec = mbedtls_pk_ec (*key_ctx);
-	status = mbedtls_ecp_gen_key (curve, ec, mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
+	status = mbedtls_ecp_gen_key (curve, ec, mbedtls->f_rng, mbedtls->rng);
 	if (status != 0) {
 		msg_code = CRYPTO_LOG_MSG_MBEDTLS_ECP_GEN_KEY_EC;
 		goto error_log;
@@ -421,7 +337,7 @@ error:
 }
 #endif
 
-static void ecc_mbedtls_release_key_pair (struct ecc_engine *engine,
+void ecc_mbedtls_release_key_pair (const struct ecc_engine *engine,
 	struct ecc_private_key *priv_key, struct ecc_public_key *pub_key)
 {
 	UNUSED (engine);
@@ -437,25 +353,45 @@ static void ecc_mbedtls_release_key_pair (struct ecc_engine *engine,
 	}
 }
 
-static int ecc_mbedtls_get_signature_max_length (struct ecc_engine *engine,
+/**
+ * Get the maximum ECDSA signature length for an ECC key pair.
+ *
+ * @param context The key context to query.
+ *
+ * @return The maximum signature length.
+ */
+static int ecc_mbedtls_get_max_signature_length (const struct mbedtls_pk_context *context)
+{
+	size_t key_len = mbedtls_pk_get_len (context);
+
+	return (((key_len + 3) * 2) + ((key_len > 61) ? 1 : 2));
+}
+
+int ecc_mbedtls_get_signature_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key)
 {
-	size_t key_len;
-
 	if ((engine == NULL) || (key == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	key_len = mbedtls_pk_get_len ((mbedtls_pk_context*) key->context);
+	return ecc_mbedtls_get_max_signature_length ((const mbedtls_pk_context*) key->context);
+}
 
-	return (((key_len + 3) * 2) + ((key_len > 61) ? 3 : 2));
+int ecc_mbedtls_get_signature_max_verify_length (const struct ecc_engine *engine,
+	const struct ecc_public_key *key)
+{
+	if ((engine == NULL) || (key == NULL)) {
+		return ECC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	return ecc_mbedtls_get_max_signature_length ((const mbedtls_pk_context*) key->context);
 }
 
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
-static int ecc_mbedtls_get_private_key_der (struct ecc_engine *engine,
+int ecc_mbedtls_get_private_key_der (const struct ecc_engine *engine,
 	const struct ecc_private_key *key, uint8_t **der, size_t *length)
 {
-	uint8_t tmp_der[29 + (3 * MBEDTLS_ECP_MAX_BYTES)];
+	uint8_t tmp_der[ECC_DER_MAX_PRIVATE_LENGTH] = {0};
 	int status;
 
 	if (der == NULL) {
@@ -467,7 +403,7 @@ static int ecc_mbedtls_get_private_key_der (struct ecc_engine *engine,
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (ecc_mbedtls_get_ec_key_pair (key)->d.n == 0) {
+	if (mbedtls_mpi_size (&ecc_mbedtls_get_ec_key_pair (key)->MBEDTLS_PRIVATE (d)) == 0) {
 		return ECC_ENGINE_NOT_PRIVATE_KEY;
 	}
 
@@ -476,7 +412,8 @@ static int ecc_mbedtls_get_private_key_der (struct ecc_engine *engine,
 	if (status >= 0) {
 		*der = platform_malloc (status);
 		if (*der == NULL) {
-			return ECC_ENGINE_NO_MEMORY;
+			status = ECC_ENGINE_NO_MEMORY;
+			goto exit;
 		}
 
 		memcpy (*der, &tmp_der[sizeof (tmp_der) - status], status);
@@ -488,13 +425,16 @@ static int ecc_mbedtls_get_private_key_der (struct ecc_engine *engine,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_KEY_DER_EC, status, 0);
 	}
 
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
+
 	return status;
 }
 
-static int ecc_mbedtls_get_public_key_der (struct ecc_engine *engine,
+int ecc_mbedtls_get_public_key_der (const struct ecc_engine *engine,
 	const struct ecc_public_key *key, uint8_t **der, size_t *length)
 {
-	uint8_t tmp_der[30 + (2 * MBEDTLS_ECP_MAX_BYTES)];
+	uint8_t tmp_der[ECC_DER_MAX_PUBLIC_LENGTH] = {0};
 	int status;
 
 	if (der == NULL) {
@@ -506,7 +446,7 @@ static int ecc_mbedtls_get_public_key_der (struct ecc_engine *engine,
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
-	if (ecc_mbedtls_get_ec_key_pair (key)->d.n != 0) {
+	if (mbedtls_mpi_size (&ecc_mbedtls_get_ec_key_pair (key)->MBEDTLS_PRIVATE (d)) != 0) {
 		return ECC_ENGINE_NOT_PUBLIC_KEY;
 	}
 
@@ -515,7 +455,8 @@ static int ecc_mbedtls_get_public_key_der (struct ecc_engine *engine,
 	if (status >= 0) {
 		*der = platform_malloc (status);
 		if (*der == NULL) {
-			return ECC_ENGINE_NO_MEMORY;
+			status = ECC_ENGINE_NO_MEMORY;
+			goto exit;
 		}
 
 		memcpy (*der, &tmp_der[sizeof (tmp_der) - status], status);
@@ -527,14 +468,18 @@ static int ecc_mbedtls_get_public_key_der (struct ecc_engine *engine,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_WRITE_PUBKEY_DER_EC, status, 0);
 	}
 
+exit:
+	buffer_zeroize (tmp_der, sizeof (tmp_der));
+
 	return status;
 }
 #endif
 
-static int ecc_mbedtls_sign (struct ecc_engine *engine, const struct ecc_private_key *key,
-	const uint8_t *digest, size_t length, uint8_t *signature, size_t sig_length)
+int ecc_mbedtls_sign (const struct ecc_engine *engine, const struct ecc_private_key *key,
+	const uint8_t *digest, size_t length, const struct rng_engine *rng, uint8_t *signature,
+	size_t sig_length)
 {
-	struct ecc_engine_mbedtls *mbedtls = (struct ecc_engine_mbedtls*) engine;
+	const struct ecc_engine_mbedtls *mbedtls = (const struct ecc_engine_mbedtls*) engine;
 	mbedtls_ecp_keypair *ec;
 	mbedtls_md_type_t hash_alg;
 	int status;
@@ -566,7 +511,7 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, const struct ecc_private
 	}
 
 	ec = ecc_mbedtls_get_ec_key_pair (key);
-	status = mbedtls_ecp_check_privkey (&ec->grp, &ec->d);
+	status = mbedtls_ecp_check_privkey (&ec->MBEDTLS_PRIVATE (grp), &ec->MBEDTLS_PRIVATE (d));
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_ECP_CHECK_PUB_PRV_EC, status, 0);
@@ -574,8 +519,29 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, const struct ecc_private
 		return status;
 	}
 
-	status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, hash_alg, digest, length,
-		signature, &sig_length, mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
+	if (rng == NULL) {
+#if MBEDTLS_IS_VERSION_3
+		status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, hash_alg, digest, length,
+			signature, sig_length, &sig_length, mbedtls->f_rng, mbedtls->rng);
+#else
+		status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, hash_alg, digest, length,
+			signature, &sig_length, mbedtls->f_rng, mbedtls->rng);
+#endif
+	}
+	else {
+#ifndef MBEDTLS_ECDSA_DETERMINISTIC
+#if MBEDTLS_IS_VERSION_3
+		status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, hash_alg, digest, length,
+			signature, sig_length, &sig_length, rng_mbedtls_rng_callback, (void*) rng);
+#else
+		status = mbedtls_pk_sign ((mbedtls_pk_context*) key->context, hash_alg, digest, length,
+			signature, &sig_length, rng_mbedtls_rng_callback, (void*) rng);
+#endif
+#else
+		/* Cannot override the random number generation when deterministic ECDSA is enabled. */
+		status = ECC_ENGINE_UNSUPPORTED_OPERATION;
+#endif
+	}
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_PK_SIGN_EC, status, 0);
@@ -584,7 +550,7 @@ static int ecc_mbedtls_sign (struct ecc_engine *engine, const struct ecc_private
 	return (status == 0) ? (int) sig_length : status;
 }
 
-static int ecc_mbedtls_verify (struct ecc_engine *engine, const struct ecc_public_key *key,
+int ecc_mbedtls_verify (const struct ecc_engine *engine, const struct ecc_public_key *key,
 	const uint8_t *digest, size_t length, const uint8_t *signature, size_t sig_length)
 {
 	int status;
@@ -613,7 +579,7 @@ static int ecc_mbedtls_verify (struct ecc_engine *engine, const struct ecc_publi
 }
 
 #ifdef ECC_ENABLE_ECDH
-static int ecc_mbedtls_get_shared_secret_max_length (struct ecc_engine *engine,
+int ecc_mbedtls_get_shared_secret_max_length (const struct ecc_engine *engine,
 	const struct ecc_private_key *key)
 {
 	int status;
@@ -630,11 +596,11 @@ static int ecc_mbedtls_get_shared_secret_max_length (struct ecc_engine *engine,
 	return status;
 }
 
-static int ecc_mbedtls_compute_shared_secret (struct ecc_engine *engine,
+int ecc_mbedtls_compute_shared_secret (const struct ecc_engine *engine,
 	const struct ecc_private_key *priv_key, const struct ecc_public_key *pub_key, uint8_t *secret,
 	size_t length)
 {
-	struct ecc_engine_mbedtls *mbedtls = (struct ecc_engine_mbedtls*) engine;
+	const struct ecc_engine_mbedtls *mbedtls = (const struct ecc_engine_mbedtls*) engine;
 	mbedtls_ecp_keypair *priv_ec;
 	mbedtls_ecp_keypair *pub_ec;
 	mbedtls_mpi out;
@@ -657,9 +623,13 @@ static int ecc_mbedtls_compute_shared_secret (struct ecc_engine *engine,
 	priv_ec = ecc_mbedtls_get_ec_key_pair (priv_key);
 	pub_ec = ecc_mbedtls_get_ec_key_pair (pub_key);
 
+	/* There exists an mbedtls_ecdh_context that can be used to run this computation, but that would
+	 * require duplicating the public and private key information in that context.  It means
+	 * accessing private fields, but using the direct call (which is part of the public API) to
+	 * compute the shared secret avoids this extra memory usage. */
 	mbedtls_mpi_init (&out);
-	status = mbedtls_ecdh_compute_shared (&priv_ec->grp, &out, &pub_ec->Q, &priv_ec->d,
-		mbedtls_ctr_drbg_random, &mbedtls->ctr_drbg);
+	status = mbedtls_ecdh_compute_shared (&priv_ec->MBEDTLS_PRIVATE (grp), &out,
+		&pub_ec->MBEDTLS_PRIVATE (Q), &priv_ec->MBEDTLS_PRIVATE (d), mbedtls->f_rng, mbedtls->rng);
 	if (status != 0) {
 		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
 			CRYPTO_LOG_MSG_MBEDTLS_ECDH_COMPUTE_SHARED_SECRET_EC, status, 0);
@@ -689,31 +659,21 @@ error:
 /**
  * Initialize an instance for running ECC operations using mbedTLS.
  *
+ * Random number generation will be handled by an internally managed mbedTLS implementation of a
+ * software DRBG.
+ *
  * @param engine The ECC engine to initialize.
+ * @param state Variable context for the ECC engine.  This must be uninitialized.
  *
  * @return 0 if the engine was successfully initialized or an error code.
  */
-int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine)
+int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine, struct ecc_engine_mbedtls_state *state)
 {
-	int status;
-
-	if (engine == NULL) {
+	if ((engine == NULL) || (state == NULL)) {
 		return ECC_ENGINE_INVALID_ARGUMENT;
 	}
 
 	memset (engine, 0, sizeof (struct ecc_engine_mbedtls));
-
-	mbedtls_ctr_drbg_init (&engine->ctr_drbg);
-	mbedtls_entropy_init (&engine->entropy);
-
-	status = mbedtls_ctr_drbg_seed (&engine->ctr_drbg, mbedtls_entropy_func, &engine->entropy, NULL,
-		0);
-	if (status != 0) {
-		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
-			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
-
-		goto exit;
-	}
 
 	engine->base.init_key_pair = ecc_mbedtls_init_key_pair;
 	engine->base.init_public_key = ecc_mbedtls_init_public_key;
@@ -723,6 +683,7 @@ int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine)
 #endif
 	engine->base.release_key_pair = ecc_mbedtls_release_key_pair;
 	engine->base.get_signature_max_length = ecc_mbedtls_get_signature_max_length;
+	engine->base.get_signature_max_verify_length = ecc_mbedtls_get_signature_max_verify_length;
 #ifdef ECC_ENABLE_GENERATE_KEY_PAIR
 	engine->base.get_private_key_der = ecc_mbedtls_get_private_key_der;
 	engine->base.get_public_key_der = ecc_mbedtls_get_public_key_der;
@@ -734,11 +695,100 @@ int ecc_mbedtls_init (struct ecc_engine_mbedtls *engine)
 	engine->base.compute_shared_secret = ecc_mbedtls_compute_shared_secret;
 #endif
 
+	engine->state = state;
+	engine->rng = &state->ctr_drbg;
+	engine->f_rng = mbedtls_ctr_drbg_random;
+
+	return ecc_mbedtls_init_state (engine);
+}
+
+/**
+ * Initialize an instance for running ECC operations using mbedTLS.
+ *
+ * Random number generation will be handled by the provided RNG engine.
+ *
+ * @note There is no variable state when operating in this mode, so no state structure is required.
+ *
+ * @param engine The ECC engine to initialize.
+ * @param rng The source for random numbers during ECC operations.
+ *
+ * @return 0 if the engine was successfully initialized or an error code.
+ */
+int ecc_mbedtls_init_with_external_rng (struct ecc_engine_mbedtls *engine,
+	const struct rng_engine *rng)
+{
+	if ((engine == NULL) || (rng == NULL)) {
+		return ECC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine, 0, sizeof (struct ecc_engine_mbedtls));
+
+	engine->base.init_key_pair = ecc_mbedtls_init_key_pair;
+	engine->base.init_public_key = ecc_mbedtls_init_public_key;
+#ifdef ECC_ENABLE_GENERATE_KEY_PAIR
+	engine->base.generate_derived_key_pair = ecc_mbedtls_generate_derived_key_pair;
+	engine->base.generate_key_pair = ecc_mbedtls_generate_key_pair;
+#endif
+	engine->base.release_key_pair = ecc_mbedtls_release_key_pair;
+	engine->base.get_signature_max_length = ecc_mbedtls_get_signature_max_length;
+	engine->base.get_signature_max_verify_length = ecc_mbedtls_get_signature_max_verify_length;
+#ifdef ECC_ENABLE_GENERATE_KEY_PAIR
+	engine->base.get_private_key_der = ecc_mbedtls_get_private_key_der;
+	engine->base.get_public_key_der = ecc_mbedtls_get_public_key_der;
+#endif
+	engine->base.sign = ecc_mbedtls_sign;
+	engine->base.verify = ecc_mbedtls_verify;
+#ifdef ECC_ENABLE_ECDH
+	engine->base.get_shared_secret_max_length = ecc_mbedtls_get_shared_secret_max_length;
+	engine->base.compute_shared_secret = ecc_mbedtls_compute_shared_secret;
+#endif
+
+	engine->rng = (void*) rng;
+	engine->f_rng = rng_mbedtls_rng_callback;
+
+	return 0;
+}
+
+/**
+ * Initialize only the variable state of an mbedTLS ECC engine.  The rest of the instance is assumed
+ * to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @note Do not call this function for instances initialized to use an external source for random
+ * numbers.  There is no variable state to initialize in this case.
+ *
+ * @param engine The ECC engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int ecc_mbedtls_init_state (const struct ecc_engine_mbedtls *engine)
+{
+	int status;
+
+	if ((engine == NULL) || (engine->state == NULL)) {
+		return ECC_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	mbedtls_ctr_drbg_init (&engine->state->ctr_drbg);
+	mbedtls_entropy_init (&engine->state->entropy);
+
+	status = mbedtls_ctr_drbg_seed (&engine->state->ctr_drbg, mbedtls_entropy_func,
+		&engine->state->entropy, NULL, 0);
+	if (status != 0) {
+		debug_log_create_entry (DEBUG_LOG_SEVERITY_INFO, DEBUG_LOG_COMPONENT_CRYPTO,
+			CRYPTO_LOG_MSG_MBEDTLS_CTR_DRBG_SEED_EC, status, 0);
+
+		goto exit;
+	}
+
 	return 0;
 
 exit:
-	mbedtls_entropy_free (&engine->entropy);
-	mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+	mbedtls_entropy_free (&engine->state->entropy);
+	mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 
 	return status;
 }
@@ -748,10 +798,10 @@ exit:
  *
  * @param engine The ECC engine to release.
  */
-void ecc_mbedtls_release (struct ecc_engine_mbedtls *engine)
+void ecc_mbedtls_release (const struct ecc_engine_mbedtls *engine)
 {
-	if (engine) {
-		mbedtls_entropy_free (&engine->entropy);
-		mbedtls_ctr_drbg_free (&engine->ctr_drbg);
+	if ((engine != NULL) && (engine->state != NULL)) {
+		mbedtls_entropy_free (&engine->state->entropy);
+		mbedtls_ctr_drbg_free (&engine->state->ctr_drbg);
 	}
 }

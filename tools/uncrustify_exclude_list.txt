@@ -1,0 +1,6 @@
+// Exclude directories
+*/external/*
+*/projects/*
+*/cmake/*
+
+// Exclude files

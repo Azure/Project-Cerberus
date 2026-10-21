@@ -6,6 +6,7 @@
 #include <string.h>
 #include "testing.h"
 #include "asn1/asn1_util.h"
+#include "common/buffer_util.h"
 #include "system/device_unlock_token.h"
 #include "system/device_unlock_token_static.h"
 #include "testing/crypto/ecc_testing.h"
@@ -210,7 +211,7 @@ void device_unlock_token_testing_build_token (const uint8_t *oid, size_t oid_len
 	memcpy (pos, oid, oid_len);
 	pos += oid_len;
 
-	*(uint16_t*) pos = 1;
+	buffer_unaligned_write16 ((uint16_t*) pos, 1);
 	pos += 2;
 
 	memcpy (pos, uuid, DEVICE_UNLOCK_TOKEN_TESTING_UUID_LEN);
@@ -247,13 +248,13 @@ size_t device_unlock_token_testing_build_authorized_data (const uint8_t *token, 
 {
 	uint8_t *pos = auth_data;
 
-	*(uint16_t*) pos = token_len;
+	buffer_unaligned_write16 ((uint16_t*) pos, token_len);
 	pos += 2;
 
 	memcpy (pos, token, token_len);
 	pos += token_len;
 
-	*(uint16_t*) pos = policy_len;
+	buffer_unaligned_write16 ((uint16_t*) pos, policy_len);
 	pos += 2;
 
 	memcpy (pos, policy, policy_len);

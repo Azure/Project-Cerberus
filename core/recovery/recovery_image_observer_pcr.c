@@ -52,7 +52,7 @@ static void recovery_image_observer_pcr_on_recovery_image_deactivated (
  * @return 0 if the observer was successfully initialized or an error code.
  */
 int recovery_image_observer_pcr_init (struct recovery_image_observer_pcr *observer,
-	struct hash_engine *hash, struct pcr_store *store, uint16_t measurement_type)
+	const struct hash_engine *hash, struct pcr_store *store, uint16_t measurement_type)
 {
 	int status;
 

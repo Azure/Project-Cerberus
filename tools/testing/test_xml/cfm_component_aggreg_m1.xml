@@ -1,0 +1,56 @@
+<!--
+cfm_component_aggreg_m1.xml — Component1, Version Set 2
+Component1: unique==0 (first XML tag is <Measurement>).
+
+Layout:
+- pmr_id=0, measurement_id=1: 1 digest, DIFFERENT from ver1 → FORCED to regular_measurements.
+  Since digests differ from ver1, consolidate_identical_measurements will NOT consolidate.
+  cfm_measurement_element for measurement_id=1 will have TWO cfm_allowable_digest_elements
+  (version_set=1: AAAA..., version_set=2: FFFF...).
+- pmr_id=0, measurement_id=2: 1 digest (different from ver1) → temp_aggregatable.
+- pmr_id=0, measurement_id=3: 1 digest (different from ver1) → temp_aggregatable.
+  Together measurement_id=2 and measurement_id=3: total=2 >= 2 → AGGREGATED (version_set=2).
+  cfm_aggregated_measurement_element (mask=0x0C) receives TWO cfm_allowable_digest_elements:
+    version_set=1: (BBBB...||CCCC...)
+    version_set=2: (1111...||2222...)
+  CASE "MULTIPLE (2) DIGESTS IN DIGESTS_LIST".
+- pmr_id=0, measurement_id=4: 2 digests, DIFFERENT from ver1 → regular_measurements.
+  Digests differ → not consolidated; cfm_measurement_element receives TWO
+  cfm_allowable_digest_elements (version_set=1 and version_set=2).
+-->
+<CFMComponent type="Component1" attestation_protocol="Cerberus" slot_num="1" transcript_hash_type="SHA384" measurement_hash_type="SHA256">
+    <RootCADigest>
+        <Digest>
+            EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+        </Digest>
+        <Digest>
+            FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        </Digest>
+    </RootCADigest>
+    <!--
+    measurement_id=1: FORCED to regular_measurements (unique==0, first by insertion order).
+    Digest differs from ver1 → not consolidated → cfm_measurement_element has 2 allowable_digest_elements.
+    -->
+    <Measurement pmr_id="0" measurement_id="1">
+        <Digest>FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF</Digest>
+    </Measurement>
+    <!--
+    measurement_id=2 and measurement_id=3: different digests from ver1 → aggregated (version_set=2).
+    cfm_aggregated_measurement_element (mask=0x0C) gets second cfm_allowable_digest_element.
+    aggregated_hash (version_set=2) = (1111...||2222...).
+    -->
+    <Measurement pmr_id="0" measurement_id="2">
+        <Digest>1111111111111111111111111111111111111111111111111111111111111111</Digest>
+    </Measurement>
+    <Measurement pmr_id="0" measurement_id="3">
+        <Digest>2222222222222222222222222222222222222222222222222222222222222222</Digest>
+    </Measurement>
+    <!--
+    measurement_id=4: 2 digests, differ from ver1 → regular_measurements (version_set=2).
+    cfm_measurement_element receives second cfm_allowable_digest_element.
+    -->
+    <Measurement pmr_id="0" measurement_id="4">
+        <Digest>3333333333333333333333333333333333333333333333333333333333333333</Digest>
+        <Digest>4444444444444444444444444444444444444444444444444444444444444444</Digest>
+    </Measurement>
+</CFMComponent>

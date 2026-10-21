@@ -6,6 +6,7 @@
 
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 
@@ -128,6 +129,18 @@ struct ide_km_aes_256_gcm_key_buffer {
 	uint32_t key[IDE_AES_256_KEY_LENGTH_IN_DWORDS];	/**< 256-bit key. */
 	uint32_t iv[IDE_AES_256_IV_LENGTH_IN_DWORDS];	/**< 64-bit IV. */
 };
+
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (offsetof (struct ide_km_aes_256_gcm_key_buffer, key) == 0,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct ide_km_aes_256_gcm_key_buffer, iv) == 32,
+	"Unexpected struct member offset");
+_Static_assert (sizeof (struct ide_km_aes_256_gcm_key_buffer) == 40,
+	"Unexpected struct member offset");
 
 /**
  * IDE_KM KP_ACK format.

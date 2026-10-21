@@ -7,8 +7,8 @@
 #include "hash_mock.h"
 
 
-static int hash_mock_calculate_sha1 (struct hash_engine *engine, const uint8_t *data, size_t length,
-	uint8_t *hash, size_t hash_length)
+static int hash_mock_calculate_sha1 (const struct hash_engine *engine, const uint8_t *data,
+	size_t length, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -20,7 +20,7 @@ static int hash_mock_calculate_sha1 (struct hash_engine *engine, const uint8_t *
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
-static int hash_mock_start_sha1 (struct hash_engine *engine)
+static int hash_mock_start_sha1 (const struct hash_engine *engine)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -31,7 +31,7 @@ static int hash_mock_start_sha1 (struct hash_engine *engine)
 	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha1, engine);
 }
 
-static int hash_mock_calculate_sha256 (struct hash_engine *engine, const uint8_t *data,
+static int hash_mock_calculate_sha256 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
@@ -44,7 +44,7 @@ static int hash_mock_calculate_sha256 (struct hash_engine *engine, const uint8_t
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
-static int hash_mock_start_sha256 (struct hash_engine *engine)
+static int hash_mock_start_sha256 (const struct hash_engine *engine)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -55,7 +55,7 @@ static int hash_mock_start_sha256 (struct hash_engine *engine)
 	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha256, engine);
 }
 
-static int hash_mock_calculate_sha384 (struct hash_engine *engine, const uint8_t *data,
+static int hash_mock_calculate_sha384 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
@@ -68,7 +68,7 @@ static int hash_mock_calculate_sha384 (struct hash_engine *engine, const uint8_t
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
-static int hash_mock_start_sha384 (struct hash_engine *engine)
+static int hash_mock_start_sha384 (const struct hash_engine *engine)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -79,7 +79,7 @@ static int hash_mock_start_sha384 (struct hash_engine *engine)
 	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha384, engine);
 }
 
-static int hash_mock_calculate_sha512 (struct hash_engine *engine, const uint8_t *data,
+static int hash_mock_calculate_sha512 (const struct hash_engine *engine, const uint8_t *data,
 	size_t length, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
@@ -92,7 +92,7 @@ static int hash_mock_calculate_sha512 (struct hash_engine *engine, const uint8_t
 		MOCK_ARG_CALL (length), MOCK_ARG_PTR_CALL (hash), MOCK_ARG_CALL (hash_length));
 }
 
-static int hash_mock_start_sha512 (struct hash_engine *engine)
+static int hash_mock_start_sha512 (const struct hash_engine *engine)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -103,7 +103,18 @@ static int hash_mock_start_sha512 (struct hash_engine *engine)
 	MOCK_RETURN_NO_ARGS (&mock->mock, hash_mock_start_sha512, engine);
 }
 
-static int hash_mock_update (struct hash_engine *engine, const uint8_t *data, size_t length)
+static enum hash_type hash_mock_get_active_algorithm (const struct hash_engine *engine)
+{
+	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
+
+	if (mock == NULL) {
+		return HASH_TYPE_INVALID;
+	}
+
+	MOCK_RETURN_NO_ARGS_CAST (&mock->mock, enum hash_type, hash_mock_get_active_algorithm, engine);
+}
+
+static int hash_mock_update (const struct hash_engine *engine, const uint8_t *data, size_t length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -115,7 +126,7 @@ static int hash_mock_update (struct hash_engine *engine, const uint8_t *data, si
 		MOCK_ARG_CALL (length));
 }
 
-static int hash_mock_finish (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+static int hash_mock_finish (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -127,7 +138,7 @@ static int hash_mock_finish (struct hash_engine *engine, uint8_t *hash, size_t h
 		MOCK_ARG_CALL (hash_length));
 }
 
-static void hash_mock_cancel (struct hash_engine *engine)
+static void hash_mock_cancel (const struct hash_engine *engine)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -138,7 +149,7 @@ static void hash_mock_cancel (struct hash_engine *engine)
 	MOCK_VOID_RETURN_NO_ARGS (&mock->mock, hash_mock_cancel, engine);
 }
 
-static int hash_mock_get_hash (struct hash_engine *engine, uint8_t *hash, size_t hash_length)
+static int hash_mock_get_hash (const struct hash_engine *engine, uint8_t *hash, size_t hash_length)
 {
 	struct hash_engine_mock *mock = (struct hash_engine_mock*) engine;
 
@@ -190,6 +201,9 @@ static const char* hash_mock_func_name_map (void *func)
 	}
 	else if (func == hash_mock_start_sha512) {
 		return "start_sha512";
+	}
+	else if (func == hash_mock_get_active_algorithm) {
+		return "get_active_algorithm";
 	}
 	else if (func == hash_mock_update) {
 		return "update";
@@ -330,6 +344,7 @@ int hash_mock_init (struct hash_engine_mock *mock)
 	mock->base.calculate_sha512 = hash_mock_calculate_sha512;
 	mock->base.start_sha512 = hash_mock_start_sha512;
 #endif
+	mock->base.get_active_algorithm = hash_mock_get_active_algorithm;
 	mock->base.update = hash_mock_update;
 	mock->base.finish = hash_mock_finish;
 	mock->base.cancel = hash_mock_cancel;
@@ -368,6 +383,48 @@ int hash_mock_validate_and_release (struct hash_engine_mock *mock)
 	if (mock != NULL) {
 		status = mock_validate (&mock->mock);
 		hash_mock_release (mock);
+	}
+
+	return status;
+}
+
+/**
+ * Add expectations to start hash.
+ *
+ * @param mock The mock to use for the HMAC.
+ * @param hash_algo The hash algorithm to use for the HMAC.
+ *
+ * @return 0 if the expectations were added successfully or an error code.
+ */
+int hash_mock_expect_hash_start (struct hash_engine_mock *mock, enum hash_type hash_algo)
+{
+	int status;
+
+	switch (hash_algo) {
+#ifdef HASH_ENABLE_SHA1
+		case HASH_TYPE_SHA1:
+			status = mock_expect (&mock->mock, mock->base.start_sha1, mock, 0);
+			break;
+#endif
+
+		case HASH_TYPE_SHA256:
+			status = mock_expect (&mock->mock, mock->base.start_sha256, mock, 0);
+			break;
+
+#ifdef HASH_ENABLE_SHA384
+		case HASH_TYPE_SHA384:
+			status = mock_expect (&mock->mock, mock->base.start_sha384, mock, 0);
+			break;
+#endif
+
+#ifdef HASH_ENABLE_SHA512
+		case HASH_TYPE_SHA512:
+			status = mock_expect (&mock->mock, mock->base.start_sha512, mock, 0);
+			break;
+#endif
+
+		default:
+			return HASH_ENGINE_UNKNOWN_HASH;
 	}
 
 	return status;

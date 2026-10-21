@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "signature_verification_ecc.h"
+#include "asn1/ecc_der_util.h"
 
 
 int signature_verification_ecc_verify_signature (const struct signature_verification *verification,
@@ -30,6 +31,32 @@ int signature_verification_ecc_verify_signature (const struct signature_verifica
 	else {
 		return status;
 	}
+}
+
+int signature_verification_ecc_get_max_signature_length (
+	const struct signature_verification *verification, size_t *max_length)
+{
+	const struct signature_verification_ecc *ecdsa =
+		(const struct signature_verification_ecc*) verification;
+	int status;
+
+	if ((ecdsa == NULL) || (max_length == NULL)) {
+		return SIG_VERIFICATION_INVALID_ARGUMENT;
+	}
+
+	if (ecdsa->state->key_valid) {
+		status = ecdsa->ecc->get_signature_max_verify_length (ecdsa->ecc, &ecdsa->state->key);
+	}
+	else {
+		status = ECC_DER_ECDSA_MAX_LENGTH;
+	}
+
+	if (!ROT_IS_ERROR (status)) {
+		*max_length = status;
+		status = 0;
+	}
+
+	return status;
 }
 
 /**
@@ -71,8 +98,12 @@ int signature_verification_ecc_set_verification_key (
 		(const struct signature_verification_ecc*) verification;
 	int status = 0;
 
-	if ((ecdsa == NULL) || ((key != NULL) && (length == 0))) {
+	if (ecdsa == NULL) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
+	}
+
+	if ((key != NULL) && (length == 0)) {
+		return SIG_VERIFICATION_INCONSISTENT_KEY;
 	}
 
 	if (ecdsa->state->key_valid) {
@@ -124,8 +155,8 @@ int signature_verification_ecc_is_key_valid (const struct signature_verification
  * @return 0 if the verification instance was successfully initialized or an error code.
  */
 int signature_verification_ecc_init (struct signature_verification_ecc *verification,
-	struct signature_verification_ecc_state *state, struct ecc_engine *ecc, const uint8_t *key,
-	size_t length)
+	struct signature_verification_ecc_state *state, const struct ecc_engine *ecc,
+	const uint8_t *key,	size_t length)
 {
 	int status;
 
@@ -151,7 +182,7 @@ int signature_verification_ecc_init (struct signature_verification_ecc *verifica
  * SIG_VERIFICATION_INVALID_ARGUMENT if there are null parameters.
  */
 int signature_verification_ecc_init_api (struct signature_verification_ecc *verification,
-	struct signature_verification_ecc_state *state, struct ecc_engine *ecc)
+	struct signature_verification_ecc_state *state, const struct ecc_engine *ecc)
 {
 	if ((verification == NULL) || (state == NULL) || (ecc == NULL)) {
 		return SIG_VERIFICATION_INVALID_ARGUMENT;
@@ -160,6 +191,8 @@ int signature_verification_ecc_init_api (struct signature_verification_ecc *veri
 	memset (verification, 0, sizeof (struct signature_verification_ecc));
 
 	verification->base.verify_signature = signature_verification_ecc_verify_signature;
+	verification->base.get_max_signature_length =
+		signature_verification_ecc_get_max_signature_length;
 	verification->base.set_verification_key = signature_verification_ecc_set_verification_key;
 	verification->base.is_key_valid = signature_verification_ecc_is_key_valid;
 

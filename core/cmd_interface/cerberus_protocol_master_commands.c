@@ -9,11 +9,16 @@
 #include "cerberus_protocol_master_commands.h"
 #include "cerberus_protocol_optional_commands.h"
 #include "cerberus_protocol_required_commands.h"
+#include "common/buffer_util.h"
 #include "common/certificate.h"
 #include "common/common_math.h"
 #include "common/unused.h"
+#include "manifest/cfm/cfm_flash.h"
 #include "manifest/cfm/cfm_manager.h"
+#include "manifest/pcd/pcd_flash.h"
 #include "manifest/pcd/pcd_manager.h"
+#include "manifest/pfm/pfm_flash.h"
+#include "manifest/pfm/pfm_manager.h"
 
 
 /**
@@ -26,7 +31,7 @@
  * @return 0 if the operation was successful or an error code.
  */
 int cerberus_protocol_get_curr_cfm (const struct cfm_manager *manager, uint8_t region,
-	struct cfm **cfm)
+	const struct cfm **cfm)
 {
 	if (manager == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_COMMAND;
@@ -51,7 +56,7 @@ int cerberus_protocol_get_curr_cfm (const struct cfm_manager *manager, uint8_t r
  * @param manager The cfm manager releasing the cfm.
  * @param cfm The cfm to release.
  */
-static void cerberus_protocol_free_cfm (const struct cfm_manager *manager, struct cfm *cfm)
+static void cerberus_protocol_free_cfm (const struct cfm_manager *manager, const struct cfm *cfm)
 {
 	if (manager != NULL) {
 		manager->free_cfm (manager, cfm);
@@ -64,7 +69,7 @@ static void cerberus_protocol_free_cfm (const struct cfm_manager *manager, struc
  * @param manager The PCD manager releasing the PCD.
  * @param pcd The PCD to release.
  */
-static void cerberus_protocol_free_pcd (const struct pcd_manager *manager, struct pcd *pcd)
+static void cerberus_protocol_free_pcd (const struct pcd_manager *manager, const struct pcd *pcd)
 {
 	if (manager != NULL) {
 		manager->free_pcd (manager, pcd);
@@ -217,7 +222,7 @@ int cerberus_protocol_generate_get_certificate_request (uint8_t slot_num, uint8_
  * @return Length of the generated request data if the request was successfully constructed or
  * an error code.
  */
-int cerberus_protocol_generate_challenge_request (struct rng_engine *rng, uint8_t eid,
+int cerberus_protocol_generate_challenge_request (const struct rng_engine *rng, uint8_t eid,
 	uint8_t slot_num, uint8_t *buf, size_t buf_len)
 {
 	struct cerberus_protocol_challenge *rq = (struct cerberus_protocol_challenge*) buf;
@@ -329,8 +334,8 @@ static int cerberus_protocol_manifest_update_complete (
 	struct cerberus_protocol_complete_cfm_update *rq =
 		(struct cerberus_protocol_complete_cfm_update*) request->data;
 
-	if (request->length !=
-		(sizeof (struct cerberus_protocol_complete_pcd_update) + delayed_activation_allowed)) {
+	if (delayed_activation_allowed &&
+		(request->length != sizeof (struct cerberus_protocol_complete_cfm_update))) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
@@ -397,20 +402,22 @@ int cerberus_protocol_cfm_update_complete (const struct manifest_cmd_interface *
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
+int cerberus_protocol_get_manifest_id_version (const struct manifest *manifest,
 	struct cmd_interface_msg *request)
 {
 	/* Just use the CFM structures since they are the same for all manifests. */
 	struct cerberus_protocol_get_cfm_id_version_response *rsp =
 		(struct cerberus_protocol_get_cfm_id_version_response*) request->data;
+	uint32_t version;
 	int status = 0;
 
 	if (manifest != NULL) {
-		status = manifest->get_id (manifest, &rsp->version);
+		status = manifest->get_id (manifest, &version);
 		if (status != 0) {
 			return status;
 		}
 
+		rsp->version = version;
 		rsp->valid = 1;
 	}
 	else {
@@ -431,7 +438,7 @@ int cerberus_protocol_get_manifest_id_version (struct manifest *manifest,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
+int cerberus_protocol_get_manifest_id_platform (const struct manifest *manifest,
 	struct cmd_interface_msg *request)
 {
 	/* Just use the CFM structures since the same same for all manifests. */
@@ -470,9 +477,12 @@ int cerberus_protocol_get_manifest_id_platform (struct manifest *manifest,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_cfm_id_version (struct cfm *cfm, struct cmd_interface_msg *request)
+static int cerberus_protocol_get_cfm_id_version (const struct cfm *cfm,
+	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_version (&cfm->base, request);
+	const struct manifest *manifest = (cfm != NULL) ? &cfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_version (manifest, request);
 }
 
 /**
@@ -483,10 +493,12 @@ static int cerberus_protocol_get_cfm_id_version (struct cfm *cfm, struct cmd_int
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_cfm_id_platform (struct cfm *cfm,
+static int cerberus_protocol_get_cfm_id_platform (const struct cfm *cfm,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_platform (&cfm->base, request);
+	const struct manifest *manifest = (cfm != NULL) ? &cfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_platform (manifest, request);
 }
 
 /**
@@ -501,7 +513,7 @@ int cerberus_protocol_get_cfm_id (const struct cfm_manager *cfm_mgr,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_cfm_id *rq = (struct cerberus_protocol_get_cfm_id*) request->data;
-	struct cfm *curr_cfm = NULL;
+	const struct cfm *curr_cfm = NULL;
 	int status = 0;
 	int id;
 
@@ -551,7 +563,8 @@ int cerberus_protocol_get_cfm_component_ids (const struct cfm_manager *cfm_mgr,
 		(struct cerberus_protocol_get_cfm_component_ids*) request->data;
 	struct cerberus_protocol_get_cfm_component_ids_response *rsp =
 		(struct cerberus_protocol_get_cfm_component_ids_response*) request->data;
-	struct cfm *curr_cfm = NULL;
+	const struct cfm *curr_cfm = NULL;
+	uint32_t cfm_id;
 	uint32_t offset;
 	size_t length;
 	int status = 0;
@@ -577,10 +590,12 @@ int cerberus_protocol_get_cfm_component_ids (const struct cfm_manager *cfm_mgr,
 		offset = rq->offset;
 		rsp->valid = 1;
 
-		status = curr_cfm->base.get_id (&curr_cfm->base, &rsp->version);
+		status = curr_cfm->base.get_id (&curr_cfm->base, &cfm_id);
 		if (status != 0) {
 			goto exit;
 		}
+
+		rsp->version = cfm_id;
 
 		length = CERBERUS_PROTOCOL_MAX_COMPONENT_IDS (request);
 
@@ -645,7 +660,20 @@ int cerberus_protocol_pcd_update (const struct manifest_cmd_interface *pcd_inter
 int cerberus_protocol_pcd_update_complete (const struct manifest_cmd_interface *pcd_interface,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_manifest_update_complete (pcd_interface, request, false);
+	bool delayed_activation_allowed;
+
+	if (request->length == sizeof (struct cerberus_protocol_complete_pcd_update)) {
+		delayed_activation_allowed = true;
+	}
+	else if (request->length == CERBERUS_PROTOCOL_COMPLETE_PCD_UPDATE_MIN_LENGTH) {
+		delayed_activation_allowed = false;
+	}
+	else {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	return cerberus_protocol_manifest_update_complete (pcd_interface, request,
+		delayed_activation_allowed);
 }
 
 /**
@@ -656,10 +684,12 @@ int cerberus_protocol_pcd_update_complete (const struct manifest_cmd_interface *
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pcd_platform_id (struct pcd *pcd,
+static int cerberus_protocol_get_pcd_platform_id (const struct pcd *pcd,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_platform (&pcd->base, request);
+	const struct manifest *manifest = (pcd != NULL) ? &pcd->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_platform (manifest, request);
 }
 
 /**
@@ -670,9 +700,12 @@ static int cerberus_protocol_get_pcd_platform_id (struct pcd *pcd,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pcd_version_id (struct pcd *pcd, struct cmd_interface_msg *request)
+static int cerberus_protocol_get_pcd_version_id (const struct pcd *pcd,
+	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_version (&pcd->base, request);
+	const struct manifest *manifest = (pcd != NULL) ? &pcd->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_version (manifest, request);
 }
 
 /**
@@ -687,7 +720,7 @@ int cerberus_protocol_get_pcd_id (const struct pcd_manager *pcd_mgr,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pcd_id *rq = (struct cerberus_protocol_get_pcd_id*) request->data;
-	struct pcd *curr_pcd = NULL;
+	const struct pcd *curr_pcd = NULL;
 	int status;
 
 	if (request->length == (sizeof (struct cerberus_protocol_get_pcd_id) - sizeof (rq->id))) {
@@ -734,7 +767,8 @@ int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
 		(struct cerberus_protocol_get_pcd_component_ids*) request->data;
 	struct cerberus_protocol_get_pcd_component_ids_response *rsp =
 		(struct cerberus_protocol_get_pcd_component_ids_response*) request->data;
-	struct pcd *curr_pcd = NULL;
+	const struct pcd *curr_pcd = NULL;
+	uint32_t pcd_id;
 	uint32_t offset;
 	size_t length;
 	int status = 0;
@@ -757,10 +791,12 @@ int cerberus_protocol_get_pcd_component_ids (const struct pcd_manager *pcd_mgr,
 		offset = rq->offset;
 		rsp->valid = 1;
 
-		status = curr_pcd->base.get_id (&curr_pcd->base, &rsp->version);
+		status = curr_pcd->base.get_id (&curr_pcd->base, &pcd_id);
 		if (status != 0) {
 			goto exit;
 		}
+
+		rsp->version = pcd_id;
 
 		length = CERBERUS_PROTOCOL_MAX_PCD_COMPONENT_IDS (request);
 
@@ -785,6 +821,53 @@ exit:
 	cerberus_protocol_free_pcd (pcd_mgr, curr_pcd);
 
 	return status;
+}
+
+/**
+ * Process PCD component instance info request
+ *
+ * @param pcd_mgr Device manager instance to utilize
+ * @param request PCD component instance info request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_pcd_component_instance_info (struct device_manager *dev_mgr,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_pcd_component_instance_info *rq =
+		(struct cerberus_protocol_get_pcd_component_instance_info*) request->data;
+	struct cerberus_protocol_get_pcd_component_instance_info_response *rsp =
+		(struct cerberus_protocol_get_pcd_component_instance_info_response*) request->data;
+	struct device_manager_instance_info *instance_info;
+	uint32_t component_id;
+	size_t length;
+	int count;
+
+	if ((dev_mgr == NULL) || (request == NULL)) {
+		return CMD_HANDLER_INVALID_ARGUMENT;
+	}
+
+	if (request->length != sizeof (struct cerberus_protocol_get_pcd_component_instance_info)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	component_id = rq->component_id;
+	length = cerberus_protocol_max_pcd_component_instance_info (request);
+	instance_info = (struct device_manager_instance_info*)
+		cerberus_protocol_pcd_component_instance_info (rsp);
+	count = device_manager_get_instance_info_by_component_id (dev_mgr, component_id, instance_info,
+		length);
+
+	if (ROT_IS_ERROR (count)) {
+		return count;
+	}
+
+	rsp->count = count;
+	cmd_interface_msg_set_message_payload_length (request,
+		cerberus_protocol_get_pcd_component_instance_info_response_length ((rsp->count) *
+		(sizeof (struct device_manager_instance_info))));
+
+	return 0;
 }
 
 /**
@@ -816,7 +899,7 @@ int cerberus_protocol_get_fw_update_status (const struct firmware_update_control
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_update_status (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_get_pfm_update_status (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_update_status *rq =
@@ -897,13 +980,15 @@ int cerberus_protocol_get_pcd_update_status (const struct manifest_cmd_interface
  *
  * @return Response length if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_host_next_verification_status (struct host_processor *host[],
-	uint8_t num_ports, struct cmd_interface_msg *request)
+int cerberus_protocol_get_host_next_verification_status (
+	const struct host_cmd_interface *const host[], uint8_t num_ports,
+	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_update_status *rq =
 		(struct cerberus_protocol_update_status*) request->data;
 	struct cerberus_protocol_update_status_response *rsp =
 		(struct cerberus_protocol_update_status_response*) request->data;
+	enum host_processor_reset_actions action;
 	int status;
 
 	if (rq->port_id >= num_ports) {
@@ -914,12 +999,12 @@ int cerberus_protocol_get_host_next_verification_status (struct host_processor *
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
 	}
 
-	status = host[rq->port_id]->get_next_reset_verification_actions (host[rq->port_id]);
-	if (ROT_IS_ERROR (status)) {
+	status = host[rq->port_id]->get_next_host_verification (host[rq->port_id], &action);
+	if (status != 0) {
 		return status;
 	}
 
-	rsp->update_status = (uint32_t) status;
+	rsp->update_status = (uint32_t) action;
 
 	return 0;
 }
@@ -986,6 +1071,36 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
 }
 
 /**
+ * Process a request for host verification actions on reset.
+ *
+ * @param host List of host processors for all available ports
+ * @param num_ports Number of available ports
+ * @param request Host verification actions request to process
+ *
+ * @return Response length if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_host_flash_config_status (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_update_status *rq =
+		(struct cerberus_protocol_update_status*) request->data;
+	struct cerberus_protocol_update_status_response *rsp =
+		(struct cerberus_protocol_update_status_response*) request->data;
+
+	if (rq->port_id >= num_ports) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((host == NULL) || (host[rq->port_id] == NULL)) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	rsp->update_status = host[rq->port_id]->get_status (host[rq->port_id]);
+
+	return 0;
+}
+
+/**
  * Process update status request
  *
  * @param control Firmware update control instance to query
@@ -1002,9 +1117,10 @@ int cerberus_protocol_get_reset_config_status (const struct cmd_background *back
  * @return 0 if request processing completed successfully or an error code.
  */
 int cerberus_protocol_get_update_status (const struct firmware_update_control *control,
-	uint8_t num_ports, const struct manifest_cmd_interface *pfm_cmd[],
+	uint8_t num_ports, const struct manifest_cmd_interface *const pfm_cmd[],
 	const struct manifest_cmd_interface *cfm, const struct manifest_cmd_interface *pcd,
-	struct host_processor *host[], const struct recovery_image_cmd_interface *recovery_0,
+	const struct host_cmd_interface *const host[],
+	const struct recovery_image_cmd_interface *recovery_0,
 	const struct recovery_image_cmd_interface *recovery_1, const struct cmd_background *background,
 	struct cmd_interface_msg *request)
 {
@@ -1046,6 +1162,10 @@ int cerberus_protocol_get_update_status (const struct firmware_update_control *c
 
 		case CERBERUS_PROTOCOL_CONFIG_RESET_STATUS:
 			status = cerberus_protocol_get_reset_config_status (background, rsp);
+			break;
+
+		case CERBERUS_PROTOCOL_HOST_FLASH_CONFIG_STATUS:
+			status = cerberus_protocol_get_host_flash_config_status (host, num_ports, request);
 			break;
 
 		default:
@@ -1145,6 +1265,8 @@ int cerberus_protocol_get_extended_update_status (const struct firmware_update_c
 	struct cerberus_protocol_extended_update_status_response *rsp =
 		(struct cerberus_protocol_extended_update_status_response*) request->data;
 	int status;
+	uint32_t update_status = 0;
+	uint32_t remaining_len = 0;
 
 	if (request->length != sizeof (struct cerberus_protocol_extended_update_status)) {
 		return CMD_HANDLER_BAD_LENGTH;
@@ -1158,8 +1280,13 @@ int cerberus_protocol_get_extended_update_status (const struct firmware_update_c
 		case CERBERUS_PROTOCOL_RECOVERY_IMAGE_UPDATE_STATUS:
 			status =
 				cerberus_protocol_get_extended_recovery_image_update_status (recovery_manager_0,
-				recovery_manager_1, recovery_cmd_0, recovery_cmd_1, rq->port_id,
-				&rsp->update_status, &rsp->remaining_len);
+				recovery_manager_1, recovery_cmd_0, recovery_cmd_1, rq->port_id, &update_status,
+				&remaining_len);
+
+			// these bounce variables are needed because rsp is packed structure, and referencing
+			// it's members directly may produce unaligned pointers
+			rsp->update_status = update_status;
+			rsp->remaining_len = remaining_len;
 			break;
 
 		default:
@@ -1280,4 +1407,402 @@ int cerberus_protocol_process_device_capabilities_response (struct device_manage
 	}
 
 	return device_manager_update_device_capabilities (device_mgr, device_num, &rsp->capabilities);
+}
+
+/**
+ * Process a force attestation command.
+ *
+ * @param attestation Attestation requester instance to utilize
+ * @param request The force attestation request to process
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int cerberus_protocol_force_attestation (struct attestation_requester *attestation,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_force_attestation *req =
+		(struct cerberus_protocol_force_attestation*) request->data;
+	size_t data_length;
+	int status = 0;
+
+	if (attestation == NULL) {
+		return CMD_HANDLER_INVALID_ARGUMENT;
+	}
+
+	data_length = request->length - sizeof (struct cerberus_protocol_header);
+
+	if (data_length < sizeof (uint8_t)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if (req->data.mode > DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	switch (req->data.mode) {
+		case DEVICE_MANAGER_FORCE_ATTESTATION_DEVICE_IDS:
+			if (data_length !=
+				(sizeof (uint8_t) + sizeof (struct device_manager_device_ids_target))) {
+				return CMD_HANDLER_BAD_LENGTH;
+			}
+			break;
+
+		case DEVICE_MANAGER_FORCE_ATTESTATION_COMPONENT_ID:
+			if (data_length !=
+				(sizeof (uint8_t) + sizeof (struct device_manager_component_target))) {
+				return CMD_HANDLER_BAD_LENGTH;
+			}
+			break;
+
+		default:
+			if (data_length != (sizeof (uint8_t))) {
+				return CMD_HANDLER_BAD_LENGTH;
+			}
+			break;
+	}
+
+	status = device_manager_set_force_action (attestation->device_mgr, &req->data, data_length,
+		DEVICE_MANAGER_FORCE_ACTION_FORCE_ATTESTATION);
+	if (status != 0) {
+		return status;
+	}
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_force_attestation_response));
+
+	platform_semaphore_post (&attestation->state->next_action);
+
+	return status;
+}
+
+/**
+ * Process a force attestation info command.
+ *
+ * @param attestation Attestation requester instance to utilize
+ * @param request The force attestation info request to process
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int cerberus_protocol_force_attestation_info (struct attestation_requester *attestation,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_force_attestation_info_response *response;
+	uint32_t current_action_id;
+	int action_state;
+
+	if (attestation == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_COMMAND;
+	}
+
+	response = (struct cerberus_protocol_force_attestation_info_response*) request->data;
+
+	if (request->length != sizeof (struct cerberus_protocol_header)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	/* Query the force attestation status */
+	action_state = device_manager_get_force_action_state (attestation->device_mgr,
+		&current_action_id);
+
+	if (ROT_IS_ERROR (action_state)) {
+		return action_state;
+	}
+
+	response->status = (uint8_t) action_state;
+
+	/* Use buffer_unaligned_write32 because response points into a uint8_t message buffer
+	 * and the packed struct field may not be naturally aligned for a 32-bit access. */
+	buffer_unaligned_write32 (&response->action_id, current_action_id);
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_force_attestation_info_response));
+
+	return 0;
+}
+
+/**
+ * Context for a manifest reference acquired by cerberus_protocol_get_manifest_flash.
+ */
+struct cerberus_protocol_manifest_ref {
+	const struct manifest_flash *flash;
+	const struct cfm *cfm;
+	const struct pcd *pcd;
+	const struct pfm *pfm;
+};
+
+
+/**
+ * Acquire a manifest flash reference based on manifest type, region, and port.
+ *
+ * @param cfm_mgr CFM manager
+ * @param pcd_mgr PCD manager
+ * @param pfm_mgr Array of PFM managers for all available ports
+ * @param num_pfm_managers Number of PFM managers
+ * @param manifest_type The manifest type identifier
+ * @param region The manifest region (0=active, 1=pending)
+ * @param port The port identifier for PFM manifests
+ * @param ref Output context for the acquired manifest reference. Must be released with
+ *  cerberus_protocol_free_manifest when done.
+ *
+ * @return 0 if successful or an error code.
+ */
+static int cerberus_protocol_get_manifest_flash (const struct cfm_manager *cfm_mgr,
+	const struct pcd_manager *pcd_mgr, const struct pfm_manager *const pfm_mgr[],
+	uint8_t num_pfm_managers, uint8_t manifest_type, uint8_t region, uint8_t port,
+	struct cerberus_protocol_manifest_ref *ref)
+{
+	memset (ref, 0, sizeof (struct cerberus_protocol_manifest_ref));
+
+	switch (manifest_type) {
+		case CERBERUS_PROTOCOL_MANIFEST_CFM:
+			if (cfm_mgr == NULL) {
+				return CMD_HANDLER_UNSUPPORTED_COMMAND;
+			}
+
+			ref->cfm = (region ==
+				0) ? cfm_mgr->get_active_cfm (cfm_mgr) : cfm_mgr->get_pending_cfm (cfm_mgr);
+			if (ref->cfm == NULL) {
+				return (region == 0) ?
+						   MANIFEST_MANAGER_NO_ACTIVE_MANIFEST : MANIFEST_MANAGER_NONE_PENDING;
+			}
+
+			ref->flash = &((const struct cfm_flash*) ref->cfm)->base_flash;
+			break;
+
+		case CERBERUS_PROTOCOL_MANIFEST_PCD:
+			if (pcd_mgr == NULL) {
+				return CMD_HANDLER_UNSUPPORTED_COMMAND;
+			}
+
+			ref->pcd = (region ==
+				0) ? pcd_mgr->get_active_pcd (pcd_mgr) : pcd_mgr->get_pending_pcd (pcd_mgr);
+			if (ref->pcd == NULL) {
+				return (region == 0) ?
+						   MANIFEST_MANAGER_NO_ACTIVE_MANIFEST : MANIFEST_MANAGER_NONE_PENDING;
+			}
+
+			ref->flash = &((const struct pcd_flash*) ref->pcd)->base_flash;
+			break;
+
+		case CERBERUS_PROTOCOL_MANIFEST_PFM:
+			if ((pfm_mgr == NULL) || (num_pfm_managers == 0)) {
+				return CMD_HANDLER_UNSUPPORTED_COMMAND;
+			}
+
+			if (port >= num_pfm_managers) {
+				return CMD_HANDLER_OUT_OF_RANGE;
+			}
+
+			if (pfm_mgr[port] == NULL) {
+				return CMD_HANDLER_UNSUPPORTED_INDEX;
+			}
+
+			ref->pfm = (region ==
+				0) ? pfm_mgr[port]->get_active_pfm (pfm_mgr[port]) :
+					pfm_mgr[port]->get_pending_pfm (pfm_mgr[port]);
+			if (ref->pfm == NULL) {
+				return (region == 0) ?
+						   MANIFEST_MANAGER_NO_ACTIVE_MANIFEST : MANIFEST_MANAGER_NONE_PENDING;
+			}
+
+			ref->flash = &((const struct pfm_flash*) ref->pfm)->base_flash;
+			break;
+
+		default:
+			return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	return 0;
+}
+
+/**
+ * Release a manifest reference acquired by cerberus_protocol_get_manifest_flash.
+ *
+ * @param cfm_mgr CFM manager
+ * @param pcd_mgr PCD manager
+ * @param pfm_mgr Array of PFM managers for all available ports
+ * @param port The port identifier used for PFM manifests
+ * @param ref The manifest reference context to release
+ */
+static void cerberus_protocol_free_manifest (const struct cfm_manager *cfm_mgr,
+	const struct pcd_manager *pcd_mgr, const struct pfm_manager *const pfm_mgr[], uint8_t port,
+	const struct cerberus_protocol_manifest_ref *ref)
+{
+	if (ref->cfm != NULL) {
+		cfm_mgr->free_cfm (cfm_mgr, ref->cfm);
+	}
+	else if (ref->pcd != NULL) {
+		pcd_mgr->free_pcd (pcd_mgr, ref->pcd);
+	}
+	else if (ref->pfm != NULL) {
+		pfm_mgr[port]->free_pfm (pfm_mgr[port], ref->pfm);
+	}
+}
+
+/**
+ * Process a get manifest size command.
+ *
+ * @param cfm_mgr CFM manager
+ * @param pcd_mgr PCD manager
+ * @param pfm_mgr Array of PFM managers for all available ports
+ * @param num_pfm_managers Number of PFM managers
+ * @param request The get manifest size request to process
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int cerberus_protocol_get_manifest_size (const struct cfm_manager *cfm_mgr,
+	const struct pcd_manager *pcd_mgr, const struct pfm_manager *const pfm_mgr[],
+	uint8_t num_pfm_managers, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_manifest_size *req =
+		(struct cerberus_protocol_get_manifest_size*) request->data;
+	struct cerberus_protocol_get_manifest_size_response *rsp =
+		(struct cerberus_protocol_get_manifest_size_response*) request->data;
+	struct cerberus_protocol_manifest_ref ref = {0};
+	uint8_t manifest_type;
+	uint8_t region;
+	uint8_t port;
+	uint32_t manifest_id;
+	int manifest_size;
+	int status;
+
+	if (request->length != sizeof (struct cerberus_protocol_get_manifest_size)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	manifest_type = req->manifest_type;
+	region = req->region;
+	port = req->port;
+
+	status = cerberus_protocol_get_manifest_flash (cfm_mgr, pcd_mgr, pfm_mgr, num_pfm_managers,
+		manifest_type, region, port, &ref);
+	if (status != 0) {
+		return status;
+	}
+
+	/* Get the manifest ID */
+	status = manifest_flash_get_id (ref.flash, &manifest_id);
+	if (status != 0) {
+		goto release_manifest;
+	}
+
+	/* Get the manifest size */
+	manifest_size = manifest_flash_get_size (ref.flash);
+	if (ROT_IS_ERROR (manifest_size)) {
+		status = manifest_size;
+		goto release_manifest;
+	}
+
+	if (manifest_size > UINT16_MAX) {
+		status = CMD_HANDLER_OUT_OF_RANGE;
+		goto release_manifest;
+	}
+
+	rsp->manifest_id = manifest_id;
+	rsp->manifest_size = (uint16_t) manifest_size;
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_get_manifest_size_response));
+
+release_manifest:
+	cerberus_protocol_free_manifest (cfm_mgr, pcd_mgr, pfm_mgr, port, &ref);
+
+	return status;
+}
+
+/**
+ * Process a manifest extract command.
+ *
+ * @param cfm_mgr CFM manager
+ * @param pcd_mgr PCD manager
+ * @param pfm_mgr Array of PFM managers for all available ports
+ * @param num_pfm_managers Number of PFM managers
+ * @param request The manifest extract request to process
+ *
+ * @return Completion status, 0 if success or an error code.
+ */
+int cerberus_protocol_export_manifest (const struct cfm_manager *cfm_mgr,
+	const struct pcd_manager *pcd_mgr, const struct pfm_manager *const pfm_mgr[],
+	uint8_t num_pfm_managers, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_export_manifest *req =
+		(struct cerberus_protocol_export_manifest*) request->data;
+	struct cerberus_protocol_export_manifest_response *rsp =
+		(struct cerberus_protocol_export_manifest_response*) request->data;
+	struct cerberus_protocol_manifest_ref ref = {0};
+	uint8_t manifest_type;
+	uint8_t region;
+	uint8_t port;
+	uint16_t offset;
+	uint32_t manifest_id;
+	uint32_t bytes_to_read;
+	size_t rsp_overhead;
+	size_t max_payload;
+	int manifest_size;
+	int status;
+
+	if (request->length != sizeof (struct cerberus_protocol_export_manifest)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	manifest_type = req->manifest_type;
+	region = req->region;
+	port = req->port;
+	offset = req->offset;
+
+	status = cerberus_protocol_get_manifest_flash (cfm_mgr, pcd_mgr, pfm_mgr, num_pfm_managers,
+		manifest_type, region, port, &ref);
+	if (status != 0) {
+		return status;
+	}
+
+	/* Get the manifest ID */
+	status = manifest_flash_get_id (ref.flash, &manifest_id);
+	if (status != 0) {
+		goto release_manifest;
+	}
+
+	/* Get the manifest size */
+	manifest_size = manifest_flash_get_size (ref.flash);
+	if (ROT_IS_ERROR (manifest_size)) {
+		status = manifest_size;
+		goto release_manifest;
+	}
+
+	if (manifest_size > UINT16_MAX) {
+		status = CMD_HANDLER_OUT_OF_RANGE;
+		goto release_manifest;
+	}
+
+	if (offset >= manifest_size) {
+		status = CMD_HANDLER_OUT_OF_RANGE;
+		goto release_manifest;
+	}
+
+	rsp_overhead = sizeof (struct cerberus_protocol_export_manifest_response);
+	if (request->max_response <= rsp_overhead) {
+		status = CMD_HANDLER_BUF_TOO_SMALL;
+		goto release_manifest;
+	}
+
+	max_payload = request->max_response - rsp_overhead;
+
+	bytes_to_read = (uint32_t) manifest_size - offset;
+	if (bytes_to_read > max_payload) {
+		bytes_to_read = max_payload;
+	}
+
+	status = ref.flash->flash->read (ref.flash->flash, ref.flash->addr + offset, rsp->data,
+		bytes_to_read);
+	if (status != 0) {
+		goto release_manifest;
+	}
+
+	rsp->manifest_id = manifest_id;
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_export_manifest_response) + bytes_to_read);
+
+release_manifest:
+	cerberus_protocol_free_manifest (cfm_mgr, pcd_mgr, pfm_mgr, port, &ref);
+
+	return status;
 }

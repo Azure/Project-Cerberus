@@ -98,7 +98,7 @@ struct ecc_der_public_key {
 /* Max length of ASN.1/DER encoded ECDSA signatures. */
 #define	ECC_DER_P256_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_256 * 2) + (8))
 #define	ECC_DER_P384_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_384 * 2) + (8))
-#define	ECC_DER_P521_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_521 * 2) + (9))
+#define	ECC_DER_P521_ECDSA_MAX_LENGTH			((ECC_KEY_LENGTH_521 * 2) + (7))
 
 /* Maximum possible length for any supported ASN.1/DER encoded ECDSA signature. */
 #if (ECC_MAX_KEY_LENGTH == ECC_KEY_LENGTH_521)
@@ -116,6 +116,7 @@ int ecc_der_decode_ecdsa_signature (const uint8_t *der, size_t length, uint8_t *
 int ecc_der_encode_ecdsa_signature (const uint8_t *sig_r, const uint8_t *sig_s, size_t key_length,
 	uint8_t *der, size_t length);
 size_t ecc_der_get_ecdsa_signature_length (const uint8_t *der, size_t max_length);
+int ecc_der_get_ecdsa_max_signature_length (size_t key_length);
 
 
 #define	ECC_DER_UTIL_ERROR(code)		ROT_ERROR (ROT_MODULE_ECC_DER_UTIL, code)
@@ -137,6 +138,8 @@ enum {
 	ECC_DER_UTIL_UNEXPECTED_TAG = ECC_DER_UTIL_ERROR (0x0a),			/**< The encoded data contained a tag not correct for ASN.1 sequence. */
 	ECC_DER_UTIL_INVALID_ECPOINT = ECC_DER_UTIL_ERROR (0x0b),			/**< The public key is representation is not valid. */
 	ECC_DER_UTIL_COMPRESSED_ECPOINT = ECC_DER_UTIL_ERROR (0x0c),		/**< The public key is represented in compressed form. */
+	ECC_DER_UTIL_INFINITY_ECPOINT = ECC_DER_UTIL_ERROR (0x0d),			/**< The public key provided is the point at infinity. */
+	ECC_DER_UTIL_INVALID_SIGNATURE = ECC_DER_UTIL_ERROR (0x0e),			/**< The encoded signature is not valid. */
 };
 
 

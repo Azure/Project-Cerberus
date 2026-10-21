@@ -334,7 +334,7 @@ static void app_image_test_get_signature_read_signature_error (CuTest *test)
 
 static void app_image_test_get_hash (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -380,7 +380,7 @@ static void app_image_test_get_hash (CuTest *test)
 
 static void app_image_test_get_hash_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -410,7 +410,7 @@ static void app_image_test_get_hash_null (CuTest *test)
 
 static void app_image_test_get_hash_small_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -435,7 +435,7 @@ static void app_image_test_get_hash_small_buffer (CuTest *test)
 
 static void app_image_test_get_hash_read_length_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -465,7 +465,7 @@ static void app_image_test_get_hash_read_length_error (CuTest *test)
 
 static void app_image_test_get_hash_read_data_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -499,8 +499,8 @@ static void app_image_test_get_hash_read_data_error (CuTest *test)
 
 static void app_image_test_verification (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	int offset = 0;
@@ -550,8 +550,8 @@ static void app_image_test_verification (CuTest *test)
 
 static void app_image_test_verification_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
@@ -605,8 +605,8 @@ static void app_image_test_verification_with_hash_out (CuTest *test)
 
 static void app_image_test_verification_no_match_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	int offset = 0;
@@ -656,8 +656,8 @@ static void app_image_test_verification_no_match_signature (CuTest *test)
 
 static void app_image_test_verification_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 
@@ -696,8 +696,8 @@ static void app_image_test_verification_null (CuTest *test)
 
 static void app_image_test_verification_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
 	int status;
@@ -726,8 +726,8 @@ static void app_image_test_verification_small_hash_buffer (CuTest *test)
 
 static void app_image_test_verification_read_length_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 
@@ -760,8 +760,8 @@ static void app_image_test_verification_read_length_error (CuTest *test)
 
 static void app_image_test_verification_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 
@@ -1070,8 +1070,8 @@ static void app_image_test_get_data_addr_null (CuTest *test)
 
 static void app_image_test_load_and_verify (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1124,8 +1124,8 @@ static void app_image_test_load_and_verify (CuTest *test)
 
 static void app_image_test_load_and_verify_bad_data (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t bad_data[APP_IMAGE_DATA_LENGTH];
@@ -1175,8 +1175,8 @@ static void app_image_test_load_and_verify_bad_data (CuTest *test)
 
 static void app_image_test_load_and_verify_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1225,8 +1225,8 @@ static void app_image_test_load_and_verify_no_hash_out (CuTest *test)
 
 static void app_image_test_load_and_verify_no_length_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1277,8 +1277,8 @@ static void app_image_test_load_and_verify_no_length_out (CuTest *test)
 
 static void app_image_test_load_and_verify_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1325,8 +1325,8 @@ static void app_image_test_load_and_verify_null (CuTest *test)
 
 static void app_image_test_load_and_verify_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1357,8 +1357,8 @@ static void app_image_test_load_and_verify_small_hash_buffer (CuTest *test)
 
 static void app_image_test_load_and_verify_image_too_large (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH - 5];
@@ -1395,8 +1395,8 @@ static void app_image_test_load_and_verify_image_too_large (CuTest *test)
 
 static void app_image_test_load_and_verify_read_length_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1433,8 +1433,8 @@ static void app_image_test_load_and_verify_read_length_error (CuTest *test)
 
 static void app_image_test_load_and_verify_read_image_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1474,8 +1474,8 @@ static void app_image_test_load_and_verify_read_image_error (CuTest *test)
 
 static void app_image_test_load_and_verify_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1521,8 +1521,8 @@ static void app_image_test_load_and_verify_read_signature_error (CuTest *test)
 
 static void app_image_test_load_and_verify_start_hash_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1573,8 +1573,8 @@ static void app_image_test_load_and_verify_start_hash_error (CuTest *test)
 
 static void app_image_test_load_and_verify_update_hash_length_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1628,8 +1628,8 @@ static void app_image_test_load_and_verify_update_hash_length_error (CuTest *tes
 
 static void app_image_test_load_and_verify_update_hash_image_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1684,8 +1684,8 @@ static void app_image_test_load_and_verify_update_hash_image_error (CuTest *test
 
 static void app_image_test_load_and_verify_update_finish_hash_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_DATA_LENGTH];
@@ -1742,8 +1742,8 @@ static void app_image_test_load_and_verify_update_finish_hash_error (CuTest *tes
 
 static void app_image_test_verification_with_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	int offset = 0;
@@ -1796,8 +1796,8 @@ static void app_image_test_verification_with_header (CuTest *test)
 
 static void app_image_test_verification_with_header_with_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	uint8_t hash_out[SHA256_HASH_LENGTH];
 	int status;
@@ -1854,8 +1854,8 @@ static void app_image_test_verification_with_header_with_hash_out (CuTest *test)
 
 static void app_image_test_verification_with_header_no_match_signature (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	int offset = 0;
@@ -1908,8 +1908,8 @@ static void app_image_test_verification_with_header_no_match_signature (CuTest *
 
 static void app_image_test_verification_with_header_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	int offset = 0;
@@ -1959,8 +1959,8 @@ static void app_image_test_verification_with_header_zero_length (CuTest *test)
 
 static void app_image_test_verification_with_header_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 
@@ -2000,8 +2000,8 @@ static void app_image_test_verification_with_header_null (CuTest *test)
 
 static void app_image_test_verification_with_header_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	uint8_t hash_out[SHA256_HASH_LENGTH - 1];
 	int status;
@@ -2030,8 +2030,8 @@ static void app_image_test_verification_with_header_small_hash_buffer (CuTest *t
 
 static void app_image_test_verification_with_header_read_length_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 
@@ -2064,8 +2064,8 @@ static void app_image_test_verification_with_header_read_length_error (CuTest *t
 
 static void app_image_test_verification_with_header_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 
@@ -2105,7 +2105,7 @@ static void app_image_test_verification_with_header_read_signature_error (CuTest
 
 static void app_image_test_get_hash_with_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -2154,7 +2154,7 @@ static void app_image_test_get_hash_with_header (CuTest *test)
 
 static void app_image_test_get_hash_with_header_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -2200,7 +2200,7 @@ static void app_image_test_get_hash_with_header_zero_length (CuTest *test)
 
 static void app_image_test_get_hash_with_header_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -2233,7 +2233,7 @@ static void app_image_test_get_hash_with_header_null (CuTest *test)
 
 static void app_image_test_get_hash_with_header_small_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -2258,7 +2258,7 @@ static void app_image_test_get_hash_with_header_small_buffer (CuTest *test)
 
 static void app_image_test_get_hash_with_header_read_length_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -2288,7 +2288,7 @@ static void app_image_test_get_hash_with_header_read_length_error (CuTest *test)
 
 static void app_image_test_get_hash_with_header_read_data_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
+	HASH_TESTING_ENGINE (hash);
 	struct flash_mock flash;
 	int status;
 	uint8_t hash_actual[SHA256_HASH_LENGTH];
@@ -2323,8 +2323,8 @@ static void app_image_test_get_hash_with_header_read_data_error (CuTest *test)
 
 static void app_image_test_load_and_verify_with_header (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2389,8 +2389,8 @@ static void app_image_test_load_and_verify_with_header (CuTest *test)
 
 static void app_image_test_load_and_verify_with_header_bad_data (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t bad_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2448,8 +2448,8 @@ static void app_image_test_load_and_verify_with_header_bad_data (CuTest *test)
 
 static void app_image_test_load_and_verify_with_header_no_hash_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2508,8 +2508,8 @@ static void app_image_test_load_and_verify_with_header_no_hash_out (CuTest *test
 
 static void app_image_test_load_and_verify_with_header_no_length_out (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2572,8 +2572,8 @@ static void app_image_test_load_and_verify_with_header_no_length_out (CuTest *te
 
 static void app_image_test_load_and_verify_with_header_zero_length (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2627,8 +2627,8 @@ static void app_image_test_load_and_verify_with_header_zero_length (CuTest *test
 
 static void app_image_test_load_and_verify_with_header_null (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2680,8 +2680,8 @@ static void app_image_test_load_and_verify_with_header_null (CuTest *test)
 
 static void app_image_test_load_and_verify_with_header_small_hash_buffer (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2713,8 +2713,8 @@ static void app_image_test_load_and_verify_with_header_small_hash_buffer (CuTest
 
 static void app_image_test_load_and_verify_with_header_image_too_large (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH - APP_IMAGE_HEADER_LENGTH - 5];
@@ -2753,8 +2753,8 @@ static void app_image_test_load_and_verify_with_header_image_too_large (CuTest *
 
 static void app_image_test_load_and_verify_with_header_read_length_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2791,8 +2791,8 @@ static void app_image_test_load_and_verify_with_header_read_length_error (CuTest
 
 static void app_image_test_load_and_verify_with_header_read_image_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2835,8 +2835,8 @@ static void app_image_test_load_and_verify_with_header_read_image_error (CuTest 
 
 static void app_image_test_load_and_verify_with_header_read_signature_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2886,8 +2886,8 @@ static void app_image_test_load_and_verify_with_header_read_signature_error (CuT
 
 static void app_image_test_load_and_verify_with_header_read_header_error (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	RSA_TESTING_ENGINE rsa;
+	HASH_TESTING_ENGINE (hash);
+	RSA_TESTING_ENGINE (rsa);
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2941,8 +2941,8 @@ static void app_image_test_load_and_verify_with_header_read_header_error (CuTest
 
 static void app_image_test_load_and_verify_with_header_start_hash_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -2998,8 +2998,8 @@ static void app_image_test_load_and_verify_with_header_start_hash_error (CuTest 
 
 static void app_image_test_load_and_verify_with_header_hash_header_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -3063,8 +3063,8 @@ static void app_image_test_load_and_verify_with_header_hash_header_error (CuTest
 
 static void app_image_test_load_and_verify_with_header_hash_length_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -3130,8 +3130,8 @@ static void app_image_test_load_and_verify_with_header_hash_length_error (CuTest
 
 static void app_image_test_load_and_verify_with_header_hash_image_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];
@@ -3199,8 +3199,8 @@ static void app_image_test_load_and_verify_with_header_hash_image_error (CuTest 
 
 static void app_image_test_load_and_verify_with_header_finish_hash_error (CuTest *test)
 {
+	RSA_TESTING_ENGINE (rsa);
 	struct hash_engine_mock hash;
-	RSA_TESTING_ENGINE rsa;
 	struct flash_mock flash;
 	int status;
 	uint8_t load_data[APP_IMAGE_HEADER_DATA_LENGTH];

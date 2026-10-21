@@ -27,6 +27,12 @@ static void add_all_host_fw_tests (CuSuite *suite)
 	!defined TESTING_SKIP_BMC_RECOVERY_SUITE
 	TESTING_RUN_SUITE (bmc_recovery);
 #endif
+#if (defined TESTING_RUN_HOST_CMD_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_HOST_CMD_HANDLER_SUITE
+	TESTING_RUN_SUITE (host_cmd_handler);
+#endif
 #if (defined TESTING_RUN_HOST_FLASH_INITIALIZATION_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
@@ -44,6 +50,12 @@ static void add_all_host_fw_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_HOST_FLASH_MANAGER_SINGLE_SUITE
 	TESTING_RUN_SUITE (host_flash_manager_single);
+#endif
+#if (defined TESTING_RUN_HOST_FLASH_MANAGER_SINGLE_WITH_BACKUP_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_HOST_FLASH_MANAGER_SINGLE_WITH_BACKUP_SUITE
+	TESTING_RUN_SUITE (host_flash_manager_single_with_backup);
 #endif
 #if (defined TESTING_RUN_HOST_FW_UTIL_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -82,12 +94,14 @@ static void add_all_host_fw_tests (CuSuite *suite)
 	TESTING_RUN_SUITE (host_processor_dual);
 	TESTING_RUN_SUITE (host_processor_dual_power_on_reset);
 	TESTING_RUN_SUITE (host_processor_dual_soft_reset);
-	TESTING_RUN_SUITE (host_processor_dual_reset_flash);
 	TESTING_RUN_SUITE (host_processor_dual_run_time_verification);
 	TESTING_RUN_SUITE (host_processor_dual_flash_rollback);
 	TESTING_RUN_SUITE (host_processor_dual_recover_active_read_write_data);
 	TESTING_RUN_SUITE (host_processor_dual_apply_recovery_image);
 	TESTING_RUN_SUITE (host_processor_dual_bypass_mode);
+	TESTING_RUN_SUITE (host_processor_dual_get_flash_config);
+	TESTING_RUN_SUITE (host_processor_dual_config_read_only_flash);
+	TESTING_RUN_SUITE (host_processor_dual_reset_flash);
 #endif
 #if (defined TESTING_RUN_HOST_PROCESSOR_DUAL_FULL_BYPASS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -109,12 +123,14 @@ static void add_all_host_fw_tests (CuSuite *suite)
 	TESTING_RUN_SUITE (host_processor_single);
 	TESTING_RUN_SUITE (host_processor_single_power_on_reset);
 	TESTING_RUN_SUITE (host_processor_single_soft_reset);
-	TESTING_RUN_SUITE (host_processor_single_reset_flash);
 	TESTING_RUN_SUITE (host_processor_single_run_time_verification);
 	TESTING_RUN_SUITE (host_processor_single_flash_rollback);
 	TESTING_RUN_SUITE (host_processor_single_recover_active_read_write_data);
 	TESTING_RUN_SUITE (host_processor_single_apply_recovery_image);
 	TESTING_RUN_SUITE (host_processor_single_bypass_mode);
+	TESTING_RUN_SUITE (host_processor_single_get_flash_config);
+	TESTING_RUN_SUITE (host_processor_single_config_read_only_flash);
+	TESTING_RUN_SUITE (host_processor_single_reset_flash);
 #endif
 #if (defined TESTING_RUN_HOST_PROCESSOR_SINGLE_FULL_BYPASS_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \

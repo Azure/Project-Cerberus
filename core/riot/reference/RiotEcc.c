@@ -1400,7 +1400,7 @@ COND_STATIC bool on_curveP (affine_point_t const *P)
 #if USES_EPHEMERAL
 // returns a bigval between 0 or 1 (depending on allow_zero)
 // and order-1, inclusive.  Returns 0 on success, -1 otherwise
-COND_STATIC int big_get_random_n (bigval_t *tgt, bool allow_zero, struct rng_engine *rng)
+COND_STATIC int big_get_random_n (bigval_t *tgt, bool allow_zero, const struct rng_engine *rng)
 {
 	int rv;
 
@@ -1419,7 +1419,7 @@ COND_STATIC int big_get_random_n (bigval_t *tgt, bool allow_zero, struct rng_eng
 //
 // computes a secret value, k, and a point, P1, to send to the other
 // party.  Returns 0 on success, -1 on failure (of the RNG).
-int ECDH_generate (affine_point_t *P1, bigval_t *k, struct rng_engine *rng)
+int ECDH_generate (affine_point_t *P1, bigval_t *k, const struct rng_engine *rng)
 {
 	int rv;
 
@@ -1503,8 +1503,8 @@ COND_STATIC bool ECDH_derive_pt (affine_point_t *tgt, bigval_t const *k, affine_
 //
 // This function sets the r and s fields of sig.  The implementation
 // follows HMV Algorithm 4.29.
-static int ECDSA_sign (bigval_t const *msgdgst, bigval_t const *privkey, struct rng_engine *rng,
-	ECDSA_sig_t *sig)
+static int ECDSA_sign (bigval_t const *msgdgst, bigval_t const *privkey,
+	const struct rng_engine *rng, ECDSA_sig_t *sig)
 {
 	int rv;
 	affine_point_t P1;
@@ -1721,7 +1721,7 @@ void set_drbg_seed (uint8_t *buf, size_t length)
 //          - RIOT_FAILURE otherwise
 //
 RIOT_STATUS RIOT_GenerateDHKeyPair (ecc_publickey *publicKey, ecc_privatekey *privateKey,
-	struct rng_engine *rng)
+	const struct rng_engine *rng)
 {
 	if (ECDH_generate (publicKey, privateKey, rng) == 0) {
 		return RIOT_SUCCESS;
@@ -1770,7 +1770,7 @@ RIOT_STATUS RIOT_GenerateShareSecret (ecc_publickey *peerPublicKey, ecc_privatek
 //          - RIOT_FAILURE otherwise
 //
 RIOT_STATUS RIOT_GenerateDSAKeyPair (ecc_publickey *publicKey, ecc_privatekey *privateKey,
-	struct rng_engine *rng)
+	const struct rng_engine *rng)
 {
 	if (ECDH_generate (publicKey, privateKey, rng) == 0) {
 		return RIOT_SUCCESS;
@@ -1799,8 +1799,8 @@ RIOT_STATUS RIOT_DeriveDsaKeyPair (ecc_publickey *publicKey, ecc_privatekey *pri
 // Sign a digest using the DSA key
 //
 RIOT_STATUS RIOT_DSASignDigest (const uint8_t *digest, size_t digest_size,
-	const ecc_privatekey *signingPrivateKey, uint8_t *buf, size_t buf_len, struct rng_engine *rng,
-	int *out_len)
+	const ecc_privatekey *signingPrivateKey, uint8_t *buf, size_t buf_len,
+	const struct rng_engine *rng, int *out_len)
 {
 	bigval_t source;
 	ecc_signature sig;
@@ -1829,7 +1829,7 @@ RIOT_STATUS RIOT_DSASignDigest (const uint8_t *digest, size_t digest_size,
 // @return  - RIOT_SUCCESS if the signing process succeeds
 //          - RIOT_FAILURE otherwise
 RIOT_STATUS RIOT_DSASign (const uint8_t *buf, uint16_t len, const ecc_privatekey *signingPrivateKey,
-	struct rng_engine *rng, struct hash_engine *hash, ecc_signature *sig)
+	const struct rng_engine *rng, const struct hash_engine *hash, ecc_signature *sig)
 {
 	uint8_t digest[SHA256_DIGEST_LENGTH];
 	size_t max_sig_len = RIOT_ECC_PRIVATE_BYTES * 4;
@@ -1883,7 +1883,7 @@ RIOT_STATUS RIOT_DSAVerifyDigest (const uint8_t *digest, size_t digest_size,
 // @return  - RIOT_SUCCESS if the signature verification succeeds
 //          - RIOT_FAILURE otherwise
 RIOT_STATUS RIOT_DSAVerify (const uint8_t *buf, uint16_t len, const ecc_signature *sig,
-	const ecc_publickey *pubKey, struct hash_engine *hash)
+	const ecc_publickey *pubKey, const struct hash_engine *hash)
 {
 	uint8_t digest[SHA256_DIGEST_LENGTH];
 	int status;

@@ -9,17 +9,26 @@
 
 
 /**
+ * Variable context for the thread-safe RSA wrapper.
+ */
+struct rsa_engine_thread_safe_state {
+	platform_mutex lock;	/**< Synchronization lock. */
+};
+
+/**
  * Thread-safe wrapper for an RSA instance.
  */
 struct rsa_engine_thread_safe {
-	struct rsa_engine base;		/**< Base API implementation. */
-	struct rsa_engine *engine;	/**< RSA instance to use for execution. */
-	platform_mutex lock;		/**< Synchronization lock. */
+	struct rsa_engine base;						/**< Base API implementation. */
+	struct rsa_engine_thread_safe_state *state;	/**< Variable context for the RSA wrapper */
+	const struct rsa_engine *engine;			/**< RSA instance to use for execution. */
 };
 
 
-int rsa_thread_safe_init (struct rsa_engine_thread_safe *engine, struct rsa_engine *target);
-void rsa_thread_safe_release (struct rsa_engine_thread_safe *engine);
+int rsa_thread_safe_init (struct rsa_engine_thread_safe *engine,
+	struct rsa_engine_thread_safe_state *state, const struct rsa_engine *target);
+int rsa_thread_safe_init_state (const struct rsa_engine_thread_safe *engine);
+void rsa_thread_safe_release (const struct rsa_engine_thread_safe *engine);
 
 
 #endif	/* RSA_THREAD_SAFE_H_ */

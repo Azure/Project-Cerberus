@@ -97,7 +97,7 @@ static const char* firmware_update_mock_arg_name_map (void *func, int arg)
 int firmware_update_mock_init (struct firmware_update_mock *mock,
 	struct firmware_update_state *state, const struct firmware_flash_map *flash,
 	const struct app_context *context, const struct firmware_image *fw,
-	const struct security_manager *security, struct hash_engine *hash, int allowed_revision)
+	const struct security_manager *security, const struct hash_engine *hash, int allowed_revision)
 {
 	int status;
 

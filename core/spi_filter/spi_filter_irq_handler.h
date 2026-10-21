@@ -19,12 +19,12 @@ struct spi_filter_irq_handler {
 	 */
 	void (*ro_flash_dirty) (const struct spi_filter_irq_handler *handler);
 
-	struct host_state_manager *host_state;	/**< State of the host for the SPI filter. */
+	const struct host_state_manager *host_state;	/**< State of the host for the SPI filter. */
 };
 
 
 int spi_filter_irq_handler_init (struct spi_filter_irq_handler *handler,
-	struct host_state_manager *host_state);
+	const struct host_state_manager *host_state);
 void spi_filter_irq_handler_release (const struct spi_filter_irq_handler *handler);
 
 /* Internal functions for use by derived types. */

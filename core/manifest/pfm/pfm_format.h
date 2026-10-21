@@ -8,6 +8,8 @@
 #include "manifest/manifest_format.h"
 #include "manifest/pfm/pfm.h"
 
+#pragma pack(push, 1)
+
 /**
  * Type identifiers for PFM v2 elements.
  */
@@ -216,6 +218,33 @@ struct pfm_platform_header {
 	uint8_t id_length;	/**< The length of the platform identifier string. */
 	uint8_t reserved;	/**< Unused. */
 };
+
+#pragma pack(pop)
+
+_Static_assert (sizeof (struct pfm_flash_device_element) == 4,
+	"Unexpected size of struct pfm_flash_device_element");
+_Static_assert (sizeof (struct pfm_firmware_element) == 260,
+	"Unexpected size of struct pfm_firmware_element");
+_Static_assert (sizeof (struct pfm_firmware_version_element) == 264,
+	"Unexpected size of struct pfm_firmware_version_element");
+_Static_assert (sizeof (struct pfm_flash_region) == 8,
+	"Unexpected size of struct pfm_flash_region");
+_Static_assert (sizeof (struct pfm_fw_version_element_rw_region) == 12,
+	"Unexpected size of struct pfm_fw_version_element_rw_region");
+_Static_assert (sizeof (struct pfm_fw_version_element_image) == 4,
+	"Unexpected size of struct pfm_fw_version_element_image");
+_Static_assert (sizeof (struct pfm_allowable_firmware_header) == 4,
+	"Unexpected size of struct pfm_allowable_firmware_header");
+_Static_assert (sizeof (struct pfm_firmware_header) == 12,
+	"Unexpected size of struct pfm_firmware_header");
+_Static_assert (sizeof (struct pfm_image_header) == 8,
+	"Unexpected size of struct pfm_image_header");
+_Static_assert (sizeof (struct pfm_key_manifest_header) == 4,
+	"Unexpected size of struct pfm_key_manifest_header");
+_Static_assert (sizeof (struct pfm_public_key_header) == 12,
+	"Unexpected size of struct pfm_public_key_header");
+_Static_assert (sizeof (struct pfm_platform_header) == 4,
+	"Unexpected size of struct pfm_platform_header");
 
 
 #endif	/* PFM_FORMAT_H_ */

@@ -7,8 +7,10 @@
 #include "platform_api.h"
 #include "testing.h"
 #include "asn1/x509_mbedtls.h"
+#include "asn1/x509_mbedtls_static.h"
 #include "common/array_size.h"
 #include "crypto/ecc.h"
+#include "mbedtls/version.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_tcbinfo_testing.h"
 #include "testing/asn1/dice/x509_extension_builder_dice_ueid_testing.h"
 #include "testing/asn1/x509_testing.h"
@@ -20,18 +22,26 @@
 TEST_SUITE_LABEL ("x509_mbedtls");
 
 
+/**
+ * Version number for mbedTLS version 2.28.0.  Certificate generation behavior is different between
+ * versions earlier and later than this release.
+ */
+#define	X509_MBEDTLS_TESTING_VERSION_2_28_0		0x021C0000
+
+
 /*******************
  * Test cases
  *******************/
 
 static void x509_mbedtls_test_init (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	CuAssertPtrNotNull (test, engine.base.create_csr);
@@ -57,11 +67,62 @@ static void x509_mbedtls_test_init (CuTest *test)
 
 static void x509_mbedtls_test_init_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (NULL);
+	status = x509_mbedtls_init (NULL, &state);
+	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
+
+	status = x509_mbedtls_init (&engine, NULL);
+	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
+}
+
+static void x509_mbedtls_test_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	int status;
+
+	TEST_START;
+
+	CuAssertPtrNotNull (test, engine.base.create_csr);
+	CuAssertPtrNotNull (test, engine.base.create_self_signed_certificate);
+	CuAssertPtrNotNull (test, engine.base.create_ca_signed_certificate);
+	CuAssertPtrNotNull (test, engine.base.load_certificate);
+	CuAssertPtrNotNull (test, engine.base.release_certificate);
+	CuAssertPtrNotNull (test, engine.base.get_certificate_der);
+	CuAssertPtrNotNull (test, engine.base.get_certificate_version);
+	CuAssertPtrNotNull (test, engine.base.get_serial_number);
+	CuAssertPtrNotNull (test, engine.base.get_public_key_type);
+	CuAssertPtrNotNull (test, engine.base.get_public_key_length);
+	CuAssertPtrNotNull (test, engine.base.get_public_key);
+	CuAssertPtrNotNull (test, engine.base.add_root_ca);
+	CuAssertPtrNotNull (test, engine.base.add_trusted_ca);
+	CuAssertPtrNotNull (test, engine.base.init_ca_cert_store);
+	CuAssertPtrNotNull (test, engine.base.release_ca_cert_store);
+	CuAssertPtrNotNull (test, engine.base.add_intermediate_ca);
+	CuAssertPtrNotNull (test, engine.base.authenticate);
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	x509_mbedtls_release (&engine);
+}
+
+static void x509_mbedtls_test_static_init_null (CuTest *test)
+{
+	struct x509_engine_mbedtls null_state = x509_mbedtls_static_init (NULL);
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (NULL);
+	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
+
+	status = x509_mbedtls_init_state (&null_state);
 	CuAssertIntEquals (test, X509_ENGINE_INVALID_ARGUMENT, status);
 }
 
@@ -74,6 +135,7 @@ static void x509_mbedtls_test_release_null (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ecc_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -81,7 +143,7 @@ static void x509_mbedtls_test_create_csr_ecc_ca (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -89,7 +151,11 @@ static void x509_mbedtls_test_create_csr_ecc_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -103,6 +169,7 @@ static void x509_mbedtls_test_create_csr_ecc_ca (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ecc_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -110,7 +177,7 @@ static void x509_mbedtls_test_create_csr_ecc_end_entity (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -118,7 +185,11 @@ static void x509_mbedtls_test_create_csr_ecc_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -134,6 +205,7 @@ static void x509_mbedtls_test_create_csr_ecc_end_entity (CuTest *test)
 #ifdef HASH_ENABLE_SHA384
 static void x509_mbedtls_test_create_csr_ecc384_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -141,7 +213,7 @@ static void x509_mbedtls_test_create_csr_ecc384_ca (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
@@ -149,7 +221,11 @@ static void x509_mbedtls_test_create_csr_ecc384_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA, CSR, UTF8STRING, ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA, CSR, UTF8STRING, ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -163,6 +239,7 @@ static void x509_mbedtls_test_create_csr_ecc384_ca (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ecc384_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -170,7 +247,7 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
@@ -178,7 +255,11 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE, CSR, UTF8STRING, ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE, CSR, UTF8STRING, ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -193,6 +274,7 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ecc384_ca_sha256_digest (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -200,7 +282,7 @@ static void x509_mbedtls_test_create_csr_ecc384_ca_sha256_digest (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
@@ -208,7 +290,11 @@ static void x509_mbedtls_test_create_csr_ecc384_ca_sha256_digest (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -222,6 +308,7 @@ static void x509_mbedtls_test_create_csr_ecc384_ca_sha256_digest (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ecc384_end_entity_sha256_digest (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -229,7 +316,7 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity_sha256_digest (CuTest
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC384_PRIVKEY_DER, ECC384_PRIVKEY_DER_LEN,
@@ -237,7 +324,11 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity_sha256_digest (CuTest
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -253,6 +344,7 @@ static void x509_mbedtls_test_create_csr_ecc384_end_entity_sha256_digest (CuTest
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_mbedtls_test_create_csr_ecc521_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -260,7 +352,7 @@ static void x509_mbedtls_test_create_csr_ecc521_ca (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
@@ -268,7 +360,11 @@ static void x509_mbedtls_test_create_csr_ecc521_ca (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA, CSR, UTF8STRING, ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA, CSR, UTF8STRING, ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -282,6 +378,7 @@ static void x509_mbedtls_test_create_csr_ecc521_ca (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ecc521_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -289,7 +386,7 @@ static void x509_mbedtls_test_create_csr_ecc521_end_entity (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC521_PRIVKEY_DER, ECC521_PRIVKEY_DER_LEN,
@@ -297,7 +394,11 @@ static void x509_mbedtls_test_create_csr_ecc521_end_entity (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE, CSR, UTF8STRING, ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE, CSR, UTF8STRING, ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -312,6 +413,7 @@ static void x509_mbedtls_test_create_csr_ecc521_end_entity (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_rsa_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -319,7 +421,7 @@ static void x509_mbedtls_test_create_csr_rsa_ca (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
@@ -341,6 +443,7 @@ static void x509_mbedtls_test_create_csr_rsa_ca (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_rsa_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -348,7 +451,7 @@ static void x509_mbedtls_test_create_csr_rsa_end_entity (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN,
@@ -370,6 +473,7 @@ static void x509_mbedtls_test_create_csr_rsa_end_entity (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ca_non_zero_path_length_constraint (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -377,7 +481,7 @@ static void x509_mbedtls_test_create_csr_ca_non_zero_path_length_constraint (CuT
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -386,7 +490,11 @@ static void x509_mbedtls_test_create_csr_ca_non_zero_path_length_constraint (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_PL2, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_PL2, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -400,6 +508,7 @@ static void x509_mbedtls_test_create_csr_ca_non_zero_path_length_constraint (CuT
 
 static void x509_mbedtls_test_create_csr_ca_no_path_length_constraint (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -407,7 +516,7 @@ static void x509_mbedtls_test_create_csr_ca_no_path_length_constraint (CuTest *t
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -416,7 +525,11 @@ static void x509_mbedtls_test_create_csr_ca_no_path_length_constraint (CuTest *t
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -430,6 +543,7 @@ static void x509_mbedtls_test_create_csr_ca_no_path_length_constraint (CuTest *t
 
 static void x509_mbedtls_test_create_csr_ca_with_eku_oid (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -437,7 +551,7 @@ static void x509_mbedtls_test_create_csr_ca_with_eku_oid (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -446,7 +560,11 @@ static void x509_mbedtls_test_create_csr_ca_with_eku_oid (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, csr);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_EKU, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_EKU, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -460,6 +578,7 @@ static void x509_mbedtls_test_create_csr_ca_with_eku_oid (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_end_entity_with_eku_oid (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -467,7 +586,7 @@ static void x509_mbedtls_test_create_csr_end_entity_with_eku_oid (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	csr = (uint8_t*) &length;
@@ -482,6 +601,7 @@ static void x509_mbedtls_test_create_csr_end_entity_with_eku_oid (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -492,7 +612,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -531,7 +651,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -545,6 +669,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *
 
 static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_and_ueid_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -555,7 +680,7 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_and_ueid_extension (
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -594,7 +719,11 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_and_ueid_extension (
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_UEID, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_UEID, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -608,6 +737,7 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_and_ueid_extension (
 
 static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -618,7 +748,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuT
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -657,7 +787,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuT
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -671,6 +805,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuT
 
 static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384 (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -681,7 +816,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384 (C
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -720,8 +855,12 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384 (C
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CSR, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -735,6 +874,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384 (C
 
 static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512 (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -745,7 +885,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512 (C
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -784,8 +924,12 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512 (C
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CSR, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -799,6 +943,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512 (C
 
 static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -809,7 +954,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -848,7 +993,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero 
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -862,6 +1011,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero 
 
 static void x509_mbedtls_test_create_csr_ca_tcbinfo_extension_no_ueid (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -871,7 +1021,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_extension_no_ueid (CuTest *t
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -897,7 +1047,11 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_extension_no_ueid (CuTest *t
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -911,6 +1065,7 @@ static void x509_mbedtls_test_create_csr_ca_tcbinfo_extension_no_ueid (CuTest *t
 
 static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_extension_no_ueid (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -920,7 +1075,7 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_extension_no_ueid (C
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -946,7 +1101,11 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_extension_no_ueid (C
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -960,6 +1119,7 @@ static void x509_mbedtls_test_create_csr_end_entity_tcbinfo_extension_no_ueid (C
 
 static void x509_mbedtls_test_create_csr_ca_critical_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -974,7 +1134,7 @@ static void x509_mbedtls_test_create_csr_ca_critical_extension (CuTest *test)
 		sizeof (critical_ext));
 	critical_ext.critical = true;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -998,8 +1158,13 @@ static void x509_mbedtls_test_create_csr_ca_critical_extension (CuTest *test)
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CSR, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CSR, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -1013,6 +1178,7 @@ static void x509_mbedtls_test_create_csr_ca_critical_extension (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ca_null_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -1023,7 +1189,7 @@ static void x509_mbedtls_test_create_csr_ca_null_extension (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -1062,7 +1228,45 @@ static void x509_mbedtls_test_create_csr_ca_null_extension (CuTest *test)
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
+	x509_testing_verify_cert_length (test, csr, length);
+	x509_testing_verify_cert (test, csr);
+	x509_testing_verify_sig_algorithm (test, csr);
+	x509_testing_verify_signature_ecc (test, csr, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (csr);
+
+	x509_mbedtls_release (&engine);
+}
+
+static void x509_mbedtls_test_create_csr_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	int status;
+	uint8_t *csr = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
+		HASH_TYPE_SHA256, X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0, NULL, 0, &csr, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, csr);
+
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA, CSR, UTF8STRING, ECDSA_NO_NULL);
+#else
+	x509_testing_start_cert_verification (test, ECC_CA, CSR, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, csr, length);
 	x509_testing_verify_cert (test, csr);
 	x509_testing_verify_sig_algorithm (test, csr);
@@ -1076,6 +1280,7 @@ static void x509_mbedtls_test_create_csr_ca_null_extension (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
@@ -1083,7 +1288,7 @@ static void x509_mbedtls_test_create_csr_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (NULL, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256,
@@ -1124,6 +1329,7 @@ static void x509_mbedtls_test_create_csr_null (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_eku_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
@@ -1131,7 +1337,7 @@ static void x509_mbedtls_test_create_csr_eku_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -1145,6 +1351,7 @@ static void x509_mbedtls_test_create_csr_eku_null (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_extensions_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
@@ -1152,7 +1359,7 @@ static void x509_mbedtls_test_create_csr_extensions_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -1165,6 +1372,7 @@ static void x509_mbedtls_test_create_csr_extensions_null (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_with_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
@@ -1172,7 +1380,7 @@ static void x509_mbedtls_test_create_csr_with_public_key (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PUBKEY_DER, ECC_PUBKEY_DER_LEN,
@@ -1185,6 +1393,7 @@ static void x509_mbedtls_test_create_csr_with_public_key (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_sig_unsupported_hash (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	uint8_t *csr = NULL;
@@ -1192,7 +1401,7 @@ static void x509_mbedtls_test_create_csr_sig_unsupported_hash (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_csr (&engine.base, ECC_PRIVKEY_DER, ECC_PRIVKEY_DER_LEN,
@@ -1210,6 +1419,7 @@ static void x509_mbedtls_test_create_csr_sig_unsupported_hash (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_tcbinfo_error (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -1220,7 +1430,7 @@ static void x509_mbedtls_test_create_csr_tcbinfo_error (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -1250,6 +1460,7 @@ static void x509_mbedtls_test_create_csr_tcbinfo_error (CuTest *test)
 
 static void x509_mbedtls_test_create_csr_ueid_error (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -1260,7 +1471,7 @@ static void x509_mbedtls_test_create_csr_ueid_error (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -1298,6 +1509,7 @@ static void x509_mbedtls_test_create_csr_ueid_error (CuTest *test)
 
 static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1306,7 +1518,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca (CuTest *tes
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -1319,7 +1531,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca (CuTest *tes
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1334,6 +1550,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca (CuTest *tes
 
 static void x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1342,7 +1559,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity (CuT
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -1355,7 +1572,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity (CuT
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1372,6 +1593,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity (CuT
 #ifdef HASH_ENABLE_SHA384
 static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1380,7 +1602,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca (CuTest *
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
@@ -1393,8 +1615,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA, CERTSS, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA, CERTSS, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1409,6 +1636,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca (CuTest *
 
 static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1417,7 +1645,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity (
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
@@ -1430,8 +1658,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity (
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE, CERTSS, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE, CERTSS, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1447,6 +1680,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity (
 
 static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca_sha256_digest (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1455,7 +1689,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca_sha256_di
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
@@ -1468,8 +1702,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca_sha256_di
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_CA, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1485,6 +1724,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_ca_sha256_di
 static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity_sha256_digest (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1493,7 +1733,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity_s
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC384_PRIVKEY_DER,
@@ -1506,8 +1746,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity_s
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_EE, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1524,6 +1769,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc384_end_entity_s
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_mbedtls_test_create_self_signed_certificate_ecc521_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1532,7 +1778,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_ca (CuTest *
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC521_PRIVKEY_DER,
@@ -1545,8 +1791,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_ca (CuTest *
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA, CERTSS, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA, CERTSS, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1561,6 +1812,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_ca (CuTest *
 
 static void x509_mbedtls_test_create_self_signed_certificate_ecc521_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1569,7 +1821,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_end_entity (
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC521_PRIVKEY_DER,
@@ -1582,8 +1834,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_end_entity (
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE, CERTSS, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE, CERTSS, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1599,6 +1856,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc521_end_entity (
 
 static void x509_mbedtls_test_create_self_signed_certificate_rsa_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1607,7 +1865,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_rsa_ca (CuTest *tes
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, RSA_PRIVKEY_DER,
@@ -1635,6 +1893,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_rsa_ca (CuTest *tes
 
 static void x509_mbedtls_test_create_self_signed_certificate_rsa_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1643,7 +1902,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_rsa_end_entity (CuT
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, RSA_PRIVKEY_DER,
@@ -1672,6 +1931,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_rsa_end_entity (CuT
 static void x509_mbedtls_test_create_self_signed_certificate_ca_non_zero_path_length_constraint (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1680,7 +1940,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_non_zero_path_le
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -1693,7 +1953,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_non_zero_path_le
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_PL1, CERTSS, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_PL1, CERTSS, UTF8STRING,	ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1709,6 +1973,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_non_zero_path_le
 static void x509_mbedtls_test_create_self_signed_certificate_ca_no_path_length_constraint (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1717,7 +1982,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_no_path_length_c
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -1730,7 +1995,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_no_path_length_c
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_NOPL, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1746,6 +2015,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_no_path_length_c
 static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1757,7 +2027,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -1800,7 +2070,11 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1817,6 +2091,7 @@ static void
 x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1828,7 +2103,7 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -1871,7 +2146,11 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1888,6 +2167,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1899,7 +2179,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -1942,8 +2222,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -1960,6 +2245,7 @@ static void
 x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha384 (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -1971,7 +2257,7 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2014,8 +2300,13 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2032,6 +2323,7 @@ static void
 x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha512 (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2043,7 +2335,7 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2086,8 +2378,13 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2104,6 +2401,7 @@ static void
 x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_svn_zero (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2115,7 +2413,7 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2158,8 +2456,12 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2175,6 +2477,7 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extensi
 static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2185,7 +2488,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_exte
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2215,8 +2518,12 @@ static void x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_exte
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTSS, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2233,6 +2540,7 @@ static void
 x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2243,7 +2551,7 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extensio
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2273,8 +2581,12 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extensio
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTSS, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2289,6 +2601,7 @@ x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extensio
 
 static void x509_mbedtls_test_create_self_signed_certificate_ca_critical_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2304,7 +2617,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_critical_extensi
 		sizeof (critical_ext));
 	critical_ext.critical = true;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2332,8 +2645,13 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_critical_extensi
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTSS, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTSS, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2348,6 +2666,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_critical_extensi
 
 static void x509_mbedtls_test_create_self_signed_certificate_ca_null_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2359,7 +2678,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_null_extension (
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2402,7 +2721,52 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_null_extension (
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_ecc (test, der, ECC_PUBKEY, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_mbedtls_release (&engine);
+}
+
+static void x509_mbedtls_test_create_self_signed_certificate_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, X509_SERIAL_NUM, X509_SERIAL_NUM_LEN,
+		X509_SUBJECT_NAME, X509_CERT_CA, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA, CERTSS, UTF8STRING, ECDSA_NO_NULL);
+#else
+	x509_testing_start_cert_verification (test, ECC_CA, CERTSS, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2417,13 +2781,14 @@ static void x509_mbedtls_test_create_self_signed_certificate_ca_null_extension (
 
 static void x509_mbedtls_test_create_self_signed_certificate_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (NULL, &cert, ECC_PRIVKEY_DER,
@@ -2466,13 +2831,14 @@ static void x509_mbedtls_test_create_self_signed_certificate_null (CuTest *test)
 
 static void x509_mbedtls_test_create_self_signed_certificate_extensions_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -2485,13 +2851,14 @@ static void x509_mbedtls_test_create_self_signed_certificate_extensions_null (Cu
 
 static void x509_mbedtls_test_create_self_signed_certificate_with_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PUBKEY_DER,
@@ -2504,13 +2871,14 @@ static void x509_mbedtls_test_create_self_signed_certificate_with_public_key (Cu
 
 static void x509_mbedtls_test_create_self_signed_certificate_sig_unsupported_hash (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -2528,6 +2896,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_sig_unsupported_has
 
 static void x509_mbedtls_test_create_self_signed_certificate_serial_zero (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2535,7 +2904,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_serial_zero (CuTest
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
@@ -2548,6 +2917,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_serial_zero (CuTest
 
 static void x509_mbedtls_test_create_self_signed_certificate_tcbinfo_error (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2557,7 +2927,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_tcbinfo_error (CuTe
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2587,6 +2957,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_tcbinfo_error (CuTe
 
 static void x509_mbedtls_test_create_self_signed_certificate_ueid_error (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2596,7 +2967,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ueid_error (CuTest 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = x509_extension_builder_mock_init (&tcb);
@@ -2634,6 +3005,7 @@ static void x509_mbedtls_test_create_self_signed_certificate_ueid_error (CuTest 
 
 static void x509_mbedtls_test_load_certificate (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2642,7 +3014,7 @@ static void x509_mbedtls_test_load_certificate (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -2666,6 +3038,7 @@ static void x509_mbedtls_test_load_certificate (CuTest *test)
 
 static void x509_mbedtls_test_load_certificate_riot (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2674,7 +3047,7 @@ static void x509_mbedtls_test_load_certificate_riot (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE_UEID_DER,
@@ -2697,15 +3070,49 @@ static void x509_mbedtls_test_load_certificate_riot (CuTest *test)
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_load_certificate_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+	CuAssertIntEquals (test, X509_CERTSS_ECC_CA_DER_LEN, length);
+
+	status = testing_validate_array (X509_CERTSS_ECC_CA_DER, der, X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_load_certificate_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (NULL, &cert, X509_CERTSS_ECC_CA_DER,
@@ -2727,6 +3134,7 @@ static void x509_mbedtls_test_load_certificate_null (CuTest *test)
 
 static void x509_mbedtls_test_load_certificate_bad (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -2737,7 +3145,7 @@ static void x509_mbedtls_test_load_certificate_bad (CuTest *test)
 	memcpy (bad_cert, X509_CERTSS_ECC_CA_DER, X509_CERTSS_ECC_CA_DER_LEN);
 	bad_cert[0] ^= 0x55;	/* Corrupt the certificate. */
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, bad_cert, sizeof (bad_cert));
@@ -2748,6 +3156,7 @@ static void x509_mbedtls_test_load_certificate_bad (CuTest *test)
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_private_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -2757,7 +3166,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_private_key (C
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -2791,6 +3200,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_private_key (C
 static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc_ca_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -2800,7 +3210,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc_c
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC_CA_DER,
@@ -2817,7 +3227,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc_c
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA2_ICA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA2_ICA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2833,6 +3247,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc_c
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_private_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -2842,7 +3257,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_privat
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -2878,6 +3293,7 @@ static void
 x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_intermediate_ca_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -2887,7 +3303,7 @@ x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_intermediate_ca_pr
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC_CA2_DER,
@@ -2904,7 +3320,11 @@ x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_intermediate_ca_pr
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE3_ICA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE3_ICA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -2922,6 +3342,7 @@ x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_intermediate_ca_pr
 #ifdef HASH_ENABLE_SHA384
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca_private_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -2931,7 +3352,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca_private_key
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -2966,6 +3387,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca_private_key
 static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -2975,7 +3397,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc38
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC384_CA_DER,
@@ -2993,8 +3415,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc38
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA2_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3011,6 +3438,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc38
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3020,7 +3448,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_pri
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3057,6 +3485,7 @@ static void
 x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_ecc_intermediate_ca_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3066,7 +3495,7 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_ecc_intermediat
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC384_CA2_DER,
@@ -3084,8 +3513,13 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_ecc_intermediat
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE3_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE3_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3104,6 +3538,7 @@ static void
 x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private_key_sha256_digest (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3113,7 +3548,7 @@ x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC384_CA_DER,
@@ -3131,8 +3566,13 @@ x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_private
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_CA2_ICA, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3150,6 +3590,7 @@ static void
 x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha256_digest (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3159,7 +3600,7 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC384_CA_DER,
@@ -3177,8 +3618,13 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_SHA256_EE2, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_SHA256_EE2, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3196,6 +3642,7 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca_private_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3205,7 +3652,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca_private_key
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3240,6 +3687,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca_private_key
 static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc521_ca_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3249,7 +3697,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc52
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC521_CA_DER,
@@ -3267,8 +3715,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc52
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA2_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA2_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3285,6 +3738,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_intermediate_ca_ecc52
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3294,7 +3748,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_pri
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3331,6 +3785,7 @@ static void
 x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_ecc_intermediate_ca_private_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3340,7 +3795,7 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_ecc_intermediat
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTCA_ECC521_CA2_DER,
@@ -3358,8 +3813,13 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_ecc_intermediat
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE3_ICA, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE3_ICA, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3376,6 +3836,7 @@ x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_ecc_intermediat
 
 static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_private_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3385,7 +3846,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_private_key (C
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -3402,7 +3863,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_private_key (C
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3418,6 +3883,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_private_key (C
 
 static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_private_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3427,7 +3893,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_privat
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -3445,7 +3911,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_privat
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3461,6 +3931,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_privat
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3470,7 +3941,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_public_key (Cu
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3503,6 +3974,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_public_key (Cu
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3512,7 +3984,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_public
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3547,6 +4019,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_end_entity_public
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3556,7 +4029,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca_public_key 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3591,6 +4064,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca_public_key 
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_public_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3600,7 +4074,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_pub
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3637,6 +4111,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_end_entity_pub
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3646,7 +4121,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca_public_key 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3681,6 +4156,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca_public_key 
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_public_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3690,7 +4166,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_pub
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -3726,6 +4202,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_end_entity_pub
 
 static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3735,7 +4212,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_public_key (Cu
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -3752,7 +4229,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_public_key (Cu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_CA, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3768,6 +4249,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_ca_public_key (Cu
 
 static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3777,7 +4259,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_public
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -3795,7 +4277,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_public
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, RSA_EE, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3811,6 +4297,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_rsa_end_entity_public
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca2_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3820,7 +4307,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca2_public_key (C
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -3837,7 +4324,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca2_public_key (C
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA2, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA2, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3854,6 +4345,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc_ca2_public_key (C
 static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_ca2_public_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3863,7 +4355,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_ca2_pu
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -3881,7 +4373,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_ca2_pu
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE2, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE2, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3898,6 +4394,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc_ca2_pu
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca2_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3907,7 +4404,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca2_public_key
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC384_CA_DER,
@@ -3925,8 +4422,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca2_public_key
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_CA2, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_CA2, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3943,6 +4445,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc384_ca2_public_key
 static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc384_ca2_public_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3952,7 +4455,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc384_ca2
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC384_CA_DER,
@@ -3970,8 +4473,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc384_ca2
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC384_EE2, CERTCA, UTF8STRING,
+		ECDSA_SHA384_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC384_EE2, CERTCA, UTF8STRING,
 		ECDSA_SHA384_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -3989,6 +4497,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc384_ca2
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca2_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -3998,7 +4507,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca2_public_key
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC521_CA_DER,
@@ -4016,8 +4525,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca2_public_key
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_CA2, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_CA2, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4034,6 +4548,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ecc521_ca2_public_key
 static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc521_ca2_public_key (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4043,7 +4558,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc521_ca2
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC521_CA_DER,
@@ -4061,8 +4576,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc521_ca2
 	CuAssertIntEquals (test, 0, status);
 	CuAssertPtrNotNull (test, der);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC521_EE2, CERTCA, UTF8STRING,
+		ECDSA_SHA512_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC521_EE2, CERTCA, UTF8STRING,
 		ECDSA_SHA512_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4080,6 +4600,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_ecc521_ca2
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_non_zero_path_length_constraint (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4089,7 +4610,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_non_zero_path_leng
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -4124,6 +4645,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_non_zero_path_leng
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_no_path_length_constraint (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4133,7 +4655,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_no_path_length_con
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -4168,6 +4690,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_no_path_length_con
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4180,7 +4703,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4228,7 +4751,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4245,6 +4772,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4257,7 +4785,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_an
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4305,7 +4833,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_an
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_UEID, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4322,6 +4854,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_an
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha1 (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4334,7 +4867,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4382,8 +4915,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA1, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4400,6 +4938,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha384 (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4412,7 +4951,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4460,8 +4999,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA384, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4478,6 +5022,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha512 (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4490,7 +5035,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4538,8 +5083,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SHA512, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4556,6 +5106,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_svn_zero (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4568,7 +5119,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4616,8 +5167,12 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID_SVN, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4634,6 +5189,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_e
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4645,7 +5201,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_extension_
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4680,8 +5236,12 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_extension_
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTCA, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4698,6 +5258,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_extension_
 static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4709,7 +5270,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_ex
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4744,8 +5305,12 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_ex
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTCA, UTF8STRING,	ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_EE_TCBINFO, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4761,6 +5326,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_ex
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_critical_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4777,7 +5343,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_critical_extension
 		sizeof (critical_ext));
 	critical_ext.critical = true;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4810,8 +5376,13 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_critical_extension
 	status = x509_extension_builder_mock_validate_and_release (&tcb);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTCA, UTF8STRING,
+		ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_TCBINFO_CRIT, CERTCA, UTF8STRING,
 		ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4827,6 +5398,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_critical_extension
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_null_extension (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4839,7 +5411,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_null_extension (Cu
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -4887,7 +5459,11 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_null_extension (Cu
 	status |= x509_extension_builder_mock_validate_and_release (&ueid);
 	CuAssertIntEquals (test, 0, status);
 
+#if MBEDTLS_VERSION_NUMBER > X509_MBEDTLS_TESTING_VERSION_2_28_0
+	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_NO_NULL);
+#else
 	x509_testing_start_cert_verification (test, ECC_CA_UEID, CERTCA, UTF8STRING, ECDSA_WITH_NULL);
+#endif
 	x509_testing_verify_cert_length (test, der, length);
 	x509_testing_verify_cert (test, der);
 	x509_testing_verify_sig_algorithm (test, der);
@@ -4901,8 +5477,52 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_null_extension (Cu
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_create_ca_signed_certificate_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate ca_cert;
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.create_ca_signed_certificate (&engine.base, &cert, ECC_PRIVKEY_DER,
+		ECC_PRIVKEY_DER_LEN, X509_CA2_SERIAL_NUM, X509_CA2_SERIAL_NUM_LEN, X509_CA2_SUBJECT_NAME,
+		X509_CERT_CA, RSA_PRIVKEY_DER, RSA_PRIVKEY_DER_LEN, HASH_TYPE_SHA256, &ca_cert, NULL, 0);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, cert.context);
+
+	status = engine.base.get_certificate_der (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+
+	x509_testing_start_cert_verification (test, ECC_CA, CERTCA, UTF8STRING, RSA_WITH_NULL);
+	x509_testing_verify_cert_length (test, der, length);
+	x509_testing_verify_cert (test, der);
+	x509_testing_verify_sig_algorithm (test, der);
+	x509_testing_verify_signature_rsa (test, der, SHA256);
+	x509_testing_end_cert_verification;
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_certificate (&engine.base, &ca_cert);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_create_ca_signed_certificate_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4910,7 +5530,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -4974,6 +5594,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_null (CuTest *test)
 
 static void x509_mbedtls_test_create_ca_signed_certificate_extensions_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4981,7 +5602,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_extensions_null (CuTe
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -5000,6 +5621,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_extensions_null (CuTe
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ca_public_key (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5007,7 +5629,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_public_key (CuTest
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -5026,6 +5648,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ca_public_key (CuTest
 
 static void x509_mbedtls_test_create_ca_signed_certificate_sig_unsupported_hash (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5033,7 +5656,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_sig_unsupported_hash 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -5057,6 +5680,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_sig_unsupported_hash 
 
 static void x509_mbedtls_test_create_ca_signed_certificate_serial_zero (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5065,7 +5689,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_serial_zero (CuTest *
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_RSA_CA_DER,
@@ -5084,6 +5708,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_serial_zero (CuTest *
 
 static void x509_mbedtls_test_create_ca_signed_certificate_tcbinfo_error (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5094,7 +5719,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_tcbinfo_error (CuTest
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -5131,6 +5756,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_tcbinfo_error (CuTest
 
 static void x509_mbedtls_test_create_ca_signed_certificate_ueid_error (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5141,7 +5767,7 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ueid_error (CuTest *t
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &ca_cert, X509_CERTSS_ECC_CA_DER,
@@ -5186,13 +5812,14 @@ static void x509_mbedtls_test_create_ca_signed_certificate_ueid_error (CuTest *t
 
 static void x509_mbedtls_test_release_certificate_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5208,6 +5835,7 @@ static void x509_mbedtls_test_release_certificate_null (CuTest *test)
 
 static void x509_mbedtls_test_get_certificate_der_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -5216,7 +5844,7 @@ static void x509_mbedtls_test_get_certificate_der_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5248,13 +5876,14 @@ static void x509_mbedtls_test_get_certificate_der_null (CuTest *test)
 
 static void x509_mbedtls_test_get_certificate_version (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5262,7 +5891,31 @@ static void x509_mbedtls_test_get_certificate_version (CuTest *test)
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.get_certificate_version (&engine.base, &cert);
-	CuAssertIntEquals (test, X509_VERSION_3, status);
+	CuAssertIntEquals (test, X509_CERT_VERSION_3, status);
+
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_mbedtls_release (&engine);
+}
+
+static void x509_mbedtls_test_get_certificate_version_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_certificate_version (&engine.base, &cert);
+	CuAssertIntEquals (test, X509_CERT_VERSION_3, status);
 
 	engine.base.release_certificate (&engine.base, &cert);
 
@@ -5271,13 +5924,14 @@ static void x509_mbedtls_test_get_certificate_version (CuTest *test)
 
 static void x509_mbedtls_test_get_certificate_version_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5297,6 +5951,7 @@ static void x509_mbedtls_test_get_certificate_version_null (CuTest *test)
 
 static void x509_mbedtls_test_get_serial_number (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -5304,7 +5959,35 @@ static void x509_mbedtls_test_get_serial_number (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_serial_number (&engine.base, &cert, serial, sizeof (serial));
+	CuAssertIntEquals (test, X509_SERIAL_NUM_LEN, status);
+
+	status = testing_validate_array (X509_SERIAL_NUM, serial, status);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_mbedtls_release (&engine);
+}
+
+static void x509_mbedtls_test_get_serial_number_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	int status;
+	uint8_t serial[X509_MAX_SERIAL_NUMBER * 2];
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5324,6 +6007,7 @@ static void x509_mbedtls_test_get_serial_number (CuTest *test)
 
 static void x509_mbedtls_test_get_serial_number_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -5331,7 +6015,7 @@ static void x509_mbedtls_test_get_serial_number_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5354,6 +6038,7 @@ static void x509_mbedtls_test_get_serial_number_null (CuTest *test)
 
 static void x509_mbedtls_test_get_serial_number_small_buffer (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -5361,7 +6046,7 @@ static void x509_mbedtls_test_get_serial_number_small_buffer (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5378,13 +6063,14 @@ static void x509_mbedtls_test_get_serial_number_small_buffer (CuTest *test)
 
 static void x509_mbedtls_test_get_public_key_type_ecc (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5401,13 +6087,14 @@ static void x509_mbedtls_test_get_public_key_type_ecc (CuTest *test)
 
 static void x509_mbedtls_test_get_public_key_type_rsa (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_RSA_CA_DER,
@@ -5422,15 +6109,40 @@ static void x509_mbedtls_test_get_public_key_type_rsa (CuTest *test)
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_get_public_key_type_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_public_key_type (&engine.base, &cert);
+	CuAssertIntEquals (test, X509_PUBLIC_KEY_ECC, status);
+
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_get_public_key_type_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5450,13 +6162,14 @@ static void x509_mbedtls_test_get_public_key_type_null (CuTest *test)
 
 static void x509_mbedtls_test_get_public_key_length_ecc (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5474,13 +6187,14 @@ static void x509_mbedtls_test_get_public_key_length_ecc (CuTest *test)
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
 static void x509_mbedtls_test_get_public_key_length_ecc384 (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC384_CA_DER,
@@ -5499,13 +6213,14 @@ static void x509_mbedtls_test_get_public_key_length_ecc384 (CuTest *test)
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521
 static void x509_mbedtls_test_get_public_key_length_ecc521 (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC521_CA_DER,
@@ -5523,13 +6238,14 @@ static void x509_mbedtls_test_get_public_key_length_ecc521 (CuTest *test)
 
 static void x509_mbedtls_test_get_public_key_length_rsa (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_RSA_CA_DER,
@@ -5546,13 +6262,14 @@ static void x509_mbedtls_test_get_public_key_length_rsa (CuTest *test)
 
 static void x509_mbedtls_test_get_public_key_length_rsa4k (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_RSA4K_CA_DER,
@@ -5567,15 +6284,40 @@ static void x509_mbedtls_test_get_public_key_length_rsa4k (CuTest *test)
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_get_public_key_length_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_public_key_length (&engine.base, &cert);
+	CuAssertIntEquals (test, 256, status);
+
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_get_public_key_length_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5595,6 +6337,7 @@ static void x509_mbedtls_test_get_public_key_length_null (CuTest *test)
 
 static void x509_mbedtls_test_get_public_key_ecc (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -5603,7 +6346,7 @@ static void x509_mbedtls_test_get_public_key_ecc (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5626,6 +6369,7 @@ static void x509_mbedtls_test_get_public_key_ecc (CuTest *test)
 
 static void x509_mbedtls_test_get_public_key_rsa (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -5634,7 +6378,7 @@ static void x509_mbedtls_test_get_public_key_rsa (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_RSA_CA_DER,
@@ -5655,8 +6399,41 @@ static void x509_mbedtls_test_get_public_key_rsa (CuTest *test)
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_get_public_key_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	int status;
+	uint8_t *der = NULL;
+	size_t length;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.get_public_key (&engine.base, &cert, &der, &length);
+	CuAssertIntEquals (test, 0, status);
+	CuAssertPtrNotNull (test, der);
+	CuAssertIntEquals (test, ECC_PUBKEY_DER_LEN, length);
+
+	status = testing_validate_array (ECC_PUBKEY_DER, der, ECC_PUBKEY_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	platform_free (der);
+	engine.base.release_certificate (&engine.base, &cert);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_get_public_key_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	int status;
@@ -5665,7 +6442,7 @@ static void x509_mbedtls_test_get_public_key_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_CA_DER,
@@ -5697,13 +6474,34 @@ static void x509_mbedtls_test_get_public_key_null (CuTest *test)
 
 static void x509_mbedtls_test_init_ca_cert_store (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_ca_cert_store (&engine.base, &store);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_ca_cert_store (&engine.base, &store);
+
+	x509_mbedtls_release (&engine);
+}
+
+static void x509_mbedtls_test_init_ca_cert_store_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_ca_certs store;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5716,13 +6514,14 @@ static void x509_mbedtls_test_init_ca_cert_store (CuTest *test)
 
 static void x509_mbedtls_test_init_ca_cert_store_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (NULL, &store);
@@ -5736,13 +6535,14 @@ static void x509_mbedtls_test_init_ca_cert_store_null (CuTest *test)
 
 static void x509_mbedtls_test_release_ca_cert_store_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5757,13 +6557,14 @@ static void x509_mbedtls_test_release_ca_cert_store_null (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_ecc (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5779,6 +6580,7 @@ static void x509_mbedtls_test_add_root_ca_ecc (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_ecc_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -5790,7 +6592,7 @@ static void x509_mbedtls_test_add_root_ca_ecc_bad_signature (CuTest *test)
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5805,13 +6607,14 @@ static void x509_mbedtls_test_add_root_ca_ecc_bad_signature (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_rsa (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5827,6 +6630,7 @@ static void x509_mbedtls_test_add_root_ca_rsa (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_rsa_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -5838,7 +6642,7 @@ static void x509_mbedtls_test_add_root_ca_rsa_bad_signature (CuTest *test)
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5851,15 +6655,39 @@ static void x509_mbedtls_test_add_root_ca_rsa_bad_signature (CuTest *test)
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_add_root_ca_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_ca_certs store;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_ca_cert_store (&engine.base, &store);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.add_root_ca (&engine.base, &store, X509_CERTSS_ECC_CA_DER,
+		X509_CERTSS_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_ca_cert_store (&engine.base, &store);
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_add_root_ca_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5885,6 +6713,7 @@ static void x509_mbedtls_test_add_root_ca_null (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_ecc_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -5896,7 +6725,7 @@ static void x509_mbedtls_test_add_root_ca_ecc_corrupt_signature (CuTest *test)
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5911,6 +6740,7 @@ static void x509_mbedtls_test_add_root_ca_ecc_corrupt_signature (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_rsa_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -5922,7 +6752,7 @@ static void x509_mbedtls_test_add_root_ca_rsa_corrupt_signature (CuTest *test)
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5937,6 +6767,7 @@ static void x509_mbedtls_test_add_root_ca_rsa_corrupt_signature (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_bad_cert (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -5947,7 +6778,7 @@ static void x509_mbedtls_test_add_root_ca_bad_cert (CuTest *test)
 	memcpy (bad_cert, X509_CERTSS_ECC_CA_DER, X509_CERTSS_ECC_CA_DER_LEN);
 	bad_cert[0] ^= 0x55;	/* Corrupt the certificate. */
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5962,13 +6793,14 @@ static void x509_mbedtls_test_add_root_ca_bad_cert (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_not_self_signed (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -5984,13 +6816,14 @@ static void x509_mbedtls_test_add_root_ca_not_self_signed (CuTest *test)
 
 static void x509_mbedtls_test_add_root_ca_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6006,13 +6839,14 @@ static void x509_mbedtls_test_add_root_ca_end_entity (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_ecc (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6029,6 +6863,7 @@ static void x509_mbedtls_test_add_trusted_ca_ecc (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_ecc_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6040,7 +6875,7 @@ static void x509_mbedtls_test_add_trusted_ca_ecc_bad_signature (CuTest *test)
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6056,6 +6891,7 @@ static void x509_mbedtls_test_add_trusted_ca_ecc_bad_signature (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_ecc_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6067,7 +6903,7 @@ static void x509_mbedtls_test_add_trusted_ca_ecc_corrupt_signature (CuTest *test
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6083,13 +6919,14 @@ static void x509_mbedtls_test_add_trusted_ca_ecc_corrupt_signature (CuTest *test
 
 static void x509_mbedtls_test_add_trusted_ca_rsa (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6106,6 +6943,7 @@ static void x509_mbedtls_test_add_trusted_ca_rsa (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_rsa_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6117,7 +6955,7 @@ static void x509_mbedtls_test_add_trusted_ca_rsa_bad_signature (CuTest *test)
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6133,6 +6971,7 @@ static void x509_mbedtls_test_add_trusted_ca_rsa_bad_signature (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_rsa_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6144,7 +6983,7 @@ static void x509_mbedtls_test_add_trusted_ca_rsa_corrupt_signature (CuTest *test
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6158,15 +6997,40 @@ static void x509_mbedtls_test_add_trusted_ca_rsa_corrupt_signature (CuTest *test
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_add_trusted_ca_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_ca_certs store;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_ca_cert_store (&engine.base, &store);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.add_trusted_ca (&engine.base, &store, X509_CERTCA_ECC_CA_DER,
+		X509_CERTCA_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_ca_cert_store (&engine.base, &store);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_add_trusted_ca_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6193,6 +7057,7 @@ static void x509_mbedtls_test_add_trusted_ca_null (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_ecc_bad_cert (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6203,7 +7068,7 @@ static void x509_mbedtls_test_add_trusted_ca_ecc_bad_cert (CuTest *test)
 	memcpy (bad_cert, X509_CERTCA_ECC_CA_DER, X509_CERTCA_ECC_CA_DER_LEN);
 	bad_cert[0] ^= 0x55;	/* Corrupt the certificate. */
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6219,13 +7084,14 @@ static void x509_mbedtls_test_add_trusted_ca_ecc_bad_cert (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_self_signed (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6242,13 +7108,14 @@ static void x509_mbedtls_test_add_trusted_ca_self_signed (CuTest *test)
 
 static void x509_mbedtls_test_add_trusted_ca_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6265,13 +7132,14 @@ static void x509_mbedtls_test_add_trusted_ca_end_entity (CuTest *test)
 
 static void x509_mbedtls_test_add_intermediate_ca_ecc (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6288,6 +7156,7 @@ static void x509_mbedtls_test_add_intermediate_ca_ecc (CuTest *test)
 
 static void x509_mbedtls_test_add_intermediate_ca_ecc_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6299,7 +7168,7 @@ static void x509_mbedtls_test_add_intermediate_ca_ecc_bad_signature (CuTest *tes
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6315,6 +7184,7 @@ static void x509_mbedtls_test_add_intermediate_ca_ecc_bad_signature (CuTest *tes
 
 static void x509_mbedtls_test_add_intermediate_ca_ecc_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6326,7 +7196,7 @@ static void x509_mbedtls_test_add_intermediate_ca_ecc_corrupt_signature (CuTest 
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6342,13 +7212,14 @@ static void x509_mbedtls_test_add_intermediate_ca_ecc_corrupt_signature (CuTest 
 
 static void x509_mbedtls_test_add_intermediate_ca_rsa (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6365,6 +7236,7 @@ static void x509_mbedtls_test_add_intermediate_ca_rsa (CuTest *test)
 
 static void x509_mbedtls_test_add_intermediate_ca_rsa_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6376,7 +7248,7 @@ static void x509_mbedtls_test_add_intermediate_ca_rsa_bad_signature (CuTest *tes
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6392,6 +7264,7 @@ static void x509_mbedtls_test_add_intermediate_ca_rsa_bad_signature (CuTest *tes
 
 static void x509_mbedtls_test_add_intermediate_ca_rsa_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6403,7 +7276,7 @@ static void x509_mbedtls_test_add_intermediate_ca_rsa_corrupt_signature (CuTest 
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6417,15 +7290,40 @@ static void x509_mbedtls_test_add_intermediate_ca_rsa_corrupt_signature (CuTest 
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_add_intermediate_ca_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_ca_certs store;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_ca_cert_store (&engine.base, &store);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.add_intermediate_ca (&engine.base, &store, X509_CERTCA_ECC_CA_DER,
+		X509_CERTCA_ECC_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_ca_cert_store (&engine.base, &store);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_add_intermediate_ca_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6453,6 +7351,7 @@ static void x509_mbedtls_test_add_intermediate_ca_null (CuTest *test)
 
 static void x509_mbedtls_test_add_intermediate_ca_ecc_bad_cert (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
@@ -6463,7 +7362,7 @@ static void x509_mbedtls_test_add_intermediate_ca_ecc_bad_cert (CuTest *test)
 	memcpy (bad_cert, X509_CERTCA_ECC_CA_DER, X509_CERTCA_ECC_CA_DER_LEN);
 	bad_cert[0] ^= 0x55;	/* Corrupt the certificate. */
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6479,13 +7378,14 @@ static void x509_mbedtls_test_add_intermediate_ca_ecc_bad_cert (CuTest *test)
 
 static void x509_mbedtls_test_add_intermediate_ca_self_signed (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6502,13 +7402,14 @@ static void x509_mbedtls_test_add_intermediate_ca_self_signed (CuTest *test)
 
 static void x509_mbedtls_test_add_intermediate_ca_end_entity (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	int status;
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6525,6 +7426,7 @@ static void x509_mbedtls_test_add_intermediate_ca_end_entity (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_ecc_end_entity_no_intermediate_certs (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -6532,7 +7434,7 @@ static void x509_mbedtls_test_authenticate_ecc_end_entity_no_intermediate_certs 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE_DER,
@@ -6557,6 +7459,7 @@ static void x509_mbedtls_test_authenticate_ecc_end_entity_no_intermediate_certs 
 
 static void x509_mbedtls_test_authenticate_ecc_ca_no_intermediate_certs (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -6564,7 +7467,7 @@ static void x509_mbedtls_test_authenticate_ecc_ca_no_intermediate_certs (CuTest 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_CA_DER,
@@ -6589,6 +7492,7 @@ static void x509_mbedtls_test_authenticate_ecc_ca_no_intermediate_certs (CuTest 
 
 static void x509_mbedtls_test_authenticate_rsa_end_entity_no_intermediate_certs (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -6596,7 +7500,7 @@ static void x509_mbedtls_test_authenticate_rsa_end_entity_no_intermediate_certs 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_RSA_EE_DER,
@@ -6621,6 +7525,7 @@ static void x509_mbedtls_test_authenticate_rsa_end_entity_no_intermediate_certs 
 
 static void x509_mbedtls_test_authenticate_rsa_ca_no_intermediate_certs (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -6628,7 +7533,7 @@ static void x509_mbedtls_test_authenticate_rsa_ca_no_intermediate_certs (CuTest 
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_RSA_CA_DER,
@@ -6653,6 +7558,7 @@ static void x509_mbedtls_test_authenticate_rsa_ca_no_intermediate_certs (CuTest 
 
 static void x509_mbedtls_test_authenticate_end_entity_one_intermediate_cert (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -6664,7 +7570,7 @@ static void x509_mbedtls_test_authenticate_end_entity_one_intermediate_cert (CuT
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -6709,6 +7615,7 @@ static void x509_mbedtls_test_authenticate_end_entity_one_intermediate_cert (CuT
 
 static void x509_mbedtls_test_authenticate_ca_one_intermediate_cert (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -6720,7 +7627,7 @@ static void x509_mbedtls_test_authenticate_ca_one_intermediate_cert (CuTest *tes
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -6764,6 +7671,7 @@ static void x509_mbedtls_test_authenticate_ca_one_intermediate_cert (CuTest *tes
 
 static void x509_mbedtls_test_authenticate_end_entity_root_pathlen_constraint (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca;
@@ -6772,7 +7680,7 @@ static void x509_mbedtls_test_authenticate_end_entity_root_pathlen_constraint (C
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6809,6 +7717,7 @@ static void x509_mbedtls_test_authenticate_end_entity_root_pathlen_constraint (C
 
 static void x509_mbedtls_test_authenticate_ca_root_pathlen_constraint (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca;
@@ -6817,7 +7726,7 @@ static void x509_mbedtls_test_authenticate_ca_root_pathlen_constraint (CuTest *t
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -6853,6 +7762,7 @@ static void x509_mbedtls_test_authenticate_ca_root_pathlen_constraint (CuTest *t
 
 static void x509_mbedtls_test_authenticate_end_entity_multiple_intermediate_certs (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -6870,7 +7780,7 @@ static void x509_mbedtls_test_authenticate_end_entity_multiple_intermediate_cert
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -6942,6 +7852,7 @@ static void x509_mbedtls_test_authenticate_end_entity_multiple_intermediate_cert
 
 static void x509_mbedtls_test_authenticate_ca_multiple_intermediate_certs (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -6959,7 +7870,7 @@ static void x509_mbedtls_test_authenticate_ca_multiple_intermediate_certs (CuTes
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -7030,6 +7941,7 @@ static void x509_mbedtls_test_authenticate_ca_multiple_intermediate_certs (CuTes
 
 static void x509_mbedtls_test_authenticate_ecc_riot_alias (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7037,7 +7949,7 @@ static void x509_mbedtls_test_authenticate_ecc_riot_alias (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE_UEID_DER,
@@ -7063,6 +7975,7 @@ static void x509_mbedtls_test_authenticate_ecc_riot_alias (CuTest *test)
 static void x509_mbedtls_test_authenticate_ecc_end_entity_trusted_intermediate_cert_no_untrusted (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7070,7 +7983,7 @@ static void x509_mbedtls_test_authenticate_ecc_end_entity_trusted_intermediate_c
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE3_ICA_DER,
@@ -7096,6 +8009,7 @@ static void x509_mbedtls_test_authenticate_ecc_end_entity_trusted_intermediate_c
 static void x509_mbedtls_test_authenticate_ecc_ca_trusted_intermediate_cert_no_untrusted (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7103,7 +8017,7 @@ static void x509_mbedtls_test_authenticate_ecc_ca_trusted_intermediate_cert_no_u
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_CA2_ICA_DER,
@@ -7130,6 +8044,7 @@ static void x509_mbedtls_test_authenticate_end_entity_trusted_intermediate_multi
 (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca1;
@@ -7144,7 +8059,7 @@ static void x509_mbedtls_test_authenticate_end_entity_trusted_intermediate_multi
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -7204,6 +8119,7 @@ static void x509_mbedtls_test_authenticate_end_entity_trusted_intermediate_multi
 static void x509_mbedtls_test_authenticate_ca_trusted_intermediate_multiple_untrusted_certs (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca1;
@@ -7218,7 +8134,7 @@ static void x509_mbedtls_test_authenticate_ca_trusted_intermediate_multiple_untr
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -7274,8 +8190,42 @@ static void x509_mbedtls_test_authenticate_ca_trusted_intermediate_multiple_untr
 	x509_mbedtls_release (&engine);
 }
 
+static void x509_mbedtls_test_authenticate_static_init (CuTest *test)
+{
+	struct x509_engine_mbedtls_state state;
+	struct x509_engine_mbedtls engine = x509_mbedtls_static_init (&state);
+	struct x509_certificate cert;
+	struct x509_ca_certs store;
+	int status;
+
+	TEST_START;
+
+	status = x509_mbedtls_init_state (&engine);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE_DER,
+		X509_CERTCA_ECC_EE_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.init_ca_cert_store (&engine.base, &store);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.add_root_ca (&engine.base, &store, X509_CERTSS_RSA_CA_DER,
+		X509_CERTSS_RSA_CA_DER_LEN);
+	CuAssertIntEquals (test, 0, status);
+
+	status = engine.base.authenticate (&engine.base, &cert, &store);
+	CuAssertIntEquals (test, 0, status);
+
+	engine.base.release_certificate (&engine.base, &cert);
+	engine.base.release_ca_cert_store (&engine.base, &store);
+
+	x509_mbedtls_release (&engine);
+}
+
 static void x509_mbedtls_test_authenticate_null (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7283,7 +8233,7 @@ static void x509_mbedtls_test_authenticate_null (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE_DER,
@@ -7314,6 +8264,7 @@ static void x509_mbedtls_test_authenticate_null (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_no_path_to_root (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -7325,7 +8276,7 @@ static void x509_mbedtls_test_authenticate_no_path_to_root (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -7366,6 +8317,7 @@ static void x509_mbedtls_test_authenticate_no_path_to_root (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_no_path_to_trusted (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca1;
@@ -7377,7 +8329,7 @@ static void x509_mbedtls_test_authenticate_no_path_to_trusted (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -7422,6 +8374,7 @@ static void x509_mbedtls_test_authenticate_no_path_to_trusted (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_partial_path_to_root (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -7439,7 +8392,7 @@ static void x509_mbedtls_test_authenticate_partial_path_to_root (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -7507,6 +8460,7 @@ static void x509_mbedtls_test_authenticate_partial_path_to_root (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_partial_path_to_trusted (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca1;
@@ -7521,7 +8475,7 @@ static void x509_mbedtls_test_authenticate_partial_path_to_trusted (CuTest *test
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -7579,6 +8533,7 @@ static void x509_mbedtls_test_authenticate_partial_path_to_trusted (CuTest *test
 
 static void x509_mbedtls_test_authenticate_violate_path_length_constraint (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -7593,7 +8548,7 @@ static void x509_mbedtls_test_authenticate_violate_path_length_constraint (CuTes
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -7652,6 +8607,7 @@ static void x509_mbedtls_test_authenticate_violate_path_length_constraint (CuTes
 static void x509_mbedtls_test_authenticate_violate_path_length_constraint_with_trusted_ca (
 	CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca1;
@@ -7663,7 +8619,7 @@ static void x509_mbedtls_test_authenticate_violate_path_length_constraint_with_t
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -7708,6 +8664,7 @@ static void x509_mbedtls_test_authenticate_violate_path_length_constraint_with_t
 
 static void x509_mbedtls_test_authenticate_intermediate_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -7724,7 +8681,7 @@ static void x509_mbedtls_test_authenticate_intermediate_bad_signature (CuTest *t
 	status = x509_testing_corrupt_serial_number (bad_ca);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -7768,6 +8725,7 @@ static void x509_mbedtls_test_authenticate_intermediate_bad_signature (CuTest *t
 
 static void x509_mbedtls_test_authenticate_intermediate_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate root;
@@ -7784,7 +8742,7 @@ static void x509_mbedtls_test_authenticate_intermediate_corrupt_signature (CuTes
 	status = x509_testing_corrupt_signature (bad_ca);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.create_self_signed_certificate (&engine.base, &root, RSA_PRIVKEY_DER,
@@ -7828,6 +8786,7 @@ static void x509_mbedtls_test_authenticate_intermediate_corrupt_signature (CuTes
 
 static void x509_mbedtls_test_authenticate_bad_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7840,7 +8799,7 @@ static void x509_mbedtls_test_authenticate_bad_signature (CuTest *test)
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, bad_cert, sizeof (bad_cert));
@@ -7864,6 +8823,7 @@ static void x509_mbedtls_test_authenticate_bad_signature (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_bad_signature_with_trusted_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7876,7 +8836,7 @@ static void x509_mbedtls_test_authenticate_bad_signature_with_trusted_ca (CuTest
 	status = x509_testing_corrupt_serial_number (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, bad_cert, sizeof (bad_cert));
@@ -7900,6 +8860,7 @@ static void x509_mbedtls_test_authenticate_bad_signature_with_trusted_ca (CuTest
 
 static void x509_mbedtls_test_authenticate_corrupt_signature (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7912,7 +8873,7 @@ static void x509_mbedtls_test_authenticate_corrupt_signature (CuTest *test)
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, bad_cert, sizeof (bad_cert));
@@ -7936,6 +8897,7 @@ static void x509_mbedtls_test_authenticate_corrupt_signature (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_corrupt_signature_with_trusted_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store;
@@ -7948,7 +8910,7 @@ static void x509_mbedtls_test_authenticate_corrupt_signature_with_trusted_ca (Cu
 	status = x509_testing_corrupt_signature (bad_cert);
 	CuAssertIntEquals (test, 0, status);
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, bad_cert, sizeof (bad_cert));
@@ -7972,6 +8934,7 @@ static void x509_mbedtls_test_authenticate_corrupt_signature_with_trusted_ca (Cu
 
 static void x509_mbedtls_test_authenticate_no_root_ca (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate ca;
@@ -7980,7 +8943,7 @@ static void x509_mbedtls_test_authenticate_no_root_ca (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.init_ca_cert_store (&engine.base, &store);
@@ -8012,6 +8975,7 @@ static void x509_mbedtls_test_authenticate_no_root_ca (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_empty_ca_store (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate cert;
@@ -8019,7 +8983,7 @@ static void x509_mbedtls_test_authenticate_empty_ca_store (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE_DER,
@@ -8040,6 +9004,7 @@ static void x509_mbedtls_test_authenticate_empty_ca_store (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_self_signed (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_ca_certs store;
 	struct x509_certificate cert;
@@ -8047,7 +9012,7 @@ static void x509_mbedtls_test_authenticate_self_signed (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTSS_ECC_EE_DER,
@@ -8068,6 +9033,7 @@ static void x509_mbedtls_test_authenticate_self_signed (CuTest *test)
 
 static void x509_mbedtls_test_authenticate_different_ca_stores (CuTest *test)
 {
+	struct x509_engine_mbedtls_state state;
 	struct x509_engine_mbedtls engine;
 	struct x509_certificate cert;
 	struct x509_ca_certs store1;
@@ -8076,7 +9042,7 @@ static void x509_mbedtls_test_authenticate_different_ca_stores (CuTest *test)
 
 	TEST_START;
 
-	status = x509_mbedtls_init (&engine);
+	status = x509_mbedtls_init (&engine, &state);
 	CuAssertIntEquals (test, 0, status);
 
 	status = engine.base.load_certificate (&engine.base, &cert, X509_CERTCA_ECC_EE_DER,
@@ -8112,6 +9078,8 @@ TEST_SUITE_START (x509_mbedtls);
 
 TEST (x509_mbedtls_test_init);
 TEST (x509_mbedtls_test_init_null);
+TEST (x509_mbedtls_test_static_init);
+TEST (x509_mbedtls_test_static_init_null);
 TEST (x509_mbedtls_test_release_null);
 TEST (x509_mbedtls_test_create_csr_ecc_ca);
 TEST (x509_mbedtls_test_create_csr_ecc_end_entity);
@@ -8143,6 +9111,7 @@ TEST (x509_mbedtls_test_create_csr_ca_tcbinfo_extension_no_ueid);
 TEST (x509_mbedtls_test_create_csr_end_entity_tcbinfo_extension_no_ueid);
 TEST (x509_mbedtls_test_create_csr_ca_critical_extension);
 TEST (x509_mbedtls_test_create_csr_ca_null_extension);
+TEST (x509_mbedtls_test_create_csr_static_init);
 TEST (x509_mbedtls_test_create_csr_null);
 TEST (x509_mbedtls_test_create_csr_eku_null);
 TEST (x509_mbedtls_test_create_csr_extensions_null);
@@ -8178,6 +9147,7 @@ TEST (x509_mbedtls_test_create_self_signed_certificate_ecc_ca_tcbinfo_extension_
 TEST (x509_mbedtls_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extension_no_ueid);
 TEST (x509_mbedtls_test_create_self_signed_certificate_ca_critical_extension);
 TEST (x509_mbedtls_test_create_self_signed_certificate_ca_null_extension);
+TEST (x509_mbedtls_test_create_self_signed_certificate_static_init);
 TEST (x509_mbedtls_test_create_self_signed_certificate_null);
 TEST (x509_mbedtls_test_create_self_signed_certificate_extensions_null);
 TEST (x509_mbedtls_test_create_self_signed_certificate_with_public_key);
@@ -8187,6 +9157,7 @@ TEST (x509_mbedtls_test_create_self_signed_certificate_tcbinfo_error);
 TEST (x509_mbedtls_test_create_self_signed_certificate_ueid_error);
 TEST (x509_mbedtls_test_load_certificate);
 TEST (x509_mbedtls_test_load_certificate_riot);
+TEST (x509_mbedtls_test_load_certificate_static_init);
 TEST (x509_mbedtls_test_load_certificate_null);
 TEST (x509_mbedtls_test_load_certificate_bad);
 TEST (x509_mbedtls_test_create_ca_signed_certificate_ecc_ca_private_key);
@@ -8245,6 +9216,7 @@ TEST (x509_mbedtls_test_create_ca_signed_certificate_ca_tcbinfo_extension_no_uei
 TEST (x509_mbedtls_test_create_ca_signed_certificate_end_entity_tcbinfo_extension_no_ueid);
 TEST (x509_mbedtls_test_create_ca_signed_certificate_ca_critical_extension);
 TEST (x509_mbedtls_test_create_ca_signed_certificate_ca_null_extension);
+TEST (x509_mbedtls_test_create_ca_signed_certificate_static_init);
 TEST (x509_mbedtls_test_create_ca_signed_certificate_null);
 TEST (x509_mbedtls_test_create_ca_signed_certificate_extensions_null);
 TEST (x509_mbedtls_test_create_ca_signed_certificate_ca_public_key);
@@ -8255,12 +9227,15 @@ TEST (x509_mbedtls_test_create_ca_signed_certificate_ueid_error);
 TEST (x509_mbedtls_test_release_certificate_null);
 TEST (x509_mbedtls_test_get_certificate_der_null);
 TEST (x509_mbedtls_test_get_certificate_version);
+TEST (x509_mbedtls_test_get_certificate_version_static_init);
 TEST (x509_mbedtls_test_get_certificate_version_null);
 TEST (x509_mbedtls_test_get_serial_number);
+TEST (x509_mbedtls_test_get_serial_number_static_init);
 TEST (x509_mbedtls_test_get_serial_number_null);
 TEST (x509_mbedtls_test_get_serial_number_small_buffer);
 TEST (x509_mbedtls_test_get_public_key_type_ecc);
 TEST (x509_mbedtls_test_get_public_key_type_rsa);
+TEST (x509_mbedtls_test_get_public_key_type_static_init);
 TEST (x509_mbedtls_test_get_public_key_type_null);
 TEST (x509_mbedtls_test_get_public_key_length_ecc);
 #if ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384
@@ -8271,17 +9246,21 @@ TEST (x509_mbedtls_test_get_public_key_length_ecc521);
 #endif
 TEST (x509_mbedtls_test_get_public_key_length_rsa);
 TEST (x509_mbedtls_test_get_public_key_length_rsa4k);
+TEST (x509_mbedtls_test_get_public_key_length_static_init);
 TEST (x509_mbedtls_test_get_public_key_length_null);
 TEST (x509_mbedtls_test_get_public_key_ecc);
 TEST (x509_mbedtls_test_get_public_key_rsa);
+TEST (x509_mbedtls_test_get_public_key_static_init);
 TEST (x509_mbedtls_test_get_public_key_null);
 TEST (x509_mbedtls_test_init_ca_cert_store);
+TEST (x509_mbedtls_test_init_ca_cert_store_static_init);
 TEST (x509_mbedtls_test_init_ca_cert_store_null);
 TEST (x509_mbedtls_test_release_ca_cert_store_null);
 TEST (x509_mbedtls_test_add_root_ca_ecc);
 TEST (x509_mbedtls_test_add_root_ca_ecc_bad_signature);
 TEST (x509_mbedtls_test_add_root_ca_rsa);
 TEST (x509_mbedtls_test_add_root_ca_rsa_bad_signature);
+TEST (x509_mbedtls_test_add_root_ca_static_init);
 TEST (x509_mbedtls_test_add_root_ca_null);
 TEST (x509_mbedtls_test_add_root_ca_ecc_corrupt_signature);
 TEST (x509_mbedtls_test_add_root_ca_rsa_corrupt_signature);
@@ -8294,6 +9273,7 @@ TEST (x509_mbedtls_test_add_trusted_ca_ecc_corrupt_signature);
 TEST (x509_mbedtls_test_add_trusted_ca_rsa);
 TEST (x509_mbedtls_test_add_trusted_ca_rsa_bad_signature);
 TEST (x509_mbedtls_test_add_trusted_ca_rsa_corrupt_signature);
+TEST (x509_mbedtls_test_add_trusted_ca_static_init);
 TEST (x509_mbedtls_test_add_trusted_ca_null);
 TEST (x509_mbedtls_test_add_trusted_ca_ecc_bad_cert);
 TEST (x509_mbedtls_test_add_trusted_ca_self_signed);
@@ -8304,6 +9284,7 @@ TEST (x509_mbedtls_test_add_intermediate_ca_ecc_corrupt_signature);
 TEST (x509_mbedtls_test_add_intermediate_ca_rsa);
 TEST (x509_mbedtls_test_add_intermediate_ca_rsa_bad_signature);
 TEST (x509_mbedtls_test_add_intermediate_ca_rsa_corrupt_signature);
+TEST (x509_mbedtls_test_add_intermediate_ca_static_init);
 TEST (x509_mbedtls_test_add_intermediate_ca_null);
 TEST (x509_mbedtls_test_add_intermediate_ca_ecc_bad_cert);
 TEST (x509_mbedtls_test_add_intermediate_ca_self_signed);
@@ -8323,6 +9304,7 @@ TEST (x509_mbedtls_test_authenticate_ecc_end_entity_trusted_intermediate_cert_no
 TEST (x509_mbedtls_test_authenticate_ecc_ca_trusted_intermediate_cert_no_untrusted);
 TEST (x509_mbedtls_test_authenticate_end_entity_trusted_intermediate_multiple_untrusted_certs);
 TEST (x509_mbedtls_test_authenticate_ca_trusted_intermediate_multiple_untrusted_certs);
+TEST (x509_mbedtls_test_authenticate_static_init);
 TEST (x509_mbedtls_test_authenticate_null);
 TEST (x509_mbedtls_test_authenticate_no_path_to_root);
 TEST (x509_mbedtls_test_authenticate_no_path_to_trusted);

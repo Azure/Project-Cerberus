@@ -29,10 +29,10 @@ TEST_SUITE_LABEL ("x509_cert_build");
 
 static void x509_cert_build_test_init (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -69,10 +69,10 @@ static void x509_cert_build_test_init (CuTest *test)
 
 static void x509_cert_build_test_init_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -101,10 +101,11 @@ static void x509_cert_build_test_init_null (CuTest *test)
 
 static void x509_cert_build_test_static_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine = x509_cert_build_static_init (&ecc.base, &hash.base,
 		1024);
+	int status;
 
 	TEST_START;
 
@@ -125,7 +126,16 @@ static void x509_cert_build_test_static_init (CuTest *test)
 	CuAssertPtrEquals (test, NULL, engine.base.add_intermediate_ca);
 	CuAssertPtrEquals (test, NULL, engine.base.authenticate);
 
+	status = HASH_TESTING_ENGINE_INIT (&hash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = ECC_TESTING_ENGINE_INIT (&ecc);
+	CuAssertIntEquals (test, 0, status);
+
 	x509_cert_build_release (&engine);
+
+	HASH_TESTING_ENGINE_RELEASE (&hash);
+	ECC_TESTING_ENGINE_RELEASE (&ecc);
 }
 
 static void x509_cert_build_test_release_null (CuTest *test)
@@ -137,12 +147,12 @@ static void x509_cert_build_test_release_null (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ecc_ca (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -176,12 +186,12 @@ static void x509_cert_build_test_create_csr_ecc_ca (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ecc_end_entity (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -217,12 +227,12 @@ static void x509_cert_build_test_create_csr_ecc_end_entity (CuTest *test)
 #ifdef HASH_ENABLE_SHA384
 static void x509_cert_build_test_create_csr_ecc384_ca (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -256,12 +266,12 @@ static void x509_cert_build_test_create_csr_ecc384_ca (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ecc384_end_entity (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -296,12 +306,12 @@ static void x509_cert_build_test_create_csr_ecc384_end_entity (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ecc384_ca_sha256_digest (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -335,12 +345,12 @@ static void x509_cert_build_test_create_csr_ecc384_ca_sha256_digest (CuTest *tes
 
 static void x509_cert_build_test_create_csr_ecc384_end_entity_sha256_digest (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -376,12 +386,12 @@ static void x509_cert_build_test_create_csr_ecc384_end_entity_sha256_digest (CuT
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_cert_build_test_create_csr_ecc521_ca (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -415,12 +425,12 @@ static void x509_cert_build_test_create_csr_ecc521_ca (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ecc521_end_entity (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -455,12 +465,12 @@ static void x509_cert_build_test_create_csr_ecc521_end_entity (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ca_non_zero_path_length_constraint (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -495,12 +505,12 @@ static void x509_cert_build_test_create_csr_ca_non_zero_path_length_constraint (
 
 static void x509_cert_build_test_create_csr_ca_no_path_length_constraint (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -535,12 +545,12 @@ static void x509_cert_build_test_create_csr_ca_no_path_length_constraint (CuTest
 
 static void x509_cert_build_test_create_csr_ca_with_eku_oid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -575,12 +585,12 @@ static void x509_cert_build_test_create_csr_ca_with_eku_oid (CuTest *test)
 
 static void x509_cert_build_test_create_csr_end_entity_with_eku_oid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -607,6 +617,8 @@ static void x509_cert_build_test_create_csr_end_entity_with_eku_oid (CuTest *tes
 
 static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -614,8 +626,6 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTes
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -680,6 +690,8 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension (CuTes
 
 static void x509_cert_build_test_create_csr_end_entity_tcbinfo_and_ueid_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -687,8 +699,6 @@ static void x509_cert_build_test_create_csr_end_entity_tcbinfo_and_ueid_extensio
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -753,6 +763,8 @@ static void x509_cert_build_test_create_csr_end_entity_tcbinfo_and_ueid_extensio
 
 static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -760,8 +772,6 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -826,6 +836,8 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha1 (
 
 static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -833,8 +845,6 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -899,6 +909,8 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha384
 
 static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512 (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -906,8 +918,6 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -972,6 +982,8 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_sha512
 
 static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_zero (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -979,8 +991,6 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_ze
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1045,14 +1055,14 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_and_ueid_extension_svn_ze
 
 static void x509_cert_build_test_create_csr_ca_tcbinfo_extension_no_ueid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1104,14 +1114,14 @@ static void x509_cert_build_test_create_csr_ca_tcbinfo_extension_no_ueid (CuTest
 
 static void x509_cert_build_test_create_csr_end_entity_tcbinfo_extension_no_ueid (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1163,6 +1173,8 @@ static void x509_cert_build_test_create_csr_end_entity_tcbinfo_extension_no_ueid
 
 static void x509_cert_build_test_create_csr_ca_critical_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -1170,8 +1182,6 @@ static void x509_cert_build_test_create_csr_ca_critical_extension (CuTest *test)
 	struct x509_extension critical_ext = {0};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1226,6 +1236,8 @@ static void x509_cert_build_test_create_csr_ca_critical_extension (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ca_null_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -1233,8 +1245,6 @@ static void x509_cert_build_test_create_csr_ca_null_extension (CuTest *test)
 	const struct x509_extension_builder *extensions[] = {NULL, &tcb.base, NULL, NULL, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1299,8 +1309,8 @@ static void x509_cert_build_test_create_csr_ca_null_extension (CuTest *test)
 
 static void x509_cert_build_test_create_csr_static_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine = x509_cert_build_static_init (&ecc.base, &hash.base,
 		1024);
 	int status;
@@ -1336,12 +1346,12 @@ static void x509_cert_build_test_create_csr_static_init (CuTest *test)
 
 static void x509_cert_build_test_create_csr_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1394,12 +1404,12 @@ static void x509_cert_build_test_create_csr_null (CuTest *test)
 
 static void x509_cert_build_test_create_csr_eku_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1425,12 +1435,12 @@ static void x509_cert_build_test_create_csr_eku_null (CuTest *test)
 
 static void x509_cert_build_test_create_csr_extensions_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1455,12 +1465,12 @@ static void x509_cert_build_test_create_csr_extensions_null (CuTest *test)
 
 static void x509_cert_build_test_create_csr_with_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = (uint8_t*) &status;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1485,12 +1495,12 @@ static void x509_cert_build_test_create_csr_with_public_key (CuTest *test)
 
 static void x509_cert_build_test_create_csr_sig_unsupported_hash (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1520,6 +1530,8 @@ static void x509_cert_build_test_create_csr_sig_unsupported_hash (CuTest *test)
 
 static void x509_cert_build_test_create_csr_tcbinfo_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -1527,8 +1539,6 @@ static void x509_cert_build_test_create_csr_tcbinfo_error (CuTest *test)
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1570,6 +1580,8 @@ static void x509_cert_build_test_create_csr_tcbinfo_error (CuTest *test)
 
 static void x509_cert_build_test_create_csr_ueid_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	int status;
 	struct x509_extension_builder_mock tcb;
@@ -1577,8 +1589,6 @@ static void x509_cert_build_test_create_csr_ueid_error (CuTest *test)
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *csr = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1628,13 +1638,13 @@ static void x509_cert_build_test_create_csr_ueid_error (CuTest *test)
 
 static void x509_cert_build_test_create_self_signed_certificate_ecc_ca (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1674,13 +1684,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca (CuTest *
 
 static void x509_cert_build_test_create_self_signed_certificate_ecc_end_entity (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1722,13 +1732,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_end_entity (
 #ifdef HASH_ENABLE_SHA384
 static void x509_cert_build_test_create_self_signed_certificate_ecc384_ca (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1769,13 +1779,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc384_ca (CuTes
 
 static void x509_cert_build_test_create_self_signed_certificate_ecc384_end_entity (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1818,13 +1828,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc384_end_entit
 static void x509_cert_build_test_create_self_signed_certificate_ecc384_ca_sha256_digest (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1866,13 +1876,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc384_ca_sha256
 static void x509_cert_build_test_create_self_signed_certificate_ecc384_end_entity_sha256_digest (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1915,13 +1925,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc384_end_entit
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_cert_build_test_create_self_signed_certificate_ecc521_ca (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -1962,13 +1972,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc521_ca (CuTes
 
 static void x509_cert_build_test_create_self_signed_certificate_ecc521_end_entity (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2011,13 +2021,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc521_end_entit
 static void x509_cert_build_test_create_self_signed_certificate_ca_non_zero_path_length_constraint (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2058,13 +2068,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_non_zero_path
 static void x509_cert_build_test_create_self_signed_certificate_ca_no_path_length_constraint (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2105,6 +2115,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_no_path_lengt
 static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2113,8 +2125,6 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_a
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2186,6 +2196,8 @@ static void
 x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2194,8 +2206,6 @@ x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_and_u
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2267,6 +2277,8 @@ static void
 x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha1 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2275,8 +2287,6 @@ x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_exte
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2349,6 +2359,8 @@ static void
 x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha384 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2357,8 +2369,6 @@ x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_exte
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2431,6 +2441,8 @@ static void
 x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_sha512 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2439,8 +2451,6 @@ x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_exte
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2513,6 +2523,8 @@ static void
 x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_extension_svn_zero (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2521,8 +2533,6 @@ x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_exte
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2593,6 +2603,8 @@ x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_and_ueid_exte
 static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2600,8 +2612,6 @@ static void x509_cert_build_test_create_self_signed_certificate_ecc_ca_tcbinfo_e
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2660,6 +2670,8 @@ static void
 x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2667,8 +2679,6 @@ x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_exten
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2725,6 +2735,8 @@ x509_cert_build_test_create_self_signed_certificate_ecc_end_entity_tcbinfo_exten
 
 static void x509_cert_build_test_create_self_signed_certificate_ca_critical_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2733,8 +2745,6 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_critical_exte
 	struct x509_extension critical_ext = {0};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2794,6 +2804,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_critical_exte
 
 static void x509_cert_build_test_create_self_signed_certificate_ca_null_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
@@ -2802,8 +2814,6 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_null_extensio
 	const struct x509_extension_builder *extensions[] = {NULL, &tcb.base, NULL, NULL, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2873,8 +2883,8 @@ static void x509_cert_build_test_create_self_signed_certificate_ca_null_extensio
 
 static void x509_cert_build_test_create_self_signed_certificate_static_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine = x509_cert_build_static_init (&ecc.base, &hash.base,
 		1024);
 	struct x509_certificate cert;
@@ -2917,11 +2927,11 @@ static void x509_cert_build_test_create_self_signed_certificate_static_init (CuT
 
 static void x509_cert_build_test_create_self_signed_certificate_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -2976,11 +2986,11 @@ static void x509_cert_build_test_create_self_signed_certificate_null (CuTest *te
 
 static void x509_cert_build_test_create_self_signed_certificate_extensions_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3005,11 +3015,11 @@ static void x509_cert_build_test_create_self_signed_certificate_extensions_null 
 
 static void x509_cert_build_test_create_self_signed_certificate_with_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3034,11 +3044,11 @@ static void x509_cert_build_test_create_self_signed_certificate_with_public_key 
 
 static void x509_cert_build_test_create_self_signed_certificate_sig_unsupported_hash (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3068,12 +3078,12 @@ static void x509_cert_build_test_create_self_signed_certificate_sig_unsupported_
 
 static void x509_cert_build_test_create_self_signed_certificate_serial_zero (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t zero[] = {0};
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3098,14 +3108,14 @@ static void x509_cert_build_test_create_self_signed_certificate_serial_zero (CuT
 
 static void x509_cert_build_test_create_self_signed_certificate_tcbinfo_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	struct x509_extension_builder_mock tcb;
 	struct x509_extension_builder_mock ueid;
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3147,14 +3157,14 @@ static void x509_cert_build_test_create_self_signed_certificate_tcbinfo_error (C
 
 static void x509_cert_build_test_create_self_signed_certificate_ueid_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	struct x509_extension_builder_mock tcb;
 	struct x509_extension_builder_mock ueid;
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3204,13 +3214,13 @@ static void x509_cert_build_test_create_self_signed_certificate_ueid_error (CuTe
 
 static void x509_cert_build_test_load_certificate (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3246,13 +3256,13 @@ static void x509_cert_build_test_load_certificate (CuTest *test)
 
 static void x509_cert_build_test_load_certificate_cert_build (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3289,8 +3299,8 @@ static void x509_cert_build_test_load_certificate_cert_build (CuTest *test)
 
 static void x509_cert_build_test_load_certificate_static_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine = x509_cert_build_static_init (&ecc.base, &hash.base,
 		1024);
 	struct x509_certificate cert;
@@ -3329,11 +3339,11 @@ static void x509_cert_build_test_load_certificate_static_init (CuTest *test)
 
 static void x509_cert_build_test_load_certificate_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3367,12 +3377,12 @@ static void x509_cert_build_test_load_certificate_null (CuTest *test)
 
 static void x509_cert_build_test_load_certificate_bad (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t bad_cert[X509_CERTSS_ECC_CA_DER_LEN];
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3398,11 +3408,11 @@ static void x509_cert_build_test_load_certificate_bad (CuTest *test)
 
 static void x509_cert_build_test_load_certificate_big_cert_size (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3425,14 +3435,14 @@ static void x509_cert_build_test_load_certificate_big_cert_size (CuTest *test)
 
 static void x509_cert_build_test_create_ca_signed_certificate_ecc_ca_private_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3478,14 +3488,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc_ca_private_key
 static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc_ca_private_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3531,14 +3541,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ec
 static void x509_cert_build_test_create_ca_signed_certificate_ecc_end_entity_private_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3586,14 +3596,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc_end_entity_pri
 #ifdef HASH_ENABLE_SHA384
 static void x509_cert_build_test_create_ca_signed_certificate_ecc384_ca_private_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3642,14 +3652,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ec
 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3697,14 +3707,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ec
 static void x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_private_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3755,14 +3765,14 @@ x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ecc384_ca_priv
 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3811,14 +3821,14 @@ static void
 x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_private_key_sha256_digest (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3867,14 +3877,14 @@ x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_private_key_
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_cert_build_test_create_ca_signed_certificate_ecc521_ca_private_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3923,14 +3933,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ec
 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -3978,14 +3988,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_intermediate_ca_ec
 static void x509_cert_build_test_create_ca_signed_certificate_ecc521_end_entity_private_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4033,12 +4043,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc521_end_entity_
 
 static void x509_cert_build_test_create_ca_signed_certificate_rsa_ca_private_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4070,12 +4080,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_rsa_ca_private_key
 
 static void x509_cert_build_test_create_ca_signed_certificate_ecc_ca_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4107,14 +4117,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc_ca_public_key 
 static void x509_cert_build_test_create_ca_signed_certificate_ecc_end_entity_public_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4161,12 +4171,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc_end_entity_pub
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
 static void x509_cert_build_test_create_ca_signed_certificate_ecc384_ca_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4198,14 +4208,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc384_ca_public_k
 static void x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_public_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4254,12 +4264,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc384_end_entity_
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_cert_build_test_create_ca_signed_certificate_ecc521_ca_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4291,14 +4301,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc521_ca_public_k
 static void x509_cert_build_test_create_ca_signed_certificate_ecc521_end_entity_public_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4346,14 +4356,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc521_end_entity_
 
 static void x509_cert_build_test_create_ca_signed_certificate_rsa_ca_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4399,14 +4409,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_rsa_ca_public_key 
 static void x509_cert_build_test_create_ca_signed_certificate_rsa_end_entity_public_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4452,14 +4462,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_rsa_end_entity_pub
 
 static void x509_cert_build_test_create_ca_signed_certificate_ecc_ca2_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4505,14 +4515,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc_ca2_public_key
 static void x509_cert_build_test_create_ca_signed_certificate_end_entity_ecc_ca2_public_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4559,14 +4569,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_ecc_ca2
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_384) && defined HASH_ENABLE_SHA384
 static void x509_cert_build_test_create_ca_signed_certificate_ecc384_ca2_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4614,14 +4624,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc384_ca2_public_
 static void x509_cert_build_test_create_ca_signed_certificate_end_entity_ecc384_ca2_public_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4670,14 +4680,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_ecc384_
 #if (ECC_MAX_KEY_LENGTH >= ECC_KEY_LENGTH_521) && defined HASH_ENABLE_SHA512
 static void x509_cert_build_test_create_ca_signed_certificate_ecc521_ca2_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4725,14 +4735,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ecc521_ca2_public_
 static void x509_cert_build_test_create_ca_signed_certificate_end_entity_ecc521_ca2_public_key (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4781,14 +4791,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_ecc521_
 static void x509_cert_build_test_create_ca_signed_certificate_ca_non_zero_path_length_constraint (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4835,14 +4845,14 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_non_zero_path_l
 static void x509_cert_build_test_create_ca_signed_certificate_ca_no_path_length_constraint (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4889,6 +4899,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_no_path_length_
 static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4898,8 +4910,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -4977,6 +4987,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo
 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -4986,8 +4998,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5064,6 +5074,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo
 static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha1 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5073,8 +5085,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5152,6 +5162,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha384 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5161,8 +5173,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5240,6 +5250,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_ueid_extension_sha512 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5249,8 +5261,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5329,6 +5339,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5338,8 +5350,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5416,6 +5426,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_and_uei
 static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5424,8 +5436,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_extensi
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5489,6 +5499,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_tcbinfo_extensi
 static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo_extension_no_ueid (
 	CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5497,8 +5509,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo
 	const struct x509_extension_builder *extensions[] = {&tcb.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5561,6 +5571,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_end_entity_tcbinfo
 
 static void x509_cert_build_test_create_ca_signed_certificate_ca_critical_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5570,8 +5582,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_critical_extens
 	struct x509_extension critical_ext = {0};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5637,6 +5647,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_critical_extens
 
 static void x509_cert_build_test_create_ca_signed_certificate_ca_null_extension (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -5646,8 +5658,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_null_extension 
 	const struct x509_extension_builder *extensions[] = {NULL, &tcb.base, NULL, NULL, &ueid.base};
 	uint8_t *der = NULL;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5723,8 +5733,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_null_extension 
 
 static void x509_cert_build_test_create_ca_signed_certificate_static_init (CuTest *test)
 {
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine = x509_cert_build_static_init (&ecc.base, &hash.base,
 		1024);
 	struct x509_certificate ca_cert;
@@ -5773,12 +5783,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_static_init (CuTes
 
 static void x509_cert_build_test_create_ca_signed_certificate_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5854,12 +5864,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_null (CuTest *test
 
 static void x509_cert_build_test_create_ca_signed_certificate_extensions_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5890,12 +5900,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_extensions_null (C
 
 static void x509_cert_build_test_create_ca_signed_certificate_ca_public_key (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5926,12 +5936,12 @@ static void x509_cert_build_test_create_ca_signed_certificate_ca_public_key (CuT
 
 static void x509_cert_build_test_create_ca_signed_certificate_sig_unsupported_hash (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -5967,13 +5977,13 @@ static void x509_cert_build_test_create_ca_signed_certificate_sig_unsupported_ha
 
 static void x509_cert_build_test_create_ca_signed_certificate_serial_zero (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
 	int status;
 	uint8_t zero[] = {0};
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -6004,6 +6014,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_serial_zero (CuTes
 
 static void x509_cert_build_test_create_ca_signed_certificate_tcbinfo_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -6011,8 +6023,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_tcbinfo_error (CuT
 	struct x509_extension_builder_mock tcb;
 	struct x509_extension_builder_mock ueid;
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -6061,6 +6071,8 @@ static void x509_cert_build_test_create_ca_signed_certificate_tcbinfo_error (CuT
 
 static void x509_cert_build_test_create_ca_signed_certificate_ueid_error (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate ca_cert;
 	struct x509_certificate cert;
@@ -6068,8 +6080,6 @@ static void x509_cert_build_test_create_ca_signed_certificate_ueid_error (CuTest
 	struct x509_extension_builder_mock tcb;
 	struct x509_extension_builder_mock ueid;
 	const struct x509_extension_builder *extensions[] = {&tcb.base, &ueid.base};
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -6126,11 +6136,11 @@ static void x509_cert_build_test_create_ca_signed_certificate_ueid_error (CuTest
 
 static void x509_cert_build_test_release_certificate_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 
@@ -6159,13 +6169,13 @@ static void x509_cert_build_test_release_certificate_null (CuTest *test)
 
 static void x509_cert_build_test_get_certificate_der_null (CuTest *test)
 {
+	HASH_TESTING_ENGINE (hash);
+	ECC_TESTING_ENGINE (ecc);
 	struct x509_engine_cert_build engine;
 	struct x509_certificate cert;
 	int status;
 	uint8_t *der;
 	size_t length;
-	HASH_TESTING_ENGINE hash;
-	ECC_TESTING_ENGINE ecc;
 
 	TEST_START;
 

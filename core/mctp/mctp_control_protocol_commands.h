@@ -9,7 +9,7 @@
 #include "platform_config.h"
 #include "cmd_interface/cmd_interface.h"
 #include "cmd_interface/device_manager.h"
-
+#include "cmd_interface/msg_transport.h"
 
 /* Configurable command response field.  Default can be overridden in platform_config.h. */
 #ifndef CERBERUS_VID_SET_RESPONSE
@@ -44,7 +44,7 @@
 /**
  * MCTP control set EID request format
  */
-struct mctp_control_set_eid {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE mctp_control_set_eid {
 	struct mctp_control_protocol_header header;	/**< Message header */
 	uint8_t operation:2;						/**< EID operation to perform */
 	uint8_t reserved:6;							/**< Reserved */
@@ -54,7 +54,7 @@ struct mctp_control_set_eid {
 /**
  * MCTP control set EID response format
  */
-struct mctp_control_set_eid_response {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE mctp_control_set_eid_response {
 	struct mctp_control_protocol_resp_header header;	/**< Message header */
 	uint8_t eid_allocation_status:2;					/**< Status of EID allocation */
 	uint8_t reserved1:2;								/**< Reserved */
@@ -74,7 +74,7 @@ struct mctp_control_get_eid {
 /**
  * MCTP control get EID response format
  */
-struct mctp_control_get_eid_response {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE mctp_control_get_eid_response {
 	struct mctp_control_protocol_resp_header header;	/**< Message header */
 	uint8_t eid;										/**< Endpoint ID */
 	uint8_t eid_type:2;									/**< Endpoint ID type */
@@ -201,7 +201,7 @@ struct mctp_control_get_routing_table_entries {
 /**
  * MCTP control routing table entry format
  */
-struct mctp_control_routing_table_entry {
+struct PLATFORM_LITTLE_ENDIAN_STORAGE mctp_control_routing_table_entry {
 	uint8_t eid_range_size;			/**< Size of EID range */
 	uint8_t starting_eid;			/**< Starting EID */
 	uint8_t port_number:5;			/**< Port number */
@@ -285,7 +285,11 @@ int mctp_control_protocol_process_get_routing_table_entries_response (
 
 int mctp_control_protocol_generate_discovery_notify_request (uint8_t *buf, size_t buf_len);
 int mctp_control_protocol_process_discovery_notify_response (struct cmd_interface_msg *response);
+int mctp_control_protocol_send_discovery_notify (const struct msg_transport *transport,
+	struct device_manager *device_mgr, bool use_bridge_eid,	uint32_t timeout_ms,
+	struct cmd_interface_msg *response);
 
+int mctp_control_protocol_unsupported_cmd (struct cmd_interface_msg *request);
 
 #define	CMD_HANDLER_MCTP_CTRL_ERROR(\
 	code)\

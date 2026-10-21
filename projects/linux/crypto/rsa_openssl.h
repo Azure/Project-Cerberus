@@ -16,7 +16,7 @@ struct rsa_engine_openssl {
 
 
 int rsa_openssl_init (struct rsa_engine_openssl *engine);
-void rsa_openssl_release (struct rsa_engine_openssl *engine);
+void rsa_openssl_release (const struct rsa_engine_openssl *engine);
 
 
 #endif /* RSA_OPENSSL_H_ */

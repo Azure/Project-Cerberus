@@ -49,6 +49,10 @@ int recovery_image_header_init (struct recovery_image_header *header, const stru
 	union recovery_image_header_format *hdr;
 	int status;
 
+	if ((header == NULL) || (flash == NULL)) {
+		return RECOVERY_IMAGE_HEADER_INVALID_ARGUMENT;
+	}
+
 	status = image_header_init (&header->base, flash, addr, RECOVERY_IMAGE_HEADER_MARKER,
 		RECOVERY_IMAGE_HEADER_MAX_LENGTH);
 	if (status != 0) {
@@ -118,7 +122,9 @@ err_free_header:
  */
 void recovery_image_header_release (struct recovery_image_header *header)
 {
-	image_header_release (&header->base);
+	if (header != NULL) {
+		image_header_release (&header->base);
+	}
 }
 
 /**

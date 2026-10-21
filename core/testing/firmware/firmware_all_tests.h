@@ -33,6 +33,18 @@ static void add_all_firmware_tests (CuSuite *suite)
 	!defined TESTING_SKIP_APP_IMAGE_SUITE
 	TESTING_RUN_SUITE (app_image);
 #endif
+#if (defined TESTING_RUN_AUTHORIZED_EXECUTION_ALLOW_IMPACTFUL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AUTHORIZED_EXECUTION_ALLOW_IMPACTFUL_SUITE
+	TESTING_RUN_SUITE (authorized_execution_allow_impactful);
+#endif
+#if (defined TESTING_RUN_AUTHORIZED_EXECUTION_PREPARE_FIRMWARE_UPDATE_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_AUTHORIZED_EXECUTION_PREPARE_FIRMWARE_UPDATE_SUITE
+	TESTING_RUN_SUITE (authorized_execution_prepare_firmware_update);
+#endif
 #if (defined TESTING_RUN_FIRMWARE_COMPONENT_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
@@ -44,6 +56,12 @@ static void add_all_firmware_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_FIRMWARE_HEADER_SUITE
 	TESTING_RUN_SUITE (firmware_header);
+#endif
+#if (defined TESTING_RUN_FIRMWARE_PFM_VERIFY_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_FIRMWARE_PFM_VERIFY_SUITE
+	TESTING_RUN_SUITE (firmware_pfm_verify);
 #endif
 #if (defined TESTING_RUN_FIRMWARE_UPDATE_SUITE || \
 		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
@@ -68,6 +86,30 @@ static void add_all_firmware_tests (CuSuite *suite)
 		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
 	!defined TESTING_SKIP_FIRMWARE_UPDATE_HANDLER_REVOKE_AFTER_RESET_SUITE
 	TESTING_RUN_SUITE (firmware_update_handler_revoke_after_reset);
+#endif
+#if (defined TESTING_RUN_FIRMWARE_UPDATE_OBSERVER_IMPACTFUL_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_FIRMWARE_UPDATE_OBSERVER_IMPACTFUL_SUITE
+	TESTING_RUN_SUITE (firmware_update_observer_impactful);
+#endif
+#if (defined TESTING_RUN_IMPACTFUL_UPDATE_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_IMPACTFUL_UPDATE_SUITE
+	TESTING_RUN_SUITE (impactful_update);
+#endif
+#if (defined TESTING_RUN_IMPACTFUL_UPDATE_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_IMPACTFUL_UPDATE_HANDLER_SUITE
+	TESTING_RUN_SUITE (impactful_update_handler);
+#endif
+#if (defined TESTING_RUN_RESTORE_ACTIVE_HANDLER_SUITE || \
+		defined TESTING_RUN_ALL_TESTS || defined TESTING_RUN_ALL_CORE_TESTS || \
+		(!defined TESTING_SKIP_ALL_TESTS && !defined TESTING_SKIP_ALL_CORE_TESTS)) && \
+	!defined TESTING_SKIP_RESTORE_ACTIVE_HANDLER_SUITE
+	TESTING_RUN_SUITE (restore_active_handler);
 #endif
 }
 

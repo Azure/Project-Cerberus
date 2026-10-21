@@ -38,7 +38,7 @@
  * @return 0 if the operation was successful or an error code.
  */
 static int cerberus_protocol_get_curr_pfm (const struct pfm_manager *pfm_mgr, uint8_t region,
-	struct pfm **pfm)
+	const struct pfm **pfm)
 {
 	if (pfm_mgr == NULL) {
 		return CMD_HANDLER_UNSUPPORTED_INDEX;
@@ -163,13 +163,25 @@ int cerberus_protocol_fw_update (const struct firmware_update_control *control,
 int cerberus_protocol_fw_update_start (const struct firmware_update_control *control,
 	struct cmd_interface_msg *request)
 {
-	if (request->length != sizeof (struct cerberus_protocol_complete_fw_update)) {
+	struct cerberus_protocol_complete_fw_update *rq =
+		(struct cerberus_protocol_complete_fw_update*) request->data;
+	bool execute_update;
+
+	if (request->length == CERBERUS_PROTOCOL_COMPLETE_FW_UPDATE_MIN_LENGTH) {
+		/* No option has been provided to specify whether the update should be executed or not.
+		 * Default to execute the new firmware. */
+		execute_update = true;
+	}
+	else if (request->length == sizeof (struct cerberus_protocol_complete_fw_update)) {
+		execute_update = rq->execute_update;
+	}
+	else {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
 	request->length = 0;
 
-	return control->start_update (control);
+	return control->start_update (control, execute_update);
 }
 
 /**
@@ -218,7 +230,7 @@ int cerberus_protocol_get_log_info (struct pcr_store *pcr_store, struct cmd_inte
  *
  * @return 0 if request completed successfully or an error code.
  */
-int cerberus_protocol_log_read (struct pcr_store *pcr_store, struct hash_engine *hash,
+int cerberus_protocol_log_read (struct pcr_store *pcr_store, const struct hash_engine *hash,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_log *rq = (struct cerberus_protocol_get_log*) request->data;
@@ -295,9 +307,12 @@ int cerberus_protocol_log_clear (const struct cmd_background *background,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm, struct cmd_interface_msg *request)
+static int cerberus_protocol_get_pfm_id_version (const struct pfm *pfm,
+	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_version (&pfm->base, request);
+	const struct manifest *manifest = (pfm != NULL) ? &pfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_version (manifest, request);
 }
 
 /**
@@ -308,10 +323,12 @@ static int cerberus_protocol_get_pfm_id_version (struct pfm *pfm, struct cmd_int
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-static int cerberus_protocol_get_pfm_id_platform (struct pfm *pfm,
+static int cerberus_protocol_get_pfm_id_platform (const struct pfm *pfm,
 	struct cmd_interface_msg *request)
 {
-	return cerberus_protocol_get_manifest_id_platform (&pfm->base, request);
+	const struct manifest *manifest = (pfm != NULL) ? &pfm->base : NULL;
+
+	return cerberus_protocol_get_manifest_id_platform (manifest, request);
 }
 
 /**
@@ -323,11 +340,11 @@ static int cerberus_protocol_get_pfm_id_platform (struct pfm *pfm,
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_id (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_id (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pfm_id *rq = (struct cerberus_protocol_get_pfm_id*) request->data;
-	struct pfm *curr_pfm = NULL;
+	const struct pfm *curr_pfm = NULL;
 	uint8_t port;
 	uint8_t id;
 	int status = 0;
@@ -375,14 +392,15 @@ int cerberus_protocol_get_pfm_id (const struct pfm_manager *pfm_mgr[], uint8_t n
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_get_pfm_fw (const struct pfm_manager *pfm_mgr[], uint8_t num_ports,
+int cerberus_protocol_get_pfm_fw (const struct pfm_manager *const pfm_mgr[], uint8_t num_ports,
 	struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_get_pfm_supported_fw *rq =
 		(struct cerberus_protocol_get_pfm_supported_fw*) request->data;
 	struct cerberus_protocol_get_pfm_supported_fw_response *rsp =
 		(struct cerberus_protocol_get_pfm_supported_fw_response*) request->data;
-	struct pfm *curr_pfm = NULL;
+	const struct pfm *curr_pfm = NULL;
+	uint32_t pfm_id;
 	size_t offset;
 	uint32_t port;
 	char *fw_id = NULL;
@@ -421,10 +439,12 @@ int cerberus_protocol_get_pfm_fw (const struct pfm_manager *pfm_mgr[], uint8_t n
 	if (curr_pfm != NULL) {
 		rsp->valid = 1;
 
-		status = curr_pfm->base.get_id (&curr_pfm->base, &rsp->version);
+		status = curr_pfm->base.get_id (&curr_pfm->base, &pfm_id);
 		if (status != 0) {
 			goto exit;
 		}
+
+		rsp->version = pfm_id;
 
 		if ((request->length > sizeof (struct cerberus_protocol_get_pfm_supported_fw)) &&
 			(cerberus_protocol_get_pfm_supported_fw_id_length (rq) != 0)) {
@@ -463,7 +483,7 @@ exit:
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_prepare_pfm_update *rq =
@@ -495,8 +515,8 @@ int cerberus_protocol_pfm_update_init (const struct manifest_cmd_interface *pfm_
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[], uint8_t num_ports,
-	struct cmd_interface_msg *request)
+int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *const pfm_cmd[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_pfm_update *rq = (struct cerberus_protocol_pfm_update*) request->data;
 	int status;
@@ -530,7 +550,7 @@ int cerberus_protocol_pfm_update (const struct manifest_cmd_interface *pfm_cmd[]
  *
  * @return 0 if request processing completed successfully or an error code.
  */
-int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *pfm_cmd[],
+int cerberus_protocol_pfm_update_complete (const struct manifest_cmd_interface *const pfm_cmd[],
 	uint8_t num_ports, struct cmd_interface_msg *request)
 {
 	struct cerberus_protocol_complete_pfm_update *rq =
@@ -651,19 +671,27 @@ int cerberus_protocol_unseal_message (const struct cmd_background *background,
 		return CMD_HANDLER_OUT_OF_RANGE;
 	}
 
-	if ((buffer_unaligned_read16 (&rq->seed_length) == 0) ||
-		(cerberus_protocol_unseal_ciphertext_length_ptr (rq) >= end)) {
+	if ((rq->seed_length == 0) ||
+		((uint8_t*) cerberus_protocol_unseal_ciphertext_ptr (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((buffer_unaligned_read16 ((uint16_t*) cerberus_protocol_unseal_ciphertext_length_ptr (
-		rq)) == 0) ||
-		(cerberus_protocol_unseal_hmac_length_ptr (rq) >= end)) {
+	if ((uint8_t*) cerberus_protocol_unseal_ciphertext_ptr (rq) +
+		sizeof (struct cerberus_protocol_unseal_ciphertext) >= end) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
 
-	if ((buffer_unaligned_read16 ((uint16_t*) cerberus_protocol_unseal_hmac_length_ptr (rq)) !=
-		SHA256_HASH_LENGTH) ||
+	if ((cerberus_protocol_unseal_ciphertext_length (rq) == 0) ||
+		((uint8_t*) cerberus_protocol_unseal_hmac_ptr (rq) >= end)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if ((uint8_t*) cerberus_protocol_unseal_ciphertext_ptr (rq) +
+		sizeof (struct cerberus_protocol_unseal_hmac) >= end) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if ((cerberus_protocol_unseal_hmac_length (rq) != SHA256_HASH_LENGTH) ||
 		((uint8_t*) cerberus_protocol_get_unseal_pmr_sealing (rq) >= end)) {
 		return CMD_HANDLER_BAD_LENGTH;
 	}
@@ -701,6 +729,7 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
 	struct cerberus_protocol_message_unseal_result_completed_response *rsp =
 		(struct cerberus_protocol_message_unseal_result_completed_response*) request->data;
 	size_t max_buf_len;
+	uint32_t unseal_status;
 	int status;
 
 	if (request->length != sizeof (struct cerberus_protocol_message_unseal_result)) {
@@ -710,11 +739,12 @@ int cerberus_protocol_unseal_message_result (const struct cmd_background *backgr
 	max_buf_len = CERBERUS_PROTOCOL_MAX_UNSEAL_KEY_DATA (request);
 
 	if (background != NULL) {
-		status = background->unseal_result (background, &rsp->key, &max_buf_len,
-			&rsp->unseal_status);
+		status = background->unseal_result (background, &rsp->key, &max_buf_len, &unseal_status);
 		if (ROT_IS_ERROR (status)) {
 			return status;
 		}
+
+		rsp->unseal_status = unseal_status;
 	}
 	else {
 		return CMD_HANDLER_UNSUPPORTED_COMMAND;
@@ -754,7 +784,7 @@ int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 		(struct cerberus_protocol_reset_config*) request->data;
 	struct cerberus_protocol_reset_config_response *rsp =
 		(struct cerberus_protocol_reset_config_response*) request->data;
-	const struct authorized_execution *execution;
+	struct cmd_authorization_operation_context op_context;
 	const uint8_t *nonce = NULL;
 	size_t length;
 	int status;
@@ -770,12 +800,12 @@ int cerberus_protocol_reset_config (const struct cmd_authorization *cmd_auth,
 		nonce = cerberus_protocol_reset_authorization (rq);
 	}
 
-	status = cmd_auth->authorize_operation (cmd_auth, rq->type, &nonce, &length, &execution);
+	status = cmd_auth->authorize_operation (cmd_auth, rq->type, &nonce, &length, &op_context);
 
 	switch (status) {
 		case 0:
-			if (execution != NULL) {
-				status = background->execute_authorized_operation (background, execution);
+			if (op_context.execution != NULL) {
+				status = background->execute_authorized_operation (background, &op_context);
 				request->length = 0;
 			}
 			else {
@@ -1011,6 +1041,47 @@ int cerberus_protocol_get_attestation_data (struct pcr_store *pcr_store,
 }
 
 /**
+ * Process get attestation summary request
+ *
+ * @param device_mgr Device manager instance to utilize
+ * @param request Attestation summary request to process
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_attestation_summary (struct device_manager *device_mgr,
+	struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_attestation_summary *rq =
+		(struct cerberus_protocol_get_attestation_summary*) request->data;
+	struct cerberus_protocol_get_attestation_summary_response *rsp =
+		(struct cerberus_protocol_get_attestation_summary_response*) request->data;
+	int device_num;
+
+	if (request->length != sizeof (struct cerberus_protocol_get_attestation_summary)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	device_num = device_manager_get_device_num_by_component (device_mgr, rq->component_id,
+		rq->component_instance);
+	if (ROT_IS_ERROR (device_num)) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	/* Below call can't fail due to known good inputs */
+	rsp->summary.prev_state = device_manager_get_attestation_summary_prev_state (device_mgr,
+		device_num);
+
+	/* Below call can't fail due to known good inputs */
+	device_manager_get_attestation_summary_event_counters (device_mgr, device_num,
+		&rsp->summary.event_counters);
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_get_attestation_summary_response));
+
+	return 0;
+}
+
+/**
  * Process a key exchange request.
  *
  * @param session Session manager to utilize.
@@ -1119,6 +1190,112 @@ int cerberus_protocol_session_sync (struct session_manager *session,
 
 	cmd_interface_msg_set_message_payload_length (request,
 		cerberus_protocol_session_sync_length (status));
+
+	return 0;
+}
+
+/**
+ * Process a get host flash configuration request.
+ *
+ * @param host The list of host handlers.
+ * @param num_ports The number of hosts in the list.
+ * @param request Get host flash configuration request to process.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_get_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_get_host_flash_configuration *rq =
+		(struct cerberus_protocol_get_host_flash_configuration*) request->data;
+	struct cerberus_protocol_get_host_flash_configuration_response *rsp =
+		(struct cerberus_protocol_get_host_flash_configuration_response*) request->data;
+	const struct host_cmd_interface *host_cmd;
+	spi_filter_flash_mode mode;
+	spi_filter_cs current_ro;
+	spi_filter_cs next_ro;
+	enum host_read_only_activation apply_next_ro;
+	int status;
+
+	if (request->length != sizeof (struct cerberus_protocol_get_host_flash_configuration)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if (rq->port_id >= num_ports) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	host_cmd = host[rq->port_id];
+	if (host_cmd == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	status = host_cmd->get_flash_configuration (host_cmd, &mode, &current_ro, &next_ro,
+		&apply_next_ro);
+	if (status != 0) {
+		return status;
+	}
+
+	rsp->filter_mode = mode;
+	rsp->current_flash = current_ro;
+	rsp->next_flash = next_ro;
+	rsp->apply_next_flash = apply_next_ro;
+
+	cmd_interface_msg_set_message_payload_length (request,
+		sizeof (struct cerberus_protocol_get_host_flash_configuration_response));
+
+	return 0;
+}
+
+/**
+ * Process a set host flash configuration request.
+ *
+ * @param host The list of host handlers.
+ * @param num_ports The number of hosts in the list.
+ * @param request Set host flash configuration request to process.
+ *
+ * @return 0 if request processing completed successfully or an error code.
+ */
+int cerberus_protocol_set_host_flash_configuration (const struct host_cmd_interface *const host[],
+	uint8_t num_ports, struct cmd_interface_msg *request)
+{
+	struct cerberus_protocol_set_host_flash_configuration *rq =
+		(struct cerberus_protocol_set_host_flash_configuration*) request->data;
+	const struct host_cmd_interface *host_cmd;
+	int status;
+
+	if (request->length != sizeof (struct cerberus_protocol_set_host_flash_configuration)) {
+		return CMD_HANDLER_BAD_LENGTH;
+	}
+
+	if (rq->port_id >= num_ports) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->current_flash > SPI_FILTER_CS_1) && (rq->current_flash != 0xff)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->next_flash > SPI_FILTER_CS_1) && (rq->next_flash != 0xff)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	if ((rq->apply_next_flash > HOST_READ_ONLY_ACTIVATE_ON_ALL) && (rq->apply_next_flash != 0xff)) {
+		return CMD_HANDLER_OUT_OF_RANGE;
+	}
+
+	host_cmd = host[rq->port_id];
+	if (host_cmd == NULL) {
+		return CMD_HANDLER_UNSUPPORTED_INDEX;
+	}
+
+	status = host_cmd->set_flash_configuration (host_cmd, rq->current_flash, rq->next_flash,
+		rq->apply_next_flash);
+	if (status != 0) {
+		return status;
+	}
+
+	request->length = 0;
 
 	return 0;
 }

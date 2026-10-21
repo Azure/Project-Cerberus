@@ -24,6 +24,15 @@ enum {
 	FIRMWARE_LOGGING_RECOVERY_UPDATE,			/**< Start to update a recovery image. */
 	FIRMWARE_LOGGING_REVOCATION_UPDATE,			/**< Device anti-rollback state is being updated. */
 	FIRMWARE_LOGGING_REVOCATION_FAIL,			/**< Error during revocation checks. */
+	FIRMWARE_LOGGING_ALLOW_IMPACTFUL_UPDATE,	/**< Impactful updates have been authorized. */
+	FIRMWARE_LOGGING_ALLOW_IMPACTFUL_FAIL,		/**< Failed to authorize impactful updates. */
+	FIRMWARE_LOGGING_IMPACTFUL_UPDATE_NO_AUTH,	/**< Detected an unauthorized impactful update. */
+	FIRMWARE_LOGGING_IMPACTFUL_BLOCKED,			/**< Blocked an impactful update that cannot be authorized. */
+	FIRMWARE_LOGGING_IMPACTFUL_UPDATE,			/**< Successfully applied an impactful update. */
+	FIRMWARE_LOGGING_IMPACTFUL_RESET_AUTH_FAIL,	/**< Failed to reset impactful authorization after an update. */
+	FIRMWARE_LOGGING_RECOVERY_COMPARE_FAIL,		/**< Failed to compare active and recovery images on flash. */
+	FIRMWARE_LOGGING_RECOVERY_UPDATE_DONE,		/**< Done updating the recovery image. */
+	FIRMWARE_LOGGING_AUTHORIZED_PREPARE_FAIL,	/**< Failed to prepare for a firmware update after authorization. */
 };
 
 

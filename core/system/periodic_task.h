@@ -45,8 +45,9 @@ struct periodic_task_handler {
 };
 
 
-void periodic_task_prepare_handlers (const struct periodic_task_handler **handlers, size_t count);
-int periodic_task_execute_next_handler (const struct periodic_task_handler **handlers,
+void periodic_task_prepare_handlers (const struct periodic_task_handler *const *handlers,
+	size_t count);
+int periodic_task_execute_next_handler (const struct periodic_task_handler *const *handlers,
 	size_t count);
 
 

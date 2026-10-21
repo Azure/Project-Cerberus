@@ -7,19 +7,19 @@
 #include "rng_thread_safe.h"
 
 
-static int rng_thread_safe_generate_random_buffer (struct rng_engine *engine, size_t rand_len,
+int rng_thread_safe_generate_random_buffer (const struct rng_engine *engine, size_t rand_len,
 	uint8_t *buf)
 {
-	struct rng_engine_thread_safe *rng = (struct rng_engine_thread_safe*) engine;
+	const struct rng_engine_thread_safe *rng = (const struct rng_engine_thread_safe*) engine;
 	int status;
 
 	if (rng == NULL) {
 		return RNG_ENGINE_INVALID_ARGUMENT;
 	}
 
-	platform_mutex_lock (&rng->lock);
+	platform_mutex_lock (&rng->state->lock);
 	status = rng->engine->generate_random_buffer (rng->engine, rand_len, buf);
-	platform_mutex_unlock (&rng->lock);
+	platform_mutex_unlock (&rng->state->lock);
 
 	return status;
 }
@@ -28,13 +28,15 @@ static int rng_thread_safe_generate_random_buffer (struct rng_engine *engine, si
  * Initialize a thread-safe wrapper for an RNG engine.
  *
  * @param engine The thread-safe engine to initialize.
+ * @param state Variable context for the thread-safe wrapper. This must be uninitialized.
  * @param target The target engine that will be used to execute operations.
  *
  * @return 0 if the engine was successfully initialized or an error code.
  */
-int rng_thread_safe_init (struct rng_engine_thread_safe *engine, struct rng_engine *target)
+int rng_thread_safe_init (struct rng_engine_thread_safe *engine,
+	struct rng_engine_thread_safe_state *state, const struct rng_engine *target)
 {
-	if ((engine == NULL) || (target == NULL)) {
+	if (engine == NULL) {
 		return RNG_ENGINE_INVALID_ARGUMENT;
 	}
 
@@ -42,9 +44,31 @@ int rng_thread_safe_init (struct rng_engine_thread_safe *engine, struct rng_engi
 
 	engine->base.generate_random_buffer = rng_thread_safe_generate_random_buffer;
 
+	engine->state = state;
 	engine->engine = target;
 
-	return platform_mutex_init (&engine->lock);
+	return rng_thread_safe_init_state (engine);
+}
+
+/**
+ * Initialize only the variable state of a thread-safe wrapper for an RNG engine.  The rest of the
+ * instance is assumed to already have been initialized.
+ *
+ * This would generally be used with a statically initialized instance.
+ *
+ * @param engine The RNG engine that contains the state to initialize.
+ *
+ * @return 0 if the state was successfully initialized or an error code.
+ */
+int rng_thread_safe_init_state (const struct rng_engine_thread_safe *engine)
+{
+	if ((engine == NULL) || (engine->state == NULL) || (engine->engine == NULL)) {
+		return RNG_ENGINE_INVALID_ARGUMENT;
+	}
+
+	memset (engine->state, 0, sizeof (*engine->state));
+
+	return platform_mutex_init (&engine->state->lock);
 }
 
 /**
@@ -52,9 +76,9 @@ int rng_thread_safe_init (struct rng_engine_thread_safe *engine, struct rng_engi
  *
  * @param engine The thread-safe engine to release.
  */
-void rng_thread_safe_release (struct rng_engine_thread_safe *engine)
+void rng_thread_safe_release (const struct rng_engine_thread_safe *engine)
 {
 	if (engine != NULL) {
-		platform_mutex_free (&engine->lock);
+		platform_mutex_free (&engine->state->lock);
 	}
 }

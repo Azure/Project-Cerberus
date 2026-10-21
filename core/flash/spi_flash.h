@@ -114,6 +114,9 @@ int spi_flash_restore_device (struct spi_flash *flash, struct spi_flash_state *s
 int spi_flash_restore_device_state (const struct spi_flash *flash,
 	const struct spi_flash_device_info *info);
 
+int spi_flash_init_api (struct spi_flash *flash, struct spi_flash_state *state,
+	const struct flash_master *spi);
+
 int spi_flash_init (struct spi_flash *flash, struct spi_flash_state *state,
 	const struct flash_master *spi);
 int spi_flash_init_fast_read (struct spi_flash *flash, struct spi_flash_state *state,

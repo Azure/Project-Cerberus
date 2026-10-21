@@ -8,7 +8,7 @@
 
 
 static void cfm_observer_mock_on_cfm_verified (const struct cfm_observer *observer,
-	struct cfm *pending)
+	const struct cfm *pending)
 {
 	struct cfm_observer_mock *mock = (struct cfm_observer_mock*) observer;
 
@@ -21,7 +21,7 @@ static void cfm_observer_mock_on_cfm_verified (const struct cfm_observer *observ
 }
 
 static void cfm_observer_mock_on_cfm_activated (const struct cfm_observer *observer,
-	struct cfm *active)
+	const struct cfm *active)
 {
 	struct cfm_observer_mock *mock = (struct cfm_observer_mock*) observer;
 

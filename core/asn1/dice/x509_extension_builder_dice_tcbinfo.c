@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "platform_api.h"
+#include "tcg_dice_oid.h"
 #include "x509_extension_builder_dice_tcbinfo.h"
 #include "common/unused.h"
 #include "riot/reference/include/RiotDerEnc.h"
@@ -27,18 +28,68 @@
 
 
 /**
- * The encoded OID for the TCG DICE TcbInfo extension:  2.23.133.5.4.1
+ * Add a list of FWID digests to the extension.
+ *
+ * @param der Context being used to construct the extension.
+ * @param fwid_list List of digests to add.
+ * @param fwid_count Number of digests in the list.
+ *
+ * @return 0 if the extension was updated successfully or an error code.
  */
-const uint8_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID[] = {
-	0x67, 0x81, 0x05, 0x05, 0x04, 0x01
-};
+static int x509_extension_builder_dice_tcbinfo_add_fwid_list (DERBuilderContext *der,
+	const struct tcg_dice_fwid *const fwid_list, size_t fwid_count)
+{
+	size_t fwid_length;
+	const int *fwid_oid;
+	size_t i;
+	int status;
 
-/**
- * Length of the encoded TCG DICE TcbInfo extension OID.
- */
-const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH =
-	sizeof (X509_EXTENSION_BUILDER_DICE_TCBINFO_OID);
+	/* Encode each digest in the list as a FWID sequence.  Each digest can be a different algorithm,
+	 * so each has to be checked. */
+	for (i = 0; i < fwid_count; i++) {
+		if (fwid_list[i].digest == NULL) {
+			return DICE_TCBINFO_EXTENSION_NO_FWID;
+		}
 
+		switch (fwid_list[i].hash_alg) {
+			case HASH_TYPE_SHA1:
+				fwid_length = SHA1_HASH_LENGTH;
+				fwid_oid = sha1OID;
+				break;
+
+			case HASH_TYPE_SHA256:
+				fwid_length = SHA256_HASH_LENGTH;
+				fwid_oid = sha256OID;
+				break;
+
+			case HASH_TYPE_SHA384:
+				fwid_length = SHA384_HASH_LENGTH;
+				fwid_oid = sha384OID;
+				break;
+
+			case HASH_TYPE_SHA512:
+				fwid_length = SHA512_HASH_LENGTH;
+				fwid_oid = sha512OID;
+				break;
+
+			default:
+				return DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+		}
+
+		// *INDENT-OFF*
+		DER_CHK_ENCODE (DERStartSequenceOrSet (der, true));
+			DER_CHK_ENCODE (DERAddOID (der, fwid_oid));
+			DER_CHK_ENCODE (DERAddOctetString (der, fwid_list[i].digest, fwid_length));
+		DER_CHK_ENCODE (DERPopNesting (der));
+		// *INDENT-ON*
+	}
+
+	return 0;
+
+error:
+
+	return DICE_TCBINFO_EXTENSION_SMALL_EXT_BUFFER;
+}
 
 /**
  * Create the TCG DICE TcbInfo extension.
@@ -50,13 +101,12 @@ const size_t X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH =
  *
  * @return 0 if the extension was created successfully or an error code.
  */
-int x509_extension_builder_dice_tcbinfo_create_extension (
+static int x509_extension_builder_dice_tcbinfo_create_extension (
 	const struct x509_extension_builder_dice_tcbinfo *dice, uint8_t *buffer, size_t length,
 	struct x509_extension *extension)
 {
 	DERBuilderContext der;
-	size_t fwid_length;
-	const int *fwid_oid;
+	size_t i;
 	int status;
 
 	if (dice->tcb == NULL) {
@@ -67,52 +117,89 @@ int x509_extension_builder_dice_tcbinfo_create_extension (
 		return DICE_TCBINFO_EXTENSION_NO_VERSION;
 	}
 
-	if (dice->tcb->fwid == NULL) {
-		return DICE_TCBINFO_EXTENSION_NO_FWID;
+	if ((dice->tcb->svn == NULL) || (dice->tcb->svn_length == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_SVN;
 	}
 
-	switch (dice->tcb->fwid_hash) {
-		case HASH_TYPE_SHA1:
-			fwid_length = SHA1_HASH_LENGTH;
-			fwid_oid = sha1OID;
-			break;
-
-		case HASH_TYPE_SHA256:
-			fwid_length = SHA256_HASH_LENGTH;
-			fwid_oid = sha256OID;
-			break;
-
-		case HASH_TYPE_SHA384:
-			fwid_length = SHA384_HASH_LENGTH;
-			fwid_oid = sha384OID;
-			break;
-
-		case HASH_TYPE_SHA512:
-			fwid_length = SHA512_HASH_LENGTH;
-			fwid_oid = sha512OID;
-			break;
-
-		default:
-			return DICE_TCBINFO_EXTENSION_UNKNOWN_FWID;
+	if ((dice->tcb->fwid_list == NULL) || (dice->tcb->fwid_count == 0)) {
+		return DICE_TCBINFO_EXTENSION_NO_FWID_LIST;
 	}
 
 	DERInitContext (&der, buffer, length);
 
-	/* TODO:  Not each of these error checks is tested.  Add tests when refactoring DER encoding. */
+	// *INDENT-OFF*
+	/* TODO:  Each of these error checks is not tested.  Add tests when refactoring DER encoding. */
 	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-	DER_CHK_ENCODE (DERAddString (&der, dice->tcb->version, 0x82));
-	DER_CHK_ENCODE (DERAddTaggedInteger (&der, dice->tcb->svn, 0x83));
-	DER_CHK_ENCODE (DERStartConstructed (&der, 0xa6));
-	DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
-	DER_CHK_ENCODE (DERAddOID (&der, fwid_oid));
-	DER_CHK_ENCODE (DERAddOctetString (&der, dice->tcb->fwid, fwid_length));
+		if (dice->tcb->vendor != NULL) {
+			DER_CHK_ENCODE (DERAddString (&der, dice->tcb->vendor, 0x80));
+		}
+
+		if (dice->tcb->model != NULL) {
+			DER_CHK_ENCODE (DERAddString (&der, dice->tcb->model, 0x81));
+		}
+
+		DER_CHK_ENCODE (DERAddString (&der, dice->tcb->version, 0x82));
+		DER_CHK_ENCODE (DERAddTaggedIntegerFromArray (&der, dice->tcb->svn, dice->tcb->svn_length,
+			0x83));
+		DER_CHK_ENCODE (DERAddTaggedInteger (&der, dice->tcb->layer, 0x84));
+		DER_CHK_ENCODE (DERStartConstructed (&der, 0xa6));
+			status = x509_extension_builder_dice_tcbinfo_add_fwid_list (&der, dice->tcb->fwid_list,
+				dice->tcb->fwid_count);
+			if (status != 0) {
+				return status;
+			}
+		DER_CHK_ENCODE (DERPopNesting (&der));
+
+		if ((dice->tcb->ir_list != NULL) && (dice->tcb->ir_count > 0)) {
+			DER_CHK_ENCODE (DERStartConstructed (&der, 0xaa));
+				for (i = 0; i < dice->tcb->ir_count; i++) {
+					if ((dice->tcb->ir_list[i].name == NULL) &&
+						(dice->tcb->ir_list[i].number < 0)) {
+						return DICE_TCBINFO_EXTENSION_NO_IR_ID;
+					}
+
+					if ((dice->tcb->ir_list[i].digests == NULL) ||
+						(dice->tcb->ir_list[i].digest_count == 0)) {
+						return DICE_TCBINFO_EXTENSION_NO_IR_DIGEST_LIST;
+					}
+
+					DER_CHK_ENCODE (DERStartSequenceOrSet (&der, true));
+						if (dice->tcb->ir_list[i].name != NULL) {
+							DER_CHK_ENCODE (DERAddString (&der, dice->tcb->ir_list[i].name, 0x80));
+						}
+
+						if (dice->tcb->ir_list[i].number >= 0) {
+							DER_CHK_ENCODE (
+								DERAddTaggedInteger (&der, dice->tcb->ir_list[i].number, 0x81));
+						}
+
+						DER_CHK_ENCODE (DERStartConstructed (&der, 0xa2));
+							status = x509_extension_builder_dice_tcbinfo_add_fwid_list (&der,
+								dice->tcb->ir_list[i].digests, dice->tcb->ir_list[i].digest_count);
+							if (status != 0) {
+								switch (status) {
+									case DICE_TCBINFO_EXTENSION_NO_FWID:
+										status = DICE_TCBINFO_EXTENSION_NO_IR_DIGEST;
+										break;
+
+									case DICE_TCBINFO_EXTENSION_UNKNOWN_FWID:
+										status = DICE_TCBINFO_EXTENSION_UNKNOWN_IR_DIGEST;
+										break;
+								}
+
+								return status;
+							}
+						DER_CHK_ENCODE (DERPopNesting (&der));
+					DER_CHK_ENCODE (DERPopNesting (&der));
+				}
+			DER_CHK_ENCODE (DERPopNesting (&der));
+		}
 	DER_CHK_ENCODE (DERPopNesting (&der));
-	DER_CHK_ENCODE (DERPopNesting (&der));
-	DER_CHK_ENCODE (DERPopNesting (&der));
+	// *INDENT-ON*
 
 	x509_extension_builder_init_extension_descriptor (extension, false,
-		X509_EXTENSION_BUILDER_DICE_TCBINFO_OID, X509_EXTENSION_BUILDER_DICE_TCBINFO_OID_LENGTH,
-		buffer, DERGetEncodedLength (&der));
+		TCG_DICE_OID_TCBINFO_EXTENSION, TCG_DICE_OID_TCBINFO_EXTENSION_LENGTH, buffer,
+		DERGetEncodedLength (&der));
 
 	return 0;
 
@@ -168,7 +255,7 @@ void x509_extension_builder_dice_tcbinfo_free_dynamic (const struct x509_extensi
 {
 	UNUSED (builder);
 
-	platform_free ((void*) extension->data);
+	x509_extension_builder_free_extension_descriptor (extension);
 }
 
 void x509_extension_builder_dice_tcbinfo_free_static (const struct x509_extension_builder *builder,
@@ -251,6 +338,30 @@ void x509_extension_builder_dice_tcbinfo_release (
 }
 
 /**
+ * Get a worst-case buffer length needed to encode a FWID sequence with a specified number of
+ * digests.
+ *
+ * @param fwid_count The number of digests to include in the sequence.
+ *
+ * @return The FWID sequence length.
+ */
+static size_t x509_extension_builder_dice_tcbinfo_get_fwid_buffer_length (size_t fwid_count)
+{
+	size_t length = 0;
+	size_t i;
+
+	for (i = 0; i < fwid_count; i++) {
+		length += 9;					/* Worst-case FWID OID length. */
+		length += SHA512_HASH_LENGTH;	/* Worst-case FWID length. */
+		length += 3 + (2 * 2);			/* Sequence and other ASN.1 headers */
+	}
+
+	length += 4;						/* FWID list sequence header. */
+
+	return length;
+}
+
+/**
  * Determine an appropriately sized buffer to use for TCG DICE TcbInfo extension building based on
  * the TCB information.  This is not an exact extension length, but will provide sufficient space to
  * fit the encoded extension.
@@ -263,18 +374,47 @@ size_t x509_extension_builder_dice_tcbinfo_get_ext_buffer_length (
 	const struct tcg_dice_tcbinfo *tcb)
 {
 	size_t length = 4;	/* Space for the top-level sequence header. */
+	size_t i;
 
 	if (tcb != NULL) {
-		if (tcb->version != NULL) {
-			length += strlen (tcb->version);
+		if (tcb->vendor != NULL) {
+			length += strlen (tcb->vendor);
+			length += 3;
 		}
 
-		length += sizeof (tcb->svn);
-		length += 9;					/* Worst-case FWID OID length. */
-		length += SHA512_HASH_LENGTH;	/* Worst-case FWID length */
+		if (tcb->model != NULL) {
+			length += strlen (tcb->model);
+			length += 3;
+		}
 
-		/* Extra space for headers and sequence tags. */
-		length += (4 * 4) + (4 * 2);
+		if (tcb->version != NULL) {
+			length += strlen (tcb->version);
+			length += 3;
+		}
+
+		length += tcb->svn_length + 1;	/* Worst-case SVN length, including a leading zero. */
+		length += 4 + 1;				/* Worst-case layer length, including a leading zero. */
+		length += (2 * 3);				/* ASN.1 headers. */
+
+		length += x509_extension_builder_dice_tcbinfo_get_fwid_buffer_length (tcb->fwid_count);
+
+		if ((tcb->ir_list != NULL) && (tcb->ir_count > 0)) {
+			for (i = 0; i < tcb->ir_count; i++) {
+				if (tcb->ir_list[i].name != NULL) {
+					length += strlen (tcb->ir_list[i].name);
+					length += 3;
+				}
+
+				if (tcb->ir_list[i].number >= 0) {
+					length += 9;	/* Worst-case integer length, including a leading zero. */
+					length += 2;	/* ASN.1 headers. */
+				}
+
+				length +=
+					x509_extension_builder_dice_tcbinfo_get_fwid_buffer_length (
+					tcb->ir_list[i].digest_count);
+			}
+		}
 	}
 
 	return length;

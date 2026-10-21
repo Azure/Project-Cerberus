@@ -21,7 +21,7 @@
  * @return 0 if the task was initialized or an error code
  */
 int periodic_task_freertos_init (struct periodic_task_freertos *task,
-	struct periodic_task_freertos_state *state, const struct periodic_task_handler **handlers,
+	struct periodic_task_freertos_state *state, const struct periodic_task_handler *const *handlers,
 	size_t num_handlers, int log_id)
 {
 	if (task == NULL) {

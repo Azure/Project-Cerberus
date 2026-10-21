@@ -7,10 +7,6 @@
 #include "firmware_update_handler.h"
 
 
-/* Internal functions declared to allow for static initialization. */
-void firmware_update_handler_prepare (const struct event_task_handler *handler);
-
-
 /**
  * Constant initializer for the firmware update control API.
  */
@@ -19,6 +15,7 @@ void firmware_update_handler_prepare (const struct event_task_handler *handler);
 		.get_status = firmware_update_handler_get_status, \
 		.get_remaining_len = firmware_update_handler_get_remaining_len, \
 		.prepare_staging = firmware_update_handler_prepare_staging, \
+		.set_image_digest = firmware_update_handler_set_image_digest, \
 		.write_staging = firmware_update_handler_write_staging \
 	}
 

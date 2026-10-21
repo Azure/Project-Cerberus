@@ -50,7 +50,31 @@ enum {
 	ATTESTATION_LOGGING_GET_ATTESTATION_STATUS_ERROR,				/**< Failed to get attestation status. */
 	ATTESTATION_LOGGING_GET_MCTP_ROUTING_TABLE_ERROR,				/**< Failed to get MCTP routing table. */
 	ATTESTATION_LOGGING_GET_MEASUREMENT_CAP_MISMATCH_ERROR,			/**< Target device support mismatched measurement response capabilities. */
-	ATTESTATION_LOGGING_CHALLENGE_CAP_MISMATCH_ERROR,				/**< Target device support mismatched challenege response capabilities. */
+	ATTESTATION_LOGGING_CHALLENGE_CAP_MISMATCH_ERROR,				/**< Target device support mismatched challenge response capabilities. */
+	ATTESTATION_LOGGING_DEVICE_FIRST_ATTESTATION,					/**< Target device EID is attested for the first time. */
+	ATTESTATION_LOGGING_MEASUREMENT_VERIFICATION_FAILED,			/**< Target device measurement verification failed. */
+	ATTESTATION_LOGGING_MEASUREMENT_HASH_TYPE_NOT_ALLOWED,			/**< Target device measurement hash type is not allowed for attestation. */
+	ATTESTATION_LOGGING_MEASUREMENT_RULE_FAILED,					/**< Target device measurement failed attestation rule check. */
+	ATTESTATION_LOGGING_MEASUREMENT_BITMASK_TOO_SMALL,				/**< CFM defined bitmask is too small for the runtime measurement. */
+	ATTESTATION_LOGGING_CFM_MULTIPLE_DATA_PER_VERSION_SET,			/**< CFM has multiple allowable data entries for a single version set where only one is permitted. */
+	ATTESTATION_LOGGING_DEVICE_DISCOVERY_COMPLETE,					/**< Device discovery completed successfully. */
+	ATTESTATION_LOGGING_EID_DISCOVERED,								/**< Target device EID is discovered. */
+	ATTESTATION_LOGGING_PROCESS_FORCE_ACTION_ERROR,					/**< Failed to process force action in device manager. */
+	ATTESTATION_LOGGING_SPDM_RESPONSE_ERROR,						/**< Received SPDM response error. */
+	ATTESTATION_LOGGING_SET_EID_RECEIVED,							/**< SET EID request received, triggering discovery. */
+	ATTESTATION_LOGGING_MCTP_DISCOVERY_COMPLETE,					/**< MCTP device discovery completed successfully. */
+	ATTESTATION_LOGGING_MCTP_BRIDGE_NOT_READY,						/**< MCTP bridge not ready, skipping MCTP discovery. */
+	ATTESTATION_LOGGING_VDM_DISCOVERY_FAILED,						/**< VDM device discovery failed. */
+	ATTESTATION_LOGGING_VDM_DISCOVERY_COMPLETE,						/**< VDM device discovery completed successfully. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_FAILED,						/**< TCG device discovery failed. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_COMPLETE,						/**< TCG device discovery completed successfully. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_TRIGGERED,					/**< TCG discovery triggered by boot delay timer. */
+	ATTESTATION_LOGGING_TCG_DISCOVERY_TIMER_FAILED,					/**< Failed to start TCG discovery boot delay timer. */
+	ATTESTATION_LOGGING_NO_COMPONENT_TYPE,							/**< No component type found for the device. */
+	ATTESTATION_LOGGING_FORCE_ATTESTATION_INITIATED,				/**< Force attestation initiated for device. */
+	ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_STARTED,			/**< Force attestation action processing started. */
+	ATTESTATION_LOGGING_FORCE_ATTESTATION_ACTION_COMPLETED,			/**< Force attestation action processing completed. */
+	ATTESTATION_LOGGING_DEVICE_INFO,								/**< Device info log entry with component ID and instance ID. */
 };
 
 

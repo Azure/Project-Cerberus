@@ -6,10 +6,18 @@
 
 #include "platform_config.h"
 #include "spdm_commands.h"
+#include "spdm_protocol_session_observer.h"
+#include "common/observable.h"
+#include "crypto/hkdf.h"
+#include "fips/error_state_entry_interface.h"
+#include "spdm/spdm_persistent_context_interface.h"
+
+/* TODO:  This file has many dependencies but is missing headers for them. */
 
 
 /* Configurable parameters. Defaults can be overridden in platform_config.h. */
 
+/* TODO:  Replace this macro with an init-time array of session structures. */
 /**
  * Maximum number of SPDM sessions supported.
  */
@@ -86,7 +94,7 @@ enum spdm_secure_session_state {
 	SPDM_SESSION_STATE_MAX,			/**< MAX */
 };
 
-#pragma pack(1)
+#pragma pack(push, 1)
 
 /**
  *  Secured Messages opaque specification Id.
@@ -173,39 +181,70 @@ struct spdm_secured_message_cipher_header {
 	uint16_t application_data_length;	/**< The length of the application payload. */
 };
 
-#pragma pack()
+#pragma pack(pop)
 
 /**
  * SPDM secure session master secrets.
  */
 struct spdm_secure_session_master_secrets {
-	uint8_t dhe_secret[SPDM_MAX_DHE_SHARED_SECRET_SIZE];	/**< DHE secret. */
-	uint8_t handshake_secret[HASH_MAX_HASH_LEN];			/**< Handshake secret. */
-	uint8_t master_secret[HASH_MAX_HASH_LEN];				/**< Master secret. */
+	uint8_t dhe_secret[ECC_KEY_LENGTH_521];				/**< DHE secret. */
+	uint8_t master_secret_salt1[SHA512_HASH_LENGTH];	/**< Salt for generating master secret */
 };
+
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (offsetof (struct spdm_secure_session_master_secrets, dhe_secret) == 0,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_master_secrets, master_secret_salt1) == 66,
+	"Unexpected struct member offset");
+_Static_assert (sizeof (struct spdm_secure_session_master_secrets) == 130,
+	"Unexpected size of struct spdm_secure_session_master_secrets");
 
 /**
  * SPDM secure session handshake secrets.
  */
 struct spdm_secure_session_handshake_secrets {
-	uint8_t request_handshake_secret[HASH_MAX_HASH_LEN];				/**< Requester handshake secret. */
-	uint8_t response_handshake_secret[HASH_MAX_HASH_LEN];				/**< Responder handshake secret. */
-	uint8_t request_finished_key[HASH_MAX_HASH_LEN];					/**< Requester finished key. */
-	uint8_t response_finished_key[HASH_MAX_HASH_LEN];					/**< Responder finished key. */
 	uint8_t request_handshake_encryption_key[SPDM_MAX_AEAD_KEY_SIZE];	/**< Requester handshake encryption key. */
 	uint8_t request_handshake_salt[SPDM_MAX_AEAD_IV_SIZE];				/**< Requester handshake salt. */
 	uint64_t request_handshake_sequence_number;							/**< Requester handshake sequence number. */
 	uint8_t response_handshake_encryption_key[SPDM_MAX_AEAD_KEY_SIZE];	/**< Responder handshake encryption key. */
 	uint8_t response_handshake_salt[SPDM_MAX_AEAD_IV_SIZE];				/**< Responder handshake salt. */
 	uint64_t response_handshake_sequence_number;						/**< Responder handshake sequence number. */
+	uint8_t request_finished_key[SHA512_HASH_LENGTH];					/**< Requester finished key. */
+	uint8_t response_finished_key[SHA512_HASH_LENGTH];					/**< Responder finished key. */
 };
+
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	request_handshake_encryption_key) == 0, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	request_handshake_salt) == 32, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	request_handshake_sequence_number) == 48, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	response_handshake_encryption_key) == 56, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	response_handshake_salt) == 88, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	response_handshake_sequence_number) == 104, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	request_finished_key) == 112, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_handshake_secrets,
+	response_finished_key) == 176, "Unexpected struct member offset");
+_Static_assert (sizeof (struct spdm_secure_session_handshake_secrets) == 240,
+	"Unexpected size of struct spdm_secure_session_handshake_secrets");
 
 /**
  * SPDM session data secrets.
  */
 struct spdm_secure_session_data_secrets {
-	uint8_t request_data_secret[HASH_MAX_HASH_LEN];					/**< Requester data secret. */
-	uint8_t response_data_secret[HASH_MAX_HASH_LEN];				/**< Responder data secret. */
 	uint8_t request_data_encryption_key[SPDM_MAX_AEAD_KEY_SIZE];	/**< Requester data encryption key. */
 	uint8_t request_data_salt[SPDM_MAX_AEAD_IV_SIZE];				/**< Requester data salt. */
 	uint64_t request_data_sequence_number;							/**< Requester data sequence number. */
@@ -214,52 +253,203 @@ struct spdm_secure_session_data_secrets {
 	uint64_t response_data_sequence_number;							/**< Responder data sequence number. */
 };
 
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (offsetof (struct spdm_secure_session_data_secrets,
+	request_data_encryption_key) == 0, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_data_secrets, request_data_salt) == 32,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_data_secrets,
+	request_data_sequence_number) == 48, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_data_secrets,
+	response_data_encryption_key) == 56, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_data_secrets, response_data_salt) == 88,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_data_secrets,
+	response_data_sequence_number) == 104, "Unexpected struct member offset");
+_Static_assert (sizeof (struct spdm_secure_session_data_secrets) == 112,
+	"Unexpected size of struct spdm_secure_session_data_secrets");
+
 /**
  * SPDM secure session object.
  */
 struct spdm_secure_session {
-	uint32_t session_id;												/**< SPDM Session Id. */
-	uint32_t session_index;												/**< Index of session in sessions array. */
-	struct spdm_end_session_request_attributes end_session_attributes;	/**< End session attributes. */
-	uint8_t session_policy;												/**< Session termination policy. */
-	struct spdm_key_update_request last_key_update_request;				/**< Last key update request. */
-	enum spdm_secure_session_type session_type;							/**< Session type. */
-	struct spdm_version_number version;									/**< Negotiated version. */
-	struct spdm_version_number secure_message_version;					/**< Negotiated secured message version. */
-	uint32_t base_hash_algo;											/**< Negotiated base hash algorithm. */
-	uint16_t dhe_named_group;											/**< Negotiated DHE algorithm. */
-	uint16_t aead_cipher_suite;											/**< Negotiated AEAD algorithm. */
-	uint16_t key_schedule;												/**< Negotiated key schedule. */
-	size_t hash_size;													/**< Negotiated hash size. */
-	size_t dhe_key_size;												/**< Negotiated DHE key size. */
-	size_t aead_key_size;												/**< Negotiated AEAD key size. */
-	size_t aead_iv_size;												/**< Negotiated AEAD IV size. */
-	size_t aead_tag_size;												/**< Negotiated AEAD tag size. */
-	enum spdm_secure_session_state session_state;						/**< State in which the SPDM session is. */
-	struct spdm_secure_session_master_secrets master_secret;			/**< Master secret. */
-	struct spdm_secure_session_handshake_secrets handshake_secret;		/**< Handshake secret. */
-	struct spdm_secure_session_data_secrets data_secret;				/**< Data secret. */
-	struct spdm_secure_session_data_secrets data_secret_backup;			/**< Data secret backup. */
-	bool requester_backup_valid;										/**< Requester backup is valid. */
-	bool responder_backup_valid;										/**< Responder backup is valid. */
-	uint8_t export_master_secret[HASH_MAX_HASH_LEN];					/**< Export master secret. */
-	bool is_requester;													/**< Requester or responder role. */
-	struct spdm_device_capability peer_capabilities;					/**< Peer capabilities. */
+	uint32_t session_id;													/**< SPDM Session Id. */
+	uint32_t session_index;													/**< Index of session in sessions array. */
+	union {
+		struct spdm_end_session_request_attributes end_session_attributes;	/**< End session attributes. */
+		uint32_t unused0;
+	};
+
+	struct spdm_key_update_request last_key_update_request;	/**< Last key update request. */
+	union {
+		struct spdm_version_number version;					/**< Negotiated version. */
+		uint32_t unused1;
+	};
+
+	union {
+		struct spdm_version_number secure_message_version;	/**< Negotiated secured message version. */
+		uint32_t unused2;
+	};
+
+	struct spdm_device_capability peer_capabilities;				/**< Peer capabilities. */
+	struct spdm_secure_session_master_secrets master_secret;		/**< Master secret. */
+	struct spdm_secure_session_handshake_secrets handshake_secret;	/**< Handshake secret. */
+	struct spdm_secure_session_data_secrets data_secret;			/**< Data secret. */
+	struct spdm_secure_session_data_secrets data_secret_backup;		/**< Data secret backup. */
+	uint32_t base_hash_algo;										/**< Negotiated base hash algorithm. */
+	uint16_t dhe_named_group;										/**< Negotiated DHE algorithm. */
+	uint16_t aead_cipher_suite;										/**< Negotiated AEAD algorithm. */
+	uint16_t key_schedule;											/**< Negotiated key schedule. */
+	uint32_t hash_size;												/**< Negotiated hash size. */
+	uint32_t dhe_key_size;											/**< Negotiated DHE key size. */
+	uint32_t aead_key_size;											/**< Negotiated AEAD key size. */
+	uint32_t aead_iv_size;											/**< Negotiated AEAD IV size. */
+	uint32_t aead_tag_size;											/**< Negotiated AEAD tag size. */
+	union {
+		enum spdm_secure_session_type session_type;					/**< Session type. */
+		uint32_t unused3;											/**< Unused variable to align the size of types which could have different size */
+	};
+
+	union {
+		enum spdm_secure_session_state session_state;	/**< State in which the SPDM session is. */
+		uint32_t unused4;								/**< Unused variable to align the size of types which could have different size */
+	};
+
+	union {
+		uint8_t session_policy;	/**< Session termination policy. */
+		uint32_t unused5;		/**< Unused variable to align the size of types which could have different size */
+	};
+
+	union {
+		bool requester_backup_valid;	/**< Requester backup is valid. */
+		uint32_t unused6;				/**< Unused variable to align the size of types which could have different size */
+	};
+
+	union {
+		bool responder_backup_valid;	/**< Responder backup is valid. */
+		uint32_t unused7;				/**< Unused variable to align the size of types which could have different size */
+	};
+
+	union {
+		bool is_requester;	/**< Requester or responder role. */
+		uint32_t unused8;	/**< Unused variable to align the size of types which could have different size */
+	};
 };
+
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (offsetof (struct spdm_secure_session, session_id) == 0,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, session_index) == 4,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, end_session_attributes) == 8,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, last_key_update_request) == 12,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, version) == 16,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, secure_message_version) == 20,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, peer_capabilities) == 24,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, master_secret) == 40,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, handshake_secret) == 176,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, data_secret) == 416,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, data_secret_backup) == 528,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, base_hash_algo) == 640,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, dhe_named_group) == 644,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, aead_cipher_suite) == 646,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, key_schedule) == 648,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, hash_size) == 652,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, dhe_key_size) == 656,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, aead_key_size) == 660,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, aead_iv_size) == 664,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, aead_tag_size) == 668,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, session_type) == 672,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, session_state) == 676,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, session_policy) == 680,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, requester_backup_valid) == 684,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, responder_backup_valid) == 688,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session, is_requester) == 692,
+	"Unexpected struct member offset");
+_Static_assert (sizeof (struct spdm_secure_session) == 696,
+	"Unexpected size of struct spdm_secure_session");
+
+/**
+ * Structure to describe algorithms which are used by SPDM session manager. When user creates
+ * session manager instance, multiple pointers to different algorithms implementations are
+ * provided as initialization parameters. This struct classifies some of them, for example
+ * SW vs HW, so this information could be logged in case of critical errors.
+ */
+struct spdm_secure_session_manager_algo_info {
+	uint32_t ecdh_instance_id;	/**< ECDH algorithm classification */
+};
+
+/**
+ * SPDM session manager persistent state, which might survive warm resets.
+ */
+struct spdm_secure_session_manager_persistent_state {
+	struct spdm_secure_session sessions[SPDM_MAX_SESSION_COUNT];	/**< Secure Sessions. */
+	uint32_t current_session_count;									/**< Current number of active sessions. */
+	uint32_t last_spdm_request_secure_session_id;					/**< Secure session Id of last secure message. */
+	union {
+		bool last_spdm_request_secure_session_id_valid;				/**< Secure session Id validity. */
+		uint32_t unused;											/**< Unused variable to align the size of types which could have different size */
+	};
+};
+
+
+/**
+ * NOTE: It is important to keep these structs as is to make sure binary compatibility
+ * with previous versions
+ */
+_Static_assert (offsetof (struct spdm_secure_session_manager_persistent_state, sessions) == 0,
+	"Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_manager_persistent_state,
+	current_session_count) == 696, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_manager_persistent_state,
+	last_spdm_request_secure_session_id) == 700, "Unexpected struct member offset");
+_Static_assert (offsetof (struct spdm_secure_session_manager_persistent_state,
+	last_spdm_request_secure_session_id_valid) == 704, "Unexpected struct member offset");
+_Static_assert (sizeof (struct spdm_secure_session_manager_persistent_state) == 712,
+	"Unexpected size of struct spdm_secure_session_manager_persistent_state");
+
 
 /**
  * SPDM session manager state.
  */
 struct spdm_secure_session_manager_state {
-	struct spdm_secure_session sessions[SPDM_MAX_SESSION_COUNT];	/**< Secure Sessions. */
-	uint32_t current_session_count;									/**< Current number of active sessions. */
-	uint32_t last_spdm_request_secure_session_id;					/**< Secure session Id of last secure message. */
-	bool last_spdm_request_secure_session_id_valid;					/**< Secure session Id validity. */
+	struct observable observable;	/**< Observer manager for the SPDM session manager. */
 };
 
 struct spdm_secure_session_manager {
 	/**
-	 * Create a new SPDM secure session.
+	 * Create a new SPDM secure session. Caller must call unlock_session() once done using this pointer.
 	 *
 	 * @param session_manager SPDM session manager.
 	 * @param session_id Session Id for the session.
@@ -282,7 +472,7 @@ struct spdm_secure_session_manager {
 		uint32_t session_id);
 
 	/**
-	 * Get an SPDM secure session.
+	 * Get an SPDM secure session. Caller must call "unlock_session" once done using this pointer
 	 *
 	 * @param session_manager SPDM session manager.
 	 * @param session_id Session Id for the session.
@@ -291,6 +481,15 @@ struct spdm_secure_session_manager {
 	 */
 	struct spdm_secure_session* (*get_session) (
 		const struct spdm_secure_session_manager *session_manager, uint32_t session_id);
+
+	/**
+	 * Unlock an SPDM secure session. This function must be called for every create_session and
+	 * get_session() calls.
+	 *
+	 * @param session_manager SPDM session manager.
+	 */
+	void (*unlock_session) (const struct spdm_secure_session_manager *session_manager,
+		struct spdm_secure_session *session);
 
 	/**
 	 * Set the session state for an SPDM secure session.
@@ -394,30 +593,54 @@ struct spdm_secure_session_manager {
 	int (*encode_secure_message) (const struct spdm_secure_session_manager *session_manager,
 		struct cmd_interface_msg *request);
 
-	const struct spdm_device_capability *local_capabilities;	/**< Local capabilities. */
-	const struct spdm_device_algorithms *local_algorithms;		/**< Local algorithms. */
-	struct aes_engine *aes_engine;								/**< AES engine. */
-	struct hash_engine *hash_engine;							/**< Hashing engine. */
-	struct rng_engine *rng_engine;								/**< RNG engine. */
-	struct ecc_engine *ecc_engine;								/**< ECC engine. */
-	const struct spdm_transcript_manager *transcript_manager;	/**< Transcript Manager. */
-	struct spdm_secure_session_manager_state *state;			/**< Session Manager State. */
-	uint64_t max_spdm_session_sequence_number;					/**< Max SPDM session sequence number. */
+	/**
+	 * Check if all established sessions have termination policy set.
+	 *
+	 * @return 0 if all established sessions have termination policy set, error code otherwise.
+	 */
+	int (*is_termination_policy_set) (const struct spdm_secure_session_manager *session_manager);
+
+	const struct spdm_device_capability *local_capabilities;		/**< Local capabilities. */
+	const struct spdm_device_algorithms *local_algorithms;			/**< Local algorithms. */
+	const struct aes_gcm_engine *aes_engine;						/**< AES engine. */
+	const struct hash_engine *hash_engine;							/**< Hashing engine. */
+	const struct rng_engine *rng_engine;							/**< RNG engine. */
+	const struct ecc_engine *ecc_engine;							/**< ECC engine. */
+	const struct spdm_transcript_manager *transcript_manager;		/**< Transcript Manager. */
+	struct spdm_secure_session_manager_state *state;				/**< Session Manager State. */
+	uint64_t max_spdm_session_sequence_number;						/**< Max SPDM session sequence number. */
+	const struct hkdf_interface *hkdf;								/**< HKDF implementation */
+	const struct error_state_entry_interface *error;				/**< Error state management interface */
+	struct spdm_secure_session_manager_algo_info algo_info;			/**< Metadata for used algorithms */
+	const struct spdm_persistent_context_interface *spdm_context;	/**< Persistent context for managing persistent SPDM state. */
 };
 
 
 int spdm_secure_session_manager_init (struct spdm_secure_session_manager *session_manager,
 	struct spdm_secure_session_manager_state *state,
 	const struct spdm_device_capability *local_capabilities,
-	const struct spdm_device_algorithms *local_algorithms, struct aes_engine *aes_engine,
-	struct hash_engine *hash_engine, struct rng_engine *rng_engine, struct ecc_engine *ecc_engine,
-	const struct spdm_transcript_manager *transcript_manager);
+	const struct spdm_device_algorithms *local_algorithms, const struct aes_gcm_engine *aes_engine,
+	const struct hash_engine *hash_engine, const struct rng_engine *rng_engine,
+	const struct ecc_engine *ecc_engine, const struct spdm_transcript_manager *transcript_manager,
+	const struct hkdf_interface *hkdf, const struct error_state_entry_interface *error,
+	struct spdm_secure_session_manager_algo_info algo_info,
+	const struct spdm_persistent_context_interface *spdm_context);
 
 void spdm_secure_session_manager_release (
 	const struct spdm_secure_session_manager *session_manager);
 
 int spdm_secure_session_manager_init_state (
 	const struct spdm_secure_session_manager *session_manager);
+
+int spdm_secure_session_manager_init_persistent_state (
+	const struct spdm_secure_session_manager *session_manager);
+
+int spdm_secure_session_manager_add_spdm_protocol_session_observer (
+	const struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer);
+int spdm_secure_session_manager_remove_spdm_protocol_session_observer (
+	const struct spdm_secure_session_manager *session_manager,
+	const struct spdm_protocol_session_observer *observer);
 
 
 #define	SPDM_SECURE_SESSION_MANAGER_ERROR(\
@@ -442,6 +665,10 @@ enum {
 	SPDM_SECURE_SESSION_MANAGER_INTERNAL_ERROR = SPDM_SECURE_SESSION_MANAGER_ERROR (0x09),				/**< Internal error. */
 	SPDM_SECURE_SESSION_MANAGER_GENERATE_DATA_KEYS_FAILED =
 		SPDM_SECURE_SESSION_MANAGER_ERROR (0x0A),														/**< Generate data keys failed. */
+	SPDM_SECURE_SESSION_MANAGER_TERMINATION_POLICY_NOT_SET =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x0B),														/**< Termination policy is not set for an active session. */
+	SPDM_SECURE_SESSION_MANAGER_IS_TERMINATION_POLICY_SET_FAILED =
+		SPDM_SECURE_SESSION_MANAGER_ERROR (0x0C),														/**< Check for termination policy set failed. */
 };
 
 
