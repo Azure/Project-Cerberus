@@ -15802,6 +15802,66 @@ static void spi_flash_test_enable_quad_spi_quad_enable_bit1_sr2_read_35_volatile
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_enable_quad_spi_quad_enable_bit1_sr2_write_31 (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t read_status = 0;
+	uint8_t reg_enable = 0x00;
+	uint8_t reg_disable = 0xff;
+	uint8_t enable_expected = 0x02;
+	uint8_t disable_expected = 0xfd;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, &reg_enable, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
+		FLASH_EXP_WRITE_REG (0x31, &enable_expected, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_enable_quad_spi (&flash, 1);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, &reg_disable, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
+		FLASH_EXP_WRITE_REG (0x31, &disable_expected, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &read_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_enable_quad_spi (&flash, 0);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_enable_quad_spi_quad_enable_bit6_sr1 (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -16732,6 +16792,47 @@ static void spi_flash_test_is_quad_spi_enabled_quad_enable_bit1_sr2_read_35 (CuT
 	spi_flash_release (&flash);
 }
 
+static void spi_flash_test_is_quad_spi_enabled_quad_enable_bit1_sr2_write_31 (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t reg_enable = 0x02;
+	uint8_t reg_disable = 0xfd;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, &reg_enable, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_quad_spi_enabled (&flash);
+	CuAssertIntEquals (test, 1, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, &reg_disable, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_is_quad_spi_enabled (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
 static void spi_flash_test_is_quad_spi_enabled_quad_enable_bit6_sr1 (CuTest *test)
 {
 	struct spi_flash_state state;
@@ -17386,6 +17487,188 @@ static void spi_flash_test_clear_block_protect_quad_enable_bit6_sr1 (CuTest *tes
 		FLASH_EXP_WRITE_REG (0x01, clear_expected, sizeof (clear_expected)));
 	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
 		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31 (CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t wip_status = 0;
+	uint8_t sr1 = 0xff;
+	uint8_t sr2 = 0x02;
+	uint8_t clear_expected = 0x83;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, FLASH_ID_W25Q16RV,
+		FLASH_ID_LEN, FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr1, 1,
+		FLASH_EXP_READ_REG (0x05, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
+		FLASH_EXP_WRITE_REG (0x01, &clear_expected, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_cmp_set (
+	CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t wip_status = 0;
+	uint8_t sr1 = 0;
+	uint8_t sr2 = 0x42;
+	uint8_t clear_expected = 0x02;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, FLASH_ID_W25Q16RV,
+		FLASH_ID_LEN, FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr1, 1,
+		FLASH_EXP_READ_REG (0x05, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
+		FLASH_EXP_WRITE_REG (0x31, &clear_expected, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_both_set (
+	CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t wip_status = 0;
+	uint8_t sr1 = 0xff;
+	uint8_t sr2 = 0x42;
+	uint8_t sr1_clear_expected = 0x83;
+	uint8_t sr2_clear_expected = 0x02;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, FLASH_ID_W25Q16RV,
+		FLASH_ID_LEN, FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr1, 1,
+		FLASH_EXP_READ_REG (0x05, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
+		FLASH_EXP_WRITE_REG (0x01, &sr1_clear_expected, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, 0,
+		FLASH_EXP_WRITE_REG (0x31, &sr2_clear_expected, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, 0, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_already_clear (
+	CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t sr1 = 0;
+	uint8_t sr2 = 0x02;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, FLASH_ID_W25Q16RV,
+		FLASH_ID_LEN, FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr1, 1,
+		FLASH_EXP_READ_REG (0x05, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -18088,6 +18371,127 @@ static void spi_flash_test_clear_block_protect_error_read_35 (CuTest *test)
 
 	status |= flash_master_mock_expect_xfer (&mock, FLASH_MASTER_XFER_FAILED,
 		FLASH_EXP_READ_REG (0x35, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_sr2_read_error (
+	CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, FLASH_ID_W25Q16RV,
+		FLASH_ID_LEN, FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_READ_REG (0x35, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_sr1_write_error (
+	CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t wip_status = 0;
+	uint8_t sr1 = 0xff;
+	uint8_t sr2 = 0x42;
+	uint8_t clear_expected = 0x83;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, FLASH_ID_W25Q16RV,
+		FLASH_ID_LEN, FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr1, 1,
+		FLASH_EXP_READ_REG (0x05, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_WRITE_REG (0x01, &clear_expected, 1));
+
+	CuAssertIntEquals (test, 0, status);
+
+	status = spi_flash_clear_block_protect (&flash);
+	CuAssertIntEquals (test, FLASH_MASTER_XFER_FAILED, status);
+
+	status = mock_validate (&mock.mock);
+	CuAssertIntEquals (test, 0, status);
+
+	spi_flash_is_write_in_progress (&flash);
+
+	flash_master_mock_release (&mock);
+	spi_flash_release (&flash);
+}
+
+static void spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_sr2_write_error (
+	CuTest *test)
+{
+	struct spi_flash_state state;
+	struct spi_flash flash;
+	struct flash_master_mock mock;
+	int status;
+	uint8_t wip_status = 0;
+	uint8_t sr1 = 0;
+	uint8_t sr2 = 0x42;
+	uint8_t clear_expected = 0x02;
+
+	TEST_START;
+
+	spi_flash_testing_discover_params (test, &flash, &state, &mock, FLASH_ID_W25Q16RV,
+		SFDP_HEADER_W25Q16RV, SFDP_PARAMS_W25Q16RV, SFDP_PARAMS_W25Q16RV_LEN,
+		SFDP_PARAMS_ADDR_W25Q16RV, FULL_CAPABILITIES);
+
+	status = flash_master_mock_expect_rx_xfer (&mock, 0, FLASH_ID_W25Q16RV,
+		FLASH_ID_LEN, FLASH_EXP_READ_REG (0x9f, FLASH_ID_LEN));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr2, 1,
+		FLASH_EXP_READ_REG (0x35, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &sr1, 1,
+		FLASH_EXP_READ_REG (0x05, 1));
+	status |= flash_master_mock_expect_rx_xfer (&mock, 0, &wip_status, 1,
+		FLASH_EXP_READ_STATUS_REG);
+	status |= flash_master_mock_expect_xfer (&mock, 0, FLASH_EXP_WRITE_ENABLE);
+	status |= flash_master_mock_expect_tx_xfer (&mock, FLASH_MASTER_XFER_FAILED,
+		FLASH_EXP_WRITE_REG (0x31, &clear_expected, 1));
 
 	CuAssertIntEquals (test, 0, status);
 
@@ -30002,6 +30406,7 @@ TEST (spi_flash_test_enable_quad_spi_quad_enable_bit1_sr2_no_clear);
 TEST (spi_flash_test_enable_quad_spi_quad_enable_bit1_sr2_no_clear_volatile_write_enable);
 TEST (spi_flash_test_enable_quad_spi_quad_enable_bit1_sr2_read_35);
 TEST (spi_flash_test_enable_quad_spi_quad_enable_bit1_sr2_read_35_volatile_write_enable);
+TEST (spi_flash_test_enable_quad_spi_quad_enable_bit1_sr2_write_31);
 TEST (spi_flash_test_enable_quad_spi_quad_enable_bit6_sr1);
 TEST (spi_flash_test_enable_quad_spi_quad_enable_bit6_sr1_volatile_write_enable);
 TEST (spi_flash_test_enable_quad_spi_quad_enable_bit7_sr2);
@@ -30017,6 +30422,7 @@ TEST (spi_flash_test_is_quad_spi_enabled_no_quad_enable_hold_disable);
 TEST (spi_flash_test_is_quad_spi_enabled_quad_enable_bit1_sr2);
 TEST (spi_flash_test_is_quad_spi_enabled_quad_enable_bit1_sr2_no_clear);
 TEST (spi_flash_test_is_quad_spi_enabled_quad_enable_bit1_sr2_read_35);
+TEST (spi_flash_test_is_quad_spi_enabled_quad_enable_bit1_sr2_write_31);
 TEST (spi_flash_test_is_quad_spi_enabled_quad_enable_bit6_sr1);
 TEST (spi_flash_test_is_quad_spi_enabled_quad_enable_bit7_sr2);
 TEST (spi_flash_test_is_quad_spi_enabled_null);
@@ -30027,6 +30433,10 @@ TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_no_clear);
 TEST (spi_flash_test_clear_block_protect_winbond_cmp_bit_set);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_read_35);
+TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31);
+TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_cmp_set);
+TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_both_set);
+TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_already_clear);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit6_sr1);
 TEST (spi_flash_test_clear_block_protect_quad_enable_bit7_sr2);
 TEST (spi_flash_test_clear_block_protect_volatile_write_enable);
@@ -30043,6 +30453,9 @@ TEST (spi_flash_test_clear_block_protect_error_id);
 TEST (spi_flash_test_clear_block_protect_error_read);
 TEST (spi_flash_test_clear_block_protect_error_write);
 TEST (spi_flash_test_clear_block_protect_error_read_35);
+TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_sr2_read_error);
+TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_sr1_write_error);
+TEST (spi_flash_test_clear_block_protect_quad_enable_bit1_sr2_write_31_sr2_write_error);
 TEST (spi_flash_test_clear_block_protect_error_microchip);
 TEST (spi_flash_test_clear_block_protect_error_infineon_read_str1);
 TEST (spi_flash_test_clear_block_protect_error_infineon_write_str1);

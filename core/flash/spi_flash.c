@@ -1578,6 +1578,7 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 				cmd_len = 2;
 				break;
 
+			case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
 			case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
 				FLASH_XFER_INIT_READ_REG (xfer, FLASH_CMD_RDSR2, &reg[1], 1, 0);
 				status = flash->spi->xfer (flash->spi, &xfer);
@@ -1601,6 +1602,25 @@ int spi_flash_clear_block_protect (const struct spi_flash *flash)
 		if (vendor == FLASH_ID_WINBOND) {
 			cmpl_bp = 0x40;
 			cmpl_mask = 0x03;
+
+			if (flash->state->quad_enable == SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31) {
+				/* CMP is a Winbond protection bit independent of QER.  QER 6 requires SR2 to be
+				 * written separately with 31h, so clear SR1 BP and SR2 CMP independently. */
+				if (reg[0] & ~mask) {
+					reg[0] &= mask;
+					status = spi_flash_write_register (flash, FLASH_CMD_WRSR, reg, 1,
+						flash->state->sr1_volatile);
+					if (status != 0) {
+						goto exit;
+					}
+				}
+
+				if (reg[1] & cmpl_bp) {
+					reg[1] &= cmpl_mask;
+					status = spi_flash_write_register (flash, FLASH_CMD_WRSR2, &reg[1], 1, false);
+				}
+				goto exit;
+			}
 		}
 
 		if ((reg[0] & ~mask) || (reg[1] & cmpl_bp)) {
@@ -2101,6 +2121,11 @@ int spi_flash_enable_quad_spi (const struct spi_flash *flash, uint8_t enable)
 			cmd_len = 1;
 			break;
 
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
+			cmd = FLASH_CMD_RDSR2;
+			cmd_len = 1;
+			break;
+
 		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
 			cmd_len = 1;
 			break;
@@ -2147,6 +2172,19 @@ int spi_flash_enable_quad_spi (const struct spi_flash *flash, uint8_t enable)
 			}
 
 			cmd_len = 2;
+			break;
+
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
+			if (enable) {
+				reg[0] |= QSPI_ENABLE_BIT1;
+			}
+			else {
+				reg[0] &= ~QSPI_ENABLE_BIT1;
+			}
+
+			cmd = FLASH_CMD_WRSR2;
+			cmd_len = 1;
+			volatile_wren = false;
 			break;
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT6_SR1:
@@ -2213,6 +2251,7 @@ int spi_flash_is_quad_spi_enabled (const struct spi_flash *flash)
 			break;
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
 			cmd = FLASH_CMD_RDSR2;
 			cmd_len = 1;
 			break;
@@ -2242,6 +2281,7 @@ int spi_flash_is_quad_spi_enabled (const struct spi_flash *flash)
 			break;
 
 		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_35:
+		case SPI_FLASH_SFDP_QUAD_QE_BIT1_SR2_31:
 			reg[1] = reg[0];
 		/* fall through */ /* no break */
 

@@ -115,7 +115,7 @@ struct spi_flash_sfdp_basic_parameter_table_1_5 {
 #define	SPI_FLASH_SFDP_QER_BIT7_SR2_3E			3
 #define	SPI_FLASH_SFDP_QER_BIT1_SR2_NO_CLR		4
 #define	SPI_FLASH_SFDP_QER_BIT1_SR2_35			5
-#define	SPI_FLASH_SFDP_QER_RESERVED1			6
+#define	SPI_FLASH_SFDP_QER_BIT1_SR2_31			6
 #define	SPI_FLASH_SFDP_QER_RESERVED2			7
 #define	SPI_FLASH_SFDP_HOLD_RST_DISABLE		(1U << 23)
 	uint8_t sr_write_enable;	/**< 16th DWORD: Status register 1 write enable. */
@@ -724,7 +724,6 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 		quad = SPI_FLASH_SFDP_QER (params->quad_enable);
 
 		switch (quad) {
-			case SPI_FLASH_SFDP_QER_RESERVED1:
 			case SPI_FLASH_SFDP_QER_RESERVED2:
 				if (table->sfdp->vendor == FLASH_ID_MICRON_X) {
 					/* The Micron Xcella flash device follows SFDP parameter version 1.6,
@@ -736,6 +735,13 @@ int spi_flash_sfdp_get_quad_enable (const struct spi_flash_sfdp_basic_table *tab
 				else {
 					return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
 				}
+
+			case SPI_FLASH_SFDP_QER_BIT1_SR2_31:
+				/* QER value 6 is reserved in BFPT revisions before 1.7. */
+				if (table->sfdp->sfdp_header.parameter0.minor_revision < 7) {
+					return SPI_FLASH_SFDP_QUAD_ENABLE_UNKNOWN;
+				}
+				break;
 
 			case SPI_FLASH_SFDP_QER_BIT1_SR2_NO_CLR:
 				if ((table->sfdp->vendor == FLASH_ID_WINBOND) &&
